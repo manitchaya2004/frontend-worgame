@@ -22,7 +22,7 @@ const RegisterPage = () => {
   const registerUser = useAuthStore((state)=> state.registerUser)
   const navigate = useNavigate();
 
-  const [snackbar, setSnackbar] = useState<SnackbarState>({
+  const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     type: "info",

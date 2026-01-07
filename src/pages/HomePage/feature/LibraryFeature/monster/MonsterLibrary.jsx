@@ -1,17 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Button, Grid, Typography, Stack, Chip } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import { Title } from "../../AdvantureFeature";
 import BackArrow from "../../../components/BackArrow";
 import StarBackground from "../../../components/StarBackground";
+import { useData } from "../../../hook/useData";
+import { useIdleFrame } from "../../../hook/useIdleFrame";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://25.16.201.205:3000";
+const PAGE_SIZE = 15;
+
+export const getMonsterFrame = (ip, monsterId, frame) => {
+  return `${ip}/img_monster/${monsterId}-idle-${frame}.png`;
+};
+
 const monsters = Array.from({ length: 50 }, (_, i) => ({
   id: i + 1,
   name: `M${i + 1}`,
 }));
+
 const arrowBtnStyle = {
-  minWidth: 40,
-  height: 40,
+  minWidth: 50,
+  height: 50,
   fontSize: 20,
   color: "#fff",
   backgroundColor: "#5a2f1e",
@@ -28,7 +39,7 @@ const arrowBtnStyle = {
   },
 };
 
-const statusComponnet = (title: string) => {
+const statusComponnet = (title) => {
   return (
     <Grid container spacing={2} alignItems="center">
       <Grid size={{ xs: 3 }}>
@@ -65,26 +76,18 @@ const statusComponnet = (title: string) => {
   );
 };
 
-const Info = () => {
+const Info = ({ monster }) => {
   return (
-    <Box
-      sx={{
-        backgroundColor: "#fdf8ef",
-        border: "3px solid #2b1d14",
-        boxShadow: "4px 4px 0 #2b1d14",
-        p: 2,
-        // height: "100%",
-      }}
-    >
+    <Box sx={{ m: 2 }}>
       <Typography
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: 14,
+          fontSize: 18,
           color: "#2b1d14",
           mb: 1,
         }}
       >
-        Monster
+        {monster?.name}
       </Typography>
 
       <Typography
@@ -92,10 +95,11 @@ const Info = () => {
           fontSize: 12,
           color: "#1b1b1b",
           mb: 2,
+          fontFamily : "'Press Start 2P'",
+          fontSize: 14
         }}
       >
-        Lorem Ipsum is simply dummy text of the printing and typesetting
-        industry.
+        {monster?.description }
       </Typography>
 
       <Stack spacing={1}>
@@ -110,9 +114,11 @@ const Info = () => {
 const Defense = () => {
   return <Box>Defense</Box>;
 };
-const DetailMonster = () => {
-  const [tab, setTab] = useState<"info" | "defense">("info");
 
+const DetailMonster = ({ monster }) => {
+  const [tab, setTab] = useState("info");
+
+  const frame = useIdleFrame(2, 300);
   return (
     <Grid container spacing={2} sx={{ height: "100%" }}>
       {/* picture monster */}
@@ -130,14 +136,25 @@ const DetailMonster = () => {
             backgroundColor: "#fdf8ef",
             border: "4px solid #2b1d14",
             boxShadow: "6px 6px 0 #2b1d14",
-            width: "80%",
+            width: "90%",
             height: "90%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          picture monster
+          <img
+            src={getMonsterFrame(API_URL, monster?.id, frame)}
+            alt={monster?.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              imageRendering: "pixelated",
+            }}
+            onError={(e) => {
+              e.currentTarget.src = "/fallback/unknown-monster.png";
+            }}
+          />
         </Box>
       </Grid>
 
@@ -145,58 +162,57 @@ const DetailMonster = () => {
       <Grid size={{ xs: 12, sm: 7, md: 7, lg: 7 }}>
         <Box
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
             // border: "1px solid black",
-            // width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          {/* button tab */}
-          {/* <Stack direction="row" spacing={2} sx={{ mt: 1, ml: 2 }}>
-            <Chip
-              label="Info"
-              clickable
-              color={tab === "info" ? "primary" : "default"}
-              variant={tab === "info" ? "filled" : "outlined"}
-              onClick={() => setTab("info")}
-            />
-            <Chip
-              label="Defense"
-              clickable
-              color={tab === "defense" ? "primary" : "default"}
-              variant={tab === "defense" ? "filled" : "outlined"}
-              onClick={() => setTab("defense")}
-            />
-          </Stack> */}
-          <Stack direction="row" spacing={1} sx={{ p: 1 }}>
-            {["info", "defense"].map((t) => (
-              <Button
-                key={t}
-                onClick={() => setTab(t as any)}
-                sx={{
-                  fontFamily: "'Press Start 2P'",
-                  fontSize: 10,
-                  px: 2,
-                  backgroundColor: tab === t ? "#7a4a34" : "#e7dcc8",
-                  color: tab === t ? "#fff" : "#2b1d14",
-                  border: "2px solid #2b1d14",
-                  boxShadow:
-                    tab === t ? "inset 2px 2px 0 #2b140c" : "2px 2px 0 #2b1d14",
-                  "&:hover": {
-                    backgroundColor: "#d6b46a",
-                  },
-                }}
-              >
-                {t.toUpperCase()}
-              </Button>
-            ))}
-          </Stack>
+          
+          <Box
+            sx={{
+              backgroundColor: "#fdf8ef",
+              border: "3px solid #2b1d14",
+              boxShadow: "4px 4px 0 #2b1d14",
+              p: 2,
+              width: "100%",
+              height: "348px",
+              ml: 1,
+              mr: 2,
+              mt: "20px",
+            }}
+          >
+            <Stack direction="row" spacing={1} sx={{ p: 1 }}>
+              {["info", "defense"].map((t) => (
+                <Button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  sx={{
+                    fontFamily: "'Press Start 2P'",
+                    fontSize: 9,
+                    px: 2,
+                    backgroundColor: tab === t ? "#7a4a34" : "#e7dcc8",
+                    color: tab === t ? "#fff" : "#2b1d14",
+                    border: "2px solid #2b1d14",
+                    boxShadow:
+                      tab === t
+                        ? "inset 2px 2px 0 #2b140c"
+                        : "2px 2px 0 #2b1d14",
+                    "&:hover": {
+                      backgroundColor: "#d6b46a",
+                    },
+                  }}
+                >
+                  {t.toUpperCase()}
+                </Button>
+              ))}
+            </Stack>
 
-          {/* detail */}
-          <Box sx={{ flex: 1 }}>
-            {tab === "info" && <Info />}
-            {tab === "defense" && <Defense />}
+            {/* detail */}
+            <Box sx={{ flex: 1 }}>
+              {tab === "info" && <Info monster={monster} />}
+              {tab === "defense" && <Defense />}
+            </Box>
           </Box>
         </Box>
       </Grid>
@@ -204,40 +220,42 @@ const DetailMonster = () => {
   );
 };
 
-const PAGE_SIZE = 10;
-
-const ListMonster = () => {
+const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
   const [page, setPage] = useState(0);
-  const [direction, setDirection] = useState<1 | -1>(1);
+  const [direction, setDirection] = useState(1);
 
-  const maxPage = Math.ceil(monsters.length / PAGE_SIZE) - 1;
+  const total = listMonster.length;
+  const hasPagination = total > PAGE_SIZE;
 
-  const visibleMonsters = monsters.slice(
-    page * PAGE_SIZE,
-    page * PAGE_SIZE + PAGE_SIZE
-  );
+  const maxPage = hasPagination ? Math.ceil(total / PAGE_SIZE) - 1 : 0;
+
+  const visibleMonsters = hasPagination
+    ? listMonster.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+    : listMonster;
 
   return (
     <Box
       sx={{
-        // width: "100%",
-        height: 64,
-        backgroundColor: "#fdf8ef",
-        border: "4px solid #2b1d14",
-        boxShadow: "4px 4px 0 #2b1d14",
+        width: "100%",
+        height: "100%",
+        // backgroundColor: "#fdf8ef",
+        // border: "4px solid #2b1d14",
+        // boxShadow: "4px 4px 0 #2b1d14",
         display: "flex",
         alignItems: "center",
-        px: 1,
+        p: 1,
         overflow: "hidden",
+        gap: 1,
+        justifyContent: "space-between",
       }}
     >
       {/* ◀ */}
       <Button
+        disabled={!hasPagination || page === 0}
         onClick={() => {
           setDirection(-1);
           setPage((p) => Math.max(p - 1, 0));
         }}
-        disabled={page === 0}
         sx={arrowBtnStyle}
       >
         ◀
@@ -246,7 +264,10 @@ const ListMonster = () => {
       {/* VIEWPORT */}
       <Box
         sx={{
-          flex: 1,
+          // flex: 1,
+          display: "flex",
+          justifyContent: "flex-start",
+          width: "100%",
           height: "100%",
           overflow: "hidden",
           position: "relative",
@@ -270,38 +291,42 @@ const ListMonster = () => {
               height: "100%",
             }}
           >
-            {visibleMonsters.map((m) => (
-              <Box
-                key={m.id}
-                sx={{
-                  width: 40,
-                  height: 40,
-                  backgroundColor: "#e7dcc8",
-                  border: "2px solid #2b1d14",
-                  boxShadow: "2px 2px 0 #2b1d14",
-                  cursor: "pointer",
-                  "&:hover": {
-                    backgroundColor: "#fff",
-                    transform: "translateY(-2px)",
-                  },
-                  "&:active": {
-                    boxShadow: "inset 2px 2px 0 #2b1d14",
-                    transform: "translateY(0)",
-                  },
-                }}
-              />
-            ))}
+            {visibleMonsters.map((m) => {
+              const isActive = selectedMonster?.id === m.id;
+              return (
+                <Box
+                  key={m.id}
+                  onClick={() => onSelectMonster(m)}
+                  sx={{
+                    width: 50,
+                    height: 50,
+                    border: "2px solid #2b1d14",
+                    backgroundColor: isActive ? "#7a4a34" : "#e7dcc8",
+                    boxShadow: isActive
+                      ? "inset 2px 2px 0 #2b140c"
+                      : "2px 2px 0 #2b1d14",
+                    cursor: "pointer",
+                  }}
+                >
+                  <img
+                    src={getMonsterFrame(API_URL, m.id, 1)}
+                    alt={m.name}
+                    style={{ height: "50px" }}
+                  />
+                </Box>
+              );
+            })}
           </motion.div>
         </AnimatePresence>
       </Box>
 
       {/* ▶ */}
       <Button
+        disabled={!hasPagination || page === maxPage}
         onClick={() => {
           setDirection(1);
           setPage((p) => Math.min(p + 1, maxPage));
         }}
-        disabled={page === maxPage}
         sx={arrowBtnStyle}
       >
         ▶
@@ -311,22 +336,32 @@ const ListMonster = () => {
 };
 
 const MonsterLibrary = () => {
+  const { monsters, monsterState, getMonsters, clearMonster } = useData();
+
+  console.log(monsters);
   const MotionBox = motion(Box);
   const navigate = useNavigate();
+
+  const [selectedMonster, setSelectedMonster] = useState(null);
+
+  //Load monster
+  useEffect(() => {
+    getMonsters();
+  }, [getMonsters]);
+
+  // 👉 default เป็นตัวแรก
+  useEffect(() => {
+    if (monsters?.length && !selectedMonster) {
+      setSelectedMonster(monsters[0]);
+    }
+  }, [monsters, selectedMonster]);
+
   return (
     <Box sx={{ m: 2 }}>
       <StarBackground />
-      <BackArrow onClick={()=>navigate('/home/library')}/>
+      <BackArrow onClick={() => navigate("/home/library")} />
       <MotionBox
-        initial={
-          //   {
-          //   opacity: 0,
-          //   scale: 0.85,
-          //   y: "-45%",
-          //   x: "-50%",
-          // }
-          false
-        }
+        initial={false}
         animate={{
           opacity: 1,
           scale: 1,
@@ -351,7 +386,7 @@ const MonsterLibrary = () => {
     0 20px 40px rgba(0,0,0,0.8)
   `,
           width: { xs: "90vw", sm: "90%", md: "70%" },
-          height: "550px",
+          // height: "550px",
           padding: 2,
         }}
       >
@@ -381,17 +416,30 @@ const MonsterLibrary = () => {
           sx={{
             width: "100%",
             height: "420px",
+            justifyContent: "center",
+            alignItems: "center",
             // height: "calc(100% - 60px)",
             // backgroundColor: "pink",
             overflow: "hidden",
             // p: 1,
           }}
         >
-          <DetailMonster />
+          <DetailMonster monster={selectedMonster} />
         </Box>
         {/* tab select Monster */}
-        <Box sx={{ mt: 1, width: "100%" }}>
-          <ListMonster />
+        <Box
+          sx={{
+            mt: 1,
+            width: "100%",
+            justifyContent: "center",
+            display: "flex",
+          }}
+        >
+          <ListMonster
+            listMonster={monsters}
+            selectedMonster={selectedMonster}
+            onSelectMonster={setSelectedMonster}
+          />
         </Box>
       </MotionBox>
     </Box>

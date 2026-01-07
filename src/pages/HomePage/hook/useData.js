@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useStageStore } from "../../../store/useStageStore";
 import { useShopStore } from "../../../store/useShopStore";
 import { useDictionaryStore } from "../../../store/useDictionaryStore";
-
+import { useMonsterStore } from "../../../store/useMonsterStore";
 export const useData = () => {
   /* ================= STAGE ================= */
   const stages = useStageStore((s) => s.stages);
@@ -40,6 +40,13 @@ export const useData = () => {
     [fetchDictionary]
   );
 
+  /* ================= MONSTER ================= */
+  const monsters = useMonsterStore((state) => state.monsters);
+  const monsterState = useMonsterStore((state) => state.loading);
+
+  const getMonsters = useMonsterStore((state) => state.getMonsters);
+  const clearMonster = useMonsterStore((state) => state.clearListMonster);
+
   return {
     /* shop */
     shops,
@@ -59,5 +66,11 @@ export const useData = () => {
     lastWord,
     fetchDictionarys,
     clearDictionary,
+
+    /* monster */
+    monsters,
+    monsterState,
+    getMonsters,
+    clearMonster,
   };
 };

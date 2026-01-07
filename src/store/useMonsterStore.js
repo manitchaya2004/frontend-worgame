@@ -11,7 +11,7 @@ export const useMonsterStore = create((set) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`${API_URL}/monsters`);
+      const res = await fetch(`${API_URL}/monster`);
       if (!res.ok) throw new Error("Failed to fetch monsters");
 
       const data = await res.json();
@@ -20,4 +20,10 @@ export const useMonsterStore = create((set) => ({
       set({ loading: FAILED, error: err.message });
     }
   },
+  clearListMonster : ()=>{
+    set({
+      monsters:[],
+      loading:INITIALIZED,
+    })
+  }
 }));
