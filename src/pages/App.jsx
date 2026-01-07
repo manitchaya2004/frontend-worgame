@@ -1,7 +1,7 @@
 import { Route,Routes } from "react-router-dom";
 import { useEffect } from "react";
 
-import { checkAuth } from "../store/reducers/authentication";
+// import { checkAuth } from "../store/reducers/authentication";
 
 // route
 
