@@ -117,9 +117,9 @@ const RegisterPage = () => {
     if (!validate()) return;
 
     registerUser(
-      formRegister.email,
-      formRegister.username,
-      formRegister.password
+     {email: formRegister.email,
+      username : formRegister.username,
+      password : formRegister.password}
     );
 
     // clearForm();
