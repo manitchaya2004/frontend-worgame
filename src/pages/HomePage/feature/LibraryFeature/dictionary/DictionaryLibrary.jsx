@@ -1,12 +1,12 @@
 import { Box, Typography, Divider, Button } from "@mui/material";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDictionaryStore } from "../../../../../store/useDictionaryStore";
 import { SearchDictionary } from "./SearchDictionary";
 import { useData } from "../../../hook/useData";
 import { SelectComponent } from "../../../components/SelectComponent";
 import BackArrow from "../../../components/BackArrow";
-
+import StarBackground from "../../../components/StarBackground";
 const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const shortType = (type) => {
@@ -24,6 +24,48 @@ const shortType = (type) => {
       return type;
   }
 };
+const Type = [
+  { value: "noun", label: "Noun" },
+  { value: "verb", label: "Verb" },
+  { value: "adjective", label: "Adjective" },
+  { value: "adverb", label: "Adverb" },
+];
+
+const Level = [
+  {
+    value: "A1",
+    label: "A1",
+  },
+  {
+    value: "A2",
+    label: "A2",
+  },
+  {
+    value: "B1",
+    label: "B1",
+  },
+  {
+    value: "B2",
+    label: "B2",
+  },
+];
+
+const Lenght = [
+  { value: 2, label: "2 chars" },
+  { value: 3, label: "3 chars" },
+  { value: 4, label: "4 chars" },
+  { value: 5, label: "5 chars" },
+  { value: 6, label: "6 chars" },
+  { value: 7, label: "7 chars" },
+  { value: 8, label: "8 chars" },
+  { value: 9, label: "9 chars" },
+  { value: 10, label: "10 chars" },
+  { value: 11, label: "11 chars" },
+  { value: 12, label: "12 chars" },
+  { value: 13, label: "13 chars" },
+  { value: 14, label: "14 chars" },
+  { value: 15, label: "15 chars" },
+];
 
 const WordList = ({
   dictionary,
@@ -183,25 +225,26 @@ const WordDetail = ({ dictionary }) => {
       }}
     >
       {/* ===== HEADER ===== */}
-      <Box
-        sx={{
-          mb: 2,
-          pb: 1,
-          borderBottom: "2px dashed #d6b46a",
-        }}
-      >
-        <Typography
+      <Box sx={{ mb: 3 }}>
+        {/* word + type */}
+        <Box
           sx={{
-            fontFamily: `"Press Start 2P"`,
-            fontSize: 18,
-            color: "#2b1d14",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            mb: 1.5,
           }}
         >
-          {dictionary.word}
-        </Typography>
+          <Typography
+            sx={{
+              fontFamily: `"Press Start 2P"`,
+              fontSize: 20,
+              color: "#2b1d14",
+            }}
+          >
+            {dictionary.word}
+          </Typography>
 
-        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-          {/* type badge */}
           {dictionary.type && (
             <Box
               sx={{
@@ -216,23 +259,33 @@ const WordDetail = ({ dictionary }) => {
               {shortType(dictionary.type)}
             </Box>
           )}
-
-          {/* level badge */}
-          {dictionary.level && (
-            <Box
-              sx={{
-                px: 1,
-                py: 0.3,
-                fontSize: 10,
-                backgroundColor: "#e7dcc8",
-                border: "2px solid #2b1d14",
-                fontFamily: `"Press Start 2P"`,
-              }}
-            >
-              {dictionary.level}
-            </Box>
-          )}
         </Box>
+
+        {/* level */}
+        {dictionary.level && (
+          <Box
+            sx={{
+              display: "inline-block",
+              px: 1,
+              py: 0.4,
+              fontSize: 9,
+              backgroundColor: "#e7dcc8",
+              border: "2px solid #2b1d14",
+              fontFamily: `"Press Start 2P"`,
+            }}
+          >
+            Level {dictionary.level}
+          </Box>
+        )}
+
+        {/* divider */}
+        <Box
+          sx={{
+            mt: 2,
+
+            borderBottom: "2px dashed #d6b46a",
+          }}
+        />
       </Box>
 
       {/* ===== MEANING ===== */}
@@ -242,14 +295,32 @@ const WordDetail = ({ dictionary }) => {
           border: "2px solid #d6b46a",
           boxShadow: "inset 2px 2px 0 #fff",
           p: 2,
+          position: "relative",
         }}
       >
+        {/* label */}
+        <Typography
+          sx={{
+            position: "absolute",
+            top: -10,
+            left: 12,
+            backgroundColor: "#fdf8ef",
+            px: 1,
+            fontSize: 9,
+            fontFamily: `"Press Start 2P"`,
+            color: "#7b4a3b",
+          }}
+        >
+          Meaning
+        </Typography>
+
         <Typography
           sx={{
             fontSize: 14,
             fontWeight: 600,
             color: "#1b1b1b",
             lineHeight: 1.8,
+            mt: 1,
           }}
         >
           {dictionary.meaning}
@@ -280,6 +351,8 @@ const DictionaryLibrary = () => {
   const [searchText, setSearchText] = useState(""); // สิ่งที่ใช้ค้นจริง
 
   const [selectLevel, setSelectLevel] = useState("");
+  const [selectType, setSelectType] = useState("");
+  const [selectLength, setSelectLength] = useState("");
 
   const handleSearchChange = () => {
     if (searchInput === searchText) return;
@@ -290,24 +363,33 @@ const DictionaryLibrary = () => {
     clearDictionary();
     fetchDictionary({
       startsWith: selectedLetter,
-      contains: searchText,
+      contains: searchText || undefined,
+      level: selectLevel || undefined,
+      length: selectLength || undefined,
       limit: 50,
       append: false,
     });
-  }, [selectedLetter, searchText, clearDictionary, fetchDictionary]);
+  }, [
+    selectedLetter,
+    searchText,
+    clearDictionary,
+    fetchDictionary,
+    selectLevel,
+    selectLength,
+  ]);
 
   /* ===============================
    load when clear search input
 ================================ */
   useEffect(() => {
     if (searchInput.trim() === "") {
-      fetchDictionary({
-        startsWith: selectedLetter,
-        limit: 50,
-        append: false,
-      });
+      setSearchText("");
     }
-  }, [searchInput, selectedLetter, fetchDictionary]);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setSelectedWord(null);
+  }, [selectLength, selectLevel, selectType]);
 
   /* ===============================
    load more
@@ -317,13 +399,25 @@ const DictionaryLibrary = () => {
 
     fetchDictionary({
       startsWith: selectedLetter,
+      level: selectLevel,
+      length: selectLength,
       limit: 50,
       lastWord,
       append: true,
     });
   };
+
+  // filter type
+  const filteredDictionary = useMemo(() => {
+    return dictionary.filter((item) => {
+      if (selectType && item.type !== selectType) return false;
+      return true;
+    });
+  }, [dictionary, selectType]);
+
   return (
     <Box sx={{ m: 2 }}>
+      <StarBackground />
       <BackArrow onClick={() => navigate("/home/library")} />
       <Box
         sx={{
@@ -387,6 +481,9 @@ const DictionaryLibrary = () => {
                   setSearchText("");
                   setSearchInput("");
                   setSelectedWord(null);
+                  setSelectLength("");
+                  setSelectLevel("");
+                  setSelectType("");
                 }}
                 sx={{
                   cursor: "pointer",
@@ -428,13 +525,28 @@ const DictionaryLibrary = () => {
                 setSearchInput={setSearchInput}
                 setSearchText={setSearchText}
                 handleSearchChange={handleSearchChange}
-                letter={selectedLetter.toLowerCase()}
+                letter={selectedLetter}
               />
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
-              <SelectComponent />
-              <SelectComponent />
-              <SelectComponent />
+              <SelectComponent
+                label="Type"
+                value={selectType}
+                onChange={setSelectType}
+                options={Type}
+              />
+              <SelectComponent
+                label="Level"
+                value={selectLevel}
+                onChange={setSelectLevel}
+                options={Level}
+              />
+              <SelectComponent
+                label="Lenght"
+                value={selectLength}
+                onChange={setSelectLength}
+                options={Lenght}
+              />
             </Box>
           </Box>
           <Box
@@ -446,44 +558,13 @@ const DictionaryLibrary = () => {
               height: "500px",
             }}
           >
-            {/* <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                width: { xs: "60%", mb: "70%" },
-              }}
-            >
-              <Box
-                sx={{
-                  p: 1,
-                  backgroundColor: "#fffaf0",
-                  overflowY: "hidden",
-                  height: "100%",
-                  border: "3px solid #2b1d14",
-                  boxShadow: "inset 0 0 0 2px #e7dcc8, 4px 4px 0 #2b1d14",
-                }}
-              >
-                <WordList
-                  dictionary={dictionary}
-                  hasNext={hasNext}
-                  loading={DictionaryState === "LOADING"}
-                  onLoadMore={loadMore}
-                  onSelect={setSelectedWord}
-                  selectedWord={selectedWord}
-
-                  // searchInput={searchInput}
-                />
-              </Box>
-            </Box> */}
             <WordList
-              dictionary={dictionary}
+              dictionary={filteredDictionary}
               hasNext={hasNext}
               loading={DictionaryState === "LOADING"}
               onLoadMore={loadMore}
               onSelect={setSelectedWord}
               selectedWord={selectedWord}
-              // roleAdmin={currentUser?.role}
-              // searchInput={searchInput}
             />
 
             <WordDetail dictionary={selectedWord} />

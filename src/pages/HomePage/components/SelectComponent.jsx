@@ -1,6 +1,5 @@
 import { Select, FormControl, InputLabel, MenuItem } from "@mui/material";
 
-
 export const SelectComponent = ({
   label,
   value,
@@ -8,13 +7,22 @@ export const SelectComponent = ({
   options,
 }) => {
   return (
-    <FormControl sx={{  mb: 1,minWidth: {xs:52,sm:109,md:121,lg:170} }} >
-      <InputLabel id="select-label">{label}</InputLabel>
+    <FormControl
+      sx={{ mb: 1, minWidth: { xs: 52, sm: 109, md: 121, lg: 170 } }}
+      size="small"
+    >
       <Select
-        value={value}
-        // onChange={(e) =>
-        //   onChange(e.target.value ? String(e.target.value) : null)
-        // }
+        value={value ?? ""}
+        displayEmpty
+        onChange={(e) =>
+          onChange(e.target.value ? String(e.target.value) : null)
+        }
+        renderValue={(selected) => {
+          if (!selected) {
+            return <span style={{ opacity: 0.6 }}>{label}</span>;
+          }
+          return selected;
+        }}
         sx={{
           fontFamily: `"Press Start 2P"`,
           fontSize: 10,
@@ -22,14 +30,17 @@ export const SelectComponent = ({
           backgroundColor: "#e7dcc8",
           border: "2px solid #2b1d14",
           boxShadow: "2px 2px 0 #2b1d14",
+
           "& .MuiSelect-select": {
             display: "flex",
             alignItems: "center",
             padding: "6px 8px",
           },
-          "& fieldset": {
+
+          "& .MuiOutlinedInput-notchedOutline": {
             border: "none",
           },
+
           "& svg": {
             color: "#2b1d14",
           },
@@ -40,6 +51,8 @@ export const SelectComponent = ({
               backgroundColor: "#fdf8ef",
               border: "2px solid #2b1d14",
               boxShadow: "3px 3px 0 #2b1d14",
+
+              maxHeight: 200, // ⭐ คุมความสูง
             },
           },
         }}
@@ -55,7 +68,8 @@ export const SelectComponent = ({
           ALL
         </MenuItem>
 
-        {/* {options.map((opt) => (
+        {options?.map((opt) => (
+
           <MenuItem
             key={opt.value}
             value={opt.value}
@@ -66,7 +80,7 @@ export const SelectComponent = ({
           >
             {opt.label}
           </MenuItem>
-        ))} */}
+        ))}
       </Select>
     </FormControl>
   );
