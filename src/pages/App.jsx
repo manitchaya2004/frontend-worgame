@@ -16,7 +16,7 @@ import GamePage from "./GamePage/GamePage";
 import AuthPage from "./AuthPage";
 import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";
 import LibraryFeature from "./HomePage/feature/LibraryFeature";
-import AdminPage from "./AdminPage/index.jsx";
+import AdminPage from "./AdminPage/AdminPage";
 // import NotFoundPage from "./NotFoundPage";
 export default function App() {
   const authLoading = useAuthStore((state) => state.authLoading);
