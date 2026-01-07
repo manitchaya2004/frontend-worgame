@@ -57,20 +57,15 @@ export const PlayerEntity = ({ store }) => {
         {/* CHARACTER SPRITE */}
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
            <motion.div
-             // ✅ ใส่ Logic Scale กลับคืนมา (เดิน = 1.5, ตี = เด้งไป 2.0)
-             animate={{ scale: isAttack ? [1.5, 2.0, 1.5] : 1.5 }}
-             transition={{ duration: 0.4 }}
-             
              style={{
                // ✅ ใส่ Logic Width กลับคืนมา (เดิน = เต็มกล่องปกติ, ตี = กล่องกว้าง)
-               width: isAttack ? DISPLAY_WIDE : "100%",
+               scale:2.0,
+               width: DISPLAY_NORMAL,
                height: DISPLAY_NORMAL,
-               
                position: "absolute",
                bottom: 0,
                left: "50%",
                x: "-50%",
-               
                // ตรงนี้จะเปลี่ยนรูปเองตาม animFrame (walk-1 <-> walk-2)
                backgroundImage: `url(${ipAddress}/img_hero/${playerData.name}-${finalSprite}.png)`,
                backgroundSize: "auto 100%",

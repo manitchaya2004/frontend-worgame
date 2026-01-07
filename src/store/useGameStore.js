@@ -187,7 +187,7 @@ export const useGameStore = create((set, get) => ({
       // ----------------------------------------------------------------------
       // ✅ 1. ANIMATION LOOP (สับขาตามเวลา 0.5 วินาที)
       // ----------------------------------------------------------------------
-      const ANIM_SPEED = 200; // ความเร็วตามที่ขอ (0.5 วินาที)
+      const ANIM_SPEED = 300; // แก้ไขว่าอยากให้ขยับทุกๆกี่วิ
       
       let newTimer = (state.animTimer || 0) + dt;
       
@@ -379,7 +379,11 @@ export const useGameStore = create((set, get) => ({
         continue;
       }
 
+      // 🔥 SKILL (QUIZ)
       if (actionMove === "SKILL") {
+        // ✅ 1. เก็บค่า originalX ไว้ก่อนทำอะไรทั้งสิ้น (แก้ ReferenceError)
+        const originalX = en.x;
+
         const vocabList = store.dictionary;
         const correctEntry = vocabList[Math.floor(Math.random() * vocabList.length)];
         
@@ -395,16 +399,18 @@ export const useGameStore = create((set, get) => ({
           .map((w) => w.word);
 
         const finalChoices = [correctEntry.word, ...choices].sort(() => 0.5 - Math.random());
-        const originalX = en.x;
 
+        // ✅ 2. สั่งเดินมาหาผู้เล่น (เว้นระยะ +25)
         get().updateEnemy(en.id, {
-          x: PLAYER_X_POS - 10,
+          x: PLAYER_X_POS + 25, 
           shoutText: correctEntry.meaning,
-          atkFrame: 1,
+          atkFrame: 1, // ท่าเดิน/เตรียม
         });
 
-        await delay(300);
+        // ✅ 3. รอให้เดินมาถึง (1 วินาที ให้สัมพันธ์กับ Tween Duration)
+        await delay(1000); 
 
+        // เริ่ม Quiz
         set({ 
           gameState: "QUIZ_MODE",
           currentQuiz: {
@@ -421,7 +427,9 @@ export const useGameStore = create((set, get) => ({
 
         set({ gameState: "ENEMYTURN" });
         await delay(50);
-        get().updateEnemy(en.id, { x: PLAYER_X_POS, atkFrame: 2 });
+        
+        // ขยับเข้าไปฟันอีกนิด (Animation)
+        get().updateEnemy(en.id, { x: PLAYER_X_POS + 10, atkFrame: 2 }); 
 
         if (isCorrect) {
           set({ isDodging: true });
@@ -435,13 +443,17 @@ export const useGameStore = create((set, get) => ({
 
         await delay(1000);
         set({ isDodging: false });
+
+        // ✅ 4. สั่งเดินกลับไปที่เดิม (ใช้ค่าที่เก็บไว้)
         get().updateEnemy(en.id, {
           x: originalX,
           atkFrame: 0,
           shoutText: "",
           currentStep: nextStep,
         });
-        await delay(500);
+        
+        // ✅ 5. รอเดินกลับ
+        await delay(1000); 
       }
 
       if (get().playerData.hp <= 0) {
