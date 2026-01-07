@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import BackArrow from "../../components/BackArrow";
 import { Title } from "../AdvantureFeature";
-
+import StarBackground from "../../components/StarBackground";
 const libraryCardStyle = {
   cursor: "pointer",
   position: "relative",
@@ -73,6 +73,7 @@ const LibraryFeature = () => {
   //   const;
   return (
     <Box sx={{ m: 2 }}>
+      <StarBackground />
       <BackArrow onClick={() => navigate("/home")} />
       <MotionBox
         initial={false}

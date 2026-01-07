@@ -14,7 +14,7 @@ import { Title } from "./AdvantureFeature";
 import BackArrow from "../components/BackArrow";
 import { useLoadData } from "../../AuthPage/LoginPage/hook/useLoadData";
 import { Loading } from "../../../components/Loading/Loading";
-
+import StarBackground from "../components/StarBackground";
 
 export const SpellCard = ({
   name,
@@ -239,6 +239,7 @@ const ShopSpellFeature = () => {
 
   return (
     <Box sx={{ mt: 2 }}>
+      <StarBackground/>
       <BackArrow onClick={() => navigate("/home")} />
       <Box
         sx={{

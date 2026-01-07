@@ -4,6 +4,7 @@ import { Box, Button, Grid, Typography, Stack, Chip } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import { Title } from "../../AdvantureFeature";
 import BackArrow from "../../../components/BackArrow";
+import StarBackground from "../../../components/StarBackground";
 const monsters = Array.from({ length: 50 }, (_, i) => ({
   id: i + 1,
   name: `M${i + 1}`,
@@ -314,6 +315,7 @@ const MonsterLibrary = () => {
   const navigate = useNavigate();
   return (
     <Box sx={{ m: 2 }}>
+      <StarBackground />
       <BackArrow onClick={()=>navigate('/home/library')}/>
       <MotionBox
         initial={

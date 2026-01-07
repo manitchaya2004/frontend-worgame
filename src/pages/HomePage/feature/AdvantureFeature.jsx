@@ -8,7 +8,7 @@ import { GameDialog } from "../../../components/GameDialog";
 import BackArrow from "../components/BackArrow";
 import { useLoadData } from "../../AuthPage/LoginPage/hook/useLoadData";
 import { Loading } from "../../../components/Loading/Loading";
-
+import StarBackground from "../components/StarBackground";
 const DetailItem = memo(({ orderNo, name, handleStageClick }) => {
   return (
     <HoverListItem onClick={() => handleStageClick({ orderNo, name })}>
@@ -53,28 +53,6 @@ const ListSection = memo(({ stages, handleStageClick }) => {
         />
       ))}
     </Box>
-    // <Box
-    //   sx={{
-    //     height: "100%",
-    //     overflow: "auto",
-    //     display: "flex",
-    //     flexDirection: "column",
-    //     // gap: 1,
-    //     pr: 1,
-    //   }}
-    //   role="listbox-1"
-    // >
-
-    //   {list.map((item) => (
-    //     <ReportItem
-    //       key={item.id}
-    //       ReportItem={item}
-    //       isSelected={selectedReportId === item.id}
-    //       onSelect={onSelectReport}
-    //       isUpdating={isUpdating}
-    //     />
-    //   ))}
-    // </Box>
   );
 });
 export const Title = ({ title }) => {
@@ -182,17 +160,11 @@ const AdvantureFeature = () => {
 
   return (
     <Box sx={{ m: 2 }}>
+      <StarBackground />
+      
       <BackArrow onClick={() => navigate("/home")} />
       <MotionBox
-        initial={
-          //   {
-          //   opacity: 0,
-          //   scale: 0.85,
-          //   y: "-45%",
-          //   x: "-50%",
-          // }
-          false
-        }
+        initial={false}
         animate={{
           opacity: 1,
           scale: 1,
