@@ -2,11 +2,13 @@ import { PLAYER_X_POS, FIXED_Y } from "../../const/index";
 import { sfx } from "../../utils/sfx";
 import { CombatSystem, InventoryUtils, DeckManager } from "../../utils/gameSystem";
 
-// ✅ ฟังก์ชันหน่วงเวลา
+// ✅ ฟังก์ชันหน่วงเวลา (Helper)
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const createPlayerSlice = (set, get) => ({
-  // --- STATE ---
+  // --------------------------------------------------------------------------
+  // 🟢 STATE
+  // --------------------------------------------------------------------------
   playerData: {
     name: "chara",
     max_hp: 100,
@@ -24,10 +26,18 @@ export const createPlayerSlice = (set, get) => ({
   },
   playerX: PLAYER_X_POS,
   playerShoutText: "",
-  isGuarding: false,
-  actionPhase: "IDLE", // IDLE | RUSH | ATTACK
+  
+  // ✅ เก็บแค่ Visual (ชื่อท่า) ส่วน animFrame ให้ GameSlice จัดการ
+  playerVisual: "idle", 
 
-  // --- ACTIONS ---
+  isGuarding: false, 
+  actionPhase: "IDLE", 
+
+  // --------------------------------------------------------------------------
+  // 🔵 ACTIONS
+  // --------------------------------------------------------------------------
+
+  // ❌ ลบ tickGameAnim ออก (เพราะ GameSlice ทำหน้าที่นี้แทนแล้ว)
 
   updatePlayer: (data) =>
     set((s) => ({
@@ -39,6 +49,7 @@ export const createPlayerSlice = (set, get) => ({
     let remainingDmg = dmg;
     let newShield = stat.shield;
 
+    // --- LOGIC BLOCK (โล่) ---
     if (newShield > 0) {
       const blockAmount = Math.min(newShield, remainingDmg);
       newShield -= blockAmount;
@@ -46,16 +57,20 @@ export const createPlayerSlice = (set, get) => ({
 
       if (remainingDmg === 0) {
         sfx.playBlock();
-        set({ isGuarding: true });
-        setTimeout(() => { set({ isGuarding: false }); }, 600);
+        set({ isGuarding: true, playerVisual: "guard-1" });
+        setTimeout(() => { 
+            set({ isGuarding: false, playerVisual: "idle" }); 
+        }, 600);
       }
       get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 70, value: 0, isPlayer: true });
     }
 
     const newHp = Math.max(0, stat.hp - remainingDmg);
     let newMp = stat.mp;
+
+    // --- LOGIC HIT (โดนตี) ---
     if (remainingDmg > 0) {
-      set({ isGuarding: false }); 
+      set({ isGuarding: false, playerVisual: "idle" }); 
       const mpGainOnHit = remainingDmg; 
       newMp = Math.min(stat.max_mp, stat.mp + mpGainOnHit);
       get().addPopup({ id: Math.random(), x: PLAYER_X_POS + 20, y: FIXED_Y - 90, value: mpGainOnHit, isPlayer: true }); 
@@ -80,6 +95,7 @@ export const createPlayerSlice = (set, get) => ({
 
     set((s) => ({
       gameState: "PLAYERTURN",
+      playerVisual: "idle",
       playerData: {
         ...s.playerData,
         rp: s.playerData.max_rp,
@@ -105,7 +121,7 @@ export const createPlayerSlice = (set, get) => ({
   },
 
   // -----------------------------------------------------
-  // ✅ ส่วนที่ปรับจังหวะอนิเมชั่น (STEP-BY-STEP)
+  // ✅ ส่วนควบคุม Animation ขั้นตอนการโจมตี
   // -----------------------------------------------------
   castSkill: async (skill, chosenWord, targetIds, usedIndices) => {
     const store = get();
@@ -126,6 +142,7 @@ export const createPlayerSlice = (set, get) => ({
     set((s) => ({
       playerShoutText: skill.name,
       gameState: "ACTION",
+      playerVisual: "idle",
       playerData: {
         ...s.playerData,
         inventory: currentInv, 
@@ -134,80 +151,73 @@ export const createPlayerSlice = (set, get) => ({
       },
     }));
 
-    await store.waitAnim(300); // รอ UI อัปเดตแป๊บนึง
+    await store.waitAnim(300); 
 
     const isBasicMove = (skill.mpCost || 0) === 0;
 
-    // --- CASE 1: SHIELD (อยู่กับที่) ---
+    // --- CASE 1: SHIELD ---
     if (skill.effectType === "SHIELD") {
       let shieldAmount = isBasicMove 
         ? chosenWord.length * skill.basePower 
         : skill.basePower;
+      
+      set({ playerVisual: "guard-1" });
       set((s) => ({ playerData: { ...s.playerData, shield: s.playerData.shield + shieldAmount } }));
       get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: shieldAmount, isPlayer: false });
+      
+      await delay(500);
+      set({ playerVisual: "idle" });
     } 
     
-    // --- CASE 2: DAMAGE (มีการเคลื่อนที่) ---
+    // --- CASE 2: DAMAGE ---
     else if (skill.effectType === "DAMAGE") {
       const originalX = PLAYER_X_POS;
       const firstTarget = get().enemies.find(e => e.id === targetIds[0]);
       
-      // ============================================
-      // 🟢 STEP 1: RUSH (พุ่งไปหา)
-      // ============================================
+      // 🟢 STEP 1: RUSH
       if (firstTarget) {
         set({ 
-          playerX: firstTarget.x - 10, // หยุดหน้าศัตรู
-          actionPhase: "RUSH"          // เปลี่ยนท่าเป็นวิ่ง
+          playerX: firstTarget.x - 10,
+          playerVisual: "walk"
         }); 
-        
-        // ⏳ รอให้ตัวละครวิ่งไปถึงจริงๆ (เพิ่มเวลาเผื่อไว้ให้ถึงชัวร์ๆ)
-        await delay(500); 
+        await delay(200); 
       }
 
-      // ============================================
-      // 🔴 STEP 2: ATTACK (ยืนนิ่งแล้วโจมตี)
-      // ============================================
-      set({ actionPhase: "ATTACK" }); // เปลี่ยนท่าเป็นง้างโจมตี
-      
+      // 🔴 STEP 2: ATTACK
       const hitsPerTarget = skill.hitCount || 1;
       for (const targetId of targetIds) {
         for (let i = 0; i < hitsPerTarget; i++) {
           const target = get().enemies.find((e) => e.id === targetId);
           if (!target || target.hp <= 0) break;
 
-          let finalDamage = CombatSystem.calculateDamage(skill, chosenWord, target);
+          set({ playerVisual: "attack-1" }); // ง้าง
+          await delay(400);
+
           sfx.playHit(); 
+          set({ playerVisual: "attack-2" }); // ฟัน
+          let finalDamage = CombatSystem.calculateDamage(skill, chosenWord, target);
           get().damageEnemy(targetId, finalDamage);
 
-          // ⏳ รอให้ Animation โจมตีเล่น (ง้าง -> ฟัน)
           await delay(400); 
         }
       }
 
-      // รอหลังโจมตีเสร็จนิดนึง ก่อนจะวิ่งกลับ
       await delay(200);
 
-      // ============================================
-      // 🔵 STEP 3: RETURN (วิ่งกลับ)
-      // ============================================
+      // 🔵 STEP 3: RETURN
       set({ 
         playerX: originalX, 
-        actionPhase: "RUSH" // เปลี่ยนท่าเป็นวิ่งกลับ
+        playerVisual: "walk"
       });
-      
-      // ⏳ รอให้ตัวละครวิ่งกลับมาถึงที่เดิม
       await delay(500);
     }
 
-    // ============================================
-    // STEP 4: FINISH (จบเทิร์น)
-    // ============================================
-    set({ actionPhase: "IDLE" }); // กลับมายืนท่าปกติ
+    // STEP 4: FINISH
+    set({ playerVisual: "idle" });
     set({ playerShoutText: "" });
     await delay(200);
 
-    // ตรวจสอบจบเกม / จบเวฟ
+    // ตรวจสอบจบเกม
     if (get().enemies.filter((e) => e.hp > 0).length === 0) {
       const nextWave = store.currentWave + 1;
       if (store.stageData && store.stageData[nextWave]) {

@@ -36,8 +36,7 @@ export default function GameApp() {
   const [errorMessage, setErrorMessage] = useState("");
   const [castingSkill, setCastingSkill] = useState(null);
   const [selectedTargets, setSelectedTargets] = useState([]);
-  const [isPlayerAttacking, setIsPlayerAttacking] = useState(false);
-  const [playerAtkFrame, setPlayerAtkFrame] = useState(0);
+
   const [animFrame, setAnimFrame] = useState(0);
   const [validWordInfo, setValidWordInfo] = useState(null);
   const [hoveredEnemyId, setHoveredEnemyId] = useState(null);
@@ -268,15 +267,6 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
   const executeSkill = async (skill, word, targets) => {
     const usedIndices = activeSelectedItems.map((item) => item.originalIndex);
 
-    // Animation Effect
-    setIsPlayerAttacking(true);
-    setPlayerAtkFrame(1);
-    setTimeout(() => setPlayerAtkFrame(2), 400);
-    setTimeout(() => {
-      setIsPlayerAttacking(false);
-      setPlayerAtkFrame(0);
-    }, 1000);
-
     // Log & Clear
     addLog(`${skill.effectType === "DAMAGE" ? "⚔️" : "🛡️"} ใช้สกิล "${skill.name}"`, "success");
     setSelectedLetters(new Array(store.playerData.unlockedSlots).fill(null));
@@ -357,8 +347,6 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
 
           <PlayerEntity
             store={store}
-            isPlayerAttacking={isPlayerAttacking}
-            playerAtkFrame={playerAtkFrame}
             animFrame={animFrame}
             onAnimationComplete={() => store.notifyAnimationComplete()}
           />
