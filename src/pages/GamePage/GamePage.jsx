@@ -5,11 +5,11 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import { Reorder, AnimatePresence } from "framer-motion";
+import { Reorder, AnimatePresence, motion } from "framer-motion"; 
 
 import { ipAddress } from "../../const";
 
-// Store & Types (ถ้าใช้ JSX ไม่ต้อง import type)
+// Store & Types
 import { useGameStore } from "../../store/useGameStore";
 
 // Utils & Config
@@ -17,47 +17,126 @@ import { DeckManager, InventoryUtils } from "../../utils/gameSystem";
 
 // Components
 import { InventorySlot } from "./features/downPanel/InventorySlot";
-import { SkillBar } from "./features/DownPanel/SkillBar";
 import { PlayerEntity } from "./features/TopPanel/PlayerEntity";
 import { EnemyEntity } from "./features/TopPanel/EnemyEntity";
 import { MeaningPopup } from "./features/TopPanel/MeaningPopup";
 import { QuizOverlay } from "./features/DownPanel/QuizOverlay";
 import { Tooltip } from "./features/TopPanel/Tooltip";
 import { BattleLog } from "./features/DownPanel/BattleLog";
+import { ActionPanel } from "./features/DownPanel/ActionPanel"; 
 
 import LoadingView from "../../components/LoadingView";
 import ErrorView from "../../components/ErrorView";
 
+// ============================================================================
+// 🆕 COMPONENT: TURN QUEUE BAR
+// ============================================================================
+const TurnQueueBar = ({ store }) => {
+  const { turnQueue, activeCombatant, enemies, gameState } = store;
+
+  if (!turnQueue || turnQueue.length === 0 || gameState === "ADVANTURE") return null;
+
+  return (
+    <div style={styles.queueContainer}>
+      <div style={styles.queueList}>
+        <AnimatePresence mode="popLayout">
+          {turnQueue.map((unit, index) => {
+            const isCurrentTurn = index === 0; 
+            
+            let imgSrc = "";
+            if (unit.type === "player") {
+              imgSrc = `${ipAddress}/img_hero/${store.playerData.name}-idle-1.png`; 
+            } else {
+              const enemyData = enemies.find(e => e.id === unit.id);
+              if (enemyData) {
+                imgSrc = `${ipAddress}/img_monster/${enemyData.monster_id}-idle-1.png`;
+              } else {
+                 imgSrc = "https://via.placeholder.com/50/57606f/ffffff?text=DEAD";
+              }
+            }
+
+            return (
+              <motion.div
+                key={unit.uniqueId}
+                layout 
+                initial={{ opacity: 0, scale: 0.5, x: 50 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: isCurrentTurn ? 1.3 : 1, 
+                  x: 0,
+                  borderColor: isCurrentTurn ? "#f1c40f" : "#7f8c8d",
+                  zIndex: isCurrentTurn ? 10 : 1
+                }}
+                exit={{ opacity: 0, scale: 0, y: -20, transition: { duration: 0.2 } }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                style={{
+                  ...styles.queueCard,
+                  boxShadow: isCurrentTurn ? "0 0 15px #f1c40f, 0 4px 0 #000" : "0 3px 0 #000"
+                }}
+              >
+                {isCurrentTurn && (
+                   <motion.div 
+                     initial={{ y: -10 }} 
+                     animate={{ y: 0 }} 
+                     transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.5 }}
+                     style={styles.activeArrow}
+                   >
+                     ▼
+                   </motion.div>
+                )}
+
+                <div style={styles.queueImgFrame}>
+                  <img 
+                    src={imgSrc} 
+                    alt={unit.name} 
+                    style={styles.queueImg} 
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=?'; }}
+                  />
+                </div>
+
+                <div style={{
+                    ...styles.queueSpeedBadge,
+                    background: isCurrentTurn ? "#e74c3c" : "#e67e22"
+                }}>
+                  {unit.originalInitiative}
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// 🎮 MAIN COMPONENT: GameApp
+// ============================================================================
 export default function GameApp() {
   const store = useGameStore();
 
-  // --- LOCAL UI STATE ---
   const [appStatus, setAppStatus] = useState("LOADING");
   const [errorMessage, setErrorMessage] = useState("");
-  const [castingSkill, setCastingSkill] = useState(null);
-  const [selectedTargets, setSelectedTargets] = useState([]);
-
+  
+  // State ใหม่สำหรับ Action
+  const [pendingAction, setPendingAction] = useState(null); // 'ATTACK' | 'SHIELD'
+  
   const [animFrame, setAnimFrame] = useState(0);
   const [validWordInfo, setValidWordInfo] = useState(null);
   const [hoveredEnemyId, setHoveredEnemyId] = useState(null);
   const [logs, setLogs] = useState([]);
 
-  // ✅ ดึง Inventory จาก Store มาใช้
   const inventory = store.playerData.inventory || [];
   
-  // ✅ เก็บตัวอักษรที่ถูกเลือกมาวางเป็นคำ (Local State เพราะต้องใช้ Reorder)
   const [selectedLetters, setSelectedLetters] = useState(
     new Array(store.playerData.unlockedSlots).fill(null)
   );
-
-  const previousGameState = useRef(store.gameState);
 
   const constraintsRef = useRef(null);
   const requestRef = useRef(0);
   const lastTimeRef = useRef(0);
 
-  // เพิ่ม State สำหรับคุมการเปิด/ปิดเมนูเลือกเป้าหมาย
-const [showTargetPicker, setShowTargetPicker] = useState(false);
+  const [showTargetPicker, setShowTargetPicker] = useState(false);
 
   // --- COMPUTED ---
   const activeSelectedItems = useMemo(
@@ -87,7 +166,7 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
     });
   }, []);
 
-  // --- GAME LOOP & INIT ---
+  // --- INIT ---
   const initGameData = async () => {
     setAppStatus("LOADING");
     try {
@@ -124,67 +203,41 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
     }
   }, [appStatus]);
 
-  // --- GAME LOGIC HANDLERS ---
-  
-  // รีเซ็ตการร่ายสกิล
-  const resetCasting = useCallback(() => {
-    setCastingSkill(null);
-    setSelectedTargets([]);
+  // --- LOGIC ---
+  const resetSelection = useCallback(() => {
+    setPendingAction(null);
+    setShowTargetPicker(false);
   }, []);
 
-  // ตรวจสอบคำศัพท์จาก Dictionary ใน Store
   useEffect(() => {
     if (!currentWord) {
       setValidWordInfo(null);
-      resetCasting();
+      resetSelection();
       return;
     }
     const found = store.dictionary.find(
       (d) => d.word.toLowerCase() === currentWord
     );
     setValidWordInfo(found || null);
-    if (!found) resetCasting();
-  }, [currentWord, store.dictionary, resetCasting]);
+    if (!found) resetSelection();
+  }, [currentWord, store.dictionary, resetSelection]);
 
-  // คำนวณความเสียหายเบื้องต้นเพื่อแสดงผลใน Tooltip
+  // คำนวณความเสียหายพื้นฐาน (Word Length * Multiplier)
   const getDamageInfo = () => {
-    if (!castingSkill) return { text: "0", value: 0, isWeak: false };
-    const isBasic = (castingSkill.mpCost || 0) === 0;
-
-    if (castingSkill.effectType === "DAMAGE") {
-      if (isBasic) {
-        let weightedScore = 0;
-        let hasWeakness = false;
-        if (hoveredEnemy?.weakness_list) {
-          for (const char of currentWord) {
-            const weakData = hoveredEnemy.weakness_list.find(
-              (w) => w.alphabet.toLowerCase() === char
-            );
-            if (weakData) {
-              weightedScore += weakData.multiplier;
-              hasWeakness = true;
-            } else {
-              weightedScore += 1;
-            }
-          }
-        } else {
-          weightedScore = currentWord.length;
-        }
-        const finalDmg = (weightedScore * (castingSkill.basePower || 1)).toFixed(1);
-        return { text: `${finalDmg}`, value: parseFloat(finalDmg), isWeak: hasWeakness };
-      }
-      return { text: `${castingSkill.damageMin || 0}`, value: castingSkill.damageMin || 0, isWeak: false };
-    }
+    if (!validWordInfo) return { text: "-", value: 0 };
     
-    if (castingSkill.effectType === "SHIELD") {
-      const shieldVal = isBasic ? currentWord.length * (castingSkill.basePower || 1) : (castingSkill.basePower || 0);
-      return { text: `+${shieldVal}`, value: shieldVal, isWeak: false };
+    const wordLen = currentWord.length;
+    // แสดงทั้ง ATK และ SHIELD
+    // ATK = len * 2
+    // SHIELD = len * 3
+    return {
+        text: `ATK: ${wordLen * 2} | DEF: ${wordLen * 3}`,
+        atkValue: wordLen * 2,
+        defValue: wordLen * 3
     }
-    return { text: "-", value: 0, isWeak: false };
   };
 
-  // --- INTERACTION HANDLERS ---
-
+  // --- INTERACTION ---
   const handleSelectLetter = (item, idx) => {
     if (store.gameState !== "PLAYERTURN") return;
     const emptyIdx = selectedLetters.findIndex((s) => s === null);
@@ -193,7 +246,6 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
       newSelected[emptyIdx] = item;
       setSelectedLetters(newSelected);
 
-      // นำออกจาก Inventory ใน Store
       const newInv = [...inventory];
       newInv[idx] = null;
       store.setInventory(newInv);
@@ -203,7 +255,6 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
   const handleDeselectLetter = (idx) => {
     const item = selectedLetters[idx];
     if (item && store.gameState === "PLAYERTURN") {
-      // คืนเข้า Inventory ใน Store
       const newInv = InventoryUtils.returnItems(
         inventory,
         [item],
@@ -211,7 +262,6 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
       );
       store.setInventory(newInv);
 
-      // เอาออกจากแถบคำศัพท์ และเลื่อนตัวที่เหลือมาข้างหน้า
       const newSelected = [...selectedLetters];
       newSelected[idx] = null;
       const remaining = newSelected.filter((l) => l !== null);
@@ -234,74 +284,56 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
     setSelectedLetters(new Array(store.playerData.unlockedSlots).fill(null));
   }, [activeSelectedItems, inventory, store]);
 
-    const handleSkillClick = (skill) => {
-      if (store.playerData.mp < (skill.mpCost || 0)) {
-        addLog("MP ไม่พอ!", "info");
-        return;
+
+  // 🔥 MAIN ACTIONS 🔥
+  const onAttackClick = () => {
+      if (!validWordInfo) return;
+      setPendingAction("ATTACK");
+      // ถ้าศัตรูเหลือตัวเดียว ตีเลย
+      const alive = store.enemies.filter(e => e.hp > 0);
+      if (alive.length === 1) {
+          executeAction("ATTACK", alive[0].id);
+      } else {
+          setShowTargetPicker(true);
       }
-
-      if (skill.targetType === "SELF") {
-        executeSkill(skill, currentWord, ["PLAYER"]); // ส่ง ID พิเศษสำหรับตัวเอง
-      } else if (skill.targetType === "ALL") {
-        // เลือกศัตรูที่ยังมีชีวิตอยู่ทั้งหมด
-        const allAliveIds = store.enemies.filter(e => e.hp > 0).map(e => e.id);
-        executeSkill(skill, currentWord, allAliveIds);
-      } else if (skill.targetType === "SINGLE") {
-        // เปิด UI เลือกเป้าหมาย
-        setCastingSkill(skill);
-        setShowTargetPicker(true);
-      }
-    };
-
-  const handleSelectTargetFromMenu = async (enemyId) => {
-    // 1. ล้างสถานะ Hover ทันที เพื่อไม่ให้ศัตรูสว่างค้าง
-    setHoveredEnemyId(null); 
-    
-    // 2. ปิดเมนูเลือกเป้าหมาย
-    setShowTargetPicker(false);
-    
-    // 3. เริ่มการทำงานของสกิล
-    await executeSkill(castingSkill, currentWord, [enemyId]);
   };
 
-  const executeSkill = async (skill, word, targets) => {
-    const usedIndices = activeSelectedItems.map((item) => item.originalIndex);
-
-    // Log & Clear
-    addLog(`${skill.effectType === "DAMAGE" ? "⚔️" : "🛡️"} ใช้สกิล "${skill.name}"`, "success");
-    setSelectedLetters(new Array(store.playerData.unlockedSlots).fill(null));
-    setValidWordInfo(null);
-
-    // ✅ ส่งคำสั่งไปที่ Store
-    await store.castSkill(skill, word, targets, usedIndices);
-    resetCasting();
+  const onShieldClick = () => {
+      if (!validWordInfo) return;
+      executeAction("SHIELD", null);
   };
 
-  const handleEnemyClick = async (id) => {
-    if (!castingSkill || id === null) return;
-    const newTargets = [...selectedTargets, id];
-    if (newTargets.length >= castingSkill.maxTargets) {
-      await executeSkill(castingSkill, currentWord, newTargets);
-    } else {
-      setSelectedTargets(newTargets);
-    }
-  };
-
-  const handleSpin = () => {
+  const onSpinClick = () => {
     if (store.playerData.rp < 1) {
-      addLog("RP ไม่พอ!", "info");
-      return;
+        addLog("RP ไม่พอ!", "error");
+        return;
     }
-    addLog("🎲 Reroll ตัวอักษรใหม่", "info");
     const nextInv = inventory.map((item, index) => 
-      item === null ? null : DeckManager.createItem(index)
+        item === null ? null : DeckManager.createItem(index)
     );
     store.actionSpin(nextInv);
   };
 
-  const handleEndTurn = () => {
-    handleResetLetters();
-    store.runEnemyTurn();
+  const onEndTurnClick = () => {
+      handleResetLetters();
+      store.endTurn();
+  };
+
+  const handleSelectTargetFromMenu = async (enemyId) => {
+    setHoveredEnemyId(null); 
+    setShowTargetPicker(false);
+    await executeAction("ATTACK", enemyId);
+  };
+
+  const executeAction = async (actionType, targetId) => {
+    const usedIndices = activeSelectedItems.map((item) => item.originalIndex);
+    
+    addLog(`${actionType} using "${currentWord}"`, "success");
+    setSelectedLetters(new Array(store.playerData.unlockedSlots).fill(null));
+    setValidWordInfo(null);
+    setPendingAction(null);
+
+    await store.performPlayerAction(actionType, currentWord, targetId, usedIndices);
   };
 
   // --- RENDER ---
@@ -311,12 +343,14 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
   return (
     <div style={styles.container}>
       <div style={styles.gameBoard}>
+        
+        <pre style={{position: 'absolute', top:0, left:0, margin:0, zIndex:0, opacity:0.3}}>
+          {store.distance.toFixed(0)} {store.gameState}
+        </pre>
 
-        <pre>{store.distance.toFixed(0)}</pre>
-
-        {/* Top Battle Area */}
         <div style={styles.battleArea}>
-          {/* Word Construction (Reorder) */}
+          <TurnQueueBar store={store} />
+
           <div ref={constraintsRef} style={styles.reorderContainer}>
             <Reorder.Group
               axis="x"
@@ -359,26 +393,22 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
                 index={i}
                 animFrame={animFrame}
                 gameState={store.gameState}
-                isTargeted={selectedTargets.includes(en.id)}
-                onSelect={handleEnemyClick}
+                isTargeted={false} 
+                onSelect={() => {}} 
                 onHover={(isHover) => setHoveredEnemyId(isHover ? en.id : null)}
-                selectionCount={selectedTargets.filter(id => id === en.id).length}
+                selectionCount={0}
               />
             ))}
           </AnimatePresence>
 
-          {/* {store.projectiles.map((p) => <ProjectileEntity key={p.id} data={p} />)} */}
-          
           {validWordInfo && <MeaningPopup meaning={validWordInfo.meaning} />}
           
           <Tooltip 
             hoveredEnemy={hoveredEnemy} 
-            castingSkill={castingSkill} 
+            castingSkill={null} 
             damageInfo={getDamageInfo()} 
           />
 
-
-          {/* Game Over / Clear Screens */}
           {store.gameState === "OVER" && (
             <div style={styles.fullOverlay}>
               <h1 style={{ color: "#ff4d4d" }}>GAME OVER</h1>
@@ -387,103 +417,104 @@ const [showTargetPicker, setShowTargetPicker] = useState(false);
           )}
         </div>
 
- {/* Bottom UI Area */}
-{/* Bottom UI Area */}
-<div style={styles.bottomUi}>
-  {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
-    <QuizOverlay
-      data={store.currentQuiz}
-      onAnswer={(ans) => store.resolveQuiz(ans)}
-      onTimeout={() => store.resolveQuiz("TIMEOUT")}
-    />
-  ) : showTargetPicker ? (
-    /* --- ส่วนเลือกเป้าหมายใหม่ (Monster Cards) --- */
-    <div style={styles.targetPickerMenu}>
-      <div style={styles.targetHeader}>
-        <h3 style={styles.targetTitle}>SELECT TARGET</h3>
-        <div 
-          style={styles.targetCardCancel} 
-          onClick={() => { setShowTargetPicker(false); resetCasting(); }}
-        >
-          <span>CLOSE [X]</span>
-        </div>
-      </div>
-      
-      <div style={styles.targetList}>
-        {store.enemies.filter(e => e.hp > 0).map((en) => {
-          const hpPercent = (en.hp / en.max_hp) * 100;
-          // ดึงรูปจาก Server ตาม Monster ID และ Frame ปัจจุบัน
-          const monsterImg = `${ipAddress}/img_monster/${en.monster_id}-idle-${animFrame + 1}.png`;
-
-          return (
-            <div 
-              key={en.id} 
-              onClick={() => handleSelectTargetFromMenu(en.id)}
-              style={styles.targetCard}
-              onMouseEnter={() => setHoveredEnemyId(en.id)}
-              onMouseLeave={() => setHoveredEnemyId(null)}
-            >
-              {/* รูปมอนสเตอร์จริงๆ จาก URL */}
-              <div style={styles.targetIconFrame}>
-                <img 
-                  src={monsterImg} 
-                  alt={en.name} 
-                  style={styles.targetIcon}
-                  onError={(e) => { e.target.src = 'https://via.placeholder.com/50?text=?'; }}
-                />
+        {/* Bottom UI Area */}
+        <div style={styles.bottomUi}>
+          {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
+            <QuizOverlay
+              data={store.currentQuiz}
+              onAnswer={(ans) => store.resolveQuiz(ans)}
+              onTimeout={() => store.resolveQuiz("TIMEOUT")}
+            />
+          ) : showTargetPicker ? (
+            <div style={styles.targetPickerMenu}>
+              <div style={styles.targetHeader}>
+                <h3 style={styles.targetTitle}>SELECT TARGET</h3>
+                <div 
+                  style={styles.targetCardCancel} 
+                  onClick={() => { setShowTargetPicker(false); setPendingAction(null); }}
+                >
+                  <span>CLOSE [X]</span>
+                </div>
               </div>
+              <div style={styles.targetList}>
+                {store.enemies.filter(e => e.hp > 0).map((en) => {
+                  const hpPercent = (en.hp / en.max_hp) * 100;
+                  const monsterImg = `${ipAddress}/img_monster/${en.monster_id}-idle-${animFrame + 1}.png`;
 
-              {/* ข้อมูลมอนสเตอร์และหลอดเลือด */}
-              <div style={styles.targetInfo}>
-                <span style={styles.targetNameText}>{en.name}</span>
-                <div style={styles.miniHpBarContainer}>
-                  <div 
-                    style={{
-                      ...styles.miniHpBarFill,
-                      width: `${Math.max(0, hpPercent)}%`,
-                      backgroundColor: hpPercent > 45 ? "#4cd137" : hpPercent > 20 ? "#eab543" : "#ff4757"
-                    }} 
-                  />
-                </div>
-                <div style={styles.miniHpLabelRow}>
-                   <span style={styles.miniHpText}>{Math.ceil(en.hp)} / {en.max_hp}</span>
-                </div>
+                  return (
+                    <div 
+                      key={en.id} 
+                      onClick={() => handleSelectTargetFromMenu(en.id)}
+                      style={styles.targetCard}
+                      onMouseEnter={() => setHoveredEnemyId(en.id)}
+                      onMouseLeave={() => setHoveredEnemyId(null)}
+                    >
+                      <div style={styles.targetIconFrame}>
+                        <img 
+                          src={monsterImg} 
+                          alt={en.name} 
+                          style={styles.targetIcon}
+                          onError={(e) => { e.target.src = 'https://via.placeholder.com/50?text=?'; }}
+                        />
+                      </div>
+                      <div style={styles.targetInfo}>
+                        <span style={styles.targetNameText}>{en.name}</span>
+                        <div style={styles.miniHpBarContainer}>
+                          <div 
+                            style={{
+                              ...styles.miniHpBarFill,
+                              width: `${Math.max(0, hpPercent)}%`,
+                              backgroundColor: hpPercent > 45 ? "#4cd137" : hpPercent > 20 ? "#eab543" : "#ff4757"
+                            }} 
+                          />
+                        </div>
+                        <div style={styles.miniHpLabelRow}>
+                           <span style={styles.miniHpText}>{Math.ceil(en.hp)} / {en.max_hp}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
-  ) : (
-    <>
-      <div style={{ flex: 1, maxWidth: "300px" }}>
-        <BattleLog logs={logs} />
-      </div>
-      <InventorySlot
-        inventory={inventory}
-        onSelectLetter={handleSelectLetter}
-        playerSlots={store.playerData.unlockedSlots}
-      />
-      <div style={{ flex: 1, maxWidth: "300px" }}>
-        <SkillBar
-          playerData={store.playerData}
-          gameState={store.gameState}
-          validWordInfo={validWordInfo}
-          currentWordLength={activeSelectedItems.length}
-          targetingMode={!!castingSkill}
-          onSkillClick={handleSkillClick}
-          onSpin={handleSpin}
-          onEndTurn={handleEndTurn}
-        />
-      </div>
-    </>
-  )}
-</div>
+          ) : (
+            <>
+              {/* Left Log */}
+              <div style={{ flex: 1, maxWidth: "250px" }}>
+                <BattleLog logs={logs} />
+              </div>
+
+              {/* Center Inventory */}
+              <InventorySlot
+                inventory={inventory}
+                onSelectLetter={handleSelectLetter}
+                playerSlots={store.playerData.unlockedSlots}
+                playerStats={store.playerData.stats} 
+              />
+
+              {/* Right Action Panel */}
+              <div style={{ flex: 1, maxWidth: "320px", height: "100%" }}>
+                <ActionPanel
+                  playerData={store.playerData}
+                  gameState={store.gameState}
+                  validWordInfo={validWordInfo}
+                  onAttackClick={onAttackClick}
+                  onShieldClick={onShieldClick}
+                  onSpinClick={onSpinClick}
+                  onEndTurnClick={onEndTurnClick}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
+// ============================================================================
+// 🎨 STYLES
+// ============================================================================
 const styles = {
   container: {
     width: "100vw", height: "100vh", display: "flex", justifyContent: "center",
@@ -511,30 +542,43 @@ const styles = {
     justifyContent: "center", alignItems: "center", border: "3px solid #000",
     fontWeight: "bold", fontSize: "22px", cursor: "grab", boxShadow: "0 4px 0 #b37400"
   },
-bottomUi: {
-    flex: 1, // หรือความสูงที่กำหนด
+  bottomUi: {
+    flex: 1, 
     background: "#1a120b",
     borderTop: "4px solid #5c4033",
     display: "flex",
     padding: "15px",
     gap: "15px",
     height: "280px",
-    position: "relative", // ✅ สำคัญมาก: เพื่อให้ลูกที่เป็น Absolute อยู่แค่ในนี้
-    overflow: "hidden"    // ✅ ป้องกันส่วนเกินแลบออกมา
-},
-  targetOverlay: {
-    position: "absolute", top: 20, width: "100%", textAlign: "center", zIndex: 999
+    position: "relative", 
+    overflow: "hidden"    
   },
-  targetToast: {
-    background: "rgba(0,0,0,0.85)", color: "#ff9f43", padding: "8px 24px",
-    borderRadius: 20, border: "2px solid #fff", fontWeight: "bold"
+  actionButtonContainer: {
+      flex: 1,
+      maxWidth: "300px",
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "10px",
+      alignContent: "center"
   },
-  cancelContainer: {
-    position: "absolute", bottom: 30, width: "100%", textAlign: "center", zIndex: 999
+  actionBtn: {
+      border: "3px solid #fff",
+      borderRadius: "10px",
+      color: "#fff",
+      fontSize: "16px",
+      fontWeight: "bold",
+      cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "10px",
+      boxShadow: "0 4px 0 rgba(0,0,0,0.5)",
+      transition: "transform 0.1s"
   },
-  cancelBtn: {
-    padding: "10px 30px", borderRadius: "30px", background: "#ff4757",
-    color: "#fff", border: "3px solid #fff", fontWeight: "bold", cursor: "pointer"
+  btnIcon: {
+      fontSize: "24px",
+      marginBottom: "5px"
   },
   fullOverlay: {
     position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)",
@@ -545,12 +589,12 @@ bottomUi: {
     padding: "12px 24px", background: "#ffeb3b", border: "4px solid #000",
     fontWeight: "bold", cursor: "pointer", marginTop: "20px"
   },
-targetPickerMenu: {
-    position: "absolute", // ให้ทับส่วนอื่นใน bottomUi ทั้งหมด
-    inset: 0,            // เต็มพื้นที่
+  targetPickerMenu: {
+    position: "absolute", 
+    inset: 0,            
     display: "flex",
     flexDirection: "column",
-    background: "rgba(26, 18, 11, 0.95)", // พื้นหลังเข้มเข้ากับโทนเดิม
+    background: "rgba(26, 18, 11, 0.95)", 
     padding: "20px",
     zIndex: 10,
     border: "2px solid #5c4033"
@@ -577,7 +621,7 @@ targetPickerMenu: {
     flexWrap: "wrap", 
     justifyContent: "flex-start", 
     alignItems: "flex-start",
-    overflowY: "auto" // เผื่อกรณีมอนสเตอร์เยอะ
+    overflowY: "auto" 
   },
   targetCard: {
     display: "flex",
@@ -586,14 +630,14 @@ targetPickerMenu: {
     border: "3px solid #f1f2f6",
     borderRadius: "10px",
     padding: "12px",
-    width: "220px", // เพิ่มขนาดนิดหน่อยให้เห็นรูปชัดขึ้น
+    width: "220px", 
     cursor: "pointer",
     boxShadow: "0 4px 0 #000",
     transition: "transform 0.1s ease",
     "&:hover": { transform: "translateY(-2px)" }
   },
   targetIconFrame: {
-    width: "60px",  // ใหญ่ขึ้น
+    width: "60px",  
     height: "60px",
     background: "rgba(0,0,0,0.3)",
     borderRadius: "6px",
@@ -605,10 +649,10 @@ targetPickerMenu: {
     justifyContent: "center"
   },
   targetIcon: { 
-    width: "110%", // ขยายเผื่อ crop นิดๆ ให้เห็นตัวชัด
+    width: "110%", 
     height: "110%", 
     objectFit: "contain",
-    imageRendering: "pixelated" // ถ้าเป็น Pixel Art จะคมชัดมาก
+    imageRendering: "pixelated" 
   },
   targetInfo: { flex: 1, display: "flex", flexDirection: "column", gap: "5px" },
   targetNameText: { color: "#fff", fontSize: "16px", fontWeight: "bold", textTransform: "uppercase" },
@@ -634,4 +678,74 @@ targetPickerMenu: {
     fontSize: "12px",
     boxShadow: "0 2px 0 #000"
   },
+
+  // Turn Queue Styles
+  queueContainer: {
+    position: "absolute",
+    top: "15px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    zIndex: 50,
+    background: "rgba(0,0,0,0.4)",
+    padding: "5px 10px",
+    borderRadius: "10px",
+    border: "2px solid #000"
+  },
+  queueList: {
+    display: "flex",
+    gap: "8px",
+  },
+  queueCard: {
+    position: "relative",
+    width: "45px",
+    height: "45px",
+    background: "#2c3e50",
+    border: "2px solid #7f8c8d",
+    borderRadius: "5px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 3px 0 #000"
+  },
+  queueImgFrame: {
+    width: "100%",
+    height: "100%",
+    overflow: "hidden",
+    borderRadius: "3px",
+  },
+  queueImg: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    imageRendering: "pixelated"
+  },
+  queueSpeedBadge: {
+    position: "absolute",
+    bottom: "-5px",
+    right: "-5px",
+    background: "#e67e22",
+    color: "#fff",
+    fontSize: "10px",
+    fontWeight: "bold",
+    borderRadius: "50%",
+    width: "18px",
+    height: "18px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid #fff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.5)"
+  },
+  activeArrow: {
+    position: "absolute",
+    top: "-15px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    color: "#f1c40f",
+    fontSize: "12px",
+    animation: "bounce 0.5s infinite"
+  }
 };

@@ -1,9 +1,10 @@
 // src/utils/sfx.js
 
 // 1. Import ไฟล์เสียง (Bundler อย่าง Vite หรือ Webpack จะจัดการแปลงเป็น URL ให้)
-import hitSoundUrl from "../assets/sound/enemyHit.wav";
-import missleUrl from "../assets/sound/alphabetMissle.wav";
+import hitSoundUrl from "../assets/sound/hit.wav";
 import block from "../assets/sound/block.wav"
+import miss from "../assets/sound/miss.wav"
+import walk from "../assets/sound/walk.wav"
 
 /**
  * ฟังก์ชันกลางสำหรับเล่นเสียง
@@ -24,9 +25,7 @@ const playSound = (audioUrl, volume = 0.5) => {
 export const sfx = {
   /** เล่นเสียงเมื่อโจมตีโดนศัตรู */
   playHit: () => playSound(hitSoundUrl),
-  
-  /** เล่นเสียงเมื่อยิงกระสุนตัวอักษรออกไป */
-  playMissle: () => playSound(missleUrl), // ปรับเสียงเบาลงเล็กน้อยได้ถ้าต้องการ
-
   playBlock: () => playSound(block),
+  playMiss: () => playSound(miss),
+  playWalk: () => playSound(walk),
 };

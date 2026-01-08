@@ -1,6 +1,13 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LETTER_DATA, INVENTORY_COUNT } from "../../../../const/index";
+import { INVENTORY_COUNT } from "../../../../const/index";
+// ✅ Import ฟังก์ชันคำนวณดาเมจ
+import { getLetterDamage } from "../../../../const/letterValues"; 
+
+// ==========================================
+// 🛠️ Helper: คำนวณ Modifier ใน Component นี้ (ถ้าไม่ได้ export มา)
+// ==========================================
+const getStatModifier = (val) => Math.floor((val - 10) / 2);
 
 // ==========================================
 // 1. ส่วนย่อย: Single Slot (Logic ของช่อง 1 ช่อง)
@@ -10,8 +17,13 @@ import { LETTER_DATA, INVENTORY_COUNT } from "../../../../const/index";
  * @param {number} index - ลำดับของช่อง
  * @param {boolean} isLocked - สถานะการล็อคช่อง
  * @param {function} onSelect - ฟังก์ชันเมื่อคลิกเลือกตัวอักษร
+ * @param {number} strModifier - ค่า Modifier ของ STR เพื่อคำนวณดาเมจ
  */
-const SingleSlot = ({ item, index, isLocked, onSelect }) => {
+const SingleSlot = ({ item, index, isLocked, onSelect, strModifier }) => {
+  
+  // ✅ คำนวณดาเมจที่จะแสดงผล
+  const displayDamage = item ? getLetterDamage(item.char, strModifier) : 0;
+
   return (
     <div
       style={{
@@ -28,7 +40,7 @@ const SingleSlot = ({ item, index, isLocked, onSelect }) => {
         overflow: "hidden",
       }}
     >
-      {/* สัญลักษณ์แม่กุญแจ (แสดงเมื่อช่องยังไม่ถูกปลดล็อค) */}
+      {/* สัญลักษณ์แม่กุญแจ */}
       {isLocked && (
         <div
           style={{
@@ -75,18 +87,22 @@ const SingleSlot = ({ item, index, isLocked, onSelect }) => {
             }}
           >
             {item.char}
-            {/* คะแนนของตัวอักษรที่มุมขวาล่าง */}
+            
+            {/* ✅ แสดงคะแนนดาเมจที่คำนวณจาก Stat แล้ว */}
             <span
               style={{
                 position: "absolute",
                 bottom: "1px",
                 right: "2px",
-                fontSize: "12px",
+                fontSize: "10px",
                 color: "#8b4513",
                 fontWeight: "bold",
+                background: "rgba(255,255,255,0.5)", // พื้นหลังจางๆ ให้อ่านง่าย
+                padding: "0 2px",
+                borderRadius: "2px"
               }}
             >
-              {LETTER_DATA[item.char]?.score}
+              {displayDamage}
             </span>
           </motion.div>
         )}
@@ -101,13 +117,19 @@ const SingleSlot = ({ item, index, isLocked, onSelect }) => {
 /**
  * @param {Array} inventory - รายการไอเทมในตัวละคร
  * @param {function} onSelectLetter - ฟังก์ชันส่งค่าตัวอักษรกลับไปที่หน้าหลัก
- * @param {number} playerSlots - จำนวนช่องที่ปลดล็อคแล้ว (Default: 10)
+ * @param {number} playerSlots - จำนวนช่องที่ปลดล็อคแล้ว
+ * @param {Object} playerStats - (NEW!) ค่า Stat ของผู้เล่น { STR, ... }
  */
 export const InventorySlot = ({ 
   inventory, 
   onSelectLetter, 
-  playerSlots = 10 
+  playerSlots = 10,
+  playerStats = { STR: 10 } // Default stat
 }) => {
+
+  // ✅ คำนวณ STR Modifier เพื่อส่งไปให้ลูกใช้
+  const strModifier = getStatModifier(playerStats.STR || 10);
+
   return (
     <div
       id="inventory"
@@ -169,12 +191,8 @@ export const InventorySlot = ({
             width: "98%",
           }}
         >
-          {/* วนลูปตาม INVENTORY_COUNT (เช่น 20 ช่อง) เพื่อวาด Grid ทั้งหมด */}
           {Array.from({ length: INVENTORY_COUNT }).map((_, index) => {
-            // ดึงไอเทมจาก Array ถ้าช่องนั้นว่างจะเป็น undefined
             const item = inventory[index] ?? undefined;
-            
-            // เช็คว่าช่องนี้ล็อคอยู่หรือไม่ตาม Progress ของผู้เล่น
             const isLocked = index >= playerSlots;
 
             return (
@@ -184,6 +202,7 @@ export const InventorySlot = ({
                 index={index}
                 isLocked={isLocked}
                 onSelect={onSelectLetter}
+                strModifier={strModifier} // ✅ ส่ง Modifier ไปให้ SingleSlot
               />
             );
           })}

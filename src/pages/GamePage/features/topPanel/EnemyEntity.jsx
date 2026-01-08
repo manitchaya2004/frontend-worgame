@@ -98,7 +98,7 @@ export const EnemyEntity = ({
       <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
         <motion.div
           style={{
-            scale: 2.0,
+            scale: 1.5,
             width: DISPLAY_NORMAL, 
             height: DISPLAY_NORMAL,
             position: "absolute",
