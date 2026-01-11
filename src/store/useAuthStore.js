@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { LOADED, LOADING, FAILED, INITIALIZED } from "./const";
+import { LOADED, LOADING, FAILED, INITIALIZED ,API_URL} from "./const";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://25.16.201.205:3000";
 
 export const useAuthStore = create(
   persist(
