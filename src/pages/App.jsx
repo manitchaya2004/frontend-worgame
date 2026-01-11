@@ -16,6 +16,7 @@ import GamePage from "./GamePage/GamePage";
 import AuthPage from "./AuthPage";
 import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";
 import LibraryFeature from "./HomePage/feature/LibraryFeature";
+import ShopHeroFeature from "./HomePage/feature/ShopHeroFeature.jsx";
 import AdminPage from "./AdminPage/index.jsx";
 // import NotFoundPage from "./NotFoundPage";
 export default function App() {
@@ -47,7 +48,8 @@ export default function App() {
           <Route index element={<HomeLobbyLayout />} />
         </Route>
         <Route path="/home/adventure" element={<AdvantureFeature />} />
-        <Route path="/home/shop" element={<ShopSpellFeature />} />
+        {/* <Route path="/home/shop" element={<ShopSpellFeature />} /> */}
+        <Route path="/home/shop" element={<ShopHeroFeature/>}/>
         <Route path="/home/library" element={<LibraryFeature />} />
         <Route
           path="/home/library/dictionary"
