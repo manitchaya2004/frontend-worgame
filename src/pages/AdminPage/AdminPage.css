@@ -256,3 +256,142 @@
   width: 100%; 
   margin-top: 10px;
 }
+
+/* ================================
+   ADDITIONS: move inline styles to CSS
+   ================================ */
+
+/* --- Common text helpers --- */
+.muted { color: #aaa; }
+.muted-2 { color: #888; }
+.muted-3 { color: #777; }
+.small { font-size: 12px; }
+.center-text { text-align: center; }
+.full { width: 100%; }
+.mb-8 { margin-bottom: 8px; }
+.mt-10 { margin-top: 10px; }
+.mt-14 { margin-top: 14px; }
+.mt-18 { margin-top: 18px; }
+.mt-20 { margin-top: 20px; }
+
+.mono { font-family: monospace; }
+
+/* --- Flex utilities --- */
+.flex-row { display: flex; gap: 10px; width: 100%; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-col { display: flex; flex-direction: column; gap: 4px; }
+.justify-center { justify-content: center; }
+.align-center { align-items: center; }
+
+/* --- Buttons --- */
+.btn-cancel { background: #555; flex: 1; color: #fff; }
+.btn-neutral { background: #444; color: #fff; }
+.btn-green { background: #2f855a; color: #fff; }
+
+/* --- Sprites --- */
+.sprite {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  background: #111;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+.no-sprite {
+  color: #777;
+  font-size: 12px;
+}
+
+/* --- Form titles (Monster/Hero/Stage) --- */
+.form-title {
+  width: 100%;
+  margin: 0 0 15px 0;
+  text-align: center;
+  font-family: "Press Start 2P";
+}
+.form-title.monster { color: #d32f2f; }
+.form-title.hero { color: #2b6cb0; }
+.form-title.stage { color: #2f855a; }
+.form-title.spawn { color: #68d391; font-size: 12px; }
+
+/* --- Form border theme (optional) --- */
+.form-box.hero-mode { border-color: #2b6cb0; }
+.form-box.stage-mode { border-color: #2f855a; }
+.form-box.spawn-mode { border-color: #68d391; }
+
+/* --- Input sizing helpers --- */
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+.minw-140 { min-width: 140px; }
+.minw-180 { min-width: 180px; }
+.minw-200 { min-width: 200px; }
+.minw-220 { min-width: 220px; }
+.minw-240 { min-width: 240px; }
+
+/* --- Monster/Hero sprite upload section --- */
+.sprite-upload {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.sprite-upload .hint {
+  width: 100%;
+  color: #aaa;
+  font-size: 14px;
+}
+.sprite-upload .hint .subhint {
+  color: #777;
+}
+
+/* --- Moves section label --- */
+.moves-label {
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* --- Monster stats colors --- */
+.stat-hp { color: #ff5555; }
+.stat-atk { color: #ffaa00; }
+.stat-def { color: #55aaff; }
+.stat-exp { color: #ffd700; }
+
+/* --- Table cell helpers --- */
+.desc-cell {
+  font-size: 12px;
+  color: #ccc;
+  max-width: 200px;
+}
+.desc-cell.w260 { max-width: 260px; }
+.cell-dim { font-size: 12px; color: #ccc; }
+.cell-ddd { font-size: 12px; color: #ddd; }
+
+/* --- Monster theme id color --- */
+.monster-id { color: #ff9999; }
+
+/* --- Hero theme id color --- */
+.hero-id { color: #9ad0ff; }
+
+/* --- Stage theme id color --- */
+.stage-id { color: #9ae6b4; }
+
+/* --- Map thumb --- */
+.map-thumb {
+  width: 120px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+/* --- Spawn panel container --- */
+.spawn-panel {
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 12px;
+  background: #0f1012;
+}
+
+/* --- Loading text center --- */
+.loading-center { text-align: center; }
