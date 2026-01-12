@@ -80,43 +80,6 @@ export const InventoryUtils = {
   },
 };
 
-// --- 🗺️ Stage & Enemy Processing ---
-// จัดการข้อมูลด่านและศัตรูที่ได้จาก API
-export const StageProcessor = {
-  processStageData: (apiData) => {
-    const waves = {};
-    
-    apiData.forEach((data) => {
-      // ✅ บังคับให้เป็น Number เพื่อป้องกันบั๊ก Type Mismatch (1 vs "1")
-      const waveNo = Number(data.wave_no); 
-      
-      if (!waves[waveNo]) waves[waveNo] = [];
-
-      // สุ่มเลือก Pattern เริ่มต้น
-      const availablePatterns = data.pattern_list 
-        ? [...new Set(data.pattern_list.map((p) => p.pattern_no))]
-        : [1];
-      const selectedPatternNo = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
-
-      waves[waveNo].push({
-        ...data,
-        id: data.event_id || Math.random(),
-        hp: data.max_hp || 10,
-        maxHp: data.max_hp || 10,
-        x: 0,
-        currentStep: 1,
-        selectedPattern: selectedPatternNo,
-        atkFrame: 0,
-        shoutText: "",
-        // เช็คว่ามี pattern_list ไหม ถ้าไม่มีให้ใส่ Array ว่างป้องกันพัง
-        patternList: data.pattern_list || [] 
-      });
-    });
-    
-    console.log("Processed Stage Data:", waves); // ดูโครงสร้างหลังแปลงเสร็จ
-    return waves;
-  }
-};
 
 // --- ⚔️ Combat Logic ---
 // ระบบคำนวณความแรงตามตัวอักษรและจุดอ่อนศัตรู

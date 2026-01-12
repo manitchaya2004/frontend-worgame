@@ -1,6 +1,5 @@
 import React from "react";
 import { motion } from "framer-motion";
-// ✅ Import ฟังก์ชันคำนวณ (ตรวจสอบ path ให้ถูกต้องตาม project structure ของคุณ)
 import { getLetterDamage } from "../../../../const/letterValues"; 
 
 // ==========================================
@@ -17,7 +16,7 @@ const calculateTotalDamage = (word, strMod) => {
   return Math.floor(total);
 };
 
-// --- 🎨 Sub-Component: RetroButton (เหมือนเดิม) ---
+// --- 🎨 Sub-Component: RetroButton (Compact Version) ---
 const RetroButton = ({
   label,
   subLabel,
@@ -37,7 +36,7 @@ const RetroButton = ({
       }}
       disabled={disabled}
       style={{
-        flex: 1,
+        flex: 1, // ขยายให้เต็มพื้นที่เท่ากัน
         position: "relative",
         border: "none",
         outline: "none",
@@ -46,8 +45,8 @@ const RetroButton = ({
         cursor: disabled ? "not-allowed" : "pointer",
         display: "flex",
         flexDirection: "column",
-        height: "100%", 
-        minHeight: "70px",
+        height: "70px", // กำหนดความสูงให้พอดี
+        minWidth: "70px", // กันปุ่มบีบจนเล็กเกิน
       }}
     >
       {/* 3D Shadow */}
@@ -78,38 +77,42 @@ const RetroButton = ({
           border: "2px solid #1a120b",
           boxShadow: disabled 
             ? "inset 2px 2px 0px rgba(255,255,255,0.1), inset -2px -2px 0px rgba(0,0,0,0.2)"
-            : "inset 3px 3px 0px rgba(255,255,255,0.25), inset -3px -3px 0px rgba(0,0,0,0.2)",
+            : "inset 2px 2px 0px rgba(255,255,255,0.25), inset -2px -2px 0px rgba(0,0,0,0.2)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           color: disabled ? "#aaa" : "#fff",
           opacity: disabled ? 0.8 : 1,
+          padding: "2px"
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-          <span style={{ fontSize: "20px", filter: disabled ? "grayscale(100%)" : "none" }}>{icon}</span>
-          <span style={{ 
-            fontSize: "14px", 
-            fontWeight: "900", 
-            fontFamily: '"Courier New", Courier, monospace',
-            textTransform: "uppercase", 
-            letterSpacing: "1px",
-            textShadow: "2px 2px 0 #000"
-          }}>
-            {label}
-          </span>
-        </div>
+        <span style={{ fontSize: "20px", filter: disabled ? "grayscale(100%)" : "none", marginBottom: "2px" }}>
+            {icon}
+        </span>
+        
+        <span style={{ 
+          fontSize: "10px", 
+          fontWeight: "900", 
+          fontFamily: '"Courier New", Courier, monospace',
+          textTransform: "uppercase", 
+          letterSpacing: "0.5px",
+          textShadow: "1px 1px 0 #000",
+          lineHeight: 1
+        }}>
+          {label}
+        </span>
 
         {subLabel && (
           <div style={{ 
-            fontSize: "10px", 
+            marginTop: "3px",
+            fontSize: "9px", 
             fontWeight: "bold", 
             fontFamily: 'monospace',
             color: "#fff", 
             background: "rgba(0,0,0,0.4)", 
-            padding: "2px 6px", 
-            borderRadius: "4px",
+            padding: "1px 4px", 
+            borderRadius: "3px",
             border: "1px solid rgba(0,0,0,0.5)"
           }}>
             {subLabel}
@@ -124,7 +127,7 @@ const RetroButton = ({
 export const ActionPanel = ({
   playerData,
   gameState,
-  validWordInfo, // { word: "CAT", meaning: "แมว" }
+  validWordInfo, 
   onAttackClick,
   onShieldClick,
   onSpinClick,
@@ -133,16 +136,11 @@ export const ActionPanel = ({
   const isPlayerTurn = gameState === "PLAYERTURN";
   const hasWord = !!validWordInfo;
   
-  // ✅ 1. เตรียมค่า Modifier
   const strMod = getStatModifier(playerData.stats.STR || 10);
   const wordText = validWordInfo?.word || "";
   const wordLen = wordText.length;
 
-  // ✅ 2. คำนวณค่าพลังจริงที่จะแสดงบนปุ่ม
-  // Damage: ผลรวมพลังตัวอักษร
   const realDmg = calculateTotalDamage(wordText, strMod);
-  
-  // Shield: (Len * 3) + Max(0, StrMod)
   const realDef = (wordLen * 3) + Math.max(0, strMod);
 
   return (
@@ -150,7 +148,7 @@ export const ActionPanel = ({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100%",
+        width: "100%", // ให้กว้างเต็ม container
         background: "#1a120b",
         border: "2px solid #ffd700",
         borderRadius: "12px",
@@ -162,68 +160,65 @@ export const ActionPanel = ({
       {/* 1. HEADER: Player Info */}
       <div style={{ 
           background: "#2e2019", 
-          padding: "8px 12px", 
+          padding: "6px 10px", 
           borderRadius: "8px 8px 0 0",
           borderBottom: "2px solid #5c4033",
-          marginBottom: "8px",
+          marginBottom: "6px",
           display: "flex",
-          flexDirection: "column",
-          gap: "4px"
+          justifyContent: "space-between",
+          alignItems: "center"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {/* Name & Level */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ 
-                color: "#f1c40f", 
-                fontWeight: "bold", 
-                fontSize: "14px", 
-                fontFamily: '"Courier New", Courier, monospace', 
-                textShadow: "1px 1px 0 #000" 
+                color: "#f1c40f", fontWeight: "bold", fontSize: "12px", 
+                fontFamily: 'monospace', textShadow: "1px 1px 0 #000" 
             }}>
-                {playerData.name.toUpperCase()} <span style={{fontSize: "10px", color: "#aaa"}}>LV.1</span>
+                {playerData.name.toUpperCase()}
             </span>
-            
-            <div style={{ 
-                display: "flex", alignItems: "center", gap: "4px", 
-                background: "#1e3799", 
-                padding: "2px 6px", borderRadius: "4px", 
-                border: "1px solid #fff", boxShadow: "1px 1px 0 #000"
-            }}>
-                <span style={{ fontSize: "12px" }}>🛡️</span>
-                <span style={{ fontSize: "12px", fontWeight: "bold", color: "#fff", fontFamily: 'monospace' }}>{playerData.shield}</span>
-            </div>
+            <span style={{fontSize: "10px", color: "#aaa", fontFamily: 'monospace'}}>LV.1</span>
         </div>
 
         {/* HP Bar */}
-        <div style={{ position: "relative", width: "100%", height: "16px", background: "#444", borderRadius: "4px", border: "2px solid #000" }}>
+        <div style={{ flex: 1, marginLeft: "10px", marginRight: "10px", position: "relative", height: "12px", background: "#444", borderRadius: "4px", border: "1px solid #000" }}>
             <div 
                 style={{ 
                     width: `${Math.min(100, (playerData.hp / playerData.max_hp) * 100)}%`, 
                     height: "100%", 
                     background: "#e74c3c",
-                    borderRight: "2px solid #8B0000",
+                    borderRight: "1px solid #8B0000",
                     transition: "width 0.4s ease-out"
                 }} 
             />
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold", color: "#fff", textShadow: "1px 1px 0 #000", fontFamily: 'monospace' }}>
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", fontWeight: "bold", color: "#fff", textShadow: "1px 1px 0 #000", fontFamily: 'monospace' }}>
                 {playerData.hp}/{playerData.max_hp}
             </div>
         </div>
+
+        {/* Shield */}
+        <div style={{ 
+            display: "flex", alignItems: "center", gap: "2px", 
+            background: "#1e3799", padding: "2px 5px", borderRadius: "4px", 
+            border: "1px solid #fff", boxShadow: "1px 1px 0 #000"
+        }}>
+            <span style={{ fontSize: "10px" }}>🛡️</span>
+            <span style={{ fontSize: "10px", fontWeight: "bold", color: "#fff", fontFamily: 'monospace' }}>{playerData.shield}</span>
+        </div>
       </div>
 
-      {/* 2. BUTTONS GRID */}
+      {/* 2. BUTTONS ROW (Horizontal) */}
       <div style={{ 
-          flex: 1, 
-          padding: "0 8px 12px 8px", 
-          display: "grid", 
-          gridTemplateColumns: "1fr 1fr", 
-          gridTemplateRows: "1fr 1fr",
-          gap: "8px",
+          display: "flex", 
+          flexDirection: "row", // ✅ เปลี่ยนเป็นแนวนอน
+          gap: "6px",
+          padding: "0 4px 6px 4px",
       }}>
         
         {/* ⚔️ ATTACK */}
         <RetroButton 
-            label="ATTACK"
+            label="ATK" // ย่อคำให้สั้นลง
             icon="⚔️"
-            subLabel={hasWord ? `${realDmg} DMG` : null} // ✅ โชว์ดาเมจจริง
+            subLabel={hasWord ? `${realDmg}` : null} 
             color="#c0392b"
             shadowColor="#7f1d1d"
             disabled={!isPlayerTurn || !hasWord}
@@ -233,9 +228,9 @@ export const ActionPanel = ({
 
         {/* 🛡️ DEFEND */}
         <RetroButton 
-            label="DEFEND"
+            label="DEF"
             icon="🛡️"
-            subLabel={hasWord ? `+${realDef} DEF` : null} // ✅ โชว์เกราะจริง
+            subLabel={hasWord ? `+${realDef}` : null}
             color="#2980b9"
             shadowColor="#1c4e80"
             disabled={!isPlayerTurn || !hasWord}
@@ -247,7 +242,7 @@ export const ActionPanel = ({
         <RetroButton 
             label="SPIN"
             icon="🎲"
-            subLabel={`RP: ${playerData.rp}`}
+            subLabel={`(${playerData.rp})`} // แสดงแค่ตัวเลข
             color="#f39c12"
             shadowColor="#b3541e"
             disabled={!isPlayerTurn || playerData.rp <= 0}

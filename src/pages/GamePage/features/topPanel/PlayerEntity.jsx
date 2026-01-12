@@ -59,7 +59,7 @@ export const PlayerEntity = ({ store }) => {
            <motion.div
              style={{
                // ✅ ใส่ Logic Width กลับคืนมา (เดิน = เต็มกล่องปกติ, ตี = กล่องกว้าง)
-               scale:2.0,
+               scale:1.5,
                width: DISPLAY_NORMAL,
                height: DISPLAY_NORMAL,
                position: "absolute",

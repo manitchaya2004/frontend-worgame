@@ -5,9 +5,9 @@ import { INVENTORY_COUNT } from "../../../../const/index";
 import { getLetterDamage } from "../../../../const/letterValues"; 
 
 // ==========================================
-// 🛠️ Helper: คำนวณ Modifier ใน Component นี้ (ถ้าไม่ได้ export มา)
+// 🛠️ Helper: คำนวณ Bonus จาก Stat (ทุก 1 แต้มที่เกิน 10 นับเป็น 1 Bonus)
 // ==========================================
-const getStatModifier = (val) => Math.floor((val - 10) / 2);
+const getStatBonus = (val) => Math.max(0, val - 10);
 
 // ==========================================
 // 1. ส่วนย่อย: Single Slot (Logic ของช่อง 1 ช่อง)
@@ -17,12 +17,12 @@ const getStatModifier = (val) => Math.floor((val - 10) / 2);
  * @param {number} index - ลำดับของช่อง
  * @param {boolean} isLocked - สถานะการล็อคช่อง
  * @param {function} onSelect - ฟังก์ชันเมื่อคลิกเลือกตัวอักษร
- * @param {number} strModifier - ค่า Modifier ของ STR เพื่อคำนวณดาเมจ
+ * @param {number} totalModifier - (NEW) ค่า Modifier รวม (STR Bonus)
  */
-const SingleSlot = ({ item, index, isLocked, onSelect, strModifier }) => {
+const SingleSlot = ({ item, index, isLocked, onSelect, totalModifier }) => {
   
-  // ✅ คำนวณดาเมจที่จะแสดงผล
-  const displayDamage = item ? getLetterDamage(item.char, strModifier) : 0;
+  // ✅ ใช้ทศนิยมตามปกติ (เช่น 0.5, 1.5)
+  const displayDamage = item ? getLetterDamage(item.char, totalModifier) : 0;
 
   return (
     <div
@@ -88,7 +88,7 @@ const SingleSlot = ({ item, index, isLocked, onSelect, strModifier }) => {
           >
             {item.char}
             
-            {/* ✅ แสดงคะแนนดาเมจที่คำนวณจาก Stat แล้ว */}
+            {/* ✅ แสดงคะแนนดาเมจ */}
             <span
               style={{
                 position: "absolute",
@@ -97,9 +97,11 @@ const SingleSlot = ({ item, index, isLocked, onSelect, strModifier }) => {
                 fontSize: "10px",
                 color: "#8b4513",
                 fontWeight: "bold",
-                background: "rgba(255,255,255,0.5)", // พื้นหลังจางๆ ให้อ่านง่าย
+                background: "rgba(255,255,255,0.7)",
                 padding: "0 2px",
-                borderRadius: "2px"
+                borderRadius: "2px",
+                minWidth: "12px",
+                textAlign: "center"
               }}
             >
               {displayDamage}
@@ -118,17 +120,22 @@ const SingleSlot = ({ item, index, isLocked, onSelect, strModifier }) => {
  * @param {Array} inventory - รายการไอเทมในตัวละคร
  * @param {function} onSelectLetter - ฟังก์ชันส่งค่าตัวอักษรกลับไปที่หน้าหลัก
  * @param {number} playerSlots - จำนวนช่องที่ปลดล็อคแล้ว
- * @param {Object} playerStats - (NEW!) ค่า Stat ของผู้เล่น { STR, ... }
+ * @param {Object} playerStats - ค่า Stat ของผู้เล่น { STR, ... }
+ * @param {number} playerLevel - (ไม่ใช้คำนวณดาเมจแล้ว)
  */
 export const InventorySlot = ({ 
   inventory, 
   onSelectLetter, 
   playerSlots = 10,
-  playerStats = { STR: 10 } // Default stat
+  playerStats = { STR: 10 },
+  playerLevel = 1 
 }) => {
 
-  // ✅ คำนวณ STR Modifier เพื่อส่งไปให้ลูกใช้
-  const strModifier = getStatModifier(playerStats.STR || 10);
+  // ✅ 1. คำนวณ STR Bonus (ค่าที่เกิน 10)
+  const strBonus = getStatBonus(playerStats.STR || 10);
+  
+  // ✅ 2. Modifier ใช้แค่ STR Bonus อย่างเดียว (เอา Level ออกแล้ว)
+  const totalModifier = strBonus;
 
   return (
     <div
@@ -202,7 +209,7 @@ export const InventorySlot = ({
                 index={index}
                 isLocked={isLocked}
                 onSelect={onSelectLetter}
-                strModifier={strModifier} // ✅ ส่ง Modifier ไปให้ SingleSlot
+                totalModifier={totalModifier} // ✅ ส่งค่า Modifier (STR Only)
               />
             );
           })}

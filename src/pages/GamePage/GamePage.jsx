@@ -348,7 +348,12 @@ export default function GameApp() {
           {store.distance.toFixed(0)} {store.gameState}
         </pre>
 
-        <div style={styles.battleArea}>
+        <div
+          style={{
+            ...styles.battleArea,
+            backgroundPositionX:`-${store.distance * 20}px`
+          }}
+        >
           <TurnQueueBar store={store} />
 
           <div ref={constraintsRef} style={styles.reorderContainer}>
@@ -526,8 +531,16 @@ const styles = {
     background: "#B3F1FF", position: "relative", overflow: "hidden"
   },
   battleArea: {
-    flex: 1, position: "relative", overflow: "hidden", borderBottom: "4px solid #000",
-    background: "#000", width: "100%"
+    flex: 1,
+    position: "relative",
+    overflow: "hidden",
+    borderBottom: "4px solid #000",
+    width: "100%",
+
+    backgroundImage: `url(${ipAddress}/img_map/grassland.png)`,
+    backgroundRepeat: "repeat-x",
+    backgroundSize: "auto 100%",
+    backgroundPositionY: "bottom",
   },
   reorderContainer: {
     position: "absolute", top: "25%", left: "50%", transform: "translateX(-50%)",
