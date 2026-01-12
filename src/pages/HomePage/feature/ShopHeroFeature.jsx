@@ -63,7 +63,6 @@ const getNextLevelExp = (level) => {
 };
 
 // --- LevelBar ---
-// --- LevelBar (ปรับปรุง: เพิ่มข้อความบอก EXP ที่ขาด) ---
 const LevelBar = ({ level = 1, currentExp = 0, nextExp = 100 }) => {
   const maxExp = nextExp || (level >= MAX_LEVEL ? 100 : level * 100);
   const isMax = level >= MAX_LEVEL;
@@ -82,16 +81,17 @@ const LevelBar = ({ level = 1, currentExp = 0, nextExp = 100 }) => {
         {/* 1. SHOW LV [Number] */}
         <Box
           sx={{
-            minWidth: 42,
+            minWidth: 55,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            // backgroundColor:'red'
           }}
         >
           <Typography
             sx={{
               fontFamily: "'Press Start 2P'",
-              fontSize: 10,
+              fontSize: 11,
               color: "#ffd54f", // สีเหลืองทอง
               textShadow: "1px 1px 0 #000",
               lineHeight: 1,
@@ -166,10 +166,10 @@ const StatBar = ({ label, value, onUpgrade, showUpgrade }) => {
             display: "flex",
             alignItems: "center",
             gap: 0.5,
-            width: "65px",
+            width: "53px",
             backgroundColor: config.labelBg,
             boxShadow: "1px 1px 0 #6b4a2f",
-            px: 0.5,
+            px: 0.4,
             py: 0.4,
           }}
         >
@@ -229,7 +229,7 @@ const StatBar = ({ label, value, onUpgrade, showUpgrade }) => {
           {value}
         </Typography>
 
-        {/* ปุ่ม Upgrade (+ Button) */}
+        {/* ปุ่ม Upgrade (+ Button)
         {showUpgrade && (
           <Box
             onClick={onUpgrade}
@@ -268,7 +268,7 @@ const StatBar = ({ label, value, onUpgrade, showUpgrade }) => {
               +
             </Typography>
           </Box>
-        )}
+        )} */}
       </Box>
     </Box>
   );
@@ -301,21 +301,42 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
   const { upradeStatHero } = useHeroStore();
 
   const getTotalStat = (baseValue, addedKey) => {
-    const addedValue = playerHero ? playerHero[addedKey] : 0;
-    return baseValue + addedValue;
+    if (isOwned && playerHero) {
+      // ถ้าเป็นเจ้าของ: Base + Added (แปลงเป็น Number กัน Error)
+      return playerHero[addedKey] || 0;
+    }
+    // ถ้าไม่ใช่เจ้าของ: ใช้ค่า Base เดิมๆ จาก Hero List
+    return baseValue;
   };
 
-  const handleUpgrade = (statKey) => {
-    if (availablePoints > 0) {
-      console.log(`UPGRADE ${statKey}`);
-      // TODO: Call API
-    }
-  };
+  // const handleUpgrade = (statKey) => {
+  //   if (availablePoints > 0) {
+  //     const keyMapping = {
+  //       cur_str: "add_str",
+  //       cur_dex: "add_dex",
+  //       cur_int: "add_int",
+  //       cur_con: "add_con",
+  //       cur_faith: "add_faith",
+  //       cur_luck: "add_luck",
+  //     };
+
+  //     const backendKey = keyMapping[statKey];
+
+  //     const payload = {
+  //       hero_id: hero.id,
+  //       [backendKey]: 1,
+  //     };
+
+  //     console.log("Sending Payload:", payload);
+
+  //     upradeStatHero(payload);
+  //   }
+  // };
 
   return (
     <Box
       sx={{
-        width: 340,
+        width: 360,
         height: 480,
         background: "linear-gradient(180deg, #f2dfb6, #d9b97a)",
         border: "3px solid #6b3f1f",
@@ -412,7 +433,7 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
           />
 
           {/* Points (โชว์เฉพาะถ้ามีแต้ม) */}
-          {isOwned ? (
+          {/* {isOwned ? (
             <>
               {availablePoints >= 0 && (
                 <Box
@@ -432,44 +453,36 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
                 </Box>
               )}
             </>
-          ) : null}
+          ) : (
+            <Box sx={{ display: "flex", mb: 1 }} />
+          )} */}
 
           {/* Stat Bars (โชว์ปุ่ม Upgrade เฉพาะมี Point และเป็นเจ้าของ) */}
           <StatBar
             label="STR"
-            value={getTotalStat(hero.base_str, "added_str")}
-            showUpgrade={availablePoints > 0}
-            onUpgrade={() => handleUpgrade("added_str")}
+            value={getTotalStat(hero.base_str, "cur_str")}
           />
           <StatBar
             label="DEX"
-            value={getTotalStat(hero.base_dex, "added_dex")}
-            showUpgrade={availablePoints > 0}
-            onUpgrade={() => handleUpgrade("added_dex")}
+            value={getTotalStat(hero.base_dex, "cur_dex")}
           />
           <StatBar
             label="INT"
-            value={getTotalStat(hero.base_int, "added_int")}
-            showUpgrade={availablePoints > 0}
-            onUpgrade={() => handleUpgrade("added_int")}
+            value={getTotalStat(hero.base_int, "cur_int")}
           />
           <StatBar
             label="FTH"
-            value={getTotalStat(hero.base_faith, "added_faith")}
-            showUpgrade={availablePoints > 0}
-            onUpgrade={() => handleUpgrade("added_faith")}
+            value={getTotalStat(hero.base_faith, "cur_faith")}
           />
           <StatBar
             label="CON"
-            value={getTotalStat(hero.base_con, "added_con")}
-            showUpgrade={availablePoints > 0}
-            onUpgrade={() => handleUpgrade("added_con")}
+            value={getTotalStat(hero.base_con, "cur_con")}
           />
           <StatBar
             label="LUCK"
-            value={getTotalStat(hero.base_luck, "added_luck")}
-            showUpgrade={availablePoints > 0}
-            onUpgrade={() => handleUpgrade("added_luck")}
+            value={getTotalStat(hero.base_luck, "cur_luck")}
+            // showUpgrade={availablePoints > 0}
+            // onUpgrade={() => handleUpgrade("cur_luck")}
           />
         </Box>
       </Box>
@@ -478,7 +491,7 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
       <Box
         sx={{
           position: "absolute",
-          bottom: 12,
+          bottom: 15,
           left: 12,
           right: 12,
           zIndex: 10,
@@ -643,7 +656,7 @@ const ShopHeroFeature = () => {
             >
               <img
                 src={arrowLeft}
-                style={{ width: 50, imageRendering: "pixelated" }}
+                style={{ width: 40, imageRendering: "pixelated" }}
               />
             </Box>
 
@@ -652,7 +665,7 @@ const ShopHeroFeature = () => {
               ref={scrollRef}
               sx={{
                 display: "flex",
-                gap: 3,
+                gap: 1,
                 overflowX: "auto",
                 scrollSnapType: "x mandatory",
                 px: 4,
@@ -687,7 +700,7 @@ const ShopHeroFeature = () => {
             >
               <img
                 src={arrowRight}
-                style={{ width: 50, imageRendering: "pixelated" }}
+                style={{ width: 40, imageRendering: "pixelated" }}
               />
             </Box>
           </Box>
