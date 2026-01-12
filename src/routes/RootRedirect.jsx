@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/useAuthStore";
 
 export default function RootRedirect() {
   const currentUser = useAuthStore((state) => state.currentUser);
+  const isFirstTime = useAuthStore((state)=>state.isFirstTime)
 
   // App กัน authLoading ไว้แล้ว → ไม่ต้องเช็คซ้ำ
   if (!currentUser) {
@@ -13,5 +14,8 @@ export default function RootRedirect() {
     return <Navigate to="/admin" replace />;
   }
 
+  // if (isFirstTime) {
+  //   return <Navigate to="/select-hero" replace/>
+  // }
   return <Navigate to="/home" replace />;
 }

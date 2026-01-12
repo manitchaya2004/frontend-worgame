@@ -1,10 +1,4 @@
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  Avatar,
-} from "@mui/material";
+import { AppBar, Toolbar, Typography, Box, Avatar } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -15,13 +9,15 @@ import quest from "../../assets/icons/quest.svg";
 import SettingsFeature from "../../pages/HomePage/feature/SettingFeature";
 import taro from "../../assets/icons/taro.jpg";
 import coin from "../../assets/icons/coin.svg";
+import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
+import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 
+const name = "img_hero";
 
-
-
-
-const GameAppBar = ({username}) => {
-
+const GameAppBar = () => {
+  const { currentUser } = useLoginPlayer();
+  const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
+  const heroId = activeHero?.hero_id;
   return (
     <AppBar
       position="static"
@@ -34,9 +30,9 @@ const GameAppBar = ({username}) => {
         backgroundColor: "#0e0e1250",
       }}
     >
-      <Toolbar sx={{ minHeight: 10, height: 10 ,}}>
+      <Toolbar sx={{ minHeight: 10, height: 10 }}>
         {/* 🔹 LEFT : LOGO */}
-        <Box sx={{ flex: 1 , ml:2}}>
+        <Box sx={{ flex: 1, ml: 2 }}>
           <Box
             sx={{
               position: "relative",
@@ -66,7 +62,7 @@ const GameAppBar = ({username}) => {
                   whiteSpace: "nowrap",
                 }}
               >
-                {username}
+                {currentUser?.username}
               </Typography>
             </Box>
 
@@ -87,11 +83,11 @@ const GameAppBar = ({username}) => {
               }}
             >
               <Avatar
-                src={taro}
+                src={LoadImage(name, heroId, 1)}
                 alt="profile-player"
                 sx={{
-                  width: 35,
-                  height: 35,
+                  width: 50,
+                  height: 50,
                 }}
               />
             </Box>
@@ -108,7 +104,6 @@ const GameAppBar = ({username}) => {
             alignItems: "center",
           }}
         >
-
           {/* //  icon เพิ่มเติม */}
           <Box
             sx={{
@@ -146,11 +141,13 @@ const GameAppBar = ({username}) => {
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: { xs: 8, md: 8 },
+                fontSize: { xs: 8, md: 10 },
                 color: "rgba(0, 0, 0, 1)",
+                width: "60px",
+                textAlign: "end",
               }}
             >
-              100000
+              {currentUser?.money || 0}
             </Typography>
           </Box>
 

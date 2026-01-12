@@ -9,9 +9,10 @@ import BackArrow from "../components/BackArrow";
 import { useLoadData } from "../../AuthPage/LoginPage/hook/useLoadData";
 import { Loading } from "../../../components/Loading/Loading";
 import StarBackground from "../components/StarBackground";
-const DetailItem = memo(({ orderNo, name, handleStageClick }) => {
+import { useLoginPlayer } from "../../AuthPage/LoginPage/hook/useLoginPlayer";
+const DetailItem = memo(({ orderNo, name, handleStageClick,stageID }) => {
   return (
-    <HoverListItem onClick={() => handleStageClick({ orderNo, name })}>
+    <HoverListItem onClick={() => handleStageClick(stageID)}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
         {/* เลขด่าน */}
         <Box
@@ -50,6 +51,7 @@ const ListSection = memo(({ stages, handleStageClick }) => {
           orderNo={item.orderNo}
           name={item.name}
           handleStageClick={handleStageClick}
+          stageID={item.id}
         />
       ))}
     </Box>
@@ -65,6 +67,7 @@ export const Title = ({ title }) => {
         transform: "translateX(-50%)",
         zIndex: 10000,
         pointerEvents: "none",
+        width: { xs: "90vw", sm: "90%", md: "90%" },
       }}
     >
       <motion.div
@@ -96,7 +99,7 @@ export const Title = ({ title }) => {
             paddingY: 2,
             background: "#3a1c14",
             border: "3px solid #b22222",
-
+            textAlign:'center',
             boxShadow: `
               0 0 0 2px #000,
               4px 4px 0 #000,
@@ -117,6 +120,7 @@ export const Title = ({ title }) => {
 };
 
 const AdvantureFeature = () => {
+  const {currentUser} = useLoginPlayer();
   const { stages, loadingStage } = useData();
   const { fetchAllStage } = useLoadData();
   const navigate = useNavigate();
@@ -131,7 +135,13 @@ const AdvantureFeature = () => {
 
   const handleConfirmStage = () => {
     setOpenConfirm(false);
-    navigate("/battle");
+    navigate("/battle", { 
+      state: { 
+        currentUser: currentUser,       // ส่งข้อมูลผู้เล่น
+        selectedStage: selectedStage    // แนะนำให้ส่งข้อมูลด่านที่เลือกไปด้วย
+      } 
+    });
+
   };
   const MotionBox = motion(Box);
 
@@ -157,6 +167,9 @@ const AdvantureFeature = () => {
       </Box>
     );
   }
+
+  console.log("stage na",stages)
+  console.log("select stage",selectedStage)
 
   return (
     <Box sx={{ m: 2 }}>

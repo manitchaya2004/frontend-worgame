@@ -16,7 +16,9 @@ import GamePage from "./GamePage/GamePage";
 import AuthPage from "./AuthPage";
 import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";
 import LibraryFeature from "./HomePage/feature/LibraryFeature";
-import AdminPage from "./AdminPage/AdminPage";
+import ShopHeroFeature from "./HomePage/feature/ShopHeroFeature.jsx";
+import AdminPage from "./AdminPage/AdminPage.jsx";
+import SelectHero from "./CharacterPage/SelectHero.jsx";
 // import NotFoundPage from "./NotFoundPage";
 export default function App() {
   const authLoading = useAuthStore((state) => state.authLoading);
@@ -43,11 +45,13 @@ export default function App() {
 
       {/* private (player)*/}
       <Route element={<PrivateRoute />}>
+        <Route path="/select-hero" element={<SelectHero/>}/>
         <Route path="/home" element={<HomePage />}>
           <Route index element={<HomeLobbyLayout />} />
         </Route>
         <Route path="/home/adventure" element={<AdvantureFeature />} />
-        <Route path="/home/shop" element={<ShopSpellFeature />} />
+        {/* <Route path="/home/shop" element={<ShopSpellFeature />} /> */}
+        <Route path="/home/shop" element={<ShopHeroFeature/>}/>
         <Route path="/home/library" element={<LibraryFeature />} />
         <Route
           path="/home/library/dictionary"

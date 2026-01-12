@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { INITIALIZED, LOADING, LOADED, FAILED } from "./const";
-const API_URL = import.meta.env.VITE_API_URL || "http://25.16.201.205:3000";
+import { INITIALIZED, LOADING, LOADED, FAILED,API_URL } from "./const";
+// const API_URL = import.meta.env.VITE_API_URL || "http://25.16.201.205:3000";
 
 export const useShopStore = create((set, get) => ({
   allItems: [],

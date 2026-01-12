@@ -3,6 +3,7 @@ import { useStageStore } from "../../../store/useStageStore";
 import { useShopStore } from "../../../store/useShopStore";
 import { useDictionaryStore } from "../../../store/useDictionaryStore";
 import { useMonsterStore } from "../../../store/useMonsterStore";
+import { useHeroStore } from "../../../store/useHeroStroe";
 export const useData = () => {
   /* ================= STAGE ================= */
   const stages = useStageStore((s) => s.stages);
@@ -47,6 +48,12 @@ export const useData = () => {
   const getMonsters = useMonsterStore((state) => state.getMonsters);
   const clearMonster = useMonsterStore((state) => state.clearListMonster);
 
+  /* ================= HERO CHARACTER ================= */
+  const heros = useHeroStore((state)=> state.heros);
+  const heroState = useHeroStore((state)=> state.loading);
+
+  const getAllHeros = useHeroStore((state)=> state.getAllHeros);
+
   return {
     /* shop */
     shops,
@@ -72,5 +79,10 @@ export const useData = () => {
     monsterState,
     getMonsters,
     clearMonster,
+
+    /* hero character */
+    heros,
+    heroState,
+    getAllHeros,
   };
 };
