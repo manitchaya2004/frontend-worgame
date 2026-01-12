@@ -1,5 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+// Import ไอคอนจาก Game Icons pack (ผ่าน react-icons)
+import { 
+  GiSwordsPower, 
+  GiCheckMark, 
+  GiSkullCrossedBones, 
+  GiHazardSign, 
+  GiMagicSwirl, 
+  GiInfo 
+} from "react-icons/gi";
 
 /**
  * BattleLog Component
@@ -18,19 +27,47 @@ export const BattleLog = ({ logs }) => {
 
   // ฟังก์ชันเลือกสีและไอคอนตามประเภทของเหตุการณ์
   const getLogStyle = (type) => {
+    // กำหนดขนาดไอคอนมาตรฐาน
+    const iconSize = 16; 
+
     switch (type) {
       case "combat":
-        return { bg: "#4a2c2c", border: "#ff7675", icon: "⚔️" }; // แดงเข้ม
+        return { 
+          bg: "#4a2c2c", 
+          border: "#ff7675", 
+          // ใช้ Component แทน String
+          icon: <GiSwordsPower size={iconSize} /> 
+        }; // แดงเข้ม (ดาบไขว้)
       case "success":
-        return { bg: "#2d4a3e", border: "#00b894", icon: "✅" }; // เขียวเข้ม
+        return { 
+          bg: "#2d4a3e", 
+          border: "#00b894", 
+          icon: <GiCheckMark size={iconSize} /> 
+        }; // เขียวเข้ม (ติ๊กถูก)
       case "danger":
-        return { bg: "#572b2b", border: "#ff4757", icon: "💀" }; // แดงเลือดหมู
+        return { 
+          bg: "#572b2b", 
+          border: "#ff4757", 
+          icon: <GiSkullCrossedBones size={iconSize} /> 
+        }; // แดงเลือดหมู (กระโหลก)
       case "warning":
-        return { bg: "#5e4e24", border: "#fdcb6e", icon: "⚠️" }; // เหลืองทอง
+        return { 
+          bg: "#5e4e24", 
+          border: "#fdcb6e", 
+          icon: <GiHazardSign size={iconSize} /> 
+        }; // เหลืองทอง (ป้ายเตือน)
       case "special":
-        return { bg: "#3c2c5e", border: "#a29bfe", icon: "✨" }; // ม่วง
+        return { 
+          bg: "#3c2c5e", 
+          border: "#a29bfe", 
+          icon: <GiMagicSwirl size={iconSize} /> 
+        }; // ม่วง (เวทมนตร์)
       default:
-        return { bg: "#2d3436", border: "#74b9ff", icon: "ℹ️" }; // เทา/ฟ้า
+        return { 
+          bg: "#2d3436", 
+          border: "#74b9ff", 
+          icon: <GiInfo size={iconSize} /> 
+        }; // เทา/ฟ้า (ข้อมูล)
     }
   };
 
@@ -64,9 +101,14 @@ export const BattleLog = ({ logs }) => {
           textTransform: "uppercase",
           letterSpacing: "1px",
           fontSize: "14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px"
         }}
       >
-        📜 Battle Log
+        {/* ใช้ไอคอนตกแต่ง Header ด้วย */}
+        <GiInfo size={18} /> Battle Log
       </div>
 
       {/* Log Area */}
@@ -111,13 +153,16 @@ export const BattleLog = ({ logs }) => {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    alignItems: "center", // จัดกึ่งกลางแนวตั้ง
                     marginBottom: "4px",
-                    opacity: 0.6,
+                    opacity: 0.8, // เพิ่มความชัดขึ้นเล็กน้อยเพราะเป็น icon
                     fontSize: "10px",
                   }}
                 >
-                  <span>
-                    {style.icon} {log.type.toUpperCase()}
+                  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    {/* เรนเดอร์ Icon Component ตรงนี้ */}
+                    {style.icon} 
+                    <span style={{ fontWeight: "bold" }}>{log.type.toUpperCase()}</span>
                   </span>
                   <span>
                     {new Date(log.timestamp).toLocaleTimeString([], {

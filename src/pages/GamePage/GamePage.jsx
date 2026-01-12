@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { Reorder, AnimatePresence, motion } from "framer-motion"; 
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { ipAddress } from "../../const";
 
@@ -17,7 +18,7 @@ import { DeckManager, InventoryUtils } from "../../utils/gameSystem";
 
 // Components
 import { InventorySlot } from "./features/downPanel/InventorySlot";
-import { PlayerEntity } from "./features/TopPanel/PlayerEntity";
+import { PlayerEntity } from "./features/topPanel/PlayerEntity";
 import { EnemyEntity } from "./features/TopPanel/EnemyEntity";
 import { MeaningPopup } from "./features/TopPanel/MeaningPopup";
 import { QuizOverlay } from "./features/DownPanel/QuizOverlay";
@@ -32,34 +33,51 @@ import ErrorView from "../../components/ErrorView";
 // 🆕 COMPONENT: TURN QUEUE BAR
 // ============================================================================
 const TurnQueueBar = ({ store }) => {
-  const { turnQueue, activeCombatant, enemies, gameState } = store;
+  const { turnQueue, enemies, gameState, playerData } = store;
 
   if (!turnQueue || turnQueue.length === 0 || gameState === "ADVANTURE") return null;
+
+  // 🔥 สำคัญ: สร้าง List ใหม่สำหรับแสดงผล โดยคัดคนที่ตาย (HP <= 0) ออกทันที
+  // React จะ Re-render ทันทีที่ store.enemies อัปเดตค่า HP
+  const visibleQueue = turnQueue.filter((unit) => {
+    if (unit.type === "player") {
+      return playerData.hp > 0; // ถ้าผู้เล่นตายก็ให้หายเหมือนกัน (หรือจะเก็บไว้ก็ได้)
+    } else {
+      // ค้นหาข้อมูล Enemy ตัวจริงเพื่อเช็ค HP ปัจจุบัน
+      const enemyData = enemies.find((e) => e.id === unit.id);
+      // "เก็บไว้" ถ้าหาเจอและ HP > 0
+      return enemyData && enemyData.hp > 0;
+    }
+  });
 
   return (
     <div style={styles.queueContainer}>
       <div style={styles.queueList}>
         <AnimatePresence mode="popLayout">
-          {turnQueue.map((unit, index) => {
-            const isCurrentTurn = index === 0; 
+          {/* ✅ ใช้ visibleQueue แทน turnQueue เดิม */}
+          {visibleQueue.map((unit, index) => {
+            const isCurrentTurn = index === 0; // เช็คจาก visible queue โดยตรง
             
+            // Logic รูปภาพ
             let imgSrc = "";
             if (unit.type === "player") {
-              imgSrc = `${ipAddress}/img_hero/${store.playerData.name}-idle-1.png`; 
+              imgSrc = `${ipAddress}/img_hero/${playerData.name}-idle-1.png`; 
             } else {
               const enemyData = enemies.find(e => e.id === unit.id);
               if (enemyData) {
                 imgSrc = `${ipAddress}/img_monster/${enemyData.monster_id}-idle-1.png`;
               } else {
-                 imgSrc = "https://via.placeholder.com/50/57606f/ffffff?text=DEAD";
+                imgSrc = "https://via.placeholder.com/40/000000/ffffff?text=X";
               }
             }
 
             return (
               <motion.div
-                key={unit.uniqueId}
-                layout 
+                key={unit.uniqueId} // สำคัญ: uniqueId ต้องไม่เปลี่ยน
+                layout // ให้เพื่อนขยับมาแทนที่
+                
                 initial={{ opacity: 0, scale: 0.5, x: 50 }}
+                
                 animate={{ 
                   opacity: 1, 
                   scale: isCurrentTurn ? 1.3 : 1, 
@@ -67,22 +85,33 @@ const TurnQueueBar = ({ store }) => {
                   borderColor: isCurrentTurn ? "#f1c40f" : "#7f8c8d",
                   zIndex: isCurrentTurn ? 10 : 1
                 }}
-                exit={{ opacity: 0, scale: 0, y: -20, transition: { duration: 0.2 } }}
+                
+                // 🔽 Animation ตอนหายไป (ตายปุ๊บ ทำงานปั๊บ)
+                exit={{ 
+                  opacity: 0, 
+                  scale: 0, 
+                  y: 50, // จางลงล่าง
+                  transition: { duration: 0.4, ease: "backIn" } 
+                }}
+                
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                
                 style={{
                   ...styles.queueCard,
                   boxShadow: isCurrentTurn ? "0 0 15px #f1c40f, 0 4px 0 #000" : "0 3px 0 #000"
                 }}
               >
+                {/* Arrow Active */}
                 {isCurrentTurn && (
-                   <motion.div 
-                     initial={{ y: -10 }} 
-                     animate={{ y: 0 }} 
-                     transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.5 }}
-                     style={styles.activeArrow}
-                   >
-                     ▼
-                   </motion.div>
+                    <motion.div 
+                      layoutId="activeArrow" // ใส่ layoutId ช่วยให้ลูกศรลอยไปหาคนถัดไปสมูทขึ้น
+                      initial={{ y: -10 }} 
+                      animate={{ y: 0 }} 
+                      transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.5 }}
+                      style={styles.activeArrow}
+                    >
+                      ▼
+                    </motion.div>
                 )}
 
                 <div style={styles.queueImgFrame}>
@@ -108,12 +137,16 @@ const TurnQueueBar = ({ store }) => {
     </div>
   );
 };
-
 // ============================================================================
 // 🎮 MAIN COMPONENT: GameApp
 // ============================================================================
 export default function GameApp() {
   const store = useGameStore();
+  const location = useLocation(); // 👈 เรียก useLocation
+  const navigate = useNavigate(); // 👈 เรียก useNavigate
+
+  // 1. ดึงค่าจาก state ที่ส่งมาจากหน้าเลือกด่าน
+  const { currentUser, selectedStage } = location.state || {};
 
   const [appStatus, setAppStatus] = useState("LOADING");
   const [errorMessage, setErrorMessage] = useState("");
@@ -167,10 +200,11 @@ export default function GameApp() {
   }, []);
 
   // --- INIT ---
-  const initGameData = async () => {
+const initGameData = async () => {
     setAppStatus("LOADING");
     try {
-      await store.initializeGame();
+      // ✅ ส่ง currentUser และ selectedStage เข้าไปใน store
+      await store.initializeGame(currentUser, selectedStage);
       setAppStatus("READY");
     } catch (err) {
       setErrorMessage(err.message || "Failed to load game data");
@@ -179,6 +213,18 @@ export default function GameApp() {
   };
 
   useEffect(() => {
+    initGameData();
+  }, []);
+
+useEffect(() => {
+    // ถ้าไม่มีข้อมูล ให้ดีดกลับ
+    if (!selectedStage || !currentUser) {
+       alert("ไม่พบข้อมูลด่าน กรุณาเลือกด่านก่อน");
+       navigate("/home/adventure"); 
+       return;
+    }
+
+    // ถ้าข้อมูลครบ ให้เริ่มเกม
     initGameData();
   }, []);
 
@@ -482,33 +528,61 @@ export default function GameApp() {
                 })}
               </div>
             </div>
-          ) : (
+) : (
             <>
-              {/* Left Log */}
-              <div style={{ flex: 1, maxWidth: "250px" }}>
-                <BattleLog logs={logs} />
-              </div>
+            {/* 1. LEFT PANEL: Battle Log */}
+            <div 
+              style={{ 
+                flex: 1, 
+                maxWidth: "300px", 
+                minWidth: "240px",
+                display: "flex",
+                flexDirection: "column" 
+              }}
+            >
+              <BattleLog logs={logs} />
+            </div>
 
-              {/* Center Inventory */}
+            {/* 2. CENTER PANEL: Inventory (แก้ตรงนี้!) */}
+            <div 
+              style={{ 
+                // ให้ flex เยอะกว่าเพื่อน เพื่อให้มันพยายามจะใหญ่
+                flex: 2,  
+                maxWidth: "400px", 
+                width: "100%", 
+                display: "flex", 
+                justifyContent: "center",
+              }}
+            > 
               <InventorySlot
                 inventory={inventory}
                 onSelectLetter={handleSelectLetter}
                 playerSlots={store.playerData.unlockedSlots}
                 playerStats={store.playerData.stats} 
               />
+            </div>
 
-              {/* Right Action Panel */}
-              <div style={{ flex: 1, maxWidth: "320px", height: "100%" }}>
-                <ActionPanel
-                  playerData={store.playerData}
-                  gameState={store.gameState}
-                  validWordInfo={validWordInfo}
-                  onAttackClick={onAttackClick}
-                  onShieldClick={onShieldClick}
-                  onSpinClick={onSpinClick}
-                  onEndTurnClick={onEndTurnClick}
-                />
-              </div>
+            {/* 3. RIGHT PANEL: Action Buttons */}
+            <div 
+              style={{ 
+                flex: 1, 
+                maxWidth: "300px", 
+                minWidth: "240px", 
+                display: "flex", 
+                flexDirection: "column",
+                height: "100%" 
+              }}
+            >
+              <ActionPanel
+                playerData={store.playerData}
+                gameState={store.gameState}
+                validWordInfo={validWordInfo}
+                onAttackClick={onAttackClick}
+                onShieldClick={onShieldClick}
+                onSpinClick={onSpinClick}
+                onEndTurnClick={onEndTurnClick}
+              />
+            </div>
             </>
           )}
         </div>
@@ -556,15 +630,20 @@ const styles = {
     fontWeight: "bold", fontSize: "22px", cursor: "grab", boxShadow: "0 4px 0 #b37400"
   },
   bottomUi: {
-    flex: 1, 
-    background: "#1a120b",
-    borderTop: "4px solid #5c4033",
-    display: "flex",
-    padding: "15px",
-    gap: "15px",
-    height: "280px",
-    position: "relative", 
-    overflow: "hidden"    
+        flex: 1,
+        background: "#1a120b",
+        borderTop: "4px solid #5c4033",
+        display: "flex",
+        padding: "15px",
+        gap: "20px",
+        height: "280px",
+        position: "relative",
+        overflow: "hidden",
+        
+        // ✨ เปลี่ยนตรงนี้: ให้ทุกกล่องมากองรวมกันตรงกลาง แล้วใช้ gap แยกเอา
+        // แทนที่จะใช้ space-between ที่ผลักออกข้างสุด
+        justifyContent: "center", 
+        alignItems: "stretch",
   },
   actionButtonContainer: {
       flex: 1,

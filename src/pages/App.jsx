@@ -1,13 +1,5 @@
 import { Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
-<<<<<<< HEAD
-
-// import { checkAuth } from "../store/reducers/authentication";
-
-// route
-
-//page
-=======
 import { useAuthStore } from "../store/useAuthStore";
 import { AdminRoute } from "../routes/AdminRoute";
 import PrivateRoute from "../routes/PrivateRoute";
@@ -20,7 +12,6 @@ import AdvantureFeature from "./HomePage/feature/AdvantureFeature";
 import ShopSpellFeature from "./HomePage/feature/ShopSpellFeature";
 import DictionaryLibrary from "./HomePage/feature/LibraryFeature/dictionary/DictionaryLibrary";
 import MonsterLibrary from "./HomePage/feature/LibraryFeature/monster/MonsterLibrary";
->>>>>>> main
 import GamePage from "./GamePage/GamePage";
 import AuthPage from "./AuthPage";
 import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";

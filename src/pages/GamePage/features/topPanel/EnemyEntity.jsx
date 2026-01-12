@@ -32,31 +32,33 @@ export const EnemyEntity = ({
   const spriteUrl = `${ipAddress}/img_monster/${enemy.monster_id}-${finalSprite}.png`;
   // -------------------------------------------------------------
 
-  // Logic การเคลื่อนที่ซ้าย-ขวา
+const QUIZ_DURATION = 5; 
+
   const movementTransition =
-    gameState === "QUIZ_MODE"
-      ? { duration: 10, ease: "linear" }
-      : { type: "tween", duration: 0.2 };
+gameState === "QUIZ_MODE"
+      ? { duration: QUIZ_DURATION, ease: "linear" } // 🐢 ถ้าเป็น Quiz ให้เดินช้าๆ คงที่
+      : { type: "spring", stiffness: 300, damping: 25 }; // 🐇 ถ้าโหมดอื่น (เช่น เดินกลับ/พุ่งตี) ให้เร็วและเด้ง
+
 
   return (
-    <motion.div
-      initial={{ left: `${enemy.x}%`, x: "-50%", y: "-100%", scale: 0, opacity: 0 }}
-      animate={{ left: `${enemy.x}%`, x: "-50%", y: "-100%", scale: 1, opacity: 1 }}
+      <motion.div
+        initial={{ left: `${enemy.x}%`, x: "-50%", y: "-100%", scale: 0, opacity: 0 }}
+        animate={{ left: `${enemy.x}%`, x: "-50%", y: "-100%", scale: 1, opacity: 1 }}
+        transition={{
+            default: { type: "spring", stiffness: 300, damping: 15 },
+            left: movementTransition, // ✅ ถูกต้อง
+            opacity: { duration: 0.3 },
+        }}
       exit={{
         x: 500, y: -1000, rotate: 1800, scale: 1, opacity: 1,
         transition: { duration: 0.2, ease: "easeIn" },
-      }}
-      transition={{
-        default: { type: "spring", stiffness: 300, damping: 15 },
-        left: movementTransition,
-        opacity: { duration: 0.3 },
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(enemy.id); }}
       onMouseEnter={() => onHover && onHover(true)}
       onMouseLeave={() => onHover && onHover(false)}
       style={{
         position: "absolute", top: FIXED_Y, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL,
-        zIndex: 100 - index, transformOrigin: "center center",
+        zIndex: isAttack ? 2000 : (100 - index), transformOrigin: "center center",
         display: "flex", flexDirection: "column", justifyContent: "center", cursor: "pointer",
         ...style,
       }}

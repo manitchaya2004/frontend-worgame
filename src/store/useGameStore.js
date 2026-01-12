@@ -53,6 +53,7 @@ export const useGameStore = create((set, get) => ({
   // Animation Control
   animTimer: 0,
   animFrame: 1,
+  hasSpawnedEnemies: false,
 
   // --------------------------------------------------------------------------
   // 🔴 STATE: ENEMY & COMBAT QUEUE
@@ -76,10 +77,10 @@ export const useGameStore = create((set, get) => ({
     stats: {
       STR: 20, // Modifier ไปคูณ 0.5 ใน getLetterDamage
       CON: 20, // +2 HP per point
-      INT: 11, // +1 Slot per point
-      DEX: 11, // +1 Speed per point
-      FAITH: 11, // +1 RP per point
-      LUCK: 11, // +2% Crit per point
+      INT: 20, // +1 Slot per point
+      DEX: 10, // +1 Speed per point
+      FAITH: 20, // +1 RP per point
+      LUCK: 10, // +2% Crit per point
     },
     // Derived Stats
     max_hp: 8,
@@ -150,7 +151,14 @@ export const useGameStore = create((set, get) => ({
 
   // ... (initializeGame, update, etc. คงเดิม) ...
 
-  initializeGame: async () => {
+initializeGame: async (userData, stageData) => {
+    
+    // ✅ 1. Console Log ดูค่าที่ส่งมา
+    console.log("====================================");
+    console.log("🚀 START INITIALIZE GAME");
+    console.log("👤 User Data:", userData);
+    console.log("🗺️ Stage Data:", stageData);
+    console.log("====================================");
     set({ loadingProgress: 0, gameState: "LOADING" });
     try {
       const dictRes = await fetch(`${ipAddress}/dict`);
@@ -237,11 +245,12 @@ export const useGameStore = create((set, get) => ({
       quizResolver: null,
       turnQueue: [],
       activeCombatant: null,
+      hasSpawnedEnemies: false,
     });
     get().recalculatePlayerStats();
   },
 
-  update: (dt) =>
+update: (dt) =>
     set((state) => {
       let updates = {};
       const ANIM_SPEED = 300;
@@ -252,20 +261,29 @@ export const useGameStore = create((set, get) => ({
         if (state.gameState === "ADVANTURE") sfx.playWalk();
       }
       updates.animTimer = newTimer;
+
       if (state.gameState === "ADVANTURE") {
         const speed = 0.005;
         const newDist = state.distance + dt * speed;
+        
         let nextTargetDist = Infinity;
         if (state.stageData && state.stageData[state.currentEventIndex])
           nextTargetDist = state.stageData[state.currentEventIndex].distance;
+
+        // ✅ เช็คแค่ว่า "ถึงหรือยัง" (ไม่ต้องมี Pre-spawn)
         if (newDist >= nextTargetDist) {
           const finalDist = nextTargetDist;
+
           setTimeout(() => {
             const store = get();
-            const activeSlots = store.playerData.unlockedSlots || 10;
-            const initialLoot = DeckManager.generateList(activeSlots);
-            store.spawnEnemies(initialLoot);
-          }, 500);
+            if (store.gameState === "PREPARING_COMBAT") {
+                const activeSlots = store.playerData.unlockedSlots || 10;
+                const initialLoot = DeckManager.generateList(activeSlots);
+              
+                store.spawnEnemies(initialLoot, true); 
+            }
+          }, 50);
+
           updates.distance = finalDist;
           updates.gameState = "PREPARING_COMBAT";
         } else {
@@ -274,15 +292,16 @@ export const useGameStore = create((set, get) => ({
       }
       return updates;
     }),
-
-  spawnEnemies: (loot) => {
+  spawnEnemies: (loot, autoStart = false) => { 
     const store = get();
     const currentEvent = store.stageData[store.currentEventIndex];
     const waveData = currentEvent ? currentEvent.monsters : [];
+
     if (!waveData || waveData.length === 0) {
       set({ gameState: "GAME_CLEARED", playerShoutText: "MISSION COMPLETE!" });
       return;
     }
+
     const enemiesWithPos = waveData.map((e, i) => ({
       ...e,
       x: 85 - i * 15,
@@ -291,6 +310,7 @@ export const useGameStore = create((set, get) => ({
       currentStep: 1,
       selectedPattern: e.selectedPattern || 1,
     }));
+
     set({
       enemies: enemiesWithPos,
       playerData: {
@@ -299,7 +319,12 @@ export const useGameStore = create((set, get) => ({
         inventory: loot,
       },
     });
-    get().startCombatRound();
+
+    // ✅ ถ้า autoStart เป็น true ค่อยเริ่ม (ใช้กรณี Debug หรืออื่นๆ)
+    // แต่ปกติเราจะไปเรียก startCombatRound ตอนเดินถึงเป้าหมายแทน
+    if (autoStart) {
+        get().startCombatRound();
+    }
   },
 
   startCombatRound: async () => {
@@ -405,6 +430,7 @@ export const useGameStore = create((set, get) => ({
         currentEventIndex: nextEventIdx,
         turnQueue: [],
         activeCombatant: null,
+        hasSpawnedEnemies: false, 
       });
     } else {
       set({
@@ -646,30 +672,56 @@ export const useGameStore = create((set, get) => ({
       get().updateEnemy(en.id, { shoutText: "...", currentStep: nextStep });
       await delay(800);
       get().updateEnemy(en.id, { shoutText: "" });
-    } else if (actionMove === "SKILL") {
+
+    // ------------------------------------------------------------------------
+    // ⚡ SKILL LOGIC (วางทับ Block เดิมได้เลย)
+    // ------------------------------------------------------------------------
+} else if (actionMove === "SKILL") {
       const originalX = en.x;
       const vocabList = store.dictionary;
-      const correctEntry =
-        vocabList[Math.floor(Math.random() * vocabList.length)];
+      
+      // 1. Logic ดาเมจ & คำศัพท์ (เหมือนเดิม)
+      const baseDmg = Math.floor(Math.random() * (en.atk_power_max - en.atk_power_min + 1)) + en.atk_power_min;
+      let finalDmg = baseDmg * 2; 
+      let candidateWords = vocabList.filter(v => v.word.length === finalDmg);
+      if (candidateWords.length === 0) {
+        candidateWords = vocabList;
+        const fallbackWord = candidateWords[Math.floor(Math.random() * candidateWords.length)];
+        finalDmg = fallbackWord.word.length; 
+      }
+      const correctEntry = candidateWords[Math.floor(Math.random() * candidateWords.length)];
+      
+      // 2. Logic Choice หลอก (เหมือนเดิม)
       const choices = vocabList
         .filter((v) => v.word !== correctEntry.word)
         .map((v) => {
           let score = getLevenshteinDistance(correctEntry.word, v.word);
-          score += Math.abs(correctEntry.word.length - v.word.length);
+          score += Math.abs(correctEntry.word.length - v.word.length) * 2; 
           return { ...v, similarityScore: score };
         })
         .sort((a, b) => a.similarityScore - b.similarityScore)
-        .slice(0, 3)
-        .map((w) => w.word);
-      const finalChoices = [correctEntry.word, ...choices].sort(
-        () => 0.5 - Math.random()
-      );
-      get().updateEnemy(en.id, {
-        x: PLAYER_X_POS + 25,
-        shoutText: correctEntry.meaning,
-        atkFrame: 1,
-      });
-      await delay(1000);
+        .slice(0, 3).map((w) => w.word);
+      const finalChoices = [correctEntry.word, ...choices].sort(() => 0.5 - Math.random());
+
+      // ======================================================
+      // 📍 CONFIG ระยะห่าง (สำคัญมาก!)
+      // ======================================================
+      // CREEP_DIST: ระยะที่เดินมาช้าๆ (10 วิ) -> เอาแบบปลอดภัย ไม่ทับ (18)
+      const CREEP_DIST = 10; 
+      
+      // STRIKE_DIST: ระยะฟัน -> ขยับเข้าไปอีกนิดเพื่อให้เกิดการเคลื่อนที่ใหม่ (14)
+      // *การเปลี่ยนจาก 18 ไป 14 จะบังคับให้ Animation "ดีดตัว" ใหม่ทันที*
+      const STRIKE_DIST = 6; 
+
+      // ======================================================
+      // 🚀 PHASE 1: LUNGE (ตั้งหลักไกลๆ)
+      // ======================================================
+
+
+      // ======================================================
+      // ⏱️ PHASE 2: CREEP (เดินกดดัน)
+      // ======================================================
+      const QUIZ_SECONDS = 10; 
       set({
         gameState: "QUIZ_MODE",
         currentQuiz: {
@@ -677,33 +729,57 @@ export const useGameStore = create((set, get) => ({
           correctAnswer: correctEntry.word,
           choices: finalChoices,
           enemyId: en.id,
+          timeLimit: QUIZ_SECONDS * 1000
         },
       });
+
+      // เดินช้าๆ มาที่ระยะปลอดภัย (18)
+      get().updateEnemy(en.id, {
+        x: PLAYER_X_POS + CREEP_DIST, 
+        atkFrame: 1, 
+      });
+
+      // ⏳ รอคำตอบ...
       const isCorrect = await new Promise((resolve) => {
         set({ quizResolver: resolve });
       });
-      set({ gameState: "ENEMYTURN" });
-      await delay(50);
-      get().updateEnemy(en.id, { x: PLAYER_X_POS + 10, atkFrame: 2 });
+
+      // ======================================================
+      // ⚔️ PHASE 3: STRIKE (พุ่งฟัน!)
+      // ======================================================
+      // 1. เปลี่ยนโหมดเพื่อให้ Animation เป็น Spring
+      set({ gameState: "ENEMYTURN" }); 
+      
+      // 2. ให้เวลานิดนึงเพื่อ Reset State
+      await delay(50); 
+
+      // 3. 🔴 สั่งเปลี่ยนตำแหน่งเป็น STRIKE_DIST (14)
+      // - เพราะค่า X เปลี่ยน (จากเป้าหมายเดิม 18 -> 14) 
+      // - ระบบจะ "ยกเลิก" การเดินช้า แล้วคำนวณเส้นทางใหม่ด้วยความเร็วสูง (Spring)
+      // - ไม่ว่าจะอยู่ไกล (ตอบเร็ว) หรืออยู่ใกล้ (หมดเวลา) มันจะพุ่งมาที่ 14 ทันที
+      get().updateEnemy(en.id, { 
+        x: PLAYER_X_POS + STRIKE_DIST, 
+        atkFrame: 2 // ง้างฟัน
+      });
+
       if (isCorrect) {
-        set({ isDodging: true });
-        get().updateEnemy(en.id, { shoutText: "MISSED!" });
+        set({ isDodging: true }); 
         sfx.playMiss();
+        get().updateEnemy(en.id, { shoutText: "MISSED!" });
       } else {
-        const dmg =
-          (Math.floor(
-            Math.random() * (en.atk_power_max - en.atk_power_min + 1)
-          ) +
-            en.atk_power_min) *
-          2;
         sfx.playHit();
-        get().damagePlayer(dmg);
+        get().damagePlayer(finalDmg); 
       }
-      await delay(1000);
-      set({ isDodging: false });
+
+      await delay(800);
+
+      // ======================================================
+      // 🔙 PHASE 4: RETREAT
+      // ======================================================
+      set({ isDodging: false }); 
       get().updateEnemy(en.id, {
-        x: originalX,
-        atkFrame: 0,
+        x: originalX, 
+        atkFrame: 0, 
         shoutText: "",
         currentStep: nextStep,
       });
