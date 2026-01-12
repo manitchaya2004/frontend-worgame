@@ -77,7 +77,7 @@ export const HomeLobbyLayout = () => {
           },
         }}
       >
-        SHOP MARKET
+        CHARACTER
       </Button>
       <Button
         variant="contained"

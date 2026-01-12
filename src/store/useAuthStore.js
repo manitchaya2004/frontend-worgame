@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { LOADED, LOADING, FAILED, INITIALIZED ,API_URL} from "./const";
-
+import { LOADED, LOADING, FAILED, INITIALIZED, API_URL } from "./const";
 
 export const useAuthStore = create(
   persist(
@@ -9,8 +8,10 @@ export const useAuthStore = create(
       /* ================= STATE (เหมือน Redux) ================= */
       registerState: INITIALIZED,
       loginState: INITIALIZED,
+      selectHeroState: INITIALIZED,
       authLoading: true,
       isAuthenticated: false,
+      isFirstTime: false,
       currentUser: null,
 
       backendRegisMessage: null,
@@ -113,21 +114,6 @@ export const useAuthStore = create(
         }
       },
 
-      /* ===== LOGOUT ===== */
-      logoutUser: async () => {
-        await fetch(`${API_URL}/logout`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        localStorage.removeItem("token");
-
-        set({
-          isAuthenticated: false,
-          currentUser: null,
-        });
-      },
-
       /* ===== CHECK AUTH ===== */
       checkAuth: async () => {
         set({ authLoading: true });
@@ -161,6 +147,82 @@ export const useAuthStore = create(
         }
       },
 
+      /* ===== CHECK FIRST TIME ===== */
+      checkFirstTime: async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+
+          const res = await fetch(`${API_URL}/checkFirstTime`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          });
+
+          if (!res.ok) throw new Error("server error");
+
+          const data = await res.json();
+          console.log("data", data);
+
+          if (!data.isSuccess) throw new Error(data.message);
+
+          set({
+            isFirstTime: data.firstTime,
+          });
+
+          return data.firstTime; // 👈 เผื่อ component เอาไปใช้
+        } catch (error) {
+          console.error("checkFirstTime error:", error);
+          set({
+            isFirstTime: false,
+          });
+          return false;
+        }
+      },
+
+      selectHero: async (heroId) => {
+        try {
+          set({ selectHeroState: LOADING });
+
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+
+          const res = await fetch(`${API_URL}/select-hero`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ heroId }),
+          });
+
+          if (!res.ok) throw new Error("server error");
+
+          const data = await res.json();
+          if (!data.isSuccess) throw new Error(data.message);
+
+          // ⭐ update hero ใน store
+          set((state) => ({
+            selectHeroState: LOADED,
+            currentUser: {
+              ...state.currentUser,
+              heroes: state.currentUser.heroes.map((h) => ({
+                ...h,
+                is_selected: h.hero_id === heroId,
+              })),
+            },
+          }));
+
+          return true;
+        } catch (err) {
+          console.error("selectHero error:", err);
+          set({ selectHeroState: FAILED });
+          return false;
+        }
+      },
+
       /* ===== CLEAR STATES (เหมือน reducers) ===== */
       logout: () => {
         localStorage.removeItem("token");
@@ -177,6 +239,26 @@ export const useAuthStore = create(
       clearLoginState: () => set({ loginState: INITIALIZED }),
 
       clearRegisterState: () => set({ registerState: INITIALIZED }),
+
+      // hero ที่กำลังใช้อยู่
+      getSelectedHero: () => {
+        const user = get().currentUser;
+        return user?.heroes?.find((h) => h.is_selected === true) ?? null;
+      },
+
+      // เช็คว่าผู้เล่นมี hero นี้ไหม
+      isHeroOwned: (heroId) => {
+        const user = get().currentUser;
+        return !!user?.heroes?.some((h) => h.hero_id === heroId);
+      },
+
+      // เช็คว่า hero นี้กำลังถูกเลือกอยู่ไหม
+      isHeroSelected: (heroId) => {
+        const user = get().currentUser;
+        return !!user?.heroes?.some(
+          (h) => h.hero_id === heroId && h.is_selected === true
+        );
+      },
     }),
     {
       name: "auth-storage",

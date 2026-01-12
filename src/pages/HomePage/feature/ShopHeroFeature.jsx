@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Box, Typography, Divider } from "@mui/material";
-import { Title } from "./AdvantureFeature";
 import BackArrow from "../components/BackArrow";
 import arrowRight from "../../../assets/icons/arrowRight.png";
 import arrowLeft from "../../../assets/icons/arrowLeft.png";
@@ -9,19 +8,22 @@ import StarBackground from "../components/StarBackground";
 import { useData } from "../hook/useData";
 import { usePreloadFrames } from "../hook/usePreloadFrams";
 import { useIdleFrame } from "../hook/useIdleFrame";
-
 import HardwareIcon from "@mui/icons-material/Hardware";
 import SpeedIcon from "@mui/icons-material/Speed";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ShieldIcon from "@mui/icons-material/Shield";
 import CasinoIcon from "@mui/icons-material/Casino";
 import StarIcon from "@mui/icons-material/Star";
-
+import GameAppBar from "../../../components/AppBar";
 import LoadingScreen from "../../../components/Loading/LoadingPage";
+import { useLoginPlayer } from "../../AuthPage/LoginPage/hook/useLoginPlayer";
+import { THEME } from "../hook/const";
+import { useAuthStore } from "../../../store/useAuthStore";
+import { useHeroStore } from "../../../store/useHeroStroe";
 const MAX_STAT = 20;
 const MAX_LEVEL = 5;
 
-// Config สีและ Icon (คงเดิม แต่ปรับสี Label ให้เข้ากับธีมเข้มในกล่อง Stat)
+// Config สีและ Icon
 const STAT_CONFIG = {
   STR: {
     color: "#c45a3c",
@@ -37,6 +39,11 @@ const STAT_CONFIG = {
     color: "#6a8caf",
     icon: <AutoFixHighIcon sx={{ fontSize: 12 }} />,
     labelBg: "#e6edf5",
+  },
+  FTH: {
+    color: "#ffd700", // สีทองสำหรับ Faith
+    icon: <AutoFixHighIcon sx={{ fontSize: 12 }} />, // หรือเปลี่ยน Icon ตามต้องการ
+    labelBg: "#fff8e1",
   },
   CON: {
     color: "#c9a24d",
@@ -55,54 +62,57 @@ const getNextLevelExp = (level) => {
   return level * 100;
 };
 
-// --- LevelBar (ปรับสี Text ให้สว่างขึ้นเพราะจะไปอยู่บนพื้นเข้ม) ---
-const LevelBar = ({ level = 1, currentExp = 0 }) => {
-  const maxExp = getNextLevelExp(level);
+// --- LevelBar ---
+// --- LevelBar (ปรับปรุง: เพิ่มข้อความบอก EXP ที่ขาด) ---
+const LevelBar = ({ level = 1, currentExp = 0, nextExp = 100 }) => {
+  const maxExp = nextExp || (level >= MAX_LEVEL ? 100 : level * 100);
   const isMax = level >= MAX_LEVEL;
+
+  // คำนวณ % หลอด
   const percentage = isMax
     ? 100
     : Math.min(100, Math.max(0, (currentExp / maxExp) * 100));
 
+  // คำนวณ exp ที่ขาด
+  const expNeeded = Math.max(0, maxExp - currentExp);
+
   return (
-    <Box sx={{ mb: 1.5 }}>
-      <Box sx={{ display: "flex", gap: 2, mb: 0.3, alignItems: "center" }}>
-        {/* Label LV */}
+    <Box sx={{ mb: 1.5, width: "100%" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {/* 1. SHOW LV [Number] */}
         <Box
           sx={{
+            minWidth: 42,
             display: "flex",
             alignItems: "center",
-            gap: 0.5,
-            background: "#8b5a2b",
-            boxShadow: "1px 1px 0 #4e2f18",
-            px: 0.5,
-            py: 0.2,
-            borderRadius: 1,
-            // boxShadow: '1px 1px 0 #000'
+            justifyContent: "center",
           }}
         >
-          <StarIcon sx={{ fontSize: 10, color: "#ffe8a3" }} />
           <Typography
             sx={{
               fontFamily: "'Press Start 2P'",
-              fontSize: 8,
-              color: "#fff",
+              fontSize: 10,
+              color: "#ffd54f", // สีเหลืองทอง
+              textShadow: "1px 1px 0 #000",
+              lineHeight: 1,
+              display: "block",
+              letterSpacing: "-0.5px",
             }}
           >
-            LV
+            LV {level}
           </Typography>
         </Box>
 
-        {/* BAR CONTAINER */}
+        {/* 2. THE BAR */}
         <Box
           sx={{
-            flex: 1,
             height: 14,
             borderRadius: 4,
             backgroundColor: "#3b2a1a",
             border: "2px solid #2a1b10",
             boxShadow: "inset 0 0 6px rgba(0,0,0,0.6)",
             position: "relative",
-            // boxShadow: "inset 0 0 5px #000",
+            width: "100%",
           }}
         >
           <Box
@@ -113,16 +123,16 @@ const LevelBar = ({ level = 1, currentExp = 0 }) => {
                 ? "linear-gradient(180deg, #ffe082, #d4a437)"
                 : "linear-gradient(180deg, #d8b07a, #b8894a)",
               transition: "width 0.5s ease-out",
+              borderRadius: percentage >= 100 ? 2 : "2px 0 0 2px",
             }}
           />
-          {/* Text Overlay บนหลอด */}
+          {/* ตัวเลขในหลอด (ถ้าอยากเอาออก ลบส่วนนี้ได้เลย) */}
           {!isMax && (
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
                 fontSize: 7,
-                color: "#fff6d8",
-                textShadow: "1px 1px 0 #4e2f18",
+                color: "rgba(255, 246, 216, 0.6)", // จางๆ หน่อยจะได้ไม่กวนตา
                 position: "absolute",
                 width: "100%",
                 textAlign: "center",
@@ -135,27 +145,13 @@ const LevelBar = ({ level = 1, currentExp = 0 }) => {
             </Typography>
           )}
         </Box>
-
-        {/* Level Number */}
-        <Typography
-          sx={{
-            fontFamily: "'Press Start 2P'",
-            fontSize: 10,
-            color: isMax ? "#ffd54f" : "#f5e6c8",
-            width: "25px",
-            textAlign: "right",
-            textShadow: "1px 1px 0 #000",
-          }}
-        >
-          {level}
-        </Typography>
       </Box>
     </Box>
   );
 };
 
-// --- StatBar (ปรับปรุงเล็กน้อยเพื่อให้เข้ากับพื้นหลังมืด) ---
-const StatBar = ({ label, value }) => {
+// --- StatBar (แก้ไข: เพิ่มปุ่ม Upgrade) ---
+const StatBar = ({ label, value, onUpgrade, showUpgrade }) => {
   const config = STAT_CONFIG[label] || {
     color: "gray",
     icon: null,
@@ -175,7 +171,6 @@ const StatBar = ({ label, value }) => {
             boxShadow: "1px 1px 0 #6b4a2f",
             px: 0.5,
             py: 0.4,
-            boxShadow: "1px 1px 0 rgba(0,0,0,0.5)",
           }}
         >
           <Box sx={{ color: "#2b1d14", display: "flex" }}>{config.icon}</Box>
@@ -226,60 +221,122 @@ const StatBar = ({ label, value }) => {
             fontFamily: "'Press Start 2P'",
             fontSize: 9,
             color: "#f5e6c8",
-            textShadow: "1px 1px 0 #3b2415", // สีขาว
-            width: "25px",
+            textShadow: "1px 1px 0 #3b2415",
+            width: "20px",
             textAlign: "right",
-            // textShadow: "1px 1px 0 #000",
           }}
         >
           {value}
         </Typography>
+
+        {/* ปุ่ม Upgrade (+ Button) */}
+        {showUpgrade && (
+          <Box
+            onClick={onUpgrade}
+            sx={{
+              width: 16,
+              height: 16,
+              ml: 0.5,
+              backgroundColor: "#81c784", // สีเขียว Pixel
+              border: "1px solid #2e7d32",
+              borderRadius: "4px",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              cursor: "pointer",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 0 #1b5e20",
+              "&:hover": {
+                filter: "brightness(1.1)",
+                backgroundColor: "#a5d6a7",
+              },
+              "&:active": {
+                transform: "translateY(1px)",
+                boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)",
+              },
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 10,
+                fontWeight: "bold",
+                color: "#003300",
+                lineHeight: 1,
+                mb: "1px",
+                fontFamily: "monospace",
+              }}
+            >
+              +
+            </Typography>
+          </Box>
+        )}
       </Box>
     </Box>
   );
 };
 
-// --- ShopHeroCard (พระเอกของเรา ปรับดีไซน์ใหม่) ---
-const ShopHeroCard = ({ hero }) => {
-  const frames = usePreloadFrames("img_hero",hero.name, 2);
+// --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
+const ShopHeroCard = ({ hero, playerHeroes }) => {
+  const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
-  const currentLevel = hero.level || 1;
-  const currentExp = hero.exp || 45;
+
+  // ตรวจสอบสถานะการเป็นเจ้าของ
+  const playerHero = playerHeroes?.find((h) => h.hero_id === hero.id);
+  const isOwned = !!playerHero;
+  const isSelected = playerHero?.is_selected === true;
+
+  // === เงื่อนไขข้อมูล ===
+  // 1. Level: ถ้ามีใช้ของ Player ถ้าไม่มีใช้ 1
+  const currentLevel = playerHero?.level || 1;
+
+  // 2. EXP: ถ้าซื้อแล้วใช้ของ Player, ถ้ายังไม่ซื้อ ให้เป็น 0 (หลอดว่าง)
+  const currentExp = isOwned ? playerHero?.current_exp || 0 : 0;
+
+  // 3. Next Exp: ถ้ามีใช้ของ Player, ถ้าไม่มีใช้ค่า Default (100)
+  const nextExp = playerHero?.next_exp || 100;
+
+  // 4. Points: ถ้ายังไม่ซื้อ ให้เป็น 0 ไปเลย (ห้ามอัปเกรด)
+  const availablePoints = isOwned ? playerHero?.point_for_added || 0 : 0;
+
+  const { selectHero } = useAuthStore();
+  const { upradeStatHero } = useHeroStore();
+
+  const getTotalStat = (baseValue, addedKey) => {
+    const addedValue = playerHero ? playerHero[addedKey] : 0;
+    return baseValue + addedValue;
+  };
+
+  const handleUpgrade = (statKey) => {
+    if (availablePoints > 0) {
+      console.log(`UPGRADE ${statKey}`);
+      // TODO: Call API
+    }
+  };
 
   return (
     <Box
       sx={{
         width: 340,
-        height: 455, // ขยายความสูง
-        // พื้นหลังการ์ด: ทองไล่เฉด + กรอบซ้อน
+        height: 480,
         background: "linear-gradient(180deg, #f2dfb6, #d9b97a)",
         border: "3px solid #6b3f1f",
         borderRadius: 3,
-        boxShadow: `
-    inset 0 0 0 2px rgba(255,255,255,0.25),
-    0 6px 0 #4a2b16,
-    0 10px 20px rgba(0,0,0,0.5)
-  `,
+        boxShadow: `inset 0 0 0 2px rgba(255,255,255,0.25), 0 6px 0 #4a2b16, 0 10px 20px rgba(0,0,0,0.5)`,
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        // boxShadow: `
-        //     inset 0 0 0 4px #ffca28,
-        //     0 10px 20px rgba(0,0,0,0.5)
-        // `, // เงา Inset สีทองเข้ม + เงาตกกระทบ
         overflow: "hidden",
       }}
     >
-      {/* === IMAGE AREA === */}
+      {/* ... (IMAGE AREA & HEADER NAME เหมือนเดิม ไม่ต้องแก้) ... */}
       <Box
         sx={{
-          flex: "0 0 200px", // ความสูงคงที่
+          flex: "0 0 200px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           position: "relative",
           background:
-            "radial-gradient(circle, #fff8e1 10%, rgba(255,255,255,0) 70%)", // แสงสว่างหลังตัวละคร
+            "radial-gradient(circle, #fff8e1 10%, rgba(255,255,255,0) 70%)",
           top: 20,
         }}
       >
@@ -292,7 +349,7 @@ const ShopHeroCard = ({ hero }) => {
               height: "160px",
               objectFit: "contain",
               imageRendering: "pixelated",
-              filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))", // เงาตัวละคร
+              filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
             }}
             onError={(e) => {
               e.currentTarget.src = "/fallback/unknown-monster.png";
@@ -300,7 +357,6 @@ const ShopHeroCard = ({ hero }) => {
           />
         ) : null}
       </Box>
-      {/* === HEADER / NAME === */}
       <Box
         sx={{
           background: "#5d4037",
@@ -309,14 +365,14 @@ const ShopHeroCard = ({ hero }) => {
           borderBottom: "2px solid #3e2723",
           boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
           position: "relative",
-          bottom: "44%",
+          bottom: "42%",
         }}
       >
         <Typography
           sx={{
             fontFamily: `"Press Start 2P", monospace`,
             fontSize: "14px",
-            color: "#ffecb3", // ตัวหนังสือสีทองอ่อน
+            color: "#ffecb3",
             textShadow: "2px 2px 0 #000",
             textTransform: "uppercase",
           }}
@@ -332,7 +388,7 @@ const ShopHeroCard = ({ hero }) => {
           background: "#3a2416",
           borderRadius: 2,
           border: "2px solid #2a160f",
-          boxShadow: "inset 0 0 8px rgba(0,0,0,0.6)", // สีน้ำตาลเข้มเกือบดำ (Dark Theme Panel)
+          boxShadow: "inset 0 0 8px rgba(0,0,0,0.6)",
           mx: 1.5,
           mb: 1.5,
           p: 1.5,
@@ -340,64 +396,122 @@ const ShopHeroCard = ({ hero }) => {
           flexDirection: "column",
           justifyContent: "space-between",
           position: "relative",
-          bottom: 50,
+          bottom: 60,
         }}
       >
-        {/* Stats Content */}
         <Box>
-          <LevelBar level={currentLevel} currentExp={currentExp} />
-          <Divider
-            sx={{ borderColor: "#5d4037", mb: 1.5, borderStyle: "dashed" }}
+          {/* Level Bar ใหม่ */}
+          <LevelBar
+            level={currentLevel}
+            currentExp={currentExp}
+            nextExp={nextExp}
           />
-          <StatBar label="STR" value={hero.base_str} />
-          <StatBar label="DEX" value={hero.base_dex} />
-          <StatBar label="INT" value={hero.base_int} />
-          <StatBar label="CON" value={hero.base_con} />
-          <StatBar label="LUCK" value={hero.base_luck} />
+
+          <Divider
+            sx={{ borderColor: "#5d4037", mb: 1, borderStyle: "dashed" }}
+          />
+
+          {/* Points (โชว์เฉพาะถ้ามีแต้ม) */}
+          {isOwned ? (
+            <>
+              {availablePoints >= 0 && (
+                <Box
+                  sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}
+                >
+                  <Typography
+                    sx={{
+                      fontFamily: "'Press Start 2P'",
+                      fontSize: 8,
+                      color: "#81c784",
+                      animation: "pulse 1s infinite",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    POINTS: {availablePoints}
+                  </Typography>
+                </Box>
+              )}
+            </>
+          ) : null}
+
+          {/* Stat Bars (โชว์ปุ่ม Upgrade เฉพาะมี Point และเป็นเจ้าของ) */}
+          <StatBar
+            label="STR"
+            value={getTotalStat(hero.base_str, "added_str")}
+            showUpgrade={availablePoints > 0}
+            onUpgrade={() => handleUpgrade("added_str")}
+          />
+          <StatBar
+            label="DEX"
+            value={getTotalStat(hero.base_dex, "added_dex")}
+            showUpgrade={availablePoints > 0}
+            onUpgrade={() => handleUpgrade("added_dex")}
+          />
+          <StatBar
+            label="INT"
+            value={getTotalStat(hero.base_int, "added_int")}
+            showUpgrade={availablePoints > 0}
+            onUpgrade={() => handleUpgrade("added_int")}
+          />
+          <StatBar
+            label="FTH"
+            value={getTotalStat(hero.base_faith, "added_faith")}
+            showUpgrade={availablePoints > 0}
+            onUpgrade={() => handleUpgrade("added_faith")}
+          />
+          <StatBar
+            label="CON"
+            value={getTotalStat(hero.base_con, "added_con")}
+            showUpgrade={availablePoints > 0}
+            onUpgrade={() => handleUpgrade("added_con")}
+          />
+          <StatBar
+            label="LUCK"
+            value={getTotalStat(hero.base_luck, "added_luck")}
+            showUpgrade={availablePoints > 0}
+            onUpgrade={() => handleUpgrade("added_luck")}
+          />
         </Box>
       </Box>
-      {/* Price Button (วางไว้ใน Panel หรือ Card ก็ได้ แต่อันนี้วางใน Panel ล่างสุด) */}
+
+      {/* Price / Select Button (เหมือนเดิม) */}
       <Box
         sx={{
-          position: "relative",
-          bottom: "12%",
-          mx: "10px",
+          position: "absolute",
+          bottom: 12,
+          left: 12,
+          right: 12,
+          zIndex: 10,
           py: 1,
-          background: "linear-gradient(180deg, #c49a3a, #8b5a1e)",
+          textAlign: "center",
+          background: isSelected
+            ? "linear-gradient(180deg, #9e9e9e, #616161)"
+            : isOwned
+            ? "linear-gradient(180deg, #81c784, #388e3c)"
+            : "linear-gradient(180deg, #c49a3a, #8b5a1e)",
+          cursor: isSelected ? "default" : "pointer",
+          opacity: isSelected ? 0.85 : 1,
           border: "3px solid #5a3312",
           borderRadius: 2,
           color: "#2a160a",
-          textAlign: "center",
-          cursor: "pointer",
-          transition: "all 0.12s ease-out",
-          boxShadow: `
-      inset 0 1px 0 rgba(255,255,255,0.25),
-      inset 0 -2px 0 rgba(0,0,0,0.35),
-      0 5px 0 #3a1f0b,
-      0 8px 14px rgba(0,0,0,0.45)
-    `,
-          "&:hover": {
-            background: "linear-gradient(180deg, #d6ab45, #9b6424)",
+          boxShadow: isSelected
+            ? "inset 0 2px 4px rgba(0,0,0,0.5)"
+            : `inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.35), 0 5px 0 #3a1f0b, 0 8px 14px rgba(0,0,0,0.45)`,
+          "&:hover": !isSelected && {
             filter: "brightness(1.05)",
           },
-          "&:active": {
-            transform: "translateY(3px)",
-            boxShadow: `
-        inset 0 2px 0 rgba(0,0,0,0.4),
-        0 2px 0 #3a1f0b
-      `,
-          },
+        }}
+        onClick={() => {
+          if (isSelected) return;
+          if (isOwned) {
+            selectHero(hero.id);
+          } else {
+            console.log("BUY HERO", hero.id);
+          }
         }}
       >
-        <Typography
-          sx={{
-            fontFamily: "'Press Start 2P'",
-            fontSize: "11px",
-            color: "#2b170b",
-            textShadow: "1px 1px 0 rgba(255,255,255,0.25)",
-          }}
-        >
-          💰 {hero.price}
+        <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 11 }}>
+          {isSelected ? "✓ SELECTED" : isOwned ? "SELECT" : `💰 ${hero.price}`}
         </Typography>
       </Box>
     </Box>
@@ -406,6 +520,7 @@ const ShopHeroCard = ({ hero }) => {
 
 const ShopHeroFeature = () => {
   const navigate = useNavigate();
+  const { currentUser } = useLoginPlayer();
   const { heros, getAllHeros, heroState } = useData();
   const scrollRef = useRef(null);
 
@@ -440,94 +555,141 @@ const ShopHeroFeature = () => {
   console.log(heros);
 
   return (
-    <Box sx={{ m: 2 }}>
+    <Box sx={{ display: "flex" }}>
+      <GameAppBar />
       <StarBackground />
-      <BackArrow onClick={() => navigate("/home")} />
-      <Box
-        sx={{
-          position: "fixed",
-          top: "55%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          paddingTop: 6, // เผื่อหัว
-          background: "linear-gradient(#7b4a3b, #5a3328)",
-          border: "6px solid #7a1f1f",
-          boxShadow: `
-    inset 0 0 0 3px #d6b46a,
-    0 0 20px rgba(180,40,40,0.5),
-    0 20px 40px rgba(0,0,0,0.8)
-  `,
-          width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
-          height: "550px",
-          padding: 2,
-        }}
-      >
-        <Title title="SHOP CHARACTER" />
-        {/* Horizontal List */}
+      <Box sx={{ mt: 2 }}>
         <Box
           sx={{
-            position: "relative",
-            mt: 4,
+            position: "fixed",
+            top: "53%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+
+            // Container Design (Book/Panel style)
+            background: THEME.cream,
+            border: `8px solid ${THEME.brownLight}`,
+            borderRadius: "12px",
+            boxShadow: `
+            0 0 0 4px ${THEME.brownDark},
+            0 20px 60px rgba(0,0,0,0.8)
+          `,
+            width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
+            height: "580px",
+            p: 1,
             display: "flex",
-            justifyContent: "center",
+            flexDirection: "column",
           }}
         >
-          {/* LEFT */}
+          {/* Header Title */}
           <Box
-            onClick={() => scroll("left")}
             sx={{
-              position: "absolute",
-              left: { xs: "-10px", lg: "10px" },
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 2,
-              cursor: "pointer",
-              p: 0.5,
-            }}
-          >
-            <img
-              src={arrowLeft}
-              style={{ width: 50, imageRendering: "pixelated" }}
-            />
-          </Box>
-
-          {/* LIST */}
-          <Box
-            ref={scrollRef}
-            sx={{
-              display: "flex",
-              gap: 3,
-              overflowX: "auto",
-              scrollSnapType: "x mandatory",
-              px: 4,
+              position: "relative",
               py: 2,
-              "&::-webkit-scrollbar": { display: "none" },
+              textAlign: "center",
+              background: THEME.brownDark,
+              mx: -1,
+              mt: -1,
+              // mb: 2,
+              borderBottom: `4px solid ${THEME.brownLight}`,
             }}
           >
-            {heros?.map((hero) => (
-              <Box key={hero.id || hero.name} sx={{ scrollSnapAlign: "start" }}>
-                <ShopHeroCard hero={hero} />
-              </Box>
-            ))}
-          </Box>
+            {/* Arrow ริมกรอบ */}
+            <Box
+              sx={{
+                position: "absolute",
+                left: 16,
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+            >
+              <BackArrow onClick={() => navigate("/home")} />
+            </Box>
 
-          {/* RIGHT */}
+            {/* Title กลางจริง */}
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                color: THEME.textLight,
+                fontSize: { xs: 16, md: 24 },
+                textShadow: "2px 2px 0 #000",
+                pointerEvents: "none", // กันโดน arrow ทับ
+              }}
+            >
+              CHARACTER
+            </Typography>
+          </Box>
+          {/* Horizontal List */}
           <Box
-            onClick={() => scroll("right")}
             sx={{
-              position: "absolute",
-              right: { xs: -10, lg: 10 },
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 2,
-              cursor: "pointer",
-              p: 0.5,
+              position: "relative",
+              mt: 0,
+              display: "flex",
+              justifyContent: "center",
             }}
           >
-            <img
-              src={arrowRight}
-              style={{ width: 50, imageRendering: "pixelated" }}
-            />
+            {/* LEFT */}
+            <Box
+              onClick={() => scroll("left")}
+              sx={{
+                position: "absolute",
+                left: { xs: "-10px", lg: "10px" },
+                top: "50%",
+                transform: "translateY(-50%)",
+                zIndex: 2,
+                cursor: "pointer",
+                p: 0.5,
+              }}
+            >
+              <img
+                src={arrowLeft}
+                style={{ width: 50, imageRendering: "pixelated" }}
+              />
+            </Box>
+
+            {/* LIST */}
+            <Box
+              ref={scrollRef}
+              sx={{
+                display: "flex",
+                gap: 3,
+                overflowX: "auto",
+                scrollSnapType: "x mandatory",
+                px: 4,
+                py: 2,
+                "&::-webkit-scrollbar": { display: "none" },
+              }}
+            >
+              {heros?.map((hero) => (
+                <Box
+                  key={hero.id || hero.name}
+                  sx={{ scrollSnapAlign: "start" }}
+                >
+                  <ShopHeroCard
+                    hero={hero}
+                    playerHeroes={currentUser?.heroes}
+                  />
+                </Box>
+              ))}
+            </Box>
+
+            {/* RIGHT */}
+            <Box
+              onClick={() => scroll("right")}
+              sx={{
+                position: "absolute",
+                right: { xs: -10, lg: 10 },
+                top: "50%",
+                transform: "translateY(-50%)",
+                zIndex: 2,
+                cursor: "pointer",
+              }}
+            >
+              <img
+                src={arrowRight}
+                style={{ width: 50, imageRendering: "pixelated" }}
+              />
+            </Box>
           </Box>
         </Box>
       </Box>
