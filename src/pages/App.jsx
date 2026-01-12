@@ -17,7 +17,7 @@ import AuthPage from "./AuthPage";
 import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";
 import LibraryFeature from "./HomePage/feature/LibraryFeature";
 import ShopHeroFeature from "./HomePage/feature/ShopHeroFeature.jsx";
-import AdminPage from "./AdminPage/index.jsx";
+import AdminPage from "./AdminPage/AdminPage.jsx";
 import SelectHero from "./CharacterPage/SelectHero.jsx";
 // import NotFoundPage from "./NotFoundPage";
 export default function App() {
