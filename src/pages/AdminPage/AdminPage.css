@@ -1,0 +1,258 @@
+/* src/pages/AdminPage/AdminPage.css */
+
+/* 1. นำเข้าฟอนต์ Pixel (Press Start 2P) */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+.admin-container {
+  padding: 0; /* ลบ padding รวมออก เพื่อให้ header ชิดขอบ */
+  background-color: #1a1a1d; 
+  color: #fff;
+  height: 100vh;
+  overflow-y: hidden; /* ซ่อน scroll ตัวแม่ */
+  box-sizing: border-box;
+  font-family: 'Courier New', Courier, monospace;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- TAB HEADER (POKEDEX STYLE) --- */
+.pokedex-header {
+  background-color: #2c2c2e;
+  border-bottom: 4px solid #fca311;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+
+.pixel-title-small {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 20px;
+  color: #F5F5DC;
+  text-shadow: 2px 2px 0 #3b2416;
+  margin: 0;
+}
+
+.tab-group {
+  display: flex;
+  gap: 10px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 12px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: 0.2s;
+  border-bottom: 4px solid transparent;
+}
+
+.tab-btn:hover {
+  color: #fff;
+}
+
+.tab-btn.active {
+  color: #fca311;
+  border-bottom: 4px solid #fca311;
+}
+
+/* --- Content Area --- */
+.content-area {
+  flex: 1;
+  overflow-y: auto; /* ให้ scroll เฉพาะส่วนเนื้อหา */
+  padding: 2rem;
+}
+
+/* --- Form Styles --- */
+.form-box {
+  background: #333;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid #4a4a4a;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* เปลี่ยนขอบฟอร์ม Monster ให้เป็นสีแดง */
+.form-box.monster-mode {
+    border-color: #d32f2f;
+}
+
+.input-field {
+  padding: 10px;
+  background: #222;
+  border: 1px solid #555;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn-add { background-color: #28a745; color: white; }
+.btn-add:hover { background-color: #218838; }
+
+.btn-edit { background-color: #ffc107; color: black; }
+.btn-delete { background-color: #dc3545; color: white; }
+
+/* --- Table Styles --- */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.dict-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #2c2c2e;
+}
+
+.dict-table th, .dict-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #444;
+}
+
+.dict-table th {
+  background-color: #fca311; /* สีส้มสำหรับ Dictionary */
+  color: #000;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* Theme สีแดงสำหรับตาราง Monster */
+.dict-table.monster-theme th {
+    background-color: #d32f2f;
+    color: #fff;
+}
+
+.dict-table tr:hover { background-color: #3a3a3d; }
+
+.action-buttons { display: flex; gap: 8px; }
+
+/* --- Scrollbar --- */
+.content-area::-webkit-scrollbar { width: 10px; }
+.content-area::-webkit-scrollbar-track { background: #1a1a1d; }
+.content-area::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
+.content-area::-webkit-scrollbar-thumb:hover { background: #fca311; }
+
+/* --- Filter Section --- */
+.filter-section {
+  background: #2c2c2e;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid #fca311;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.alphabet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(35px, 1fr));
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.letter-btn {
+  background-color: #d4a373;
+  color: #000;
+  border: 2px solid #8d5524;
+  padding: 8px 0;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+}
+.letter-btn:hover { transform: translateY(-2px); background-color: #e9c496; }
+.letter-btn.active { background-color: #fca311; border-color: #fff; box-shadow: 0 0 8px #fca311; }
+
+.search-controls {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: #4a3b32;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #8d5524;
+}
+
+.search-input { flex: 1; padding: 8px; background: #222; border: 1px solid #555; color: #fff; }
+.filter-select { padding: 8px; background: #d4a373; border: 1px solid #8d5524; color: #000; font-weight: bold; cursor: pointer; }
+.search-icon { font-size: 1.2rem; color: #fca311; margin-right: 5px; }
+
+/* --- Monster Moves UI --- */
+.moves-container {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.pattern-card {
+  background-color: #1e1e1e;
+  border: 1px solid #444;
+  border-left: 4px solid #ff5555; /* สีแดงบ่งบอกว่าเป็น Pattern */
+  padding: 15px;
+  border-radius: 4px;
+  position: relative;
+}
+
+.pattern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+}
+
+.move-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  align-items: center;
+  background: #2a2a2a;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.move-row input, .move-row select {
+  padding: 8px;
+  background: #333;
+  border: 1px solid #555;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.btn-small {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+.btn-add-move { background-color: #2b6cb0; } /* สีน้ำเงิน */
+.btn-remove { background-color: #c53030; }   /* สีแดง */
+.btn-add-pattern { 
+  background-color: #2f855a; 
+  padding: 10px; 
+  width: 100%; 
+  margin-top: 10px;
+}

@@ -50,15 +50,22 @@ export const useAuthStore = create(
 
           set({
             registerState: LOADED,
-            currentUser: data,
+            currentUser: data.user ?? null, // ✅ สำคัญ
             errorRegister: false,
           });
-        } catch (error) {
+
+          return data; // ✅ เหมือน thunk
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Register failed";
+
           set({
             registerState: FAILED,
-            backendRegisMessage: error.message,
+            backendRegisMessage: message,
             errorRegister: true,
           });
+
+          throw err; // ✅ ให้ component handle ได้
         }
       },
 
@@ -70,6 +77,7 @@ export const useAuthStore = create(
             backendLoginMessage: null,
             errorLogin: false,
           });
+          console.log(JSON.stringify(credentials));
 
           const res = await fetch(`${API_URL}/login`, {
             method: "POST",
@@ -163,17 +171,13 @@ export const useAuthStore = create(
         });
       },
 
-      clearErrorRegisMessage: () =>
-        set({ backendRegisMessage: null }),
+      clearErrorRegisMessage: () => set({ backendRegisMessage: null }),
 
-      clearErrorLoginMessage: () =>
-        set({ backendLoginMessage: null }),
+      clearErrorLoginMessage: () => set({ backendLoginMessage: null }),
 
-      clearLoginState: () =>
-        set({ loginState: INITIALIZED }),
+      clearLoginState: () => set({ loginState: INITIALIZED }),
 
-      clearRegisterState: () =>
-        set({ registerState: INITIALIZED }),
+      clearRegisterState: () => set({ registerState: INITIALIZED }),
     }),
     {
       name: "auth-storage",
