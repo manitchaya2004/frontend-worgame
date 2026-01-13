@@ -1,6 +1,6 @@
 import { Box, Typography, Button } from "@mui/material";
 import { useAuthStore } from "../../store/useAuthStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate , useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import Logo from "../../assets/icons/Logo.svg";
 import { useState } from "react";
@@ -8,7 +8,7 @@ import { GameDialog } from "../../components/GameDialog";
 export const HomeLobbyLayout = () => {
   const logout = useAuthStore((state)=>state.logout)
   const navigate = useNavigate();
-
+  const location = useLocation();
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleLogout = () => {
@@ -64,7 +64,9 @@ export const HomeLobbyLayout = () => {
       </Button>
       <Button
         variant="contained"
-        onClick={() => navigate("/home/shop")}
+        onClick={() => navigate("/home/character" , {
+          state: {from : location.pathname}
+        })}
         sx={{
           fontFamily: "'Press Start 2P'",
           fontSize: 16,

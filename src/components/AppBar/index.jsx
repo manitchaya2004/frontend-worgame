@@ -88,6 +88,7 @@ const GameAppBar = () => {
                 sx={{
                   width: 50,
                   height: 50,
+                  imageRendering: "pixelated"
                 }}
               />
             </Box>
