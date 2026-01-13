@@ -86,7 +86,8 @@ export const BattleLog = ({ logs }) => {
         boxShadow: "inset 0 0 20px rgba(0,0,0,0.9)",
         overflow: "hidden",
         fontFamily: "'Courier New', monospace",
-        minWidth: "240px",
+        minWidth: "300px", 
+        maxWidth: "300px", 
       }}
     >
       {/* Header */}

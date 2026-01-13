@@ -128,156 +128,62 @@ export const Tooltip = ({ hoveredEnemy, castingSkill, damageInfo }) => {
                   {hoveredEnemy.name}
                 </div>
 
+                {/* ROW 1: HP & ATTACK */}
                 <div
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "8px",
                     fontSize: "12px",
-                    marginBottom: "10px",
+                    marginBottom: "8px",
                   }}
                 >
-                  <div
-                    style={{
-                      background: "rgba(0,0,0,0.3)",
-                      padding: "6px",
-                      borderRadius: "4px",
-                      border: "1px solid #5c4033",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "#aaa",
-                        fontSize: "10px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Health
-                    </div>
-                    <div
-                      style={{
-                        color: "#ff7675",
-                        fontWeight: "bold",
-                        fontSize: "16px",
-                      }}
-                    >
+                  {/* HP Box */}
+                  <div style={styles.statBox}>
+                    <div style={styles.statLabel}>Health</div>
+                    <div style={{ ...styles.statValue, color: "#ff7675" }}>
                       {hoveredEnemy.hp}{" "}
                       <span style={{ fontSize: "10px", color: "#888" }}>
                         / {hoveredEnemy.maxHp}
                       </span>
                     </div>
                   </div>
-                  <div
-                    style={{
-                      background: "rgba(0,0,0,0.3)",
-                      padding: "6px",
-                      borderRadius: "4px",
-                      border: "1px solid #5c4033",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "#aaa",
-                        fontSize: "10px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Attack
-                    </div>
-                    <div
-                      style={{
-                        color: "#ffeaa7",
-                        fontWeight: "bold",
-                        fontSize: "16px",
-                      }}
-                    >
+
+                  {/* Attack Box */}
+                  <div style={styles.statBox}>
+                    <div style={styles.statLabel}>Attack</div>
+                    <div style={{ ...styles.statValue, color: "#ffeaa7" }}>
                       {hoveredEnemy.atk_power_min}-{hoveredEnemy.atk_power_max}
                     </div>
                   </div>
                 </div>
 
-                {/* ✅ Weakness Scrolling List (แสดงตัวอักษรที่ศัตรูแพ้ทาง) */}
+                {/* ✅ ROW 2: SPEED & EXP (แทนที่ Weakness) */}
                 <div
                   style={{
-                    background: "rgba(0,0,0,0.2)",
-                    padding: "8px",
-                    borderRadius: "4px",
-                    border: "1px dashed #5c4033",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "8px",
+                    fontSize: "12px",
                   }}
                 >
-                  <div
-                    style={{
-                      color: "#bfbfbf",
-                      fontSize: "10px",
-                      marginBottom: "4px",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Weakness
+                  {/* Speed Box */}
+                  <div style={styles.statBox}>
+                    <div style={styles.statLabel}>Speed</div>
+                    <div style={{ ...styles.statValue, color: "#74b9ff" }}>
+                      ⚡ {hoveredEnemy.speed}
+                    </div>
                   </div>
 
-                  {hoveredEnemy.weakness_list &&
-                  hoveredEnemy.weakness_list.length > 0 ? (
-                    <div
-                      style={{
-                        overflow: "hidden",
-                        whiteSpace: "nowrap",
-                        maxWidth: "180px",
-                        margin: "0 auto",
-                        position: "relative",
-                      }}
-                    >
-                      <motion.div
-                        animate={{ x: ["0%", "-50%"] }}
-                        transition={{
-                          repeat: Infinity,
-                          ease: "linear",
-                          duration: Math.max(
-                            5,
-                            hoveredEnemy.weakness_list.length * 2
-                          ),
-                        }}
-                        style={{ display: "inline-flex", gap: "6px" }}
-                      >
-                        {/* Double the list for seamless looping */}
-                        {[
-                          ...hoveredEnemy.weakness_list,
-                          ...hoveredEnemy.weakness_list,
-                        ].map((w, idx) => (
-                          <span
-                            key={idx}
-                            style={{
-                              background: "#581919",
-                              border: "1px solid #a33838",
-                              color: "#fff",
-                              padding: "2px 8px",
-                              borderRadius: "2px",
-                              fontSize: "12px",
-                              fontWeight: "bold",
-                              boxShadow: "1px 1px 0 #000",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {w.alphabet.toUpperCase()}{" "}
-                            <span style={{ color: "#ffd700" }}>
-                              x{w.multiplier}
-                            </span>
-                          </span>
-                        ))}
-                      </motion.div>
+                  {/* EXP Box */}
+                  <div style={styles.statBox}>
+                    <div style={styles.statLabel}>Exp Drop</div>
+                    <div style={{ ...styles.statValue, color: "#55efc4" }}>
+                      ✨ {hoveredEnemy.exp}
                     </div>
-                  ) : (
-                    <span
-                      style={{
-                        color: "#666",
-                        fontSize: "11px",
-                        fontStyle: "italic",
-                      }}
-                    >
-                      - None -
-                    </span>
-                  )}
+                  </div>
                 </div>
+
               </div>
             )}
           </div>
@@ -312,4 +218,25 @@ export const Tooltip = ({ hoveredEnemy, castingSkill, damageInfo }) => {
       )}
     </AnimatePresence>
   );
+};
+
+// Helper Styles เพื่อลดความซ้ำซ้อน
+const styles = {
+  statBox: {
+    background: "rgba(0,0,0,0.3)",
+    padding: "6px",
+    borderRadius: "4px",
+    border: "1px solid #5c4033",
+  },
+  statLabel: {
+    color: "#aaa",
+    fontSize: "10px",
+    textTransform: "uppercase",
+    marginBottom: "2px",
+  },
+  statValue: {
+    fontWeight: "bold",
+    fontSize: "16px",
+    textShadow: "1px 1px 0 #000",
+  },
 };

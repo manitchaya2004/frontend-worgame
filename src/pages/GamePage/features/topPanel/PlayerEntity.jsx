@@ -20,9 +20,6 @@ export const PlayerEntity = ({ store }) => {
   // ผลลัพธ์: "walk-1" สลับกับ "walk-2" ตามจังหวะ Store
   const visualBase = (gameState === "ADVANTURE") ? "walk" : (playerVisual || "idle");
   const finalSprite = visualBase.includes("-") ? visualBase : `${visualBase}-${animFrame}`;
-  
-  // 3. เช็คว่าเป็นท่าโจมตีหรือไม่
-  const isAttack = finalSprite.includes("attack");
 
   return (
     <motion.div
@@ -30,12 +27,12 @@ export const PlayerEntity = ({ store }) => {
       // ถ้าเดินเล่น (Adventure) ให้เลื่อนแบบ Linear (ลื่นๆ) ถ้าสู้ให้ใช้ Spring
       transition={
          gameState === "ADVANTURE" 
-         ? { duration: 0.4, ease: "linear" } 
+         ? { duration: 2.0, ease: "linear" } 
          : { type: "spring", stiffness: 300, damping: 30 }
       }
       style={{
         position: "absolute", top: FIXED_Y, transform: "translateY(-100%)",
-        zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center",
+        zIndex: 100, display: "flex", flexDirection: "column", alignItems: "center",
       }}
     >
       <motion.div
@@ -59,7 +56,7 @@ export const PlayerEntity = ({ store }) => {
            <motion.div
              style={{
                // ✅ ใส่ Logic Width กลับคืนมา (เดิน = เต็มกล่องปกติ, ตี = กล่องกว้าง)
-               scale:1.5,
+               scale:2.0,
                width: DISPLAY_NORMAL,
                height: DISPLAY_NORMAL,
                position: "absolute",
