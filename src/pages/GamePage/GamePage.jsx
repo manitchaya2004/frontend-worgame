@@ -21,7 +21,9 @@ import { Tooltip } from "./features/TopPanel/Tooltip";
 import { BattleLog } from "./features/DownPanel/BattleLog";
 import { ActionPanel } from "./features/DownPanel/ActionPanel";
 import { TurnQueueBar } from "./features/TopPanel/TurnQueueBar"; 
-import { DamagePopup } from "./features/TopPanel/DamagePopup"
+import { DamagePopup } from "./features/TopPanel/DamagePopup";
+import { SelectedLetterArea } from "./features/topPanel/SelectedLetterArea";
+import { BossHpBar } from "./features/topPanel/BossHpBar";
 
 import LoadingView from "../../components/LoadingView";
 import ErrorView from "../../components/ErrorView";
@@ -40,6 +42,8 @@ export default function GameApp() {
   const requestRef = useRef(0);
   const lastTimeRef = useRef(0);
   const constraintsRef = useRef(null);
+
+  const boss = store.enemies.find(e => e.isBoss);
 
   // --- INIT ---
   const initGameData = async () => {
@@ -147,28 +151,7 @@ export default function GameApp() {
               removePopup={store.removePopup} 
             />
 
-          <div ref={constraintsRef} style={styles.reorderContainer}>
-            <Reorder.Group
-              axis="x"
-              values={activeSelectedItems}
-              onReorder={(newOrder) => store.reorderLetters(newOrder)}
-              style={styles.reorderGroup}
-            >
-              <AnimatePresence initial={false}>
-                {activeSelectedItems.map((item) => (
-                  <Reorder.Item
-                    key={item.id}
-                    value={item}
-                    dragConstraints={constraintsRef}
-                    onTap={() => store.deselectLetter(item)}
-                    style={styles.letterItem}
-                  >
-                    {item.char}
-                  </Reorder.Item>
-                ))}
-              </AnimatePresence>
-            </Reorder.Group>
-          </div>
+          <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
 
           <PlayerEntity store={store} animFrame={store.animFrame} />
 
@@ -190,6 +173,7 @@ export default function GameApp() {
                 />
               ))}
           </AnimatePresence>
+          <BossHpBar boss={boss} />
 
           {store.validWordInfo && (
             <MeaningPopup meaning={store.validWordInfo.meaning} />
@@ -236,10 +220,11 @@ export default function GameApp() {
                       onMouseLeave={() => store.setHoveredEnemyId(null)}
                     >
                       <div style={styles.targetIconFrame}>
+           
                         <img
                           src={`${ipAddress}/img_monster/${
                             en.monster_id
-                          }-idle-${store.animFrame + 1}.png`}
+                          }-idle-${store.animFrame}.png`}
                           alt={en.name}
                           style={styles.targetIcon}
                         />
@@ -286,9 +271,7 @@ export default function GameApp() {
 
               <div style={{ flex: 1}}>
                 <ActionPanel
-                  playerData={store.playerData}
-                  gameState={store.gameState}
-                  validWordInfo={store.validWordInfo}
+                  store={store} 
                   onAttackClick={() => handleActionClick("ATTACK")}
                   onShieldClick={() => handleActionClick("SHIELD")}
                   onSpinClick={() => {
@@ -462,38 +445,29 @@ const styles = {
     marginTop: "20px",
   },
   // ... styles อื่นๆ (queue, targetPicker ฯลฯ) คงเดิม
+  reorderGroup: {
+    display: "flex",
+    gap: "8px",           // ระยะห่างระหว่างตัวอักษรที่เลือก
+    padding: "10px",
+    listStyle: "none",
+    margin: 0,
+  },
+  letterItem: {
+    flexShrink: 0,       // ป้องกันตัวอักษรบีบตัว
+  },
   reorderContainer: {
     position: "absolute",
     top: "25%",
     left: "50%",
     transform: "translateX(-50%)",
     zIndex: 100,
-    width: "320px",
+    // width: "auto" หรือ "max-content" จะดีกว่าการล็อค 320px หากคำยาว
+    width: "max-content", 
     height: "80px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    pointerEvents: "none",
-  },
-  reorderGroup: {
-    display: "flex",
-    gap: "8px",
-    listStyle: "none",
-    padding: 0,
-    pointerEvents: "auto",
-  },
-  letterItem: {
-    background: "#f2a654",
-    width: "44px",
-    height: "44px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    border: "3px solid #000",
-    fontWeight: "bold",
-    fontSize: "22px",
-    cursor: "grab",
-    boxShadow: "0 4px 0 #b37400",
+    pointerEvents: "none", 
   },
   bottomUi: {
     flex: 1,

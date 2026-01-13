@@ -284,6 +284,28 @@ export const useGameStore = create((set, get) => ({
 
   initializeGame: async (userData, stageData) => {
     console.log("🚀 INITIALIZE GAME");
+
+// 🟢 1. เคลียร์ข้อมูลเดิมทิ้งทั้งหมดก่อน (Reset State)
+    set({
+      loadingProgress: 0,
+      gameState: "LOADING",
+      distance: 0,
+      accumulatedExp: 0,
+      logs: [],
+      damagePopups: [],
+      selectedLetters: [],
+      enemies: [],
+      turnQueue: [],
+      activeCombatant: null,
+      currentEventIndex: 0,
+      hasSpawnedEnemies: false,
+      validWordInfo: null,
+      playerVisual: "idle",
+      playerShoutText: "",
+      // มั่นใจว่า Shield เริ่มที่ 0 เสมอ
+      playerData: { ...get().playerData, shield: 0, hp: get().playerData.max_hp } 
+    });
+
     set({ loadingProgress: 0, gameState: "LOADING" });
 
     try {
@@ -309,15 +331,22 @@ export const useGameStore = create((set, get) => ({
         get().recalculatePlayerStats();
       }
 
+      set({ loadingProgress: 25 });
+
       const dictRes = await fetch(`${ipAddress}/dict`);
       const dictData = await dictRes.json();
+
+      set({ loadingProgress: 50 });
 
       const targetStageId =
         typeof stageData === "object" ? stageData.stage_id : stageData;
       const stageRes = await fetch(
         `${ipAddress}/getStageById/${targetStageId}`
       );
+
+      
       const stageRaw = await stageRes.json();
+      console.log(stageRaw)
 
       const groupedEvents = {};
       if (Array.isArray(stageRaw)) {
@@ -349,6 +378,7 @@ export const useGameStore = create((set, get) => ({
             patternList: data.pattern_list || [],
             speed: data.speed || 3,
             exp: data.exp || 0,
+            isBoss: data.isBoss === true || data.isBoss === "true" || false
           });
         });
       }
@@ -357,8 +387,15 @@ export const useGameStore = create((set, get) => ({
         .map((key) => Number(key))
         .sort((a, b) => a - b)
         .map((dist) => ({ distance: dist, monsters: groupedEvents[dist] }));
+        
+
+      set({ loadingProgress: 75 });
 
       DeckManager.init();
+
+      set({ loadingProgress: 100 });
+      await delay(2000);
+
       set({
         dictionary: dictData,
         stageData: sortedStageEvents,
@@ -462,14 +499,30 @@ export const useGameStore = create((set, get) => ({
       return;
     }
 
-    const enemiesWithPos = waveData.map((e, i) => ({
-      ...e,
-      x: 85 - i * 15,
-      hp: e.max_hp,
-      shield: 0,
-      currentStep: 1,
-      selectedPattern: e.selectedPattern || 1,
-    }));
+    let currentX = 85;           // จุดเริ่ม
+    const NORMAL_GAP = 7;
+    const BOSS_GAP = 14;         // ระยะพิเศษใกล้บอส
+
+    const enemiesWithPos = waveData.map((e, i) => {
+      const isBoss = e.isBoss === true;
+
+      // ถ้าตัวก่อนหน้าเป็นบอส → เว้นเพิ่ม
+      if (i > 0) {
+        const prev = waveData[i - 1];
+        const nearBoss = isBoss || prev.isBoss;
+
+        currentX -= nearBoss ? BOSS_GAP : NORMAL_GAP;
+      }
+
+      return {
+        ...e,
+        x: currentX,
+        hp: e.max_hp,
+        shield: 0,
+        currentStep: 1,
+        selectedPattern: e.selectedPattern || 1,
+      };
+    });
 
     set({
       enemies: enemiesWithPos,
@@ -482,6 +535,8 @@ export const useGameStore = create((set, get) => ({
 
     if (autoStart) get().startCombatRound();
   },
+
+
 
   startCombatRound: async () => {
     const store = get();
@@ -677,18 +732,6 @@ export const useGameStore = create((set, get) => ({
     // 2. เติมของใหม่ในช่องที่ใช้ไป
     usedIndices.forEach((idx) => { currentInv[idx] = null; });
     
-    // 3. คิด Poison Damage จากช่องที่ "ไม่ถูกเลือกใช้"
-    let poisonCount = 0;
-    currentInv.forEach(slot => {
-        if (slot?.status === "poison") poisonCount++;
-    });
-
-    if (poisonCount > 0) {
-        const pDmg = Math.floor(store.playerData.max_hp * 0.1 * poisonCount);
-        get().addLog(`Poison damage: ${pDmg}`, "error");
-        get().damagePlayer(pDmg);
-    }
-
     // เติม Item ใหม่ (Item ใหม่จะไม่มี Status)
     for (let i = 0; i < activeSlots; i++) {
       if (currentInv[i] === null) currentInv[i] = DeckManager.createItem(i, currentInv, activeSlots);
@@ -710,7 +753,7 @@ export const useGameStore = create((set, get) => ({
       const shieldAmount = chanceRound(rawShield, luckBonus);
       set({ playerVisual: "guard-1" });
       set((s) => ({ playerData: { ...s.playerData, shield: s.playerData.shield + shieldAmount } }));
-      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: `+${shieldAmount} DEF`, isPlayer: false });
+      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: `+${shieldAmount} DEF`, isPlayer: false, color: "#2e75cc" });
       await delay(500);
     } else if (actionType === "ATTACK") {
       const originalX = PLAYER_X_POS;
@@ -756,43 +799,6 @@ export const useGameStore = create((set, get) => ({
     set({ playerShoutText: "", gameState: "PLAYERTURN" });
   },
 
-  // ฟังก์ชันกลางสำหรับจัดการสถานะ (เรียกใช้เมื่อเริ่มรอบใหม่)
-  processStatusEffects: () => {
-      const store = get();
-      const currentInv = [...store.playerData.inventory];
-      let totalPoisonDamage = 0;
-
-      const updatedInv = currentInv.map(slot => {
-          if (slot && slot.status) {
-              // 1. ถ้าติด Poison ให้สะสมดาเมจ (10% ของ Max HP ต่อ 1 ช่อง)
-              if (slot.status === "poison") {
-                  const dmg = Math.floor(store.playerData.max_hp * 0.1);
-                  totalPoisonDamage += dmg;
-              }
-
-              // 2. ลดจำนวนรอบ (Duration)
-              const newDuration = slot.statusDuration - 1;
-              
-              // 3. ถ้าหมดเวลาให้ล้างสถานะ
-              if (newDuration <= 0) {
-                  return { ...slot, status: null, statusDuration: 0 };
-              }
-              return { ...slot, statusDuration: newDuration };
-          }
-          return slot;
-      });
-
-      // อัปเดตเลือดผู้เล่นถ้ามีดาเมจพิษ
-      if (totalPoisonDamage > 0) {
-          get().damagePlayer(totalPoisonDamage);
-          get().addLog(`Poison damage: -${totalPoisonDamage} HP`, "error");
-      }
-
-      set((s) => ({
-          playerData: { ...s.playerData, inventory: updatedInv }
-      }));
-  },
-
   updateEnemy: (id, data) =>
     set((s) => ({
       enemies: s.enemies.map((e) => (e.id === id ? { ...e, ...data } : e)),
@@ -820,18 +826,12 @@ export const useGameStore = create((set, get) => ({
         x: target.x - 2,
         y: FIXED_Y - 80,
         value: finalDmg,
+        color: "#cc2e2e"
       });
 
       if (newHp <= 0) {
         const gainedExp = target.exp || 0;
         set((state) => ({ accumulatedExp: state.accumulatedExp + gainedExp }));
-        get().addPopup({
-          id: Math.random(),
-          x: target.x,
-          y: FIXED_Y - 120,
-          value: `+${gainedExp} EXP`,
-          isPlayer: true,
-        });
       }
     }
   },
@@ -877,7 +877,8 @@ export const useGameStore = create((set, get) => ({
       get().updateEnemy(en.id, { shoutText: shoutWord });
       await delay(400);
       const originalX = en.x;
-      get().updateEnemy(en.id, { x: PLAYER_X_POS + 10, atkFrame: 1 });
+      if(en.isBoss) get().updateEnemy(en.id, { x: PLAYER_X_POS + 15, atkFrame: 1 });
+      else get().updateEnemy(en.id, { x: PLAYER_X_POS + 10, atkFrame: 1 });
       await delay(400);
       get().damagePlayer(dmg);
       sfx.playHit();
@@ -926,7 +927,7 @@ export const useGameStore = create((set, get) => ({
         () => 0.5 - Math.random()
       );
 
-      const CREEP_DIST = 10;
+      const CREEP_DIST = 4;
       const STRIKE_DIST = 6;
 
       get().updateEnemy(en.id, {
@@ -979,13 +980,35 @@ export const useGameStore = create((set, get) => ({
     else if (actionMove === "HEAL") {
         get().updateEnemy(en.id, { shoutText: "HEAL!" });
         await delay(500);
+
         const allies = store.enemies.filter(e => e.hp > 0);
-        const targetAlly = allies[Math.floor(Math.random() * allies.length)];
-        const healAmt = Math.floor(en.maxHp * 0.2);
-        const newHp = Math.min(targetAlly.maxHp, targetAlly.hp + healAmt);
-        get().updateEnemy(targetAlly.id, { hp: newHp });
-        get().addPopup({ id: Math.random(), x: targetAlly.x, y: FIXED_Y - 100, value: `+${healAmt}`, isPlayer: false });
-        await delay(500);
+        
+        if (allies.length > 0) {
+            // 🎯 ค้นหาศัตรูที่เลือดน้อยที่สุด (คำนวณจาก HP / MaxHP)
+            const targetAlly = allies.reduce((prev, curr) => {
+                const prevPct = prev.hp / prev.maxHp;
+                const currPct = curr.hp / curr.maxHp;
+                return (currPct < prevPct) ? curr : prev;
+            });
+
+            const healAmt = Math.floor(en.maxHp * 0.2);
+            const newHp = Math.min(targetAlly.maxHp, targetAlly.hp + healAmt);
+            
+            get().updateEnemy(targetAlly.id, { hp: newHp });
+
+            // 🟢 Popup ฮีลสีเขียว ชัดๆ นานๆ
+            get().addPopup({ 
+                id: Math.random(), 
+                x: targetAlly.x, 
+                y: FIXED_Y - 100, 
+                value: `+${healAmt}`, 
+                isPlayer: false, 
+                color: "#2ecc71", // สีเขียวสว่าง
+                fontSize: "34px"  // ขยายขนาดให้ชัดเจน
+            });
+        }
+
+        await delay(1200); // รอนานขึ้นนิดนึงให้ผู้เล่นเห็น Popup ชัดๆ
         get().updateEnemy(en.id, { shoutText: "", currentStep: nextStep });
     }
     // 🟢 สกิล POISON: ติดพิษ 3 เทิร์น (ถ้าไม่ใช้จะเสียเลือด)
@@ -1060,6 +1083,7 @@ export const useGameStore = create((set, get) => ({
         y: FIXED_Y - 70,
         value: 0,
         isPlayer: true,
+        color: "#cc2e2e"
       });
     }
     const newHp = Math.max(0, stat.hp - remainingDmg);
@@ -1074,6 +1098,7 @@ export const useGameStore = create((set, get) => ({
         y: FIXED_Y - 50,
         value: remainingDmg,
         isPlayer: true,
+        color: "#cc2e2e"
       });
 
     if (newHp <= 0) {
