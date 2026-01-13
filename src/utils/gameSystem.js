@@ -1,75 +1,142 @@
-import { LETTER_DATA } from "../const/index";
+// ============================================================================
+// 📊 DECK CONFIGURATION
+// ============================================================================
+const DECK_COMPOSITION = {
+  E: 8, A: 8, I: 8, O: 8, N: 6, R: 6, T: 6, 
+  L: 4, S: 4, U: 4, D: 4, G: 3, B: 2, C: 2, 
+  M: 2, P: 2, F: 2, H: 2, V: 2, W: 2, Y: 2, 
+  K: 1, J: 1, X: 1, QU: 1, Z: 1 
+};
 
-// --- 🎴 Deck & Inventory Systems ---
-// ระบบจัดการสำรับตัวอักษรและการสร้างไอเทม
+const VOWELS = ['A', 'E', 'I', 'O', 'U'];
+
 export const DeckManager = {
-  deck: [],
-  
-  // สร้างสำรับเริ่มต้นตามจำนวน count ที่กำหนดไว้ใน LETTER_DATA
+  activeDeck: [],
+
   init() {
-    this.deck = [];
-    Object.keys(LETTER_DATA).forEach((char) => {
-      for (let i = 0; i < LETTER_DATA[char].count; i++) {
-        this.deck.push(char);
+    let tempDeck = [];
+    Object.keys(DECK_COMPOSITION).forEach((char) => {
+      for (let i = 0; i < DECK_COMPOSITION[char]; i++) {
+        tempDeck.push(char);
       }
     });
+
+    for (let i = tempDeck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tempDeck[i], tempDeck[j]] = [tempDeck[j], tempDeck[i]];
+    }
+
+    this.activeDeck = tempDeck;
+    console.log(`🎴 Deck Initialized: ${this.activeDeck.length} cards.`);
   },
 
-  // สุ่มหยิบตัวอักษรจากสำรับ
-  getRandomChar() {
-    if (this.deck.length === 0) this.init();
-    return this.deck[Math.floor(Math.random() * this.deck.length)];
+  draw(currentInventory = [], unlockedSlots = 10) {
+    if (this.activeDeck.length === 0) this.init();
+
+    // ดึงรายชื่อตัวอักษรที่มีอยู่ในมือจำลอง
+    const existingChars = currentInventory
+      .filter(slot => slot !== null)
+      .map(slot => slot.char.toUpperCase());
+    
+    const vowelCount = existingChars.filter(c => VOWELS.includes(c)).length;
+    const vowelCeiling = Math.max(2, Math.floor(unlockedSlots / 2));
+    const hardChars = ['K', 'J', 'X', 'QU', 'Z'];
+    const hasHardInHand = existingChars.some(c => hardChars.includes(c));
+
+    let foundIdx = -1;
+
+    for (let i = this.activeDeck.length - 1; i >= 0; i--) {
+      const candidate = this.activeDeck[i].toUpperCase();
+      const isVowel = VOWELS.includes(candidate);
+      
+      // เช็คตัวซ้ำ
+      const countInHand = existingChars.filter(c => c === candidate).length;
+      
+      // ✅ Logic ใหม่: 
+      // 1. ถ้าสระล้น (>= Ceiling) ห้ามหยิบสระเด็ดขาด
+      if (vowelCount >= vowelCeiling && isVowel) continue;
+      
+      // 2. ถ้าขาดสระ (< 2) และตัวนี้ไม่ใช่สระ ให้ข้ามไปหาตัวอื่นก่อน (แต่ถ้าหาไม่ได้จริงๆ ค่อยว่ากัน)
+      if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
+
+      // 3. กฎเหล็ก: ห้ามซ้ำเกิน 2 และ ห้ามตัวยากซ้ำ
+      const isTooManyIdentical = countInHand >= 2;
+      const isTooManyHard = hasHardInHand && hardChars.includes(candidate);
+
+      if (!isTooManyIdentical && !isTooManyHard) {
+        foundIdx = i;
+        break;
+      }
+    }
+
+    // ถ้าวนหาใน 15 ใบสุดท้ายไม่เจอใบที่ถูกกฎเลย ให้หยิบใบสุดท้ายตามดวง
+    if (foundIdx !== -1) {
+      return this.activeDeck.splice(foundIdx, 1)[0];
+    } else {
+      return this.activeDeck.pop();
+    }
   },
 
-  // สร้างไอเทมใหม่ลงใน Inventory
-  createItem(index) {
+  createItem(index, currentInv = [], unlockedSlots = 10) {
+    // ใช้ currentInv ให้ตรงกับที่รับเข้ามาใน Parameter
+    const char = this.draw(currentInv, unlockedSlots); 
+    
     return {
       id: Math.random(),
-      char: this.getRandomChar(),
+      char: char, 
+      status: null,         
+      statusDuration: 0,
       visible: true,
       originalIndex: index,
     };
   },
 
-  // สร้างรายการไอเทมตามจำนวนที่ต้องการ
-  generateList(count, startIndex = 0) {
-    return Array.from({ length: count }).map((_, i) =>
-      this.createItem(startIndex + i)
-    );
+  // ✅ เพิ่มฟังก์ชันที่หายไปเพื่อแก้ Uncaught TypeError
+  generateList(count) {
+    // สร้าง Array เปล่าเพื่อใช้เช็คตัวซ้ำระหว่างสร้าง List
+    let list = new Array(count).fill(null);
+    for (let i = 0; i < count; i++) {
+      // ส่ง list เข้าไปเพื่อให้ createItem รู้ว่าตอนนี้มีตัวอะไรใน "มือจำลอง" บ้าง
+      list[i] = {
+        id: Math.random(),
+        char: this.draw(list, count),
+        status: null,
+        statusDuration: 0,
+        visible: true,
+        originalIndex: i,
+      };
+    }
+    return list;
   },
 };
 
-// --- 🎒 Inventory Utils ---
-// เครื่องมือจัดการตำแหน่งไอเทมในกระเป๋า
+// ============================================================================
+// 🎒 Inventory Utils
+// ============================================================================
 export const InventoryUtils = {
-  // เติมช่องว่างที่ไม่มีไอเทมให้เต็ม
-  fillEmptySlots: (
-    currentInv,
-    reservedIndices,
-    limit,
-    forceReplace = false
-  ) => {
-    const nextInv = [...currentInv];
+  fillEmptySlots: (currentInv, reservedIndices, limit) => {
+    let nextInv = [...currentInv];
     for (let i = 0; i < limit; i++) {
-      const isReserved = reservedIndices.includes(i);
-      const isEmpty = nextInv[i] === null;
-      if (!isReserved && (isEmpty || forceReplace)) {
-        nextInv[i] = DeckManager.createItem(i);
+      if (!reservedIndices.includes(i) && nextInv[i] === null) {
+        // ✅ ส่ง nextInv และ limit (unlockedSlots) เข้าไปคำนวณสระและตัวซ้ำ
+        const char = DeckManager.draw(nextInv, limit);
+        nextInv[i] = {
+            id: Math.random(),
+            char: char,
+            status: null,
+            statusDuration: 0,
+            visible: true,
+            originalIndex: i,
+        };
       }
     }
     return nextInv;
   },
 
-  // คืนไอเทมที่เคยเลือกไว้กลับเข้าช่องเดิม (หรือช่องว่างที่ใกล้ที่สุด)
-  returnItems: (
-    currentInv,
-    itemsToReturn,
-    limit
-  ) => {
+  returnItems: (currentInv, itemsToReturn, limit) => {
     const nextInv = [...currentInv];
     itemsToReturn.forEach((item) => {
       let targetIdx = item.originalIndex;
-      // ถ้าช่องเดิมไม่ว่าง ให้หาช่องว่างแรกที่เจอ
       if (nextInv[targetIdx] !== null) {
         const emptyIdx = nextInv.findIndex((x, i) => x === null && i < limit);
         if (emptyIdx !== -1) targetIdx = emptyIdx;
@@ -77,67 +144,6 @@ export const InventoryUtils = {
       nextInv[targetIdx] = item;
     });
     return nextInv;
-  },
-};
-
-
-// --- ⚔️ Combat Logic ---
-// ระบบคำนวณความแรงตามตัวอักษรและจุดอ่อนศัตรู
-export const CombatSystem = {
-  calculateDamage: (
-    skill,  
-    inputWord = "", 
-    targetEnemy
-  ) => {
-    // 1. คำนวณแต้มของคำ (Weighted Length)
-    let weightedLength = 0;
-    const lowerWord = inputWord.toLowerCase();
-
-    if (targetEnemy && targetEnemy.weakness_list && lowerWord.length > 0) {
-        for (const char of lowerWord) {
-            // เช็คว่าตัวอักษรแต่ละตัวในคำ เป็นจุดอ่อนของศัตรูหรือไม่
-            const weakData = targetEnemy.weakness_list.find((w) => w.alphabet.toLowerCase() === char);
-            
-            if (weakData) {
-                // ถ้าแพ้ทาง ให้บวกคะแนนตามตัวคูณ (Multiplier)
-                weightedLength += weakData.multiplier;
-            } else {
-                weightedLength += 1;
-            }
-        }
-    } else {
-        weightedLength = lowerWord.length;
-    }
-
-    let baseDamage = 0;
-    
-    // ⚔️ กรณี Basic Attack (MP Cost = 0): คำนวณจากความยาวคำ * Power
-    if ((skill.mpCost || 0) === 0 && skill.effectType === "DAMAGE") {
-        const power = skill.basePower || 1;
-        baseDamage = (weightedLength * power);
-    } 
-    // 🚀 กรณี Skill (ใช้ MP): ใช้ความแรงคงที่ตามฐานข้อมูล
-    else if (skill.damageMin !== undefined) {
-        baseDamage = skill.damageMin;
-    } 
-    else {
-        baseDamage = 1;
-    }
-
-    // คืนค่าเป็นทศนิยม 1 ตำแหน่ง
-    return parseFloat(baseDamage.toFixed(1));
-  },
-
-  // คำนวณแต้มดิบของคำ (Scrabble Style)
-  calculateWordScore: (word) => {
-    return word
-      .toUpperCase()
-      .split("")
-      .reduce((total, char) => {
-        const data = LETTER_DATA[char];
-        const score = data ? data.score : 0;
-        return total + score;
-      }, 0);
   },
 };
 

@@ -7,7 +7,7 @@ import { DISPLAY_NORMAL, FIXED_Y, ipAddress } from "../../../../const/index";
 export const EnemyEntity = ({
   enemy,
   index,
-  animFrame, // รับค่ามา (จะเป็น 0, 1 หรือ 1, 2 ก็ได้ เดี๋ยวสูตรข้างล่างจัดการให้)
+  animFrame,
   isTargeted,
   gameState,
   onSelect,
@@ -32,10 +32,10 @@ export const EnemyEntity = ({
   const spriteUrl = `${ipAddress}/img_monster/${enemy.monster_id}-${finalSprite}.png`;
   // -------------------------------------------------------------
 
-const QUIZ_DURATION = 5; 
+  const QUIZ_DURATION = 5; 
 
   const movementTransition =
-gameState === "QUIZ_MODE"
+  gameState === "QUIZ_MODE"
       ? { duration: QUIZ_DURATION, ease: "linear" } // 🐢 ถ้าเป็น Quiz ให้เดินช้าๆ คงที่
       : { type: "spring", stiffness: 300, damping: 25 }; // 🐇 ถ้าโหมดอื่น (เช่น เดินกลับ/พุ่งตี) ให้เร็วและเด้ง
 
@@ -100,7 +100,7 @@ gameState === "QUIZ_MODE"
       <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
         <motion.div
           style={{
-            scale: 1.5,
+            scale: 2.0,
             width: DISPLAY_NORMAL, 
             height: DISPLAY_NORMAL,
             position: "absolute",

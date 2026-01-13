@@ -954,7 +954,6 @@ const MonsterLibrary = () => {
           p: 1,
           display: 'flex',
           flexDirection: 'column',
-          height:'550px',
         }}
       >
         {/* Header Title */}
