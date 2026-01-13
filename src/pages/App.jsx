@@ -51,7 +51,7 @@ export default function App() {
         </Route>
         <Route path="/home/adventure" element={<AdvantureFeature />} />
         {/* <Route path="/home/shop" element={<ShopSpellFeature />} /> */}
-        <Route path="/home/shop" element={<ShopHeroFeature/>}/>
+        <Route path="/home/character" element={<ShopHeroFeature/>}/>
         <Route path="/home/library" element={<LibraryFeature />} />
         <Route
           path="/home/library/dictionary"

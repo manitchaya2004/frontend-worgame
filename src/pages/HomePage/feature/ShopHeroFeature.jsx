@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Box, Typography, Divider } from "@mui/material";
 import BackArrow from "../components/BackArrow";
@@ -533,8 +533,10 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
 
 const ShopHeroFeature = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useLoginPlayer();
   const { heros, getAllHeros, heroState } = useData();
+  
   const scrollRef = useRef(null);
 
   const [isMinLoading, setIsMinLoading] = useState(true);
@@ -564,6 +566,12 @@ const ShopHeroFeature = () => {
       behavior: "smooth",
     });
   };
+
+  const handleBack = () => {
+  navigate(location.state?.from || "/home");
+  // console.log(location.state?.from)
+};
+
 
   console.log(heros);
 
@@ -616,7 +624,7 @@ const ShopHeroFeature = () => {
                 transform: "translateY(-50%)",
               }}
             >
-              <BackArrow onClick={() => navigate("/home")} />
+              <BackArrow onClick={handleBack} />
             </Box>
 
             {/* Title กลางจริง */}
