@@ -1,9 +1,10 @@
 import React from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { DISPLAY_NORMAL, FIXED_Y, ipAddress } from "../../../../const/index";
-
+import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 export const EnemyEntity = ({
   enemy,
   index,
@@ -24,10 +25,15 @@ export const EnemyEntity = ({
 
   // ถ้าโจมตี ใช้เฟรมโจมตี (1, 2)
   // ถ้ายืนเฉยๆ ใช้สูตร (animFrame % 2) + 1 เพื่อแปลงเป็น 1 หรือ 2 เสมอ
+  const monsterFrames = usePreloadFrames("img_monster", enemy.monster_id, 2, actionName);
+
+  // 2. คำนวณเลขเฟรม
   const frameNum = isAttack ? enemy.atkFrame : (animFrame % 2) + 1;
 
-  const finalSprite = `${actionName}-${frameNum}`;
-  const spriteUrl = `${ipAddress}/img_monster/${enemy.monster_id}-${finalSprite}.png`;
+  // 3. ดึงจาก Cache
+  const currentSpriteUrl = monsterFrames[frameNum - 1]
+    ? monsterFrames[frameNum - 1].src
+    : `${ipAddress}/img_monster/${enemy.monster_id}-${actionName}-${frameNum}.png`;
   // -------------------------------------------------------------
 
   const QUIZ_DURATION = 5;
@@ -231,7 +237,7 @@ export const EnemyEntity = ({
             bottom: isBoss ? -10 : 0,
             left: "50%",
             x: "-50%",
-            backgroundImage: `url(${spriteUrl})`,
+            backgroundImage: `url(${currentSpriteUrl})`,
             backgroundSize: "contain",
             backgroundRepeat: "no-repeat",
             backgroundPosition: "bottom center",

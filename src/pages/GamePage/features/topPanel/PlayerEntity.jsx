@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import {
   DISPLAY_NORMAL, DISPLAY_WIDE, FIXED_Y, PLAYER_X_POS, ipAddress
 } from "../../../../const/index";
-
+import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
+import { useIdleFrame } from "../../../HomePage/hook/useIdleFrame";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 
@@ -15,12 +16,19 @@ export const PlayerEntity = ({ store }) => {
   } = store;
 
   // 2. คำนวณชื่อไฟล์
-  // เมื่อเป็น ADVANTURE -> visualBase = "walk"
-  // เนื่องจาก "walk" ไม่มีขีด "-" มันจะลง Else -> `${visualBase}-${animFrame}`
-  // ผลลัพธ์: "walk-1" สลับกับ "walk-2" ตามจังหวะ Store
-  const visualBase = (gameState === "ADVANTURE") ? "walk" : (playerVisual || "idle");
-  const finalSprite = visualBase.includes("-") ? visualBase : `${visualBase}-${animFrame}`;
+  // 1. ระบุ Action หลัก (เช่น walk หรือ idle) โดยไม่เอาเลขเฟรมพ่วงไป
+  // 1. ทำให้ชื่อ Action สะอาด (เช่น "attack-1" -> "attack")
+  const actionBase = (gameState === "ADVANTURE") ? "walk" : (playerVisual || "idle");
+  const cleanAction = actionBase.split("-")[0];
 
+  // 2. โหลดเป็นชุดเฟรม (2 เฟรม) เพื่อเก็บ Cache ไว้ในเครื่อง
+  const frames = usePreloadFrames("img_hero", playerData.name, 2, cleanAction);
+  
+  // 3. ดึงรูปจาก Cache ตาม animFrame ของ Store
+  const currentSrc = frames[animFrame - 1] 
+    ? frames[animFrame - 1].src 
+    : `${ipAddress}/img_hero/${playerData.name}-${cleanAction}-${animFrame}.png`;
+    
   return (
     <motion.div
       animate={{ left: `${playerX ?? PLAYER_X_POS}%` }}
@@ -64,7 +72,7 @@ export const PlayerEntity = ({ store }) => {
                left: "50%",
                x: "-50%",
                // ตรงนี้จะเปลี่ยนรูปเองตาม animFrame (walk-1 <-> walk-2)
-               backgroundImage: `url(${ipAddress}/img_hero/${playerData.name}-${finalSprite}.png)`,
+               backgroundImage: `url(${currentSrc})`,
                backgroundSize: "auto 100%",
                backgroundRepeat: "no-repeat",
                backgroundPosition: "center bottom 0px",
