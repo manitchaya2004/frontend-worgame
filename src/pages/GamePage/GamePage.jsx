@@ -254,7 +254,7 @@ export default function GameApp() {
           ) : (
             <>
               <div style={{ flex: 1 }}>
-                <BattleLog logs={store.logs} />
+                {/* <BattleLog logs={store.logs} /> */}
               </div>
 
               <div
@@ -338,7 +338,6 @@ export default function GameApp() {
               </button>
               <button
                 onClick={() => {
-                  store.reset();
                   navigate("/home/adventure");
                 }}
                 style={{

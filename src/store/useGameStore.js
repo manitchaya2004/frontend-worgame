@@ -283,7 +283,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   initializeGame: async (userData, stageData) => {
-    console.log("🚀 INITIALIZE GAME");
+    console.log(userData)
 
 // 🟢 1. เคลียร์ข้อมูลเดิมทิ้งทั้งหมดก่อน (Reset State)
     set({
@@ -319,16 +319,17 @@ export const useGameStore = create((set, get) => ({
             level: selectedHero.level,
             exp: selectedHero.current_exp,
             stats: {
-              STR: selectedHero.cur_str,
-              CON: selectedHero.cur_con,
-              INT: selectedHero.cur_int,
-              DEX: selectedHero.cur_dex,
-              FAITH: selectedHero.cur_faith,
-              LUCK: selectedHero.cur_luck,
+              STR: selectedHero.base_str,
+              CON: selectedHero.base_con,
+              INT: selectedHero.base_int,
+              DEX: selectedHero.base_dex,
+              FAITH: selectedHero.base_faith,
+              LUCK: selectedHero.base_luck,
             },
           },
         }));
         get().recalculatePlayerStats();
+        console.log("select hero", get().playerData);
       }
 
       set({ loadingProgress: 25 });
@@ -346,7 +347,7 @@ export const useGameStore = create((set, get) => ({
 
       
       const stageRaw = await stageRes.json();
-      console.log(stageRaw)
+      console.log("stage"+stageRaw)
 
       const groupedEvents = {};
       if (Array.isArray(stageRaw)) {
@@ -700,7 +701,6 @@ export const useGameStore = create((set, get) => ({
         playerShoutText: "All Clear!",
       });
       const totalExp = store.accumulatedExp;
-      console.log(`🎉 Mission Complete! Gained(100%): ${totalExp}`);
       await get().saveHeroExp(totalExp);
     }
   },
@@ -1105,9 +1105,6 @@ export const useGameStore = create((set, get) => ({
       set({ gameState: "OVER" });
       const totalExp = get().accumulatedExp;
       const halfExp = Math.floor(totalExp / 2);
-      console.log(
-        `💀 Game Over! Total EXP: ${totalExp}, Gained(50%): ${halfExp}`
-      );
       get().saveHeroExp(halfExp);
     }
   },
