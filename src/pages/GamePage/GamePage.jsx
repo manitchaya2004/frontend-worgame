@@ -11,19 +11,20 @@ import { ipAddress } from "../../const";
 
 // Store & Components
 import { useGameStore } from "../../store/useGameStore";
-import { DeckManager, InventoryUtils } from "../../utils/gameSystem";
+import { DeckManager } from "../../utils/gameSystem";
 import { InventorySlot } from "./features/downPanel/InventorySlot";
 import { PlayerEntity } from "./features/topPanel/PlayerEntity";
 import { EnemyEntity } from "./features/TopPanel/EnemyEntity";
 import { MeaningPopup } from "./features/TopPanel/MeaningPopup";
 import { QuizOverlay } from "./features/DownPanel/QuizOverlay";
 import { Tooltip } from "./features/TopPanel/Tooltip";
-import { BattleLog } from "./features/DownPanel/BattleLog";
-import { ActionPanel } from "./features/DownPanel/ActionPanel";
-import { TurnQueueBar } from "./features/TopPanel/TurnQueueBar"; 
+import { ActionControls } from "./features/downPanel/ActionControls";
+import { PlayerStatusCard } from "./features/downPanel/PlayerStatusCard";
+import { TurnQueueBar } from "./features/TopPanel/TurnQueueBar";
 import { DamagePopup } from "./features/TopPanel/DamagePopup";
 import { SelectedLetterArea } from "./features/topPanel/SelectedLetterArea";
 import { BossHpBar } from "./features/topPanel/BossHpBar";
+import { TargetPickerOverlay } from "./features/downPanel/TargetPickerOverlay";
 
 import LoadingView from "../../components/LoadingView";
 import ErrorView from "../../components/ErrorView";
@@ -43,7 +44,7 @@ export default function GameApp() {
   const lastTimeRef = useRef(0);
   const constraintsRef = useRef(null);
 
-  const boss = store.enemies.find(e => e.isBoss);
+  const boss = store.enemies.find((e) => e.isBoss);
 
   // --- INIT ---
   const initGameData = async () => {
@@ -146,10 +147,10 @@ export default function GameApp() {
           }}
         >
           <TurnQueueBar store={store} />
-          <DamagePopup 
-              popups={store.damagePopups} 
-              removePopup={store.removePopup} 
-            />
+          <DamagePopup
+            popups={store.damagePopups}
+            removePopup={store.removePopup}
+          />
 
           <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
 
@@ -183,113 +184,77 @@ export default function GameApp() {
             castingSkill={null}
             damageInfo={getDamageInfo()}
           />
-
-          {/* ❌ เอา Overlay ออกจากตรงนี้ (Battle Area) เพื่อไม่ให้ถูกจำกัดแค่จอบน */}
         </div>
 
         {/* --- BOTTOM PANEL (UI) --- */}
-        <div style={styles.bottomUi}>
+        <div
+          style={{
+            flex: 1,
+            background: "#1a120b",
+            borderTop: "4px solid #5c4033",
+            display: "flex",
+            padding: "15px 0px 15px 0px",
+          }}
+        >
           {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
             <QuizOverlay
               data={store.currentQuiz}
               onAnswer={store.resolveQuiz}
             />
           ) : showTargetPicker ? (
-            <div style={styles.targetPickerMenu}>
-              <div style={styles.targetHeader}>
-                <h3 style={styles.targetTitle}>SELECT TARGET</h3>
-                <div
-                  style={styles.targetCardCancel}
-                  onClick={() => {
-                    setShowTargetPicker(false);
-                    setPendingAction(null);
-                  }}
-                >
-                  <span>CLOSE [X]</span>
-                </div>
-              </div>
-              <div style={styles.targetList}>
-                {store.enemies
-                  .filter((e) => e.hp > 0)
-                  .map((en) => (
-                    <div
-                      key={en.id}
-                      onClick={() => handleSelectTargetFromMenu(en.id)}
-                      style={styles.targetCard}
-                      onMouseEnter={() => store.setHoveredEnemyId(en.id)}
-                      onMouseLeave={() => store.setHoveredEnemyId(null)}
-                    >
-                      <div style={styles.targetIconFrame}>
-           
-                        <img
-                          src={`${ipAddress}/img_monster/${
-                            en.monster_id
-                          }-idle-${store.animFrame}.png`}
-                          alt={en.name}
-                          style={styles.targetIcon}
-                        />
-                      </div>
-                      <div style={styles.targetInfo}>
-                        <span style={styles.targetNameText}>{en.name}</span>
-                        <div style={styles.miniHpBarContainer}>
-                          <div
-                            style={{
-                              ...styles.miniHpBarFill,
-                              width: `${(en.hp / en.max_hp) * 100}%`,
-                              backgroundColor:
-                                (en.hp / en.max_hp) * 100 > 45
-                                  ? "#4cd137"
-                                  : "#ff4757",
-                            }}
-                          />
-                        </div>
-                        <span style={styles.miniHpText}>
-                          {Math.ceil(en.hp)} / {en.max_hp}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
+            <TargetPickerOverlay
+              store={store}
+              ipAddress={ipAddress}
+              onClose={() => {
+                setShowTargetPicker(false);
+                setPendingAction(null);
+              }}
+              onSelectTarget={(enemyId) => handleSelectTargetFromMenu(enemyId)}
+            />
           ) : (
             <>
-              <div style={{ flex: 1 }}>
-                {/* <BattleLog logs={store.logs} /> */}
-              </div>
-
               <div
-                style={{ flex: 2, justifyContent: "center", display: "flex" }}
+                style={{
+                  flex: 1.5,
+                  display: "flex",
+                  justifyContent: "center", // ทั้งก้อนอยู่กลาง
+                  alignItems: "center",
+                  gap: "12px", // ระยะห่างระหว่าง Inventory กับ Action (ปรับได้)
+                }}
               >
+                <PlayerStatusCard store={store} />
                 <InventorySlot
                   inventory={store.playerData.inventory}
                   onSelectLetter={(item, idx) => store.selectLetter(item, idx)}
                   playerSlots={store.playerData.unlockedSlots}
                   playerStats={store.playerData.stats}
-                  gameState={store.gameState} 
+                  gameState={store.gameState}
                 />
-              </div>
 
-              <div style={{ flex: 1}}>
-                <ActionPanel
-                  store={store} 
+                <ActionControls
+                  store={store}
                   onAttackClick={() => handleActionClick("ATTACK")}
                   onShieldClick={() => handleActionClick("SHIELD")}
                   onSpinClick={() => {
                     const currentInv = store.playerData.inventory;
                     const unlockedSlots = store.playerData.unlockedSlots;
-                    let tempInvForLogic = [...currentInv]; 
+                    let tempInvForLogic = [...currentInv];
+
                     const nextInv = currentInv.map((item, index) => {
-                      if (item === null) return null;
-                      const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
+                      if (!item) return null;
+                      const char = DeckManager.draw(
+                        tempInvForLogic,
+                        unlockedSlots
+                      );
                       const newItem = {
                         id: Math.random(),
-                        char: char,
+                        char,
                         status: item.status || null,
                         statusDuration: item.statusDuration || 0,
                         visible: true,
                         originalIndex: index,
                       };
-                      tempInvForLogic[index] = newItem; 
+                      tempInvForLogic[index] = newItem;
                       return newItem;
                     });
 
@@ -446,13 +411,13 @@ const styles = {
   // ... styles อื่นๆ (queue, targetPicker ฯลฯ) คงเดิม
   reorderGroup: {
     display: "flex",
-    gap: "8px",           // ระยะห่างระหว่างตัวอักษรที่เลือก
+    gap: "8px", // ระยะห่างระหว่างตัวอักษรที่เลือก
     padding: "10px",
     listStyle: "none",
     margin: 0,
   },
   letterItem: {
-    flexShrink: 0,       // ป้องกันตัวอักษรบีบตัว
+    flexShrink: 0, // ป้องกันตัวอักษรบีบตัว
   },
   reorderContainer: {
     position: "absolute",
@@ -461,60 +426,14 @@ const styles = {
     transform: "translateX(-50%)",
     zIndex: 100,
     // width: "auto" หรือ "max-content" จะดีกว่าการล็อค 320px หากคำยาว
-    width: "max-content", 
+    width: "max-content",
     height: "80px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    pointerEvents: "none", 
+    pointerEvents: "none",
   },
-  bottomUi: {
-    flex: 1,
-    background: "#1a120b",
-    borderTop: "4px solid #5c4033",
-    display: "flex",
-    padding: "15px",
-    gap: "20px",
-    height: "280px",
-    position: "relative",
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "stretch",
-  },
-  targetPickerMenu: {
-    position: "absolute",
-    inset: 0,
-    display: "flex",
-    flexDirection: "column",
-    background: "rgba(26, 18, 11, 0.95)",
-    padding: "20px",
-    zIndex: 10,
-    border: "2px solid #5c4033",
-  },
-  targetHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-    marginBottom: "15px",
-    borderBottom: "2px solid #5c4033",
-    paddingBottom: "10px",
-  },
-  targetTitle: {
-    color: "#ffeb3b",
-    margin: 0,
-    fontSize: "1.4rem",
-    textShadow: "2px 2px 0px #000",
-    letterSpacing: "2px",
-  },
-  targetList: {
-    display: "flex",
-    gap: "15px",
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-    overflowY: "auto",
-  },
+
   targetCard: {
     display: "flex",
     alignItems: "center",
@@ -526,55 +445,5 @@ const styles = {
     cursor: "pointer",
     boxShadow: "0 4px 0 #000",
     transition: "transform 0.1s ease",
-  },
-  targetIconFrame: {
-    width: "60px",
-    height: "60px",
-    background: "rgba(0,0,0,0.3)",
-    borderRadius: "6px",
-    marginRight: "12px",
-    overflow: "hidden",
-    border: "2px solid #57606f",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  targetIcon: {
-    width: "110%",
-    height: "110%",
-    objectFit: "contain",
-    imageRendering: "pixelated",
-  },
-  targetInfo: { flex: 1, display: "flex", flexDirection: "column", gap: "5px" },
-  targetNameText: {
-    color: "#fff",
-    fontSize: "16px",
-    fontWeight: "bold",
-    textTransform: "uppercase",
-  },
-  miniHpBarContainer: {
-    width: "100%",
-    height: "10px",
-    background: "#1e272e",
-    borderRadius: "5px",
-    overflow: "hidden",
-    border: "1px solid #000",
-  },
-  miniHpBarFill: {
-    height: "100%",
-    transition: "width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-  },
-  miniHpLabelRow: { display: "flex", justifyContent: "flex-end" },
-  miniHpText: { color: "#ced6e0", fontSize: "11px", fontWeight: "bold" },
-  targetCardCancel: {
-    background: "#ff4757",
-    color: "#fff",
-    border: "2px solid #fff",
-    borderRadius: "6px",
-    padding: "5px 15px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    fontSize: "12px",
-    boxShadow: "0 2px 0 #000",
   },
 };

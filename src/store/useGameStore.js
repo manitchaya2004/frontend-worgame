@@ -130,7 +130,31 @@ export const useGameStore = create((set, get) => ({
     });
   },
 
-  setHoveredEnemyId: (id) => set({ hoveredEnemyId: id }),
+  setHoveredEnemyId: (id) => {
+    const { enemies } = get();
+    if (id === null) {
+      set({ hoveredEnemyId: null });
+      return;
+    }
+    const exist = enemies.some((e) => e.id === id && e.hp > 0);
+    if (!exist) {
+      set({ hoveredEnemyId: null });
+      return;
+    }
+    set({ hoveredEnemyId: id });
+  },
+  clearHoverIfInvalid: () => {
+    const { hoveredEnemyId, enemies } = get();
+    if (!hoveredEnemyId) return;
+
+    const stillExist = enemies.some(
+      (e) => e.id === hoveredEnemyId && e.hp > 0
+    );
+
+    if (!stillExist) {
+      set({ hoveredEnemyId: null });
+    }
+  },
 
   initSelectedLetters: () => {
     const { playerData } = get();
@@ -921,14 +945,14 @@ export const useGameStore = create((set, get) => ({
           return { ...v, similarityScore: score };
         })
         .sort((a, b) => a.similarityScore - b.similarityScore)
-        .slice(0, 6)
+        .slice(0, 3)
         .map((w) => w.word);
       const finalChoices = [correctEntry.word, ...choices].sort(
         () => 0.5 - Math.random()
       );
 
-      const CREEP_DIST = 4;
-      const STRIKE_DIST = 6;
+      const CREEP_DIST = 20;
+      const STRIKE_DIST = 10;
 
       get().updateEnemy(en.id, {
         x: PLAYER_X_POS + 30,
