@@ -2,33 +2,50 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const DamagePopup = ({ popups, removePopup }) => {
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 999 }}>
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
       <AnimatePresence>
         {popups.map((p) => (
           <motion.div
             key={p.id}
-            // เปลี่ยนจากพิกัด Absolute เป็นพิกัดอ้างอิง
-            initial={{ opacity: 1, y: 0 }} 
-            animate={{ opacity: 0, y: -120 }} // พุ่งขึ้นฟ้า 120px
+            // 🎬 ตั้งค่า Animation ให้ "ชัดและนาน"
+            initial={{ opacity: 0, scale: 0.5, y: 0 }} 
+            animate={{ 
+              opacity: [0, 1, 1, 0], // จางเข้า -> สว่างค้างไว้ -> จางออก
+              scale: [0.5, 1.3, 1],  // เอฟเฟกต์เด้งตอนโผล่ (Punchy)
+              y: -150                // ลอยสูงขึ้นกว่าเดิมเพื่อให้เห็นชัด
+            }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            // ⏱️ เพิ่ม duration เป็น 1.5 - 2.0 วินาทีตามต้องการ
+            transition={{ 
+              duration: 1.8, 
+              ease: "easeOut",
+              times: [0, 0.1, 0.8, 1] // ช่วงเวลาที่ให้ Opacity ค้างไว้ (0.1 ถึง 0.8 คือช่วงที่สว่างชัด)
+            }}
             onAnimationComplete={() => removePopup(p.id)}
             style={{
               position: "absolute",
-              // ใช้ left เป็นเปอร์เซ็นต์ตามที่ store ส่งมา
               left: `${p.x}%`, 
-              // ⚡️ สำคัญ: ใช้ bottom แทน top และคำนวณระยะห่างจากพื้น
-              bottom: "25%", // ปรับตรงนี้ให้ตรงกับเท้าของ Player/Enemy
-              fontSize: p.isPlayer ? "32px" : "28px",
+              bottom: "25%", 
+              // 🎨 ใช้สีจาก p.color ถ้าไม่มีให้ใช้ Logic สีเดิม
+              color: p.color ? p.color : (p.value === "MISSED!" || p.value === "YOUR TURN" ? "#fff" : p.isPlayer ? "#ff4d4d" : "#f1c40f"),
+              fontSize: p.fontSize ? p.fontSize : (p.isPlayer ? "36px" : "32px"), // ขยายขนาดให้ใหญ่ขึ้น
               fontWeight: "900",
-              color: p.value === "MISSED!" || p.value === "YOUR TURN" ? "#fff" : p.isPlayer ? "#ff4d4d" : "#f1c40f",
-              textShadow: "3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000",
+              // 🌑 ใส่เงาหลายชั้นเพื่อให้ตัวหนังสือ "ชัด" ไม่ว่าจะอยู่บนพื้นหลังสีอะไร (Stroke Effect)
+              textShadow: `
+                3px 3px 0 #000, 
+                -3px -3px 0 #000, 
+                3px -3px 0 #000, 
+                -3px 3px 0 #000,
+                0px 4px 10px rgba(0,0,0,0.5)
+              `,
               whiteSpace: "nowrap",
               textAlign: "center",
-              transform: "translateX(-50%)", // จัดให้อยู่กึ่งกลางตัวละคร
-              fontFamily: "'Press Start 2P', cursive", // ถ้ามีฟอนต์แนวเกม
+              transform: "translateX(-50%)",
+              fontFamily: "'Press Start 2P', cursive, sans-serif",
+              zIndex: 100,
             }}
           >
+            {/* ตรวจสอบประเภทข้อมูล ถ้าเป็นตัวเลขและ > 0 ให้ใส่เครื่องหมาย - หรือ + ตามความเหมาะสม */}
             {typeof p.value === "number" && p.value > 0 ? `-${p.value}` : p.value}
           </motion.div>
         ))}

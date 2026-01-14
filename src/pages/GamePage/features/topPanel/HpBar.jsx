@@ -15,7 +15,7 @@ export function HpBar({ hp, max, color }) {
       style={{
         position: "relative",
         width: "70%", 
-        height: "100%", 
+        height: "70%", 
         background: "#333",
         border: "2px solid #000",
         borderRadius: "4px",
