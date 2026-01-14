@@ -41,5 +41,5 @@ export const LETTER_DATA = {
 };
 
 // --- การเชื่อมต่อ (Networking) ---
-export const ipAddress = "http://localhost:3000";
+export const ipAddress = "http://25.16.201.205:3000";
 export const mapID = "green-grass-1";

@@ -9,6 +9,7 @@ export const useAuthStore = create(
       registerState: INITIALIZED,
       loginState: INITIALIZED,
       selectHeroState: INITIALIZED,
+      buyHeroState: INITIALIZED,
       authLoading: true,
       isAuthenticated: false,
       isFirstTime: false,
@@ -222,6 +223,40 @@ export const useAuthStore = create(
           return false;
         }
       },
+
+      // buyHero: async (heroId) => {
+      //   set({ buyHeroState: LOADING });
+      //   try {
+      //     const token = localStorage.getItem("token");
+
+      //     const res = await fetch(`${API_URL}/buy-hero`, {
+      //       method: "POST",
+      //       headers: {
+      //         "Content-Type": "application/json",
+      //         Authorization: `Bearer ${token}`,
+      //       },
+      //       body: JSON.stringify({ heroId }),
+      //     });
+
+      //     const data = await res.json();
+      //     if (!data.isSuccess) throw new Error(data.message);
+
+      //     set((state) => ({
+      //       currentUser: {
+      //         ...state.currentUser,
+      //         money: data.moneyLeft,
+      //         heroes: [...state.currentUser.heroes, data.hero],
+      //       },
+      //       buyHeroState: LOADED,
+      //     }));
+
+      //     // return true;
+      //   } catch (err) {
+      //     console.error("buyHero error:", err);
+      //     set({ buyHeroState: FAILED });
+      //     // return false;
+      //   }
+      // },
 
       /* ===== CLEAR STATES (เหมือน reducers) ===== */
       logout: () => {
