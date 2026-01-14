@@ -1,5 +1,5 @@
 import { Box,Typography } from "@mui/material";
-
+import { MAX_LEVEL } from "../../hook/const";
 // --- LevelBar ---
 const LevelBar = ({ level = 1, currentExp = 0, nextExp = 100 }) => {
   const maxExp = nextExp || (level >= MAX_LEVEL ? 100 : level * 100);

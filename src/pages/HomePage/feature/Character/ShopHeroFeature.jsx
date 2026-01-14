@@ -2,8 +2,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Box, Typography, Divider , Tooltip } from "@mui/material";
 import BackArrow from "../../components/BackArrow";
-import arrowRight from "../../../assets/icons/arrowRight.png";
-import arrowLeft from "../../../assets/icons/arrowLeft.png";
+import arrowRight from "../../../../assets/icons/arrowRight.png";
+import arrowLeft from "../../../../assets/icons/arrowLeft.png";
 import StarBackground from "../../components/StarBackground";
 import { useData } from "../../hook/useData";
 import GameAppBar from "../../../../components/AppBar";
@@ -30,7 +30,7 @@ const ShopHeroFeature = () => {
     // ตั้งเวลา Delay (เช่น 1500 ms = 1.5 วินาที)
     const timer = setTimeout(() => {
       setIsMinLoading(false);
-    }, 2000);
+    }, 1000);
 
     // Cleanup timer ถ้า user เปลี่ยนหน้าก่อน
     return () => clearTimeout(timer);

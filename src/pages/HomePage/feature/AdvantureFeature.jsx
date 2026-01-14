@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom"; //เปลี่ยน หน้า
-import { memo, useEffect, useState, useMemo,useRef } from "react";
+import { memo, useEffect, useState, useMemo, useRef } from "react";
 import { HoverListItem } from "../components/HoverListItem";
 import { Box, Typography, IconButton, Button } from "@mui/material";
 import { useData } from "../hook/useData";
@@ -11,13 +11,13 @@ import { Loading } from "../../../components/Loading/Loading";
 import StarBackground from "../components/StarBackground";
 import { useLoginPlayer } from "../../AuthPage/LoginPage/hook/useLoginPlayer";
 import { THEME } from "../hook/const";
-import { LoadImage } from "../hook/usePreloadFrams";
+import { usePreloadFrames, LoadImage } from "../hook/usePreloadFrams";
+import { useIdleFrame } from "../hook/useIdleFrame";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import GameAppBar from "../../../components/AppBar";
 import { API_URL } from "../../../store/const";
 const name = "img_hero";
-const MotionBox = motion(Box);
 
 const backgroundStage = () => {
   return `${API_URL}/img_map/grassland.png`;
@@ -84,9 +84,13 @@ export const Title = ({ title }) => {
   );
 };
 
-const DetailItem = ({ stage, currentUser,}) => {
+const DetailItem = ({ stage, currentUser, isEntering }) => {
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
+
+  // animation hero
+  const frames = usePreloadFrames("img_hero", heroId, 2, "walk");
+  const frame = useIdleFrame(frames.length, 200);
 
   return (
     <Box
@@ -117,15 +121,15 @@ const DetailItem = ({ stage, currentUser,}) => {
           backgroundPosition: "center",
         }}
       >
-        <Box
+        {/* <Box
           sx={{
             position: "absolute",
             inset: 0,
             background:
-              "radial-gradient(circle at center, transparent 55%, rgba(84, 82, 82, 0.35) 100%)",
+              "radial-gradient(circle at center, transparent 0%, rgba(84, 82, 82, 0.35) 100%)",
             zIndex: 1,
           }}
-        />
+        /> */}
 
         <Typography
           sx={{
@@ -135,6 +139,8 @@ const DetailItem = ({ stage, currentUser,}) => {
             color: "#2d2b2b",
             textAlign: "center",
             mb: 4,
+            opacity: isEntering ? 0 : 1,
+            transition: "opacity 0.3s",
           }}
         >
           {stage?.name}
@@ -142,12 +148,30 @@ const DetailItem = ({ stage, currentUser,}) => {
 
         {/* ตัวละคร */}
         <motion.img
-          src={LoadImage(name, heroId, 1)}
+          key={isEntering ? "walk" : "idle"}
+          src={isEntering ? frames[frame - 1]?.src : LoadImage(name, heroId, 1)}
           alt="character"
-          animate={{ y: [0, -2, 0] }}
-          transition={{ repeat: Infinity, duration: 2.5 }}
+          initial={{ y: 0, x: 0 }}
+          animate={
+            isEntering
+              ? {
+                  // กระโดดขึ้นจาก 0 ไป -150 แล้วลงพื้น | แล้วเดินไปทางขวา 600px
+                  y: [0, -150, 0, 0],
+                  x: [0, 0, 0, 600],
+                }
+              : { y: [0, -2, 0] } // อนิเมชั่นยืนหายใจปกติ
+          }
+          transition={
+            isEntering
+              ? {
+                  duration: 2.5,
+                  times: [0, 0.2, 0.4, 1], // กระโดดเสร็จที่ 40% ของเวลา แล้วเดินต่อ
+                  ease: "easeInOut",
+                }
+              : { repeat: Infinity, duration: 2.5 }
+          }
           style={{
-            height: "55%", // ลดนิดนึง
+            height: "55%",
             filter: "drop-shadow(0 6px 6px rgba(0,0,0,0.6))",
             imageRendering: "pixelated",
             position: "relative",
@@ -155,6 +179,7 @@ const DetailItem = ({ stage, currentUser,}) => {
             top: 30,
           }}
         />
+
         <Box
           sx={{
             position: "absolute",
@@ -165,6 +190,7 @@ const DetailItem = ({ stage, currentUser,}) => {
             filter: "blur(6px)",
             borderRadius: "50%",
             zIndex: 2,
+            display: isEntering ? "none" : "block", // ซ่อนเงาเดิมตอนเดิน
           }}
         />
       </Box>
@@ -173,43 +199,29 @@ const DetailItem = ({ stage, currentUser,}) => {
 };
 
 const ListSection = memo(
-  ({ stages, currentUser, handleStageClick, changeCharacter }) => {
+  ({
+    stages,
+    initialIndex = 0,
+    currentUser,
+    handleStageClick,
+    changeCharacter,
+    isEntering,
+  }) => {
+    const [index, setIndex] = useState(initialIndex);
+
+    //stage
     const sortedStages = useMemo(() => {
-      if (!stages) return [];
       return [...stages].sort((a, b) => a.orderNo - b.orderNo);
     }, [stages]);
 
-    const [index, setIndex] = useState(0);
-
-    const canPrev = index > 0;
-    const canNext = index < sortedStages.length - 1;
-    const stage = sortedStages[index];
-
-    const controls = useAnimation();
-    const prevIndex = useRef(index);
-
+    // 🔁 sync เมื่อ user เปลี่ยนด่าน
     useEffect(() => {
-  if (prevIndex.current !== index) {
-    const direction = index > prevIndex.current ? 1 : -1;
+      setIndex(initialIndex);
+    }, [initialIndex]);
 
-    controls.set({
-      x: direction * 80,
-      opacity: 0,
-      scale: 0.96,
-    });
+    const currentStage = sortedStages[index];
 
-    controls.start({
-      x: 0,
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.4, ease: "easeOut" },
-    });
-
-    prevIndex.current = index;
-  }
-}, [index, controls]);
-
-
+    if (!currentStage) return null;
 
     return (
       <Box
@@ -225,77 +237,43 @@ const ListSection = memo(
       >
         <Box
           sx={{
-            // position: "relative",
+            position: "relative",
             width: "100%",
-            flex: 1,
-            display: "grid",
-            gridTemplateColumns: "auto 1fr auto",
+            height: "100%",
+            display: "flex",
             alignItems: "center",
-            gap: 2,
+            justifyContent: "center",
           }}
         >
-          {/* ลูกศรซ้าย */}
-          <IconButton
-            onClick={() => setIndex((i) => i - 1)}
-            disabled={!canPrev}
-            sx={{
-              // justifySelf: "center",
-              position: "relative",
-              left: { xs: -1, md: 45, lg: 80 },
-              opacity: canPrev ? 1 : 0.2,
-              backgroundColor: "#fff",
-              border: "3px solid #000",
-              borderRadius: 1,
-              width: { xs: 36, md: 44 },
-              height: { xs: 36, md: 44 },
-              zIndex: 10, 
-            }}
-          >
-            <ArrowBackIosNewIcon />
-          </IconButton>
-
-          {/* หน้าจอแสดงผล */}
-
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <motion.div
-              animate={controls}
-              style={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "center",
-              }}
+          {/* ◀ ปุ่มซ้าย */}
+          {!isEntering && index > 0 && (
+            <IconButton
+              onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+              sx={{ position: "absolute", left: 16 }}
             >
-              <DetailItem stage={stage} currentUser={currentUser} />
-            </motion.div>
-          </Box>
+              <ArrowBackIosNewIcon />
+            </IconButton>
+          )}
 
-          {/* ลูกศรขวา */}
-          <IconButton
-            onClick={() => setIndex((i) => i + 1)}
-            disabled={!canNext}
-            sx={{
-              position: "relative",
-              right: { xs: 1, md: 15, lg: 80 },
-              opacity: canNext ? 1 : 0.2,
-              backgroundColor: "#fff",
-              border: "3px solid #000",
-              borderRadius: 1,
-              width: { xs: 36, md: 39, lg: 44 },
-              height: { xs: 36, md: 39, lg: 44 },
-              zIndex: 10, 
-            }}
-          >
-            <ArrowForwardIosIcon />
-          </IconButton>
+          {/* 🗺️ ด่านปัจจุบัน */}
+          <DetailItem
+            stage={currentStage}
+            currentUser={currentUser}
+            isEntering={isEntering}
+          />
+
+          {/* ▶ ปุ่มขวา */}
+          {!isEntering && index < sortedStages.length - 1 && (
+            <IconButton
+              onClick={() =>
+                setIndex((i) => Math.min(i + 1, sortedStages.length - 1))
+              }
+              sx={{ position: "absolute", right: 16 }}
+            >
+              <ArrowForwardIosIcon />
+            </IconButton>
+          )}
         </Box>
-
         <Box
           sx={{
             display: "flex",
@@ -306,6 +284,7 @@ const ListSection = memo(
           }}
         >
           <Button
+            disabled={isEntering}
             onClick={changeCharacter}
             sx={{
               px: 3,
@@ -314,21 +293,18 @@ const ListSection = memo(
               fontSize: "11px",
               color: "#3e2723",
               backgroundColor: "#e6d3b1",
-              border: "2px solid #3e2723",
-              boxShadow: "2px 2px 0 #3e2723",
+              border: isEntering?"2px solid #766866" :"2px solid #3e2723",
+              boxShadow: isEntering ?"" :"2px 2px 0 #3e2723",
               opacity: 0.85,
-              "&:hover": {
-                opacity: 1,
-                backgroundColor: "#f0dec2",
-              },
+              "&:hover": { opacity: 1, backgroundColor: "#f0dec2" },
             }}
           >
             CHANGE CHARACTER
           </Button>
-
           <Button
             variant="contained"
-            onClick={() => handleStageClick(stage?.id)}
+            disabled={isEntering}
+            onClick={() => handleStageClick(currentStage?.id)}
             sx={{
               backgroundColor: "#5d4037",
               color: "#fff",
@@ -336,15 +312,13 @@ const ListSection = memo(
               fontSize: "16px", // ลดนิดนึง
               px: 5,
               py: 1.2,
-              border: "4px solid #000",
+              border: isEntering ?"4px solid #a4a3a3" :"4px solid #000",
               boxShadow: "inset -4px -4px 0px 0px #3e2723",
-              "&:hover": {
-                backgroundColor: "#4e342e",
-              },
+              "&:hover": { backgroundColor: "#4e342e" },
             }}
           >
-            START GAME
-          </Button>
+            START GAME{" "}
+          </Button>{" "}
         </Box>
       </Box>
     );
@@ -360,20 +334,34 @@ const AdvantureFeature = () => {
 
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedStage, setSelectedStage] = useState(null);
+  const [isEntering, setIsEntering] = useState(false);
 
   const handleStageClick = (stage) => {
     setSelectedStage(stage);
-    setOpenConfirm(true);
+    setIsEntering(true);
+
+    setTimeout(() => {
+      navigate("/battle", {
+        state: {
+          currentUser: currentUser,
+          selectedStage: stage,
+        },
+      });
+    }, 2500);
   };
 
   const handleConfirmStage = () => {
     setOpenConfirm(false);
-    navigate("/battle", {
-      state: {
-        currentUser: currentUser, // ส่งข้อมูลผู้เล่น
-        selectedStage: selectedStage, // แนะนำให้ส่งข้อมูลด่านที่เลือกไปด้วย
-      },
-    });
+    setIsEntering(true);
+
+    // setTimeout(() => {
+    //   navigate("/battle", {
+    //     state: {
+    //       currentUser: currentUser,
+    //       selectedStage: selectedStage,
+    //     },
+    //   });
+    // }, 2500);
   };
 
   const changeCharacter = () => {
@@ -385,6 +373,65 @@ const AdvantureFeature = () => {
   };
 
   const MotionBox = motion(Box);
+  const playableStages = useMemo(() => {
+    if (!stages || !currentUser?.stages) return [];
+
+    // map user stages by stage_id
+    const userStageMap = new Map(
+      currentUser.stages.map((s) => [s.stage_id, s])
+    );
+
+    // sort stage ตาม order
+    const sortedStages = [...stages].sort((a, b) => a.orderNo - b.orderNo);
+
+    const result = [];
+
+    for (let i = 0; i < sortedStages.length; i++) {
+      const stage = sortedStages[i];
+      const userStage = userStageMap.get(stage.id);
+
+      // ถ้า user มี stage นี้อยู่แล้ว → แสดง
+      if (userStage) {
+        result.push(stage);
+        continue;
+      }
+
+      // ถ้า user ไม่มี แต่ stage ก่อนหน้า "ผ่านแล้ว" → unlock
+      const prevStage = sortedStages[i - 1];
+      const prevUserStage = prevStage ? userStageMap.get(prevStage.id) : null;
+
+      if (prevUserStage?.is_completed) {
+        result.push(stage);
+        break; // 🚨 แสดงแค่ด่านถัดไปพอ
+      }
+
+      break;
+    }
+
+    return result;
+  }, [stages, currentUser]);
+
+  const initialStageIndex = useMemo(() => {
+    if (!playableStages.length || !currentUser?.stages) return 0;
+
+    const userStageMap = new Map(
+      currentUser.stages.map((s) => [s.stage_id, s])
+    );
+
+    // หา is_current ก่อน
+    const currentIndex = playableStages.findIndex(
+      (s) => userStageMap.get(s.id)?.is_current
+    );
+
+    if (currentIndex !== -1) return currentIndex;
+
+    // fallback: ด่านแรกที่ยังไม่ผ่าน
+    const firstUncompleted = playableStages.findIndex(
+      (s) => !userStageMap.get(s.id)?.is_completed
+    );
+
+    return firstUncompleted !== -1 ? firstUncompleted : 0;
+  }, [playableStages, currentUser]);
 
   // โหลดข้อมูลตอนเปิดหน้า
   useEffect(() => {
@@ -495,10 +542,12 @@ const AdvantureFeature = () => {
           handleStageClick={(stage) => handleStageClick(stage)}
         /> */}
           <ListSection
-            stages={stages}
+            stages={playableStages}
+            initialIndex={initialStageIndex}
             currentUser={currentUser}
             handleStageClick={(stage) => handleStageClick(stage)}
             changeCharacter={changeCharacter}
+            isEntering={isEntering}
           />
         </MotionBox>
 

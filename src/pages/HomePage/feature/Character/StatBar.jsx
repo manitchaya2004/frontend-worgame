@@ -1,5 +1,5 @@
 import { Typography,Box } from "@mui/material";
-import { STAT_CONFIG } from "../../hook/const";
+import { STAT_CONFIG,MAX_STAT } from "../../hook/const";
 import HardwareIcon from "@mui/icons-material/Hardware";
 import SpeedIcon from "@mui/icons-material/Speed";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";

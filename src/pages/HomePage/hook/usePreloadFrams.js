@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../../../store/const";
-export const usePreloadFrames = (name="img_hero",heroId, frameCount) => {
+export const usePreloadFrames = (name="img_hero",heroId, frameCount,idle="idle") => {
   const [frames, setFrames] = useState([]);
 
   useEffect(() => {
@@ -11,7 +11,7 @@ export const usePreloadFrames = (name="img_hero",heroId, frameCount) => {
 
     for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
-      img.src = `${API_URL}/${name}/${heroId}-idle-${i}.png`;
+      img.src = `${API_URL}/${name}/${heroId}-${idle}-${i}.png`;
       img.onload = () => {
         loaded++;
         if (loaded === frameCount) {
