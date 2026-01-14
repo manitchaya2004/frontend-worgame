@@ -10,6 +10,8 @@ export const useAuthStore = create(
       loginState: INITIALIZED,
       selectHeroState: INITIALIZED,
       buyHeroState: INITIALIZED,
+      buyHeroError: null,
+      
       authLoading: true,
       isAuthenticated: false,
       isFirstTime: false,
@@ -224,39 +226,53 @@ export const useAuthStore = create(
         }
       },
 
-      // buyHero: async (heroId) => {
-      //   set({ buyHeroState: LOADING });
-      //   try {
-      //     const token = localStorage.getItem("token");
+      // buy
+      buyHero: async (heroId) => {
+        try {
+          set({ buyHeroState: LOADING, buyHeroError: null });
 
-      //     const res = await fetch(`${API_URL}/buy-hero`, {
-      //       method: "POST",
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //         Authorization: `Bearer ${token}`,
-      //       },
-      //       body: JSON.stringify({ heroId }),
-      //     });
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
 
-      //     const data = await res.json();
-      //     if (!data.isSuccess) throw new Error(data.message);
+          const res = await fetch(`${API_URL}/buy-hero`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+            body: JSON.stringify({ heroId }), // ✅ สำคัญ
+          });
 
-      //     set((state) => ({
-      //       currentUser: {
-      //         ...state.currentUser,
-      //         money: data.moneyLeft,
-      //         heroes: [...state.currentUser.heroes, data.hero],
-      //       },
-      //       buyHeroState: LOADED,
-      //     }));
+          const data = await res.json(); // ✅ fetch ต้อง parse เอง
 
-      //     // return true;
-      //   } catch (err) {
-      //     console.error("buyHero error:", err);
-      //     set({ buyHeroState: FAILED });
-      //     // return false;
-      //   }
-      // },
+          if (!res.ok || !data.isSuccess) {
+            throw new Error(data.message || "buy hero failed");
+          }
+
+          const { hero, moneyLeft } = data;
+
+          // ✅ update local state
+          set((state) => ({
+            currentUser: {
+              ...state.currentUser,
+              money: moneyLeft,
+              heroes: [...(state.currentUser?.heroes || []), hero],
+            },
+            buyHeroState: LOADED,
+          }));
+        } catch (err) {
+          console.error("buyHero error:", err);
+          set({
+            buyHeroState: FAILED,
+            buyHeroError: err.message,
+          });
+        } finally {
+          setTimeout(() => {
+            set({ buyHeroState: INITIALIZED });
+          }, 800);
+        }
+      },
 
       /* ===== CLEAR STATES (เหมือน reducers) ===== */
       logout: () => {

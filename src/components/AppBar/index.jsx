@@ -1,6 +1,7 @@
-import { AppBar, Toolbar, Typography, Box, Avatar } from "@mui/material";
+import { AppBar, Toolbar, Typography, Box, Avatar, Popover } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, animate } from "framer-motion"; // 👈 เพิ่ม animate เข้ามา
 import SettingsIcon from "@mui/icons-material/Settings";
 import sword from "../../assets/icons/sword.svg";
 import store from "../../assets/icons/store.svg";
@@ -14,10 +15,54 @@ import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 
 const name = "img_hero";
 
+// --- ส่วน AnimatedMoney สำหรับจัดการตัวเลขวิ่งและสี ---
+const AnimatedMoney = ({ value }) => {
+  const [displayValue, setDisplayValue] = useState(value);
+  const [status, setStatus] = useState("idle"); // idle, increase, decrease
+  const prevValue = useRef(value);
+
+  useEffect(() => {
+    // กำหนดสีตามการเปลี่ยนแปลง
+    if (value > prevValue.current) setStatus("increase");
+    else if (value < prevValue.current) setStatus("decrease");
+
+    // อนิเมชั่นตัวเลขวิ่ง
+    const controls = animate(prevValue.current, value, {
+      duration: 1, // วิ่งภายใน 1 วินาที
+      onUpdate: (latest) => setDisplayValue(Math.floor(latest)),
+      onComplete: () => {
+        setStatus("idle");
+        prevValue.current = value;
+      },
+    });
+
+    return () => controls.stop();
+  }, [value]);
+
+  return (
+    <Typography
+      component={motion.span}
+      animate={status !== "idle" ? { scale: [1, 1.2, 1] } : {}} // เด้งเบาๆ เวลาเปลี่ยน
+      sx={{
+        fontFamily: "'Press Start 2P'",
+        fontSize: { xs: 8, md: 10 },
+        // เปลี่ยนสี: เพิ่ม=เขียว, ลด=แดงสว่าง, ปกติ=ดำ
+        color: status === "increase" ? "#4caf50" : status === "decrease" ? "#ff1744" : "rgba(0, 0, 0, 1)",
+        width: "60px",
+        textAlign: "end",
+        transition: "color 0.3s ease",
+      }}
+    >
+      {displayValue.toLocaleString()}
+    </Typography>
+  );
+};
+
 const GameAppBar = () => {
   const { currentUser } = useLoginPlayer();
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
+
   return (
     <AppBar
       position="static"
@@ -121,7 +166,7 @@ const GameAppBar = () => {
           >
             {/* 🪙 ICON ลอยทับเส้น */}
             <Box
-              component="img"
+              component={motion.img} // ใช้ motion เพื่อใส่ลูกเล่นหมุน
               src={coin}
               sx={{
                 position: "absolute",
@@ -138,18 +183,8 @@ const GameAppBar = () => {
               }}
             />
 
-            {/* 💰 MONEY */}
-            <Typography
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                fontSize: { xs: 8, md: 10 },
-                color: "rgba(0, 0, 0, 1)",
-                width: "60px",
-                textAlign: "end",
-              }}
-            >
-              {currentUser?.money || 0}
-            </Typography>
+            {/* 💰 MONEY - เปลี่ยนมาใช้ AnimatedMoney */}
+            <AnimatedMoney value={currentUser?.money || 0} />
           </Box>
 
           {/* <Box

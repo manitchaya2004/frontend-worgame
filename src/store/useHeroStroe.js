@@ -9,9 +9,6 @@ export const useHeroStore = create((set) => ({
   upgradeLoading: INITIALIZED,
   upgradeError: null,
 
-  buyHeroState: INITIALIZED,
-  buyHeroError: null,
-
   getAllHeros: async () => {
     try {
       set({ loading: LOADING, error: null });
@@ -55,53 +52,6 @@ export const useHeroStore = create((set) => ({
         upgradeError: err.message,
       });
       throw err;
-    }
-  },
-  // buy
-  buyHero: async (heroId) => {
-    try {
-      set({ buyHeroState: LOADING, buyHeroError: null });
-
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("no token");
-
-      const res = await fetch(`${API_URL}/buy-hero`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-        body: JSON.stringify({ heroId }), // ✅ สำคัญ
-      });
-
-      const data = await res.json(); // ✅ fetch ต้อง parse เอง
-
-      if (!res.ok || !data.isSuccess) {
-        throw new Error(data.message || "buy hero failed");
-      }
-
-      const { hero, moneyLeft } = data;
-
-      // ✅ update local state
-      set((state) => ({
-        currentUser: {
-          ...state.currentUser,
-          money: moneyLeft,
-          heroes: [...(state.currentUser?.heroes || []), hero],
-        },
-        buyHeroState: LOADED,
-      }));
-    } catch (err) {
-      console.error("buyHero error:", err);
-      set({
-        buyHeroState: FAILED,
-        buyHeroError: err.message,
-      });
-    } finally {
-      setTimeout(() => {
-        set({ buyHeroState: INITIALIZED });
-      }, 800);
     }
   },
 }));
