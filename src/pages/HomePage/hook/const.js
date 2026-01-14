@@ -1,3 +1,13 @@
+import HardwareIcon from "@mui/icons-material/Hardware";
+import SpeedIcon from "@mui/icons-material/Speed";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import ShieldIcon from "@mui/icons-material/Shield";
+import CasinoIcon from "@mui/icons-material/Casino";
+import StarIcon from "@mui/icons-material/Star";
+
+export const MAX_STAT = 20;
+export const MAX_LEVEL = 5;
+
 export const THEME = {
   cream: "#eaddcf", // พื้นหลังหลัก (สีครีมอุ่นๆ ไม่สว่างจ้า)
   creamDark: "#d7c6b0", // สีพื้นหลัง Element รอง
@@ -6,4 +16,37 @@ export const THEME = {
   navy: "#1a237e", // สีหลอด (เข้ากับธีม Global)
   navyLight: "#534bae",
   textLight: "#fff8e1", // สีตัวหนังสือบนพื้นเข้ม
+};
+
+export const STAT_CONFIG = {
+  STR: {
+    color: "#c45a3c",
+    icon: <HardwareIcon sx={{ fontSize: 12 }} />,
+    labelBg: "#f3e5d8",
+  },
+  DEX: {
+    color: "#7ba98b",
+    icon: <SpeedIcon sx={{ fontSize: 12 }} />,
+    labelBg: "#e7f0ea",
+  },
+  INT: {
+    color: "#6a8caf",
+    icon: <AutoFixHighIcon sx={{ fontSize: 12 }} />,
+    labelBg: "#e6edf5",
+  },
+  FTH: {
+    color: "#ffd700", // สีทองสำหรับ Faith
+    icon: <AutoFixHighIcon sx={{ fontSize: 12 }} />, // หรือเปลี่ยน Icon ตามต้องการ
+    labelBg: "#fff8e1",
+  },
+  CON: {
+    color: "#c9a24d",
+    icon: <ShieldIcon sx={{ fontSize: 12 }} />,
+    labelBg: "#f6edd8",
+  },
+  LUCK: {
+    color: "#9c7bb0",
+    icon: <CasinoIcon sx={{ fontSize: 12 }} />,
+    labelBg: "#efe6f3",
+  },
 };
