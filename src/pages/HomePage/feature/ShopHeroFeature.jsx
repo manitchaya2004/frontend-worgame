@@ -1,4 +1,4 @@
-import { useNavigate,useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Box, Typography, Divider } from "@mui/material";
 import BackArrow from "../components/BackArrow";
@@ -275,7 +275,9 @@ const StatBar = ({ label, value, onUpgrade, showUpgrade }) => {
 };
 
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
-const ShopHeroCard = ({ hero, playerHeroes }) => {
+const ShopHeroCard = ({ hero, playerHeroes, money }) => {
+  const { selectHero, } = useAuthStore();
+  const {buyHero, buyHeroState} = useHeroStore();
   const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
 
@@ -283,22 +285,15 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
   const playerHero = playerHeroes?.find((h) => h.hero_id === hero.id);
   const isOwned = !!playerHero;
   const isSelected = playerHero?.is_selected === true;
+  const canBuy = !isOwned && money > hero.price;
 
   // === เงื่อนไขข้อมูล ===
-  // 1. Level: ถ้ามีใช้ของ Player ถ้าไม่มีใช้ 1
   const currentLevel = playerHero?.level || 1;
-
-  // 2. EXP: ถ้าซื้อแล้วใช้ของ Player, ถ้ายังไม่ซื้อ ให้เป็น 0 (หลอดว่าง)
   const currentExp = isOwned ? playerHero?.current_exp || 0 : 0;
-
-  // 3. Next Exp: ถ้ามีใช้ของ Player, ถ้าไม่มีใช้ค่า Default (100)
   const nextExp = playerHero?.next_exp || 100;
 
   // 4. Points: ถ้ายังไม่ซื้อ ให้เป็น 0 ไปเลย (ห้ามอัปเกรด)
   const availablePoints = isOwned ? playerHero?.point_for_added || 0 : 0;
-
-  const { selectHero } = useAuthStore();
-  const { upradeStatHero } = useHeroStore();
 
   const getTotalStat = (baseValue, addedKey) => {
     if (isOwned && playerHero) {
@@ -333,6 +328,9 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
   //   }
   // };
 
+  // useEffect(()=>{
+  //   if (buyHeroState === F)
+  // })
   return (
     <Box
       sx={{
@@ -458,29 +456,17 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
           )} */}
 
           {/* Stat Bars (โชว์ปุ่ม Upgrade เฉพาะมี Point และเป็นเจ้าของ) */}
-          <StatBar
-            label="STR"
-            value={getTotalStat(hero.base_str, "cur_str")}
-          />
-          <StatBar
-            label="DEX"
-            value={getTotalStat(hero.base_dex, "cur_dex")}
-          />
-          <StatBar
-            label="INT"
-            value={getTotalStat(hero.base_int, "cur_int")}
-          />
+          <StatBar label="STR" value={getTotalStat(hero.base_str, "base_str")} />
+          <StatBar label="DEX" value={getTotalStat(hero.base_dex, "base_dex")} />
+          <StatBar label="INT" value={getTotalStat(hero.base_int, "base_int")} />
           <StatBar
             label="FTH"
-            value={getTotalStat(hero.base_faith, "cur_faith")}
+            value={getTotalStat(hero.base_faith, "base_faith")}
           />
-          <StatBar
-            label="CON"
-            value={getTotalStat(hero.base_con, "cur_con")}
-          />
+          <StatBar label="CON" value={getTotalStat(hero.base_con, "base_con")} />
           <StatBar
             label="LUCK"
-            value={getTotalStat(hero.base_luck, "cur_luck")}
+            value={getTotalStat(hero.base_luck, "base_luck")}
             // showUpgrade={availablePoints > 0}
             // onUpgrade={() => handleUpgrade("cur_luck")}
           />
@@ -488,6 +474,7 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
       </Box>
 
       {/* Price / Select Button (เหมือนเดิม) */}
+      {/* Price / Select Button */}
       <Box
         sx={{
           position: "absolute",
@@ -497,33 +484,62 @@ const ShopHeroCard = ({ hero, playerHeroes }) => {
           zIndex: 10,
           py: 1,
           textAlign: "center",
+
           background: isSelected
-            ? "linear-gradient(180deg, #9e9e9e, #616161)"
+            ? "linear-gradient(180deg, #9e9e9e, #616161)" // selected
             : isOwned
-            ? "linear-gradient(180deg, #81c784, #388e3c)"
-            : "linear-gradient(180deg, #c49a3a, #8b5a1e)",
-          cursor: isSelected ? "default" : "pointer",
-          opacity: isSelected ? 0.85 : 1,
+            ? "linear-gradient(180deg, #81c784, #388e3c)" // owned
+            : !canBuy
+            ? "linear-gradient(180deg, #757575, #424242)" // เงินไม่พอ
+            : "linear-gradient(180deg, #c49a3a, #8b5a1e)", // buy ได้
+
+          cursor:
+            isSelected || (!isOwned && !canBuy) ? "not-allowed" : "pointer",
+
+          opacity: isSelected || (!isOwned && !canBuy) ? 0.7 : 1,
+
           border: "3px solid #5a3312",
           borderRadius: 2,
           color: "#2a160a",
-          boxShadow: isSelected
-            ? "inset 0 2px 4px rgba(0,0,0,0.5)"
-            : `inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.35), 0 5px 0 #3a1f0b, 0 8px 14px rgba(0,0,0,0.45)`,
-          "&:hover": !isSelected && {
-            filter: "brightness(1.05)",
-          },
+
+          boxShadow:
+            isSelected || (!isOwned && !canBuy)
+              ? "inset 0 2px 4px rgba(0,0,0,0.5)"
+              : `inset 0 1px 0 rgba(255,255,255,0.25),
+           inset 0 -2px 0 rgba(0,0,0,0.35),
+           0 5px 0 #3a1f0b,
+           0 8px 14px rgba(0,0,0,0.45)`,
+
+          "&:hover":
+            !isSelected && (isOwned || canBuy)
+              ? { filter: "brightness(1.05)" }
+              : {},
         }}
         onClick={() => {
           if (isSelected) return;
+
           if (isOwned) {
             selectHero(hero.id);
-          } else {
-            console.log("BUY HERO", hero.id);
+            return;
           }
+
+          if (!canBuy) return; // 💥 เงินไม่พอ → ไม่ยิง API
+
+          buyHero(hero.id);
         }}
       >
-        <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 11 }}>
+        <Typography
+          sx={{
+            fontFamily: "'Press Start 2P'",
+            fontSize: 12,
+
+            color:
+              !isOwned && !canBuy
+                ? "#930606" // 🔴 แดงเงินไม่พอ
+                : "#2a160a",
+
+          }}
+        >
           {isSelected ? "✓ SELECTED" : isOwned ? "SELECT" : `💰 ${hero.price}`}
         </Typography>
       </Box>
@@ -536,7 +552,7 @@ const ShopHeroFeature = () => {
   const location = useLocation();
   const { currentUser } = useLoginPlayer();
   const { heros, getAllHeros, heroState } = useData();
-  
+
   const scrollRef = useRef(null);
 
   const [isMinLoading, setIsMinLoading] = useState(true);
@@ -568,10 +584,9 @@ const ShopHeroFeature = () => {
   };
 
   const handleBack = () => {
-  navigate(location.state?.from || "/home");
-  // console.log(location.state?.from)
-};
-
+    navigate(location.state?.from || "/home");
+    // console.log(location.state?.from)
+  };
 
   console.log(heros);
 
@@ -689,6 +704,7 @@ const ShopHeroFeature = () => {
                   <ShopHeroCard
                     hero={hero}
                     playerHeroes={currentUser?.heroes}
+                    money={currentUser?.money}
                   />
                 </Box>
               ))}
