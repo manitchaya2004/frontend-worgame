@@ -11,9 +11,11 @@ export const TurnQueueBar = ({ store }) => {
     setHoveredEnemyId,
   } = store;
 
+  // ถ้าไม่มีคิว หรือไม่ใช่หน้าต่อสู้ ไม่ต้องแสดง
   if (!turnQueue || turnQueue.length === 0 || gameState === "ADVANTURE")
     return null;
 
+  // กรองเฉพาะตัวที่ยังมีชีวิตอยู่
   const visibleQueue = turnQueue.filter((unit) => {
     if (unit.type === "player") return playerData.hp > 0;
     const enemyData = enemies.find((e) => e.id === unit.id);
@@ -23,7 +25,8 @@ export const TurnQueueBar = ({ store }) => {
   return (
     <div
       style={styles.queueContainer}
-      onPointerLeave={() => setHoveredEnemyId(null)} // ✅ ออกจากแถบ = หายทันที
+      // เมื่อเมาส์ออกจากแถบทั้งหมด ให้เคลียร์ค่า Hover
+      onPointerLeave={() => setHoveredEnemyId(null)}
     >
       <div style={styles.queueList}>
         <AnimatePresence mode="popLayout">
@@ -31,6 +34,7 @@ export const TurnQueueBar = ({ store }) => {
             const isCurrentTurn = index === 0;
             let imgSrc = "";
 
+            // 1. จัดการรูปภาพตามประเภท (Player vs Enemy)
             if (unit.type === "player") {
               imgSrc = `${ipAddress}/img_hero/${playerData.name}-idle-1.png`;
             } else {
@@ -40,20 +44,30 @@ export const TurnQueueBar = ({ store }) => {
                 : "https://via.placeholder.com/40";
             }
 
+            // 2. จัดการตัวเลข Speed (Initiative)
+            // ใช้ Fallback หลายชั้นเพื่อกันค่าเป็น null/undefined
+            const speedValue =
+              unit.originalInitiative ??
+              unit.initiative ??
+              unit.speed ??
+              "?";
+
             return (
               <motion.div
-                key={unit.uniqueId}
+                key={unit.uniqueId || unit.id} // ใช้ uniqueId ถ้ามี
                 layout
                 initial={{ opacity: 0, scale: 0.5, x: 50 }}
                 animate={{
                   opacity: 1,
-                  scale: isCurrentTurn ? 1.3 : 1,
+                  scale: isCurrentTurn ? 1.3 : 1, // ตัวปัจจุบันใหญ่ขึ้น
                   x: 0,
-                  zIndex: isCurrentTurn ? 10 : 1,
+                  zIndex: isCurrentTurn ? 100 : 10, // ตัวปัจจุบันอยู่หน้าสุด
                 }}
                 exit={{ opacity: 0, scale: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 style={styles.queueCard}
+                
+                // 3. LOGIC สำคัญสำหรับการชี้เมาส์
                 onPointerEnter={() => {
                   if (unit.type === "player") {
                     setHoveredEnemyId("PLAYER");
@@ -62,25 +76,23 @@ export const TurnQueueBar = ({ store }) => {
                   }
                 }}
               >
-                {isCurrentTurn && (
-                  <div style={styles.activeArrow}>▼</div>
-                )}
+                {/* ลูกศรชี้ว่าตาใคร */}
+                {isCurrentTurn && <div style={styles.activeArrow}>▼</div>}
 
+                {/* กรอบรูปภาพ */}
                 <div style={styles.queueImgFrame}>
                   <img
                     src={imgSrc}
                     alt=""
                     style={styles.queueImg}
                     onError={(e) => {
-                      e.target.src =
-                        "https://via.placeholder.com/40?text=?";
+                      e.target.src = "https://via.placeholder.com/40?text=?";
                     }}
                   />
                 </div>
 
-                <div style={styles.queueSpeedBadge}>
-                  {unit.originalInitiative}
-                </div>
+                {/* Badge บอกความเร็ว */}
+                <div style={styles.queueSpeedBadge}>{speedValue}</div>
               </motion.div>
             );
           })}
@@ -96,65 +108,79 @@ export const TurnQueueBar = ({ store }) => {
 const styles = {
   queueContainer: {
     position: "absolute",
-    top: "15px",
+    top: "20px",
     left: "50%",
     transform: "translateX(-50%)",
     zIndex: 50,
-    background: "rgba(0,0,0,0.4)",
-    padding: "5px 10px",
-    borderRadius: "10px",
-    border: "2px solid #000",
+    background: "rgba(0,0,0,0.6)",
+    padding: "8px 12px",
+    borderRadius: "12px",
+    border: "2px solid #ecf0f1",
+    boxShadow: "0px 4px 10px rgba(0,0,0,0.5)",
+    pointerEvents: "auto", // บังคับให้รับเมาส์
   },
   queueList: {
     display: "flex",
-    gap: "8px",
+    gap: "12px",
+    alignItems: "center",
   },
   queueCard: {
     position: "relative",
     width: "45px",
     height: "45px",
-    background: "#2c3e50",
-    border: "2px solid #7f8c8d",
-    borderRadius: "5px",
+    background: "#34495e",
+    border: "2px solid #bdc3c7",
+    borderRadius: "8px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    cursor: "pointer",
+    cursor: "pointer", // เปลี่ยนรูปเมาส์เป็นนิ้วชี้
+    userSelect: "none",
   },
   queueImgFrame: {
     width: "100%",
     height: "100%",
-    overflow: "hidden",
-    borderRadius: "3px",
+    overflow: "hidden", // ตัดส่วนเกินรูปภาพ
+    borderRadius: "6px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#2c3e50",
+    pointerEvents: "none", // ให้เมาส์ทะลุไปโดน Card แม่
   },
   queueImg: {
-    width: "100%",
-    height: "100%",
+    width: "90%",
+    height: "90%",
     objectFit: "contain",
     imageRendering: "pixelated",
   },
   queueSpeedBadge: {
     position: "absolute",
-    bottom: "-5px",
-    right: "-5px",
+    bottom: "-8px",
+    right: "-8px",
     background: "#e67e22",
-    color: "#fff",
-    fontSize: "10px",
+    color: "#ffffff",
+    fontSize: "11px",
     fontWeight: "bold",
     borderRadius: "50%",
-    width: "18px",
-    height: "18px",
+    width: "20px",
+    height: "20px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    border: "1px solid #fff",
+    border: "1.5px solid #fff",
+    zIndex: 20, // อยู่บนรูปภาพเสมอ
+    boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
+    pointerEvents: "none",
   },
   activeArrow: {
     position: "absolute",
-    top: "-14px",
+    top: "-18px",
     left: "50%",
     transform: "translateX(-50%)",
     color: "#f1c40f",
-    fontSize: "12px",
+    fontSize: "14px",
+    textShadow: "0px 0px 4px rgba(0,0,0,1)",
+    pointerEvents: "none",
   },
 };

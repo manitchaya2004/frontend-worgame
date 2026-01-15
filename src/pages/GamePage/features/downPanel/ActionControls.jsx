@@ -7,11 +7,11 @@ import {
   GiRollingDices,
   GiSandsOfTime
 } from "react-icons/gi";
+import { useGameStore } from "../../../../store/useGameStore";
 
 /* =========================
    Helper Functions
 ========================= */
-const getStatBonus = (val) => Math.max(0, val - 10);
 
 const calculateRawValue = (word, strMod) => {
   if (!word) return 0;
@@ -21,9 +21,11 @@ const calculateRawValue = (word, strMod) => {
 };
 
 /**
- * แสดงผลแบบ 1(21%) - 2(79%)
+ * แสดงผล DMG/DEF 
+ * ปรับปรุง: ถ้าค่าลงตัวพอดี หรือโอกาสปัดขึ้นเป็น 0% จะแสดงแค่ค่าเดียว
  */
 const formatSubLabel = (
+  type, // "DMG" หรือ "DEF"
   lowValue,
   lowChance,
   highValue,
@@ -31,14 +33,33 @@ const formatSubLabel = (
   highColor = "#4cd137",
   lowColor = "#ff7675"
 ) => {
+  // กรณีเลขลงตัวพอดี หรือไม่มีโอกาสปัดขึ้น
+  if (lowValue === highValue || highChance <= 0) {
+    return ( <>
+      <span style={{ fontSize: "11px", fontWeight: "bold" }}>
+
+        <span style={{color: "#00ffcc"}}>{type}: </span>
+      <span style={{color: "#eae133" }}>
+        {lowValue}
+        {/* (100%) */}
+      </span>
+      </span>
+      </>
+    );
+  }
+
+  // กรณีมีเศษและมีการสุ่ม
   return (
     <span style={{ fontSize: "11px", fontWeight: "bold" }}>
-      <span style={{ color: lowColor }}>
-        {lowValue} ({lowChance}%)
+      <span style={{color: "#50d3dc" }} >{type}: </span>
+      <span style={{color: "#eae133" }}>
+        {lowValue}
+        {/* ({lowChance}%) */}
       </span>
-      <span style={{ margin: "0 4px", color: "#aaa" }}>-</span>
-      <span style={{ color: highColor }}>
-        {highValue} ({highChance}%)
+      <span style={{color: "#aaa" }}>-</span>
+      <span style={{color: "#eae133" }}>
+        {highValue}
+        {/* ({highChance}%) */}
       </span>
     </span>
   );
@@ -133,14 +154,7 @@ const FantasyListButton = ({
           {label}
         </div>
         {subLabel && (
-          <div
-            style={{
-              fontSize: "11px",
-              color: disabled ? "#333" : "#00ffcc",
-              fontWeight: "bold",
-              fontFamily: "monospace"
-            }}
-          >
+          <div style={{ fontFamily: "monospace" }}>
             {subLabel}
           </div>
         )}
@@ -153,29 +167,41 @@ const FantasyListButton = ({
    Action Controls Main
 ========================= */
 export const ActionControls = ({
-  store,
   onAttackClick,
   onShieldClick,
   onSpinClick,
   onEndTurnClick
 }) => {
+  const store = useGameStore();
   const { playerData, gameState, validWordInfo } = store;
   const isPlayerTurn = gameState === "PLAYERTURN";
   const hasWord = !!validWordInfo;
 
-  const strBonus = getStatBonus(playerData.stats?.STR || 10);
-  const luckBonus = getStatBonus(playerData.stats?.LUCK || 10);
   const wordText = validWordInfo?.word || "";
 
-  const rawDmg = calculateRawValue(wordText, strBonus);
-  const rawDef = hasWord ? wordText.length * 1.5 + strBonus : 0;
+  // คำนวณค่าดิบ
+  const rawDmg = calculateRawValue(wordText, playerData.atk);
+  const rawDef = hasWord ? (wordText.length * 1.5) : 0;
 
-  // chance คำนวณรวม
-  const chanceHigh = Math.min(
-    100,
-    Math.round(((rawDmg % 1) + luckBonus * 0.02) * 100)
-  );
-  const chanceLow = 100 - chanceHigh;
+  /**
+   * Logic: คำนวณโอกาส %
+   * ถ้าไม่มีเศษ (decimal === 0) โอกาส High จะเป็น 0 ทันที (Luck ไม่ถูกนำมาคิด)
+   */
+  const getChance = (val) => {
+    const decimal = val % 1;
+    if (decimal === 0) return 0; // เลขลงตัวพอดี ไม่สุ่มปัดเศษ
+    
+    return Math.min(
+      100,
+      Math.round((decimal) * 100)
+    );
+  };
+
+  const dmgChanceHigh = getChance(rawDmg);
+  const dmgChanceLow = 100 - dmgChanceHigh;
+
+  const defChanceHigh = getChance(rawDef);
+  const defChanceLow = 100 - defChanceHigh;
 
   return (
     <div
@@ -214,7 +240,7 @@ export const ActionControls = ({
         </div>
       </div>
 
-      {/* Buttons */}
+      {/* Buttons Container */}
       <div
         style={{
           display: "flex",
@@ -223,16 +249,18 @@ export const ActionControls = ({
           padding: "10px 0",
         }}
       >
+        {/* STRIKE BUTTON */}
         <FantasyListButton
           label="STRIKE"
           icon={<GiBroadsword />}
           subLabel={
             hasWord
               ? formatSubLabel(
+                  "DMG",
                   Math.floor(rawDmg),
-                  chanceLow,
+                  dmgChanceLow,
                   Math.ceil(rawDmg),
-                  chanceHigh
+                  dmgChanceHigh
                 )
               : null
           }
@@ -242,16 +270,18 @@ export const ActionControls = ({
           onClick={onAttackClick}
         />
 
+        {/* GUARD BUTTON */}
         <FantasyListButton
           label="GUARD"
           icon={<GiShield />}
           subLabel={
             hasWord
               ? formatSubLabel(
+                  "DEF",
                   Math.floor(rawDef),
-                  chanceLow,
+                  defChanceLow,
                   Math.ceil(rawDef),
-                  chanceHigh,
+                  defChanceHigh,
                   "#4facfe",
                   "#aaa"
                 )
@@ -263,6 +293,7 @@ export const ActionControls = ({
           onClick={onShieldClick}
         />
 
+        {/* SPIN BUTTON */}
         <FantasyListButton
           label="SPIN"
           icon={<GiRollingDices />}
@@ -273,12 +304,13 @@ export const ActionControls = ({
           onClick={onSpinClick}
         />
 
+        {/* PASS BUTTON */}
         <FantasyListButton
           label="PASS"
           icon={<GiSandsOfTime />}
           color="#7f8c8d"
           disabled={!isPlayerTurn}
-          highlight={true}
+          highlight={isPlayerTurn}
           onClick={onEndTurnClick}
         />
       </div>

@@ -7,36 +7,28 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
   const [selectedChoice, setSelectedChoice] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
 
-  // คำนวณ Grid ให้เหมาะสมกับจำนวนข้อมูลและขนาดหน้าจอ
   const gridStyle = useMemo(() => {
     const count = data.choices.length;
+    let cols = "1fr 1fr";
+    if (count > 4) cols = "1fr 1fr 1fr";
     return {
       display: "grid",
       gap: "10px",
       width: "100%",
-      gridTemplateColumns: count <= 4 ? "repeat(auto-fit, minmax(200px, 1fr))" : "repeat(auto-fit, minmax(150px, 1fr))",
+      gridTemplateColumns: cols,
     };
   }, [data.choices.length]);
 
-const handleChoice = useCallback((choice) => {
+  const handleChoice = useCallback((choice) => {
     if (isAnswered) return;
     setSelectedChoice(choice);
     setIsAnswered(true);
-
     setTimeout(() => {
       if (choice === "TIMEOUT") {
-        // 1. เช็คก่อนว่ามี function ส่งมาไหม ถ้ามีให้เรียก (ป้องกัน Error)
-        if (typeof onTimeout === "function") {
-          onTimeout();
-        } else {
-          // 2. ถ้าไม่มี ให้ส่งผลลัพธ์ "null" ไปที่ onAnswer แทน
-          // เพื่อให้ Logic ฝั่ง Game Store มองว่าตอบผิด (isCorrect จะเป็น false)
-          onAnswer(null); 
-        }
-      } else {
-        onAnswer(choice);
-      }
-    }, 1500);
+        if (typeof onTimeout === "function") onTimeout();
+        else onAnswer(null); 
+      } else onAnswer(choice);
+    }, 1200);
   }, [isAnswered, onAnswer, onTimeout]);
 
   useEffect(() => {
@@ -57,26 +49,29 @@ const handleChoice = useCallback((choice) => {
   return (
     <div style={styles.relativeWrapper}>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
         style={styles.card}
       >
-        {/* Progress Bar ด้านบนสุดของ Card */}
-        <div style={styles.progressContainer}>
+        {/* Time Bar แบบเด่น (หนาขึ้น + มีแสง) */}
+        <div style={styles.timeBarBg}>
           <motion.div
             initial={{ width: "100%" }}
             animate={{ 
               width: isAnswered ? `${(timeLeft / DURATION_MS) * 100}%` : "0%",
-              backgroundColor: timeLeft < 1500 ? "#ff4757" : "#F2A654" 
+              backgroundColor: timeLeft < 1500 ? "#ff4757" : "#2ecc71" 
             }}
             transition={{ duration: isAnswered ? 0.3 : DURATION_MS / 1000, ease: "linear" }}
-            style={styles.progressBar}
+            style={{
+              ...styles.timeBarFill,
+              boxShadow: `0 0 15px ${timeLeft < 1500 ? "#ff4757" : "#2ecc71"}`
+            }}
           />
         </div>
 
         <div style={styles.content}>
           <div style={styles.header}>
-            <span style={styles.label}>LOGIC CHALLENGE</span>
+            <span style={styles.label}>TIME REMAINING: {(timeLeft / 1000).toFixed(1)}s</span>
             <h2 style={styles.questionText}>"{data.question}"</h2>
           </div>
 
@@ -95,19 +90,15 @@ const handleChoice = useCallback((choice) => {
 
           <div style={styles.footer}>
             <AnimatePresence mode="wait">
-              {isAnswered ? (
+              {isAnswered && (
                 <motion.span
                   key="status"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  initial={{ y: 5, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
                   style={{ color: selectedChoice === data.correctAnswer ? "#2ecc71" : "#ff4d4d" }}
                 >
-                  {selectedChoice === data.correctAnswer ? "CORRECT!" : "WRONG!"}
+                  {selectedChoice === data.correctAnswer ? "✦ CORRECT ✦" : "✘ INCORRECT"}
                 </motion.span>
-              ) : (
-                <span key="timer" style={styles.timerText}>
-                  Time: {(timeLeft / 1000).toFixed(1)}s
-                </span>
               )}
             </AnimatePresence>
           </div>
@@ -118,34 +109,27 @@ const handleChoice = useCallback((choice) => {
 };
 
 const ChoiceButton = ({ choice, isCorrect, isSelected, isAnswered, onClick }) => {
-  const getVariant = () => {
-    if (!isAnswered) return "idle";
-    if (isCorrect) return "correct";
-    if (isSelected) return "wrong";
-    return "disabled";
-  };
+  const status = isAnswered 
+    ? (isCorrect ? 'correct' : isSelected ? 'wrong' : 'dimmed') 
+    : 'idle';
 
-  const colors = {
-    idle: { bg: "rgba(62, 39, 35, 0.7)", border: "#5D4037", text: "#F2A654" },
-    correct: { bg: "#2ecc71", border: "#27ae60", text: "#fff" },
-    wrong: { bg: "#ff4d4d", border: "#c0392b", text: "#fff" },
-    disabled: { bg: "rgba(0,0,0,0.2)", border: "transparent", text: "#555" }
+  const stylesMap = {
+    idle: { bg: "rgba(78, 52, 46, 0.9)", border: "#8d6e63", text: "#F2A654" },
+    correct: { bg: "#2ecc71", border: "#2ecc71", text: "#fff" },
+    wrong: { bg: "#ff4757", border: "#ff4757", text: "#fff" },
+    dimmed: { bg: "rgba(0,0,0,0.3)", border: "transparent", text: "#555" }
   };
-
-  const current = colors[getVariant()];
 
   return (
     <motion.button
-      whileHover={!isAnswered ? { scale: 1.02, backgroundColor: "rgba(93, 64, 55, 0.9)" } : {}}
-      whileTap={!isAnswered ? { scale: 0.95 } : {}}
+      whileHover={!isAnswered ? { scale: 1.02, backgroundColor: "#5d4037" } : {}}
       onClick={onClick}
       disabled={isAnswered}
       style={{
         ...styles.btnBase,
-        backgroundColor: current.bg,
-        borderColor: current.border,
-        color: current.text,
-        opacity: getVariant() === "disabled" ? 0.5 : 1
+        backgroundColor: stylesMap[status].bg,
+        borderColor: stylesMap[status].border,
+        color: stylesMap[status].text,
       }}
     >
       {choice}
@@ -157,70 +141,69 @@ const styles = {
   relativeWrapper: {
     position: "relative",
     width: "100%",
-    height: "100%", // หรือกำหนดเป็น min-height
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1rem",
+    padding: "20px",
     boxSizing: "border-box"
   },
   card: {
     width: "100%",
-    maxWidth: "700px",
+    maxWidth: "850px",
     background: "#1a120b",
-    borderRadius: "16px",
+    borderRadius: "12px",
     overflow: "hidden",
-    border: "1px solid rgba(242, 166, 84, 0.2)",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.4)"
+    border: "2px solid #5d4037",
+    boxShadow: "0 15px 50px rgba(0,0,0,0.7)"
   },
-  progressContainer: {
+  timeBarBg: {
     width: "100%",
-    height: "4px",
-    background: "rgba(255,255,255,0.05)"
+    height: "10px", // หนาขึ้นเพื่อให้เด่น
+    background: "rgba(0,0,0,0.5)",
+    borderBottom: "1px solid #333"
   },
-  progressBar: {
+  timeBarFill: {
     height: "100%",
-    boxShadow: "0 0 10px rgba(242, 166, 84, 0.3)"
+    transition: "background-color 0.3s ease"
   },
   content: {
-    padding: "2rem",
+    padding: "20px 30px", // ปรับ Padding ให้สมดุล
     display: "flex",
     flexDirection: "column",
-    gap: "1.5rem"
+    gap: "18px"
   },
   header: {
     textAlign: "center"
   },
   label: {
-    fontSize: "0.7rem",
-    letterSpacing: "3px",
+    fontSize: "0.75rem",
+    letterSpacing: "2px",
     color: "#888",
     display: "block",
-    marginBottom: "0.5rem"
+    marginBottom: "8px",
+    fontWeight: "bold"
   },
   questionText: {
     color: "#fff",
-    fontSize: "clamp(1.2rem, 4vw, 1.8rem)", // ปรับขนาดตัวอักษรตามหน้าจออัตโนมัติ
+    fontSize: "1.6rem", // ใหญ่ขึ้นกว่าแบบที่แล้วให้อ่านง่าย
     margin: 0,
-    fontFamily: "serif"
+    fontFamily: "serif",
+    textShadow: "2px 2px 4px #000"
   },
   btnBase: {
-    padding: "15px 10px",
-    borderRadius: "10px",
+    padding: "12px 15px",
+    borderRadius: "8px",
     border: "2px solid",
     cursor: "pointer",
     fontWeight: "bold",
-    transition: "all 0.2s ease",
-    fontSize: "1rem"
+    fontSize: "1rem",
+    textTransform: "uppercase",
+    transition: "all 0.2s ease"
   },
   footer: {
     textAlign: "center",
-    minHeight: "1.5rem",
+    height: "24px", // ล็อคความสูงฟุตเตอร์ไม่ให้ขยับไปมา
     fontWeight: "bold",
-    fontFamily: "monospace"
-  },
-  timerText: {
-    color: "#666",
-    fontSize: "0.9rem"
+    fontSize: "1.1rem"
   }
 };
