@@ -1,6 +1,6 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
-import { useState} from "react";
-import { Box,Typography,Tooltip , Divider} from "@mui/material";
+import { useState } from "react";
+import { Box, Typography, Tooltip, Divider, Grid } from "@mui/material";
 import { usePreloadFrames } from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
@@ -9,9 +9,17 @@ import LevelBar from "./LevelBar";
 import iconic from "../../../../assets/icons/iconic.png";
 import correct from "../../../../assets/icons/correct.png";
 
+// Icons
+import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
+import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
+import SpeedIcon from "@mui/icons-material/Speed"; // Speed
+import backpackIcon from "../../../../assets/icons/bag.png"; // Slot (ใช้รูปกระเป๋าที่มี หรือใช้ Inventory2Icon ก็ได้)
+import AutorenewIcon from "@mui/icons-material/Autorenew"; // Spin
+import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
+
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
 const HeroCard = ({ hero, playerHeroes, money }) => {
-  const { selectHero, buyHero, buyHeroState } = useAuthStore();
+  const { selectHero, buyHero } = useAuthStore();
   const [open, setOpen] = useState(false);
 
   const frames = usePreloadFrames("img_hero", hero.id, 2);
@@ -23,21 +31,18 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   const isSelected = playerHero?.is_selected === true;
   const canBuy = !isOwned && money > hero.price;
 
-  // === เงื่อนไขข้อมูล ===
+  // === ดึงข้อมูลมาแสดง (ถ้ามี playerHero ใช้ของ playerHero ถ้าไม่มีใช้ base ของ hero) ===
   const currentLevel = playerHero?.level || 1;
   const currentExp = isOwned ? playerHero?.current_exp || 0 : 0;
   const nextExp = playerHero?.next_exp || 100;
 
-  // 4. Points: ถ้ายังไม่ซื้อ ให้เป็น 0 ไปเลย (ห้ามอัปเกรด)
-  const availablePoints = isOwned ? playerHero?.point_for_added || 0 : 0;
-
-  const getTotalStat = (baseValue, addedKey) => {
-    if (isOwned && playerHero) {
-      // ถ้าเป็นเจ้าของ: Base + Added (แปลงเป็น Number กัน Error)
-      return playerHero[addedKey] || 0;
-    }
-    // ถ้าไม่ใช่เจ้าของ: ใช้ค่า Base เดิมๆ จาก Hero List
-    return baseValue;
+  // Map ข้อมูล 5 ตัวตามที่ขอ
+  const stats = {
+    hp: isOwned ? playerHero?.hp : hero.base_hp || 10,
+    power: isOwned ? playerHero?.power : 0, // หรือ base_power ถ้ามี
+    speed: isOwned ? playerHero?.speed : hero.base_speed || 5,
+    slot: isOwned ? playerHero?.slot : 10, // Default 10
+    spin: isOwned ? playerHero?.spin_point : 0,
   };
 
   const handleConfirmBuy = async () => {
@@ -55,17 +60,27 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
         sx={{
           width: 360,
           height: 480,
-          background: "linear-gradient(180deg, #f2dfb6, #d9b97a)",
-          border: "3px solid #6b3f1f",
-          borderRadius: 3,
-          boxShadow: `inset 0 0 0 2px rgba(255,255,255,0.25), 0 6px 0 #4a2b16, 0 10px 20px rgba(0,0,0,0.5)`,
+          // background: "#eaddcf",
+          background: isOwned
+            ? "transparent"
+            : "linear-gradient(180deg, #f2dfb6, #d9b97a)",
+
+          border: isOwned ? "3px solid #6b3f1f" : "3px solid #6b3f1f",
+          // borderRight: isOwned ? "3px solid #6b3f1f" : "3px solid #6b3f1f",
+          borderRadius: isOwned ? 3 : 3,
+
+    //       boxShadow: isOwned
+    //         ? "none"
+    //         : `inset 0 0 0 2px rgba(255,255,255,0.25),
+    //  0 6px 0 #4a2b16,
+    //  0 10px 20px rgba(0,0,0,0.5)`,
           position: "relative",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
         }}
       >
-        {/* ... (IMAGE AREA & HEADER NAME เหมือนเดิม ไม่ต้องแก้) ... */}
+        {/* === PART 1: IMAGE === */}
         <Box
           sx={{
             flex: "0 0 200px",
@@ -78,7 +93,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             top: 20,
           }}
         >
-          {frames.length > 0 ? (
+          {frames.length > 0 && (
             <img
               src={frames[frame - 1].src}
               alt={hero.name}
@@ -93,23 +108,27 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 e.currentTarget.src = "/fallback/unknown-monster.png";
               }}
             />
-          ) : null}
+          )}
         </Box>
+
+        {/* === PART 2: NAME HEADER === */}
         <Box
           sx={{
-            background: "#5d4037",
+            // background: "#5d4037",
             py: 1.5,
             textAlign: "center",
-            borderBottom: "2px solid #3e2723",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+            // borderBottom: isOwned ? "none" : "2px solid #3e2723",
+            // boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
             position: "relative",
             bottom: "42%",
-            display:'flex',
-            justifyContent:'center',
-            gap:1.2
+            display: "flex",
+            justifyContent: "center",
+            gap: 1.2,
+            background: isOwned ? "#5d4037" : "#5d4037",
+            borderBottom: isOwned ? "2px solid #3e2723" : "2px solid #3e2723",
+            boxShadow: isOwned ? "none" : "0 2px 5px rgba(0,0,0,0.3)",
           }}
         >
-         
           <Typography
             sx={{
               fontFamily: `"Press Start 2P", monospace`,
@@ -121,81 +140,92 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           >
             {hero.name}
           </Typography>
-           <Tooltip title="อีหน้าอ้วน">
+          <Tooltip title="Rare Hero">
             <Box
-            component="img"
-            src={iconic}
-            sx={{
-              width:'20px',
-              height:'20px',
-              imageRendering: "pixelated",
-            }}
+              component="img"
+              src={iconic}
+              sx={{
+                width: "20px",
+                height: "20px",
+                imageRendering: "pixelated",
+              }}
             />
-           </Tooltip>
+          </Tooltip>
         </Box>
 
-        {/* === DARK STATS PANEL === */}
+        {/* === PART 3: NEW STATS PANEL === */}
         <Box
           sx={{
             flex: 1,
-            background: "#3a2416",
+            
+            background: isOwned ? "#3a2416" : "#3a2416",
             borderRadius: 2,
-            border: "2px solid #2a160f",
-            boxShadow: "inset 0 0 8px rgba(0,0,0,0.6)",
+            border: isOwned ? "none" : "2px solid #2a160f",
+            boxShadow: isOwned ? "none" : "inset 0 0 8px rgba(0,0,0,0.8)",
             mx: 1.5,
             mb: 1.5,
             p: 1.5,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
             position: "relative",
             bottom: 60,
           }}
         >
-          <Box>
-            {/* Level Bar ใหม่ */}
-            <LevelBar
-              level={currentLevel}
-              currentExp={currentExp}
-              nextExp={nextExp}
+          {/* Level Bar (แบบช่องๆ) */}
+          <LevelBar
+            level={currentLevel}
+            currentExp={currentExp}
+            nextExp={nextExp}
+          />
+
+          <Divider
+            sx={{ borderColor: "#444", mb: 2, mt: 1, borderStyle: "dashed" }}
+          />
+
+          {/* Grid Stats (ปรับ Layout ใหม่ให้กระชับและไม่เด่นเกินไปด้วย CSS Grid) */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 1, // ระยะห่างกำลังดี
+              alignItems: "stretch",
+            }}
+          >
+            {/* HP */}
+            <StatBar
+              label="HP"
+              value={stats.hp}
+              icon={<FavoriteIcon fontSize="small" />}
+              color="#ff5252"
             />
 
-            <Divider
-              sx={{ borderColor: "#5d4037", mb: 1, borderStyle: "dashed" }}
+            {/* POWER */}
+            <StatBar
+              label="POWER"
+              value={Number(stats.power).toFixed(2)}
+              icon={<FlashOnIcon fontSize="small" />}
+              color="#ffca28"
             />
 
-            {/* Stat Bars (โชว์ปุ่ม Upgrade เฉพาะมี Point และเป็นเจ้าของ) */}
+            {/* SPEED */}
             <StatBar
-              label="STR"
-              value={getTotalStat(hero.base_str, "base_str")}
+              label="SPEED"
+              value={stats.speed}
+              icon={<SpeedIcon fontSize="small" />}
+              color="#00e5ff"
             />
+
+            {/* SLOT */}
             <StatBar
-              label="DEX"
-              value={getTotalStat(hero.base_dex, "base_dex")}
-            />
-            <StatBar
-              label="INT"
-              value={getTotalStat(hero.base_int, "base_int")}
-            />
-            <StatBar
-              label="FTH"
-              value={getTotalStat(hero.base_faith, "base_faith")}
-            />
-            <StatBar
-              label="CON"
-              value={getTotalStat(hero.base_con, "base_con")}
-            />
-            <StatBar
-              label="LUCK"
-              value={getTotalStat(hero.base_luck, "base_luck")}
-              // showUpgrade={availablePoints > 0}
-              // onUpgrade={() => handleUpgrade("cur_luck")}
+              label="SLOT"
+              value={stats.slot}
+              icon={<BackpackIcon fontSize="small" />}
+              color="#d1c4e9"
             />
           </Box>
         </Box>
 
-        {/* Price / Select Button (เหมือนเดิม) */}
-        {/* Price / Select Button */}
+        {/* === PART 4: BUTTON === */}
         <Box
           sx={{
             position: "absolute",
@@ -205,32 +235,23 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             zIndex: 10,
             py: 1,
             textAlign: "center",
-
             background: isSelected
-              ? "linear-gradient(180deg, #aed2af, #427d45)" // selected
+              ? "linear-gradient(180deg, #aed2af, #427d45)"
               : isOwned
-              ? "linear-gradient(180deg, #81c784, #388e3c)" // owned
+              ? "linear-gradient(180deg, #81c784, #388e3c)"
               : !canBuy
-              ? "linear-gradient(180deg, #757575, #424242)" // เงินไม่พอ
-              : "linear-gradient(180deg, #c49a3a, #8b5a1e)", // buy ได้
-
+              ? "linear-gradient(180deg, #757575, #424242)"
+              : "linear-gradient(180deg, #c49a3a, #8b5a1e)",
             cursor:
               isSelected || (!isOwned && !canBuy) ? "not-allowed" : "pointer",
-
             opacity: isSelected || (!isOwned && !canBuy) ? 0.7 : 1,
-
             border: "3px solid #5a3312",
             borderRadius: 2,
             color: "#2a160a",
-
             boxShadow:
               isSelected || (!isOwned && !canBuy)
                 ? "inset 0 2px 4px rgba(0,0,0,0.5)"
-                : `inset 0 1px 0 rgba(71, 97, 42, 0.25),
-           inset 0 -2px 0 rgba(0,0,0,0.35),
-           0 5px 0 #3a1f0b,
-           0 8px 14px rgba(0,0,0,0.45)`,
-
+                : `inset 0 1px 0 rgba(71, 97, 42, 0.25), inset 0 -2px 0 rgba(0,0,0,0.35), 0 5px 0 #3a1f0b, 0 8px 14px rgba(0,0,0,0.45)`,
             "&:hover":
               !isSelected && (isOwned || canBuy)
                 ? { filter: "brightness(1.05)" }
@@ -238,14 +259,11 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           }}
           onClick={() => {
             if (isSelected) return;
-
             if (isOwned) {
               selectHero(hero.id);
               return;
             }
-
-            if (!canBuy) return; // 💥 เงินไม่พอ → ไม่ยิง API
-
+            if (!canBuy) return;
             setOpen(true);
           }}
         >
@@ -258,20 +276,19 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 width: "100%",
               }}
             >
-              {/* 🟢 ไอคอนเครื่องหมายถูกที่ใหญ่ล้นปุ่ม */}
               <Box
                 component="img"
                 src={correct}
                 sx={{
-                  position: "absolute", // ใช้ absolute เพื่อให้ลอยอิสระ
-                  left: 80, // ดันออกไปทางซ้ายให้ล้นขอบปุ่ม
-                  top: -13, // ดันขึ้นไปข้างบนให้ล้นขอบปุ่ม
-                  width: "42px", // ปรับขนาดให้ใหญ่กว่าปกติ
+                  position: "absolute",
+                  left: 80,
+                  top: -13,
+                  width: "42px",
                   height: "42px",
-                  zIndex: 20, // อยู่เหนือทุกอย่าง
+                  zIndex: 20,
                   imageRendering: "pixelated",
-                  filter: "drop-shadow(2px 2px 0px rgba(0,0,0,0.8))", // เพิ่มเงาเข้มให้ดูเด้งออกมา
-                  transform: "rotate(5deg)", // เอียงนิดๆ ให้ดูมีไดนามิกแบบในรูป
+                  filter: "drop-shadow(2px 2px 0px rgba(0,0,0,0.8))",
+                  transform: "rotate(5deg)",
                 }}
               />
               <Typography
@@ -279,7 +296,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   fontFamily: "'Press Start 2P'",
                   fontSize: 12,
                   color: "#2a160a",
-                  ml: 3, // ขยับข้อความไปทางขวาหลบไอคอน
+                  ml: 3,
                 }}
               >
                 SELECTED
@@ -290,7 +307,6 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               sx={{
                 fontFamily: "'Press Start 2P'",
                 fontSize: 12,
-                // 🔴 ถ้าเงินไม่พอ ตัวอักษรจะเป็นสีแดงชัดเจน
                 color: !isOwned && !canBuy ? "#ff1744" : "#2a160a",
                 textShadow: !isOwned && !canBuy ? "1px 1px 0px #000" : "none",
               }}
@@ -314,4 +330,4 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   );
 };
 
-export default HeroCard ;
+export default HeroCard;

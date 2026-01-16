@@ -7,6 +7,7 @@ import { useData } from "../../../hook/useData";
 import { SelectComponent } from "../../../components/SelectComponent";
 import BackArrow from "../../../components/BackArrow";
 import StarBackground from "../../../components/StarBackground";
+import { THEME } from "../../../hook/const";
 const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const shortType = (type) => {
