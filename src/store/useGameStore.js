@@ -110,6 +110,9 @@ export const useGameStore = create((set, get) => ({
   quizResolver: null,
 
   // Player State
+  username: "",
+  currentCoin: 0,
+  
   playerX: PLAYER_X_POS,
   playerShoutText: "",
   playerVisual: "idle", // ท่าทางผู้เล่นปัจจุบัน
@@ -128,6 +131,10 @@ export const useGameStore = create((set, get) => ({
     rp: 0,
     speed: 0,
     unlockedSlots: 0,
+    potions: {
+        health: 5,
+        reroll: 2
+    },
     inventory: [],
   },
 
@@ -140,6 +147,7 @@ export const useGameStore = create((set, get) => ({
     set((s) => ({ damagePopups: s.damagePopups.filter((p) => p.id !== id) })),
 
   setHoveredEnemyId: (id) => {
+    console.log(get().enemies)
     if (id === null) {
       set({ hoveredEnemyId: null });
       return;
@@ -273,6 +281,14 @@ export const useGameStore = create((set, get) => ({
       // 1. Setup Hero Data
       const selectedHero =
         userData?.heroes?.find((h) => h.is_selected) || userData?.heroes?.[0];
+      if (userData) {
+        set(() => ({
+          username: userData.username,
+          currentCoin: userData.money,
+        }))
+      }
+      console.log(get().username)
+      console.log(get().currentCoin)
       if (selectedHero) {
         set((state) => ({
           playerData: {
@@ -408,6 +424,7 @@ export const useGameStore = create((set, get) => ({
       if (i > 0) currentX -= e.isBoss || waveData[i - 1].isBoss ? 14 : 7;
       return {
         ...e,
+        id: e.spawn_id || `enemy_${i}_${Date.now()}`,
         x: currentX,
         hp: e.max_hp,
         shield: 0,
@@ -587,10 +604,13 @@ export const useGameStore = create((set, get) => ({
 
   handleWaveClear: async () => {
     const store = get();
+    // 1. แสดงท่าดีใจ Victory ก่อน
     set({ gameState: "WAVE_CLEARED", playerShoutText: "Victory!" });
     await delay(2000);
 
     const nextEventIdx = store.currentEventIndex + 1;
+
+    // --- กรณี: ยังมี Event เหลือในด่าน (ยังไม่จบด่าน) ---
     if (store.stageData.events && store.stageData.events[nextEventIdx]) {
       set({
         gameState: "ADVANTURE",
@@ -600,19 +620,72 @@ export const useGameStore = create((set, get) => ({
         activeCombatant: null,
         hasSpawnedEnemies: false,
       });
-      // ✅ เปลี่ยนเพลงกลับ
+      // ✅ เปลี่ยนเพลงกลับเป็นเพลงเดิน
       if (store.isBgmOn) {
         bgm.stop();
         bgm.playGreenGrass();
       }
-    } else {
+    } 
+    // --- กรณี: เคลียร์ครบทุก Event แล้ว (จบด่าน) ⭐ แก้ตรงนี้ ---
+    else {
       bgm.stop();
-      set({
-        gameState: "GAME_CLEARED",
-        enemies: [],
-        playerShoutText: "All Clear!",
-      });
+      
+      // เปลี่ยนสถานะเพื่อแสดง Loading (คุณอาจต้องไปเพิ่ม case "SYNCING" ใน UI ให้แสดงหน้าหมุนๆ)
+      set({ gameState: "LOADING", playerShoutText: "Saving..." });
 
+      try {
+        // 1. เตรียม Data
+        const token = localStorage.getItem("token"); // ⚠️ อย่าลืมเช็คว่าเก็บ Token ไว้ที่ไหน
+        const totalMoney = (store.currentCoin || 0) + (store.coin || 0);
+        const currentStageId = store.stageData.id; // หรือ store.stageData.stage_id แล้วแต่ Database
+
+        const headers = {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        };
+
+        // 2. ยิง API Update Money (รอให้เสร็จก่อน)
+        // Backend: UPDATE player SET money = $1 ...
+        const moneyRes = await fetch(`${ipAddress}/update-money`, {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({ money: totalMoney })
+        });
+
+        if (!moneyRes.ok) throw new Error("Failed to update money");
+
+        // 3. ยิง API Unlock Next Stage
+        const unlockRes = await fetch(`${ipAddress}/complete-stage`, {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({ currentStageId: currentStageId })
+        });
+
+        const unlockData = await unlockRes.json();
+        
+        if (!unlockRes.ok) throw new Error(unlockData.message || "Failed to unlock stage");
+
+        // 4. อัปเดต State ใน Store ให้เป็นปัจจุบัน
+        set({
+          currentCoin: totalMoney, // อัปเดตเงินในกระเป๋าให้ตรงกับ Server
+          coin: 0, // รีเซ็ตเงินที่ได้ในด่าน
+          gameState: "GAME_CLEARED", // ไปหน้าสรุปผล
+          enemies: [],
+          playerShoutText: "All Clear!",
+          // คุณอาจจะเก็บ data การปลดล็อคไว้โชว์ก็ได้ เช่น:
+          // nextStageInfo: unlockData.nextStage 
+        });
+
+        console.log("Game Saved Successfully:", unlockData);
+
+      } catch (error) {
+        console.error("Save Game Error:", error);
+        // กรณี Error ให้เด้งไปหน้าจบเกมแต่อาจจะขึ้นเตือน หรือให้ลองใหม่
+        set({ 
+          gameState: "GAME_CLEARED", 
+          playerShoutText: "Error Saving!" 
+        });
+      }
     }
   },
 
@@ -663,16 +736,16 @@ export const useGameStore = create((set, get) => ({
     await delay(300);
 
     if (actionType === "SHIELD") {
-      let rawShield
-      for (let char of word)
-        rawShield = getLetterDamage(char, store.playerData.atk) ;
-      const shieldAmount = chanceRound(rawShield);
+        let totalDmgRaw = 0;
+        for (let char of word)
+          totalDmgRaw += getLetterDamage(char, store.playerData.atk);
+        const totalDmg = chanceRound(totalDmgRaw);
 
       set({
         playerVisual: "guard-1",
         playerData: {
           ...store.playerData,
-          shield: store.playerData.shield + shieldAmount,
+          shield: store.playerData.shield + totalDmg,
         },
       });
       await delay(200);
@@ -680,7 +753,7 @@ export const useGameStore = create((set, get) => ({
         id: Math.random(),
         x: PLAYER_X_POS,
         y: FIXED_Y - 60,
-        value: `+${shieldAmount} SHEILD`,
+        value: `+${totalDmg} SHEILD`,
         color: "#2e75cc",
       });
       await delay(500);
@@ -711,6 +784,36 @@ export const useGameStore = create((set, get) => ({
     set({ playerVisual: "idle", playerShoutText: "" });
     get().endTurn();
   },
+
+  usePotion: (type, value = 0) => set((state) => {
+    const { playerData } = state;
+    const { potions } = playerData;
+
+    if (type === "health") {
+      if (potions.health <= 0) return state; // ยาหมดไม่ทำอะไร
+      // เพิ่ม HP ไม่ให้เกิน Max HP
+      const newHp = Math.min(playerData.max_hp, playerData.hp + value);
+      return {
+        playerData: {
+          ...playerData,
+          hp: newHp,
+          potions: { ...potions, health: potions.health - 1 }
+        }
+      };
+    }
+
+    if (type === "reroll") {
+      if (potions.reroll <= 0) return state; // ยาหมดไม่ทำอะไร
+      return {
+        playerData: {
+          ...playerData,
+          potions: { ...potions, reroll: potions.reroll - 1 }
+        }
+      };
+    }
+
+    return state;
+  }),
 
   actionSpin: async (newInventory) => {
     const store = get();
@@ -821,13 +924,13 @@ export const useGameStore = create((set, get) => ({
 
     get().updateEnemy(en.id, { shield: 0 });
 
-    let actionObj = en.patternList?.find(
+    let actionObj = en.pattern_list?.find(
       (p) => p.pattern_no === en.selectedPattern && p.order === en.currentStep
     );
     const actionMove = actionObj ? actionObj.move.toUpperCase() : "WAIT";
 
     let nextStep = en.currentStep + 1;
-    const hasNext = en.patternList?.some(
+    const hasNext = en.pattern_list?.some(
       (p) => p.pattern_no === en.selectedPattern && p.order === nextStep
     );
     if (!hasNext) nextStep = 1;
@@ -879,11 +982,11 @@ export const useGameStore = create((set, get) => ({
         const allies = store.enemies.filter((e) => e.hp > 0);
         if (allies.length > 0) {
           const targetAlly = allies.reduce((prev, curr) =>
-            curr.hp / curr.maxHp < prev.hp / prev.maxHp ? curr : prev
+            curr.hp / curr.max_hp < prev.hp / prev.max_hp ? curr : prev
           );
-          const healAmt = Math.floor(en.maxHp * 0.2);
+          const healAmt = Math.floor(en.max_hp * 0.25);
           get().updateEnemy(targetAlly.id, {
-            hp: Math.min(targetAlly.maxHp, targetAlly.hp + healAmt),
+            hp: Math.min(targetAlly.max_hp, targetAlly.hp + healAmt),
           });
           get().addPopup({
             id: Math.random(),

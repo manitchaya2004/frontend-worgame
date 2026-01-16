@@ -53,18 +53,18 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
         animate={{ opacity: 1, scale: 1 }}
         style={styles.card}
       >
-        {/* Time Bar แบบเด่น (หนาขึ้น + มีแสง) */}
+        {/* Time Bar แบบ Black Theme */}
         <div style={styles.timeBarBg}>
           <motion.div
             initial={{ width: "100%" }}
             animate={{ 
               width: isAnswered ? `${(timeLeft / DURATION_MS) * 100}%` : "0%",
-              backgroundColor: timeLeft < 1500 ? "#ff4757" : "#2ecc71" 
+              backgroundColor: timeLeft < 1500 ? "#c0392b" : "#27ae60" // แดงเข้ม/เขียวเข้ม
             }}
             transition={{ duration: isAnswered ? 0.3 : DURATION_MS / 1000, ease: "linear" }}
             style={{
               ...styles.timeBarFill,
-              boxShadow: `0 0 15px ${timeLeft < 1500 ? "#ff4757" : "#2ecc71"}`
+              boxShadow: `0 0 10px ${timeLeft < 1500 ? "#c0392b" : "#27ae60"}`
             }}
           />
         </div>
@@ -95,7 +95,10 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
                   key="status"
                   initial={{ y: 5, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  style={{ color: selectedChoice === data.correctAnswer ? "#2ecc71" : "#ff4d4d" }}
+                  style={{ 
+                    color: selectedChoice === data.correctAnswer ? "#2ecc71" : "#e74c3c",
+                    textShadow: "0 2px 2px #000"
+                  }}
                 >
                   {selectedChoice === data.correctAnswer ? "✦ CORRECT ✦" : "✘ INCORRECT"}
                 </motion.span>
@@ -108,21 +111,53 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
   );
 };
 
+/* =========================================
+   CHOICE BUTTON (Black Tone)
+   ========================================= */
 const ChoiceButton = ({ choice, isCorrect, isSelected, isAnswered, onClick }) => {
   const status = isAnswered 
     ? (isCorrect ? 'correct' : isSelected ? 'wrong' : 'dimmed') 
     : 'idle';
 
   const stylesMap = {
-    idle: { bg: "rgba(78, 52, 46, 0.9)", border: "#8d6e63", text: "#F2A654" },
-    correct: { bg: "#2ecc71", border: "#2ecc71", text: "#fff" },
-    wrong: { bg: "#ff4757", border: "#ff4757", text: "#fff" },
-    dimmed: { bg: "rgba(0,0,0,0.3)", border: "transparent", text: "#555" }
+    // Idle: ดำโปร่ง + ขอบน้ำตาล
+    idle: { 
+        bg: "rgba(30, 30, 30, 0.6)", 
+        border: "#4d3a2b", 
+        text: "#d4af37", // สีทอง
+        shadow: "none"
+    },
+    // Correct: เขียวเข้ม
+    correct: { 
+        bg: "rgba(39, 174, 96, 0.8)", 
+        border: "#2ecc71", 
+        text: "#fff",
+        shadow: "0 0 10px #2ecc71"
+    },
+    // Wrong: แดงเข้ม
+    wrong: { 
+        bg: "rgba(192, 57, 43, 0.8)", 
+        border: "#c0392b", 
+        text: "#fff",
+        shadow: "0 0 10px #c0392b"
+    },
+    // Dimmed: จางลงไปเลย
+    dimmed: { 
+        bg: "rgba(0,0,0,0.2)", 
+        border: "transparent", 
+        text: "#555",
+        shadow: "none"
+    }
   };
 
   return (
     <motion.button
-      whileHover={!isAnswered ? { scale: 1.02, backgroundColor: "#5d4037" } : {}}
+      whileHover={!isAnswered ? { 
+          scale: 1.02, 
+          backgroundColor: "rgba(60, 60, 60, 0.8)", 
+          borderColor: "#8a6d3b" 
+      } : {}}
+      whileTap={!isAnswered ? { scale: 0.98 } : {}}
       onClick={onClick}
       disabled={isAnswered}
       style={{
@@ -130,6 +165,7 @@ const ChoiceButton = ({ choice, isCorrect, isSelected, isAnswered, onClick }) =>
         backgroundColor: stylesMap[status].bg,
         borderColor: stylesMap[status].border,
         color: stylesMap[status].text,
+        boxShadow: stylesMap[status].shadow
       }}
     >
       {choice}
@@ -137,29 +173,35 @@ const ChoiceButton = ({ choice, isCorrect, isSelected, isAnswered, onClick }) =>
   );
 };
 
+/* =========================================
+   STYLES (Black Tone Theme)
+   ========================================= */
 const styles = {
   relativeWrapper: {
     position: "relative",
     width: "100%",
+    height: "100%", // เต็มพื้นที่
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "20px",
+    padding: "10px", // ลด padding ลงหน่อยจะได้ไม่กินที่มาก
     boxSizing: "border-box"
   },
   card: {
     width: "100%",
-    maxWidth: "850px",
-    background: "#1a120b",
+    maxWidth: "800px",
+    // ✅ Black Tone Theme: ดำโปร่งแสง + ขอบน้ำตาลเข้ม
+    background: "rgba(0, 0, 0, 0.85)", 
     borderRadius: "12px",
     overflow: "hidden",
-    border: "2px solid #5d4037",
-    boxShadow: "0 15px 50px rgba(0,0,0,0.7)"
+    border: "2px solid #4d3a2b",
+    boxShadow: "0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5)",
+    backdropFilter: "blur(5px)"
   },
   timeBarBg: {
     width: "100%",
-    height: "10px", // หนาขึ้นเพื่อให้เด่น
-    background: "rgba(0,0,0,0.5)",
+    height: "6px",
+    background: "rgba(255,255,255,0.1)",
     borderBottom: "1px solid #333"
   },
   timeBarFill: {
@@ -167,13 +209,16 @@ const styles = {
     transition: "background-color 0.3s ease"
   },
   content: {
-    padding: "20px 30px", // ปรับ Padding ให้สมดุล
+    padding: "20px 30px",
     display: "flex",
     flexDirection: "column",
-    gap: "18px"
+    gap: "15px"
   },
   header: {
-    textAlign: "center"
+    textAlign: "center",
+    borderBottom: "1px solid #4d3a2b", // เส้นคั่นบางๆ
+    paddingBottom: "15px",
+    marginBottom: "5px"
   },
   label: {
     fontSize: "0.75rem",
@@ -181,29 +226,34 @@ const styles = {
     color: "#888",
     display: "block",
     marginBottom: "8px",
-    fontWeight: "bold"
+    fontWeight: "bold",
+    textTransform: "uppercase"
   },
   questionText: {
-    color: "#fff",
-    fontSize: "1.6rem", // ใหญ่ขึ้นกว่าแบบที่แล้วให้อ่านง่าย
+    color: "#f1c40f", // สีทองสว่าง
+    fontSize: "1.8rem",
     margin: 0,
-    fontFamily: "serif",
-    textShadow: "2px 2px 4px #000"
+    fontFamily: '"Cinzel", serif', // ใช้ Font เดียวกับเกม
+    textShadow: "0 2px 5px rgba(0,0,0,1)",
+    lineHeight: "1.3"
   },
   btnBase: {
-    padding: "12px 15px",
+    padding: "15px",
     borderRadius: "8px",
-    border: "2px solid",
+    border: "1px solid", // ขอบบางลงเพื่อให้ดู Elegant
     cursor: "pointer",
     fontWeight: "bold",
-    fontSize: "1rem",
+    fontSize: "1.1rem",
     textTransform: "uppercase",
-    transition: "all 0.2s ease"
+    transition: "all 0.2s ease",
+    fontFamily: '"Cinzel", serif', // ใช้ Font เดียวกับเกม
+    letterSpacing: "1px"
   },
   footer: {
     textAlign: "center",
-    height: "24px", // ล็อคความสูงฟุตเตอร์ไม่ให้ขยับไปมา
-    fontWeight: "bold",
-    fontSize: "1.1rem"
+    height: "24px",
+    fontWeight: "900",
+    fontSize: "1.2rem",
+    marginTop: "5px"
   }
 };

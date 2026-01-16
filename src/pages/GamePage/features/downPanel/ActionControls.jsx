@@ -10,7 +10,7 @@ import {
 import { useGameStore } from "../../../../store/useGameStore";
 
 /* =========================
-   Helper Functions
+   Helper Functions (คงเดิม)
 ========================= */
 
 const calculateRawValue = (word, strMod) => {
@@ -20,53 +20,41 @@ const calculateRawValue = (word, strMod) => {
     .reduce((acc, char) => acc + getLetterDamage(char, strMod), 0);
 };
 
-/**
- * แสดงผล DMG/DEF 
- * ปรับปรุง: ถ้าค่าลงตัวพอดี หรือโอกาสปัดขึ้นเป็น 0% จะแสดงแค่ค่าเดียว
- */
 const formatSubLabel = (
-  type, // "DMG" หรือ "DEF"
+  type,
   lowValue,
   lowChance,
   highValue,
   highChance,
-  highColor = "#4cd137",
-  lowColor = "#ff7675"
 ) => {
-  // กรณีเลขลงตัวพอดี หรือไม่มีโอกาสปัดขึ้น
   if (lowValue === highValue || highChance <= 0) {
     return ( <>
       <span style={{ fontSize: "11px", fontWeight: "bold" }}>
-
-        <span style={{color: "#00ffcc"}}>{type}: </span>
-      <span style={{color: "#eae133" }}>
-        {lowValue}
-        {/* (100%) */}
-      </span>
+        <span style={{color: type === "DMG" ? "#ff7675" : "#74b9ff"}}>{type}: </span>
+        <span style={{color: "#eae133" }}>
+          {lowValue}
+        </span>
       </span>
       </>
     );
   }
 
-  // กรณีมีเศษและมีการสุ่ม
   return (
     <span style={{ fontSize: "11px", fontWeight: "bold" }}>
-      <span style={{color: "#50d3dc" }} >{type}: </span>
+      <span style={{color: type === "DMG" ? "#ff7675" : "#74b9ff"}}>{type}: </span>
       <span style={{color: "#eae133" }}>
         {lowValue}
-        {/* ({lowChance}%) */}
       </span>
       <span style={{color: "#aaa" }}>-</span>
       <span style={{color: "#eae133" }}>
         {highValue}
-        {/* ({highChance}%) */}
       </span>
     </span>
   );
 };
 
 /* =========================
-   Fantasy List Button
+   Fantasy List Button (ปรับธีมให้เป็น Black Tone)
 ========================= */
 const FantasyListButton = ({
   label,
@@ -101,9 +89,10 @@ const FantasyListButton = ({
         style={{
           position: "absolute",
           inset: 0,
-          background: `linear-gradient(90deg, ${color}44 0%, transparent 100%)`,
-          borderLeft: `4px solid ${color}`,
-          zIndex: 1
+          background: `linear-gradient(90deg, ${color}33 0%, transparent 100%)`,
+          borderLeft: `3px solid ${color}`,
+          zIndex: 1,
+          borderRadius: "4px"
         }}
       />
     )}
@@ -114,25 +103,26 @@ const FantasyListButton = ({
         zIndex: 2,
         display: "flex",
         alignItems: "center",
-        paddingLeft: "20px",
+        paddingLeft: "10px", // ลด padding นิดหน่อย
         width: "100%",
       }}
     >
-      {/* Icon */}
+      {/* Icon Box: ปรับให้เป็น Black Tone */}
       <div
         style={{
           width: "36px",
           height: "36px",
-          background: disabled ? "#222" : "#2a1e15",
-          border: `2px solid ${disabled ? "#444" : "#8a6d3b"}`,
-          borderRadius: "4px",
+          // พื้นหลังดำโปร่ง
+          background: disabled ? "rgba(30,30,30,0.5)" : "rgba(0,0,0,0.6)",
+          // ขอบสีตาม Theme หรือสีเทาถ้า Disabled
+          border: `1px solid ${disabled ? "#444" : "#4d3a2b"}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           marginRight: "15px",
           fontSize: "20px",
-          color: disabled ? "#555" : "#fff",
-          boxShadow: highlight && !disabled ? `0 0 10px ${color}` : "none"
+          color: disabled ? "#555" : color, // ใช้สีประจำปุ่มเลยเพื่อความชัดเจน
+          boxShadow: highlight && !disabled ? `0 0 8px ${color}44` : "none"
         }}
       >
         {icon}
@@ -142,19 +132,19 @@ const FantasyListButton = ({
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
         <div
           style={{
-            fontSize: "15px",
+            fontSize: "14px",
             fontWeight: "bold",
-            color: disabled ? "#444" : (highlight ? "#fff" : "#c2a37d"),
+            color: disabled ? "#555" : (highlight ? "#fff" : "#c2a37d"),
             textTransform: "uppercase",
             letterSpacing: "2px",
             fontFamily: "serif",
-            textShadow: "2px 2px 2px #000"
+            textShadow: disabled ? "none" : "1px 1px 2px #000"
           }}
         >
           {label}
         </div>
         {subLabel && (
-          <div style={{ fontFamily: "monospace" }}>
+          <div style={{ fontFamily: "monospace", opacity: disabled ? 0.5 : 1 }}>
             {subLabel}
           </div>
         )}
@@ -183,18 +173,10 @@ export const ActionControls = ({
   const rawDmg = calculateRawValue(wordText, playerData.atk);
   const rawDef = hasWord ? (wordText.length * 1.5) : 0;
 
-  /**
-   * Logic: คำนวณโอกาส %
-   * ถ้าไม่มีเศษ (decimal === 0) โอกาส High จะเป็น 0 ทันที (Luck ไม่ถูกนำมาคิด)
-   */
   const getChance = (val) => {
     const decimal = val % 1;
-    if (decimal === 0) return 0; // เลขลงตัวพอดี ไม่สุ่มปัดเศษ
-    
-    return Math.min(
-      100,
-      Math.round((decimal) * 100)
-    );
+    if (decimal === 0) return 0;
+    return Math.min(100, Math.round((decimal) * 100));
   };
 
   const dmgChanceHigh = getChance(rawDmg);
@@ -206,37 +188,43 @@ export const ActionControls = ({
   return (
     <div
       style={{
-        margin: "4px",
-        background: "#1a120b",
-        border: "4px solid #3d2b1f",
+        // ✅ ใช้ Theme Black Tone แบบเดียวกับ PlayerStatusCard
+        width: "25%",
+        background: "rgba(0,0,0,0.4)",
+        border: "1px solid #4d3a2b",
+        padding: "10px",
         display: "flex",
         flexDirection: "column",
-        position: "relative",
-        boxShadow: "0 0 20px rgba(0,0,0,0.8)",
-        width: "25%",
+        gap: "10px",
+        height: "fit-content" // ป้องกันการยืดเกินจำเป็น
       }}
     >
-      {/* Header */}
+      {/* Header Style ใหม่ (เหมือน PlayerStatusCard) */}
       <div
         style={{
-          background: "#3d2b1f",
-          padding: "8px 0",
-          borderBottom: "2px solid #5c4033",
-          display: "flex",
+          display: "flex", 
           alignItems: "center",
-          paddingLeft: "20px",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #4d3a2b",
+          paddingBottom: "8px",
+          marginBottom: "4px"
         }}
       >
         <div
           style={{
-            color: "#d4af37",
-            fontSize: "13px",
-            fontWeight: "bold",
-            letterSpacing: "5px",
+            color: "#d4af37", // สีทอง
+            fontSize: "15px",
+            fontWeight: "900",
+            letterSpacing: "2px",
             textTransform: "uppercase",
+            textShadow: "0 2px 0 #000"
           }}
         >
-          ⚔ COMMANDS
+          COMMANDS
+        </div>
+        {/* Status Indicator เล็กๆ มุมขวา */}
+        <div style={{ fontSize: "10px", color: isPlayerTurn ? "#4cd137" : "#888", fontWeight: "bold" }}>
+            {isPlayerTurn ? "ACTIVE" : "WAITING"}
         </div>
       </div>
 
@@ -245,8 +233,7 @@ export const ActionControls = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: 1,
-          padding: "10px 0",
+          gap: "2px"
         }}
       >
         {/* STRIKE BUTTON */}
@@ -295,9 +282,13 @@ export const ActionControls = ({
 
         {/* SPIN BUTTON */}
         <FantasyListButton
-          label="SPIN"
+          label="REROLL" // เปลี่ยนชื่อให้สั้นกระชับ
           icon={<GiRollingDices />}
-          subLabel={`MANA: ${playerData.rp}`}
+          subLabel={
+             <span style={{ fontSize: "11px", color: "#aaa" }}>
+                COST: <span style={{color: playerData.rp > 0 ? "#f1c40f" : "#555"}}>{playerData.rp > 0 ? "1 RP" : "NO RP"}</span>
+             </span>
+          }
           color="#f1c40f"
           disabled={!isPlayerTurn || playerData.rp <= 0}
           highlight={isPlayerTurn && playerData.rp > 0}
@@ -308,10 +299,13 @@ export const ActionControls = ({
         <FantasyListButton
           label="PASS"
           icon={<GiSandsOfTime />}
-          color="#7f8c8d"
+          color="#95a5a6"
           disabled={!isPlayerTurn}
           highlight={isPlayerTurn}
           onClick={onEndTurnClick}
+          subLabel={
+            <span style={{ fontSize: "10px", color: "#666" }}>END TURN</span>
+          }
         />
       </div>
     </div>
