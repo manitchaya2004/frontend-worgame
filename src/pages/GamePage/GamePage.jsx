@@ -11,11 +11,6 @@ import { ipAddress } from "../../const";
 import { 
   GiHamburgerMenu,  // ปุ่มเมนู
   GiTatteredBanner, // ธงระยะทาง
-  GiWalk,           // ปุ่ม Continue
-  GiLyre,           // เพลง (BGM On)
-  GiSilence,        // ปิดเพลง (BGM Off)
-  GiBroadsword,     // เสียงเอฟเฟกต์ (SFX On)
-  GiBrokenShield,   // ปิดเสียงเอฟเฟกต์ (SFX Off)
   GiDungeonGate     // ปุ่มออกเกม
 } from "react-icons/gi";
 
@@ -233,6 +228,49 @@ export default function GameApp() {
     store.actionSpin(nextInv);
   };
 
+// 1. ฟังก์ชันกดใช้ยาเพิ่มเลือด
+  const handleHeal = () => {
+    const { potions, hp, max_hp } = store.playerData;
+    // ถ้ายาหมด หรือ เลือดเต็ม ไม่ต้องทำอะไร
+    if (potions.health <= 0 || hp >= max_hp) return;
+    
+    // เรียก Action ใน Store: ใช้ยา Health, เพิ่มเลือด 30 หน่วย (ปรับเลขได้ตามต้องการ)
+    store.usePotion("health", 30);
+  };
+
+  // 2. ฟังก์ชันกดใช้ยาสุ่มของใหม่ (Reroll)
+  const handlePotionRoll = () => {
+    const { potions } = store.playerData;
+    if (potions.reroll <= 0) return;
+
+    // ลดจำนวนยา
+    store.usePotion("reroll");
+
+    // ทำการสุ่มของใหม่ (ใช้ Logic เดียวกับ Spin ปกติ)
+    const currentInv = store.playerData.inventory;
+    const unlockedSlots = store.playerData.unlockedSlots;
+    let tempInvForLogic = [...currentInv];
+
+    const nextInv = currentInv.map((item, index) => {
+      if (!item) return null;
+      // จั่วการ์ดใหม่
+      const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
+      const newItem = {
+        id: Math.random(),
+        char,
+        status: item.status || null,
+        statusDuration: item.statusDuration || 0,
+        visible: true,
+        originalIndex: index,
+      };
+      tempInvForLogic[index] = newItem;
+      return newItem;
+    });
+
+    // อัพเดท Inventory ใน Store
+    store.actionSpin(nextInv);
+  };
+
   // --------------------------------------------------------------------------
   // 🔵 RENDER
   // --------------------------------------------------------------------------
@@ -274,7 +312,7 @@ export default function GameApp() {
            =================================================================== */}
 
         {/* 1. ปุ่มเมนู (Menu Button) - Style เดิมของคุณ */}
-        <div 
+        <div
             onClick={() => store.setMenuOpen(true)}
             style={{
                 position: "absolute",
@@ -282,13 +320,16 @@ export default function GameApp() {
                 left: "20px",
                 zIndex: 1000,
                 cursor: "pointer",
-                background: "linear-gradient(to bottom, #3e332a, #1e1510)", // พื้นหลังมีมิติ
-                border: "2px solid #8c734b",
-                borderTopColor: "#bfa37c", // ขอบบนสว่าง
-                borderBottomColor: "#0f0a08", // ขอบล่างมืด
+                // ✅ แก้ไข: เปลี่ยนพื้นหลังเป็นไล่เฉดสีดำ/เทาเข้ม (Dark Metal Gradient)
+                background: "linear-gradient(to bottom, #2b2b2b, #0a0a0a)",
+                // ✅ แก้ไข: เปลี่ยนขอบเป็นโทนโลหะเทาเข้ม
+                border: "2px solid #333",
+                borderTopColor: "#555", // ขอบบนสว่างขึ้นเล็กน้อย (Metallic highlight)
+                borderBottomColor: "#000", // ขอบล่างดำสนิท (Deep shadow)
                 borderRadius: "6px",
                 padding: "8px 12px",
-                boxShadow: "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)", // เงาแบบปุ่มนูน
+                // เงา 3D สีดำคงเดิม เพราะเข้ากับธีมมืดอยู่แล้ว
+                boxShadow: "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
@@ -305,6 +346,7 @@ export default function GameApp() {
                 e.currentTarget.style.boxShadow = "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)";
             }}
         >
+            {/* ไอคอนสีทองคงเดิมเพื่อให้เด่นบนพื้นดำ */}
             <GiHamburgerMenu size={24} color="#f1c40f" />
         </div>
 
@@ -354,44 +396,49 @@ export default function GameApp() {
             <div style={{
                 position: "absolute",
                 inset: 0,
-                background: "rgba(0, 0, 0, 0.85)",
+                background: "rgba(0, 0, 0, 0.85)", // พื้นหลัง Blur มืด
                 zIndex: 2000,
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                backdropFilter: "blur(5px)"
+                backdropFilter: "blur(3px)"
             }}>
                 <motion.div 
-                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
                     style={{
-                        background: "#19120e",
+                        // ✅ Black Tone Theme: ดำด้าน + ขอบทองหรู
+                        background: "rgba(20, 20, 20, 0.95)",
                         width: "320px",
-                        padding: "30px 20px",
+                        padding: "25px 20px",
                         borderRadius: "12px",
-                        border: "3px solid #8c734b", // กรอบทองหนา
-                        boxShadow: "0 0 0 5px #0f0a08, 0 20px 60px rgba(0,0,0,0.9)", // ขอบซ้อนเงา
+                        border: "1px solid #4d3a2b", // ขอบทอง
+                        boxShadow: "0 0 30px rgba(0,0,0,1)", // เงาลึก
                         display: "flex",
                         flexDirection: "column",
-                        gap: "16px",
-                        position: "relative"
+                        gap: "12px",
                     }}
                 >
-                    {/* Header */}
+                    {/* Header ตกแต่งด้วยไอคอน Helm */}
                     <div style={{
                         textAlign: "center",
-                        borderBottom: "2px solid #3e332a",
+                        borderBottom: "1px solid #4d3a2b", // เส้นคั่นสีน้ำตาลเข้ม
                         paddingBottom: "15px",
-                        marginBottom: "5px"
+                        marginBottom: "5px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px"
                     }}>
                         <h2 style={{ 
                             margin: 0, 
                             color: "#f1c40f", 
                             fontSize: "2rem", 
                             fontFamily: '"Cinzel", serif',
-                            textShadow: "0 3px 5px rgba(0,0,0,1)",
-                            letterSpacing: "2px"
+                            textShadow: "0 2px 5px rgba(0,0,0,1)",
+                            letterSpacing: "3px",
+                            fontWeight: "900"
                         }}>
                             PAUSED
                         </h2>
@@ -399,24 +446,22 @@ export default function GameApp() {
                     
                     {/* CONTINUE BUTTON */}
                     <RpgButton onClick={() => store.setMenuOpen(false)} color="gold">
-                        <GiWalk size={26} /> <span>CONTINUE</span>
+                      <span>CONTINUE</span>
                     </RpgButton>
 
                     {/* BGM TOGGLE */}
                     <RpgButton onClick={() => store.toggleBgm()} color="wood">
-                        {store.isBgmOn ? <GiLyre size={24} /> : <GiSilence size={24} />}
                         <span>{store.isBgmOn ? "BGM: ON" : "BGM: OFF"}</span>
                     </RpgButton>
 
                     {/* SFX TOGGLE */}
                     <RpgButton onClick={() => store.toggleSfx()} color="wood">
-                        {store.isSfxOn ? <GiBroadsword size={24} /> : <GiBrokenShield size={24} />}
                         <span>{store.isSfxOn ? "SFX: ON" : "SFX: OFF"}</span>
                     </RpgButton>
 
-                    <div style={{ height: "10px" }} />
+                    <div style={{ height: "10px", borderTop: "1px solid #4d3a2b", marginTop: "5px" }} />
 
-                    {/* EXIT BUTTON (ใช้ handleExit) */}
+                    {/* EXIT BUTTON */}
                     <RpgButton 
                         onClick={() => {
                             store.setMenuOpen(false);
@@ -424,7 +469,7 @@ export default function GameApp() {
                         }} 
                         color="red"
                     >
-                        <GiDungeonGate size={24} /> <span>EXIT GAME</span>
+                        <GiDungeonGate size={22} /> <span>EXIT GAME</span>
                     </RpgButton>
 
                 </motion.div>
@@ -515,7 +560,10 @@ export default function GameApp() {
                 gap: "12px",
               }}
             >
-              <PlayerStatusCard store={store} />
+              <PlayerStatusCard 
+                onHeal={handleHeal} 
+                onReroll={handlePotionRoll} 
+              />
 
               <InventorySlot />
 

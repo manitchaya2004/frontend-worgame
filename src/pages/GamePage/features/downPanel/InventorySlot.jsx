@@ -4,11 +4,10 @@ import { FaLock, FaSkullCrossbones } from "react-icons/fa";
 import { INVENTORY_COUNT } from "../../../../const/index";
 import { getLetterDamage } from "../../../../const/letterValues";
 import { useGameStore } from "../../../../store/useGameStore";
-
-const getStatBonus = (val) => Math.max(0, val - 10);
+import { GiBrain } from "react-icons/gi";
 
 /* =========================
-   SINGLE SLOT (ดูด store เอง)
+   SINGLE SLOT (Container: Dark, Card: Original Colors)
 ========================= */
 const SingleSlot = ({ index }) => {
   const store = useGameStore();
@@ -41,18 +40,20 @@ const SingleSlot = ({ index }) => {
         style={{
           width: "100%",
           height: "100%",
-          background: isLocked ? "#120a07" : "rgba(20,10,5,0.6)",
+          // พื้นหลังช่องว่างๆ ยังคงเป็น Dark Tone เพื่อให้กลืนกับกรอบใหญ่
+          background: isLocked ? "rgba(10,10,10,0.8)" : "rgba(30,30,30,0.3)",
           border: isStunned
             ? "2px solid #7f8c8d"
             : isPoisoned
             ? "2px solid #2ecc71"
-            : "1.5px solid #3d2b1f",
+            : `1px solid ${isLocked ? "#333" : "#5c4033"}`,
           borderRadius: "6px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           position: "relative",
           overflow: "hidden",
+          boxShadow: isLocked ? "none" : "inset 0 0 5px rgba(0,0,0,0.5)"
         }}
       >
         <AnimatePresence mode="popLayout">
@@ -73,14 +74,17 @@ const SingleSlot = ({ index }) => {
               style={{
                 width: "92%",
                 height: "94%",
+                // ✅ กลับมาใช้สีเดิม (Original Colors)
                 background: isPoisoned
                   ? "linear-gradient(145deg,#d4fcd4,#a2e0a2)"
                   : isStunned
                   ? "linear-gradient(145deg,#bdc3c7,#95a5a6)"
-                  : "linear-gradient(145deg,#ffffff,#e8dcc4)",
+                  : "linear-gradient(145deg,#ffffff,#e8dcc4)", // สีครีม/ขาวเดิม
+                
                 border: isStunned
                   ? "2px solid #34495e"
                   : "2px solid #8b4513",
+                
                 borderRadius: "5px",
                 display: "flex",
                 justifyContent: "center",
@@ -88,14 +92,17 @@ const SingleSlot = ({ index }) => {
                 fontWeight: 900,
                 fontSize: "25px",
                 fontFamily: "'Palatino', serif",
+                
+                // ✅ กลับมาใช้สีตัวอักษรเดิม
                 color: isPoisoned
                   ? "#1b5e20"
                   : isStunned
                   ? "#2c3e50"
-                  : "#3e2723",
-                cursor:
-                  isDisabled || isStunned ? "not-allowed" : "pointer",
+                  : "#3e2723", // สีน้ำตาลเข้มเดิม
+                
+                cursor: isDisabled || isStunned ? "not-allowed" : "pointer",
                 position: "relative",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.4)" // เพิ่มเงานิดหน่อยให้ลอยขึ้นจากพื้นหลังดำ
               }}
             >
               {item.char === "QU" ? "Qu" : item.char}
@@ -117,6 +124,7 @@ const SingleSlot = ({ index }) => {
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
+                    border: "1px solid #fff",
                   }}
                 >
                   {duration}
@@ -164,7 +172,7 @@ const SingleSlot = ({ index }) => {
         </AnimatePresence>
 
         {isLocked && (
-          <div style={{ opacity: 0.3, color: "#eebb55" }}>
+          <div style={{ opacity: 0.3, color: "#555", fontSize: "12px" }}>
             <FaLock />
           </div>
         )}
@@ -174,7 +182,7 @@ const SingleSlot = ({ index }) => {
 };
 
 /* =========================
-   INVENTORY SLOT (ไม่รับ props)
+   INVENTORY SLOT (Container: Dark Tone)
 ========================= */
 export const InventorySlot = () => {
   const store = useGameStore();
@@ -185,30 +193,45 @@ export const InventorySlot = () => {
       style={{
         width: "30%",
         height: "95%",
-        background: "linear-gradient(180deg,#2d1e15,#1a0f0a)",
-        border: "3px solid #573a29",
+        // ✅ ใช้ Black Tone Theme: พื้นหลังดำโปร่ง
+        background: "rgba(0,0,0,0.4)",
+        border: "1px solid #4d3a2b",
+        borderRadius: "10px",
         display: "flex",
         flexDirection: "column",
         padding: "10px",
         filter: isPlayerTurn
           ? "none"
-          : "grayscale(0.4) brightness(0.8)",
+          : "grayscale(0.6) brightness(0.7)",
         transition: "all 0.3s ease",
       }}
     >
+      {/* Header Style ใหม่ (เหมือน Command/Status) */}
       <div
         style={{
-          color: "#eebb55",
-          fontSize: "14px",
-          fontWeight: 900,
-          letterSpacing: "4px",
-          textAlign: "center",
-          paddingBottom: "8px",
-          marginBottom: "10px",
-          borderBottom: "2px double rgba(238,187,85,0.4)",
+            display: "flex", 
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            borderBottom: "1px solid #4d3a2b",
+            paddingBottom: "8px",
+            marginBottom: "10px"
         }}
       >
-        — BRAIN SLOT —
+        <GiBrain style={{ color: "#d4af37", fontSize: "18px" }} />
+        <div
+          style={{
+            color: "#d4af37", // สีทอง
+            fontSize: "15px",
+            fontWeight: "900",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            textShadow: "0 2px 0 #000"
+          }}
+        >
+          BRAIN SLOT
+        </div>
+        <GiBrain style={{ color: "#d4af37", fontSize: "18px", transform: "scaleX(-1)" }} />
       </div>
 
       <div
@@ -217,7 +240,11 @@ export const InventorySlot = () => {
           display: "grid",
           gridTemplateColumns: "repeat(5,1fr)",
           gridTemplateRows: "repeat(4,1fr)",
-          gap: "5px",
+          gap: "6px",
+          padding: "4px",
+          background: "rgba(0,0,0,0.2)", // พื้นหลังรองจางๆ
+          borderRadius: "8px",
+          border: "1px solid #333"
         }}
       >
         {Array.from({ length: INVENTORY_COUNT }).map((_, index) => (

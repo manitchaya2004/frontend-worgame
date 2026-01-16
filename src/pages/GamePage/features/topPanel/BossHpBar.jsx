@@ -5,7 +5,7 @@ export const BossHpBar = ({ boss }) => {
 
   const percent = Math.max(
     0,
-    Math.min(100, (boss.hp / boss.maxHp) * 100)
+    Math.min(100, (boss.hp / boss.max_hp) * 100)
   );
 
   return (
@@ -82,7 +82,7 @@ export const BossHpBar = ({ boss }) => {
             fontFamily: "monospace, sans-serif",
           }}
         >
-          {Math.ceil(boss.hp)}/{boss.maxHp}
+          {Math.ceil(boss.hp)}/{boss.max_hp}
         </span>
       </div>
     </div>
