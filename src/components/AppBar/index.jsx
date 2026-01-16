@@ -1,4 +1,12 @@
-import { AppBar, Toolbar, Typography, Box, Avatar, Popover } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Avatar,
+  Popover,
+  IconButton,
+} from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, animate } from "framer-motion"; // 👈 เพิ่ม animate เข้ามา
@@ -12,7 +20,7 @@ import taro from "../../assets/icons/taro.jpg";
 import coin from "../../assets/icons/coin.svg";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
-
+import bag from "../../assets/icons/bag.png";
 const name = "img_hero";
 
 // --- ส่วน AnimatedMoney สำหรับจัดการตัวเลขวิ่งและสี ---
@@ -47,9 +55,14 @@ const AnimatedMoney = ({ value }) => {
         fontFamily: "'Press Start 2P'",
         fontSize: { xs: 8, md: 10 },
         // เปลี่ยนสี: เพิ่ม=เขียว, ลด=แดงสว่าง, ปกติ=ดำ
-        color: status === "increase" ? "#4caf50" : status === "decrease" ? "#ff1744" : "rgba(0, 0, 0, 1)",
+        color:
+          status === "increase"
+            ? "#4caf50"
+            : status === "decrease"
+            ? "#ff1744"
+            : "rgba(0, 0, 0, 1)",
         width: "60px",
-        textAlign: "end",
+        textAlign: "center",
         transition: "color 0.3s ease",
       }}
     >
@@ -60,64 +73,78 @@ const AnimatedMoney = ({ value }) => {
 
 const GameAppBar = () => {
   const { currentUser } = useLoginPlayer();
+  const navigate = useNavigate();
+
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
+  const currentLevel = activeHero?.level || 1;
 
   return (
     <AppBar
       position="static"
-      // sx={{
-      //   backgroundColor: "#E8E9CD",
-      //   borderBottom: "10px solid #694037",
-      //   boxShadow: "0 6px 0 #3e2615",
-      // }}
-      sx={{
-        backgroundColor: "#0e0e1250",
-      }}
+      sx={{ backgroundColor: "transparent", boxShadow: "none" }}
     >
-      <Toolbar sx={{ minHeight: 10, height: 10 }}>
-        {/* 🔹 LEFT : LOGO */}
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+        {/* 🔹 LEFT: Profile Group (Clickable -> Go to Bag) */}
         <Box sx={{ flex: 1, ml: 2 }}>
           <Box
+            component={motion.div}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             sx={{
               position: "relative",
               display: "inline-flex",
               alignItems: "center",
+              // cursor: "pointer",
             }}
           >
-            {/* กล่องชื่อ */}
+            {/* Name & Level Bar */}
             <Box
               sx={{
-                pl: "48px", // เว้นที่ให้ avatar
-                pr: 5,
-                py: 1,
+                pl: "45px",
+                pr: 2,
+                py: 0.8,
                 backgroundColor: "#E8E9CD",
-                borderRadius: "15px",
+                borderRadius: "20px",
                 border: "4px solid #5A3A2E",
                 boxShadow: "0 4px 0 #2b1a12",
                 display: "flex",
-                alignItems: "center",
+                flexDirection: "column",
+                justifyContent: "center",
+                minWidth: "120px",
+                maxWidth: "200px",
               }}
             >
               <Typography
                 sx={{
                   fontFamily: "'Press Start 2P'",
-                  fontSize: { xs: 8, md: 8 },
+                  fontSize: 10,
                   color: "#3e2615",
-                  whiteSpace: "nowrap",
+                  lineHeight: 1.5,
                 }}
               >
                 {currentUser?.username}
               </Typography>
+              <Typography
+                sx={{
+                  fontSize: 8,
+                  color: "#4caf50",
+                  fontWeight: "bold",
+                  textShadow: "1px 1px 0px rgba(0,0,0,0.2)",
+                  fontFamily: "'Press Start 2P'",
+                }}
+              >
+                Lv.{currentLevel}
+              </Typography>
             </Box>
 
-            {/* Avatar ทับกล่อง */}
+            {/* Avatar */}
             <Box
               sx={{
                 position: "absolute",
-                left: "-18px",
-                width: 35,
-                height: 35,
+                left: "-10px",
+                width: 48,
+                height: 48,
                 borderRadius: "50%",
                 backgroundColor: "#E8E9CD",
                 border: "4px solid #5A3A2E",
@@ -125,110 +152,45 @@ const GameAppBar = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                zIndex: 2,
               }}
             >
               <Avatar
                 src={LoadImage(name, heroId, 1)}
-                alt="profile-player"
                 sx={{
-                  width: 50,
-                  height: 50,
-                  imageRendering: "pixelated"
+                  width: 60,
+                  height: 60,
+                  imageRendering: "pixelated",
+                  mb: 1,
                 }}
               />
             </Box>
           </Box>
         </Box>
 
-        {/* 🔹 RIGHT : SETTINGS */}
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 2,
-            alignItems: "center",
-          }}
-        >
-          {/* //  icon เพิ่มเติม */}
+        {/* 🔹 RIGHT: Money */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Box
             sx={{
               position: "relative",
               display: "flex",
               alignItems: "center",
-              pl: 4, // 👈 เผื่อที่ให้ icon
+              pl: 4,
               pr: 2,
-              py: 1,
+              py: 0.8,
               backgroundColor: "#E8E9CD",
               border: "4px solid #5A3A2E",
               borderRadius: "15px",
+              boxShadow: "0 4px 0 #2b1a12",
             }}
           >
-            {/* 🪙 ICON ลอยทับเส้น */}
             <Box
-              component={motion.img} // ใช้ motion เพื่อใส่ลูกเล่นหมุน
+              component="img"
               src={coin}
-              sx={{
-                position: "absolute",
-                left: -14, // 👈 ดันออกนอกกล่อง
-                width: 35,
-                height: 35,
-                borderRadius: "50%",
-                backgroundColor: "#E8E9CD",
-                // border: "3px solid #3e2615",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 16,
-              }}
+              sx={{ position: "absolute", left: -12, width: 32 }}
             />
-
-            {/* 💰 MONEY - เปลี่ยนมาใช้ AnimatedMoney */}
             <AnimatedMoney value={currentUser?.money || 0} />
           </Box>
-
-          {/* <Box
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-            sx={{
-              width: 44,
-              height: 44,
-              borderRadius: "50%",
-              backgroundColor: "#E8E9CD",
-              border: "4px solid #5A3A2E",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <SettingsIcon sx={{ color: "#3e2615" }} />
-          </Box>
-
-          <Popover
-            open={open}
-            anchorEl={anchorEl}
-            onClose={() => setAnchorEl(null)}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "right",
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "right",
-            }}
-            marginThreshold={16} // 👈 กันชนขอบจอ (สำคัญ)
-            PaperProps={{
-              sx: {
-                borderRadius: "12px",
-                border: "3px solid #5c3a1e",
-                backgroundColor: "#feffeb",
-                boxShadow: "4px 4px 0 #3e2615",
-                maxWidth: "calc(100vw - 32px)", // 👈 กันจอล้น mobile
-              },
-            }}
-          >
-            <SettingsFeature onClose={() => setAnchorEl(null)} />
-          </Popover> */}
         </Box>
       </Toolbar>
     </AppBar>

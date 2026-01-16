@@ -88,7 +88,6 @@ const DetailItem = ({ stage, currentUser, isEntering }) => {
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
 
-  // animation hero
   const frames = usePreloadFrames("img_hero", heroId, 2, "walk");
   const frame = useIdleFrame(frames.length, 200);
 
@@ -96,103 +95,124 @@ const DetailItem = ({ stage, currentUser, isEntering }) => {
     <Box
       sx={{
         position: "relative",
-        height: 380, // ปรับความสูงตามความเหมาะสม
-        width: { xs: "100%", md: "700px", lg: "80%" },
-        // maxWidth: "600px",
-        margin: "0 auto",
+        height: 380,
+        width: { xs: "100%", md: "720px", lg: "80%" },
+        // margin: "0 auto",
+        borderRadius: 2,
         overflow: "hidden",
-        border: "1px solid #000", // เส้นขอบนอกสุด
-        display: "flex",
-        flexDirection: "column",
+
+        // 📕 กรอบหนังสือ
+        background: "#d8c3a5",
+        border: "4px solid #3e2723",
+        boxShadow: `
+          inset 0 0 0 2px #000,
+          6px 6px 0 #000
+        `,
       }}
     >
-      {/* ส่วนบน: สีดำ + ชื่อด่าน + ตัวละคร */}
+      {/* ===== MAP AREA ===== */}
       <Box
         sx={{
-          flex: 3,
           position: "relative",
+          height: "100%",
+          backgroundImage: `url(${backgroundStage()})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center", // ⭐ จัดกลางจริง
-          pt: 1, // ลด padding บน
-          backgroundImage: `url(${backgroundStage()})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
         }}
       >
-        {/* <Box
+        {/* 🌫️ Fog / Light layer */}
+        <motion.div
+          animate={{ opacity: [0.15, 0.35, 0.15] }}
+          transition={{ repeat: Infinity, duration: 4 }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), transparent 60%)",
+            zIndex: 1,
+          }}
+        />
+
+        {/* 🌑 Vignette */}
+        <Box
           sx={{
             position: "absolute",
             inset: 0,
             background:
-              "radial-gradient(circle at center, transparent 0%, rgba(84, 82, 82, 0.35) 100%)",
-            zIndex: 1,
+              "linear-gradient(to top, rgba(0,0,0,0.45), transparent 45%)",
+            zIndex: 2,
           }}
-        /> */}
+        />
 
-        <Typography
+        {/* ===== Stage Title ===== */}
+        <Box
           sx={{
-            // fontFamily: "'Press Start 2P'",
-            fontFamily: "'Anuphan', sans-serif",
-            fontSize: { xs: 18, md: 24 },
-            color: "#2d2b2b",
-            textAlign: "center",
-            mb: 4,
-            opacity: isEntering ? 0 : 1,
-            transition: "opacity 0.3s",
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 5,
+            background: "#3a1c14",
+            px: 3,
+            py: 1,
+            border: "2px solid #b22222",
+            boxShadow: "2px 2px 0 #000",
           }}
         >
-          {stage?.name}
-        </Typography>
+          <Typography
+            sx={{
+              fontFamily: "'Press Start 2P'",
+              fontSize: 14,
+              color: "#fffbe6",
+              textShadow: "2px 2px 0 #000",
+            }}
+          >
+            {stage?.name}
+          </Typography>
+        </Box>
 
-        {/* ตัวละคร */}
+        {/* ===== Character ===== */}
         <motion.img
           key={isEntering ? "walk" : "idle"}
           src={isEntering ? frames[frame - 1]?.src : LoadImage(name, heroId, 1)}
           alt="character"
           initial={{ y: 0, x: 0 }}
-          animate={
-            isEntering
-              ? {
-                  // กระโดดขึ้นจาก 0 ไป -150 แล้วลงพื้น | แล้วเดินไปทางขวา 600px
-                  y: [0, -150, 0, 0],
-                  x: [0, 0, 0, 600],
-                }
-              : { y: [0, -2, 0] } // อนิเมชั่นยืนหายใจปกติ
-          }
+          animate={isEntering ? { y: [0, -140, 0, 0], x: [0, 0, 0, 600] } : ""}
           transition={
-            isEntering
-              ? {
-                  duration: 2.5,
-                  times: [0, 0.2, 0.4, 1], // กระโดดเสร็จที่ 40% ของเวลา แล้วเดินต่อ
-                  ease: "easeInOut",
-                }
-              : { repeat: Infinity, duration: 2.5 }
+            isEntering ? { duration: 2.5, times: [0, 0.2, 0.4, 1] } : ""
           }
           style={{
-            height: "55%",
-            filter: "drop-shadow(0 6px 6px rgba(0,0,0,0.6))",
-            imageRendering: "pixelated",
             position: "relative",
-            zIndex: 2,
-            top: 30,
+            top:60,
+            transform: "translateX(-50%)",
+            height: "55%",
+            imageRendering: "pixelated",
+            filter: "drop-shadow(0 6px 6px rgba(0,0,0,0.6))",
+            zIndex: 4,
           }}
         />
 
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: 55,
-            width: 120,
-            height: 20,
-            background: "rgba(0,0,0,0.35)",
-            filter: "blur(6px)",
-            borderRadius: "50%",
-            zIndex: 2,
-            display: isEntering ? "none" : "block", // ซ่อนเงาเดิมตอนเดิน
-          }}
-        />
+        {/* 👤 Shadow */}
+        {!isEntering && (
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 50,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 120,
+              height: 18,
+              background: "rgba(0,0,0,0.4)",
+              filter: "blur(6px)",
+              borderRadius: "50%",
+              zIndex: 3,
+            }}
+          />
+        )}
       </Box>
     </Box>
   );
@@ -293,8 +313,8 @@ const ListSection = memo(
               fontSize: "11px",
               color: "#3e2723",
               backgroundColor: "#e6d3b1",
-              border: isEntering?"2px solid #766866" :"2px solid #3e2723",
-              boxShadow: isEntering ?"" :"2px 2px 0 #3e2723",
+              border: isEntering ? "2px solid #766866" : "2px solid #3e2723",
+              boxShadow: isEntering ? "" : "2px 2px 0 #3e2723",
               opacity: 0.85,
               "&:hover": { opacity: 1, backgroundColor: "#f0dec2" },
             }}
@@ -312,7 +332,7 @@ const ListSection = memo(
               fontSize: "16px", // ลดนิดนึง
               px: 5,
               py: 1.2,
-              border: isEntering ?"4px solid #a4a3a3" :"4px solid #000",
+              border: isEntering ? "4px solid #a4a3a3" : "4px solid #000",
               boxShadow: "inset -4px -4px 0px 0px #3e2723",
               "&:hover": { backgroundColor: "#4e342e" },
             }}
@@ -460,109 +480,93 @@ const AdvantureFeature = () => {
   console.log("select stage", selectedStage);
 
   return (
-    <Box>
-      <GameAppBar />
-      <Box sx={{ m: 2 }}>
-        <StarBackground />
+    <Box sx={{ m: 2 }}>
+      <StarBackground />
+      <BackArrow onClick={() => navigate("/home")} />
+      <MotionBox
+        initial={false}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          y: "-50%",
+          x: "-50%",
+        }}
+        transition={{
+          duration: 0.6,
+          ease: "easeOut",
+        }}
+        sx={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
 
-        <MotionBox
-          initial={false}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            y: "-50%",
-            x: "-50%",
-          }}
-          transition={{
-            duration: 0.6,
-            ease: "easeOut",
-          }}
+          // Container Design (Book/Panel style)
+          background: THEME.cream,
+          border: `8px solid ${THEME.brownLight}`,
+          borderRadius: "12px",
+          boxShadow: `
+            0 0 0 4px ${THEME.brownDark},
+            0 20px 60px rgba(49, 49, 49, 0.8)
+          `,
+          width: { xs: "90%", sm: "80%", md: "80%", lg: "65%" },
+          height: "570px",
+          p: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* <Title title="ADVENTURE" /> */}
+        {/* Header Title */}
+        <Box
           sx={{
-            position: "fixed",
-            top: "52%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-
-            // Container Design (Book/Panel style)
-            background: THEME.cream,
-            border: `8px solid ${THEME.brownLight}`,
-            borderRadius: "12px",
-            boxShadow: `
-                    0 0 0 4px ${THEME.brownDark},
-                    0 20px 60px rgba(0,0,0,0.8)
-                  `,
-            width: { xs: "90%", sm: "80%", md: "80%", lg: "65%" },
-            height: "570px",
-            p: 1,
-            display: "flex",
-            flexDirection: "column",
+            py: 2,
+            textAlign: "center",
+            background: THEME.brownDark,
+            mx: -1,
+            mt: -1,
+            // mb: 2,
+            borderBottom: `4px solid ${THEME.brownLight}`,
           }}
         >
-          {/* <Title title="ADVENTURE" /> */}
-          {/* Header Title */}
-          <Box
+          {/* Title กลางจริง */}
+          <Typography
             sx={{
-              position: "relative",
-              py: 2,
-              textAlign: "center",
-              background: THEME.brownDark,
-              mx: -1,
-              mt: -1,
-              // mb: 2,
-              borderBottom: `4px solid ${THEME.brownLight}`,
+              fontFamily: "'Press Start 2P'",
+              color: THEME.textLight,
+              fontSize: { xs: 16, md: 26 },
+              textShadow: "2px 2px 0 #000",
+              pointerEvents: "none", // กันโดน arrow ทับ
             }}
           >
-            {/* Arrow ริมกรอบ */}
-            <Box
-              sx={{
-                position: "absolute",
-                left: 16,
-                top: "50%",
-                transform: "translateY(-50%)",
-              }}
-            >
-              <BackArrow onClick={() => navigate("/home")} />
-            </Box>
-
-            {/* Title กลางจริง */}
-            <Typography
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                color: THEME.textLight,
-                fontSize: { xs: 16, md: 26 },
-                textShadow: "2px 2px 0 #000",
-                pointerEvents: "none", // กันโดน arrow ทับ
-              }}
-            >
-              ADVANTURE
-            </Typography>
-          </Box>
-          {/* <ListSection
+            ADVANTURE
+          </Typography>
+        </Box>
+        {/* <ListSection
           stages={stages}
           handleStageClick={(stage) => handleStageClick(stage)}
         /> */}
-          <ListSection
-            stages={playableStages}
-            initialIndex={initialStageIndex}
-            currentUser={currentUser}
-            handleStageClick={(stage) => handleStageClick(stage)}
-            changeCharacter={changeCharacter}
-            isEntering={isEntering}
-          />
-        </MotionBox>
-
-        <GameDialog
-          open={openConfirm}
-          title="READY TO START?"
-          // description={
-          //   selectedStage ? `Enemy Lv. ${selectedStage.orderNo * 5}` : ""
-          // }
-          confirmText="START"
-          cancelText="BACK"
-          onConfirm={handleConfirmStage}
-          onCancel={() => setOpenConfirm(false)}
+        <ListSection
+          stages={playableStages}
+          initialIndex={initialStageIndex}
+          currentUser={currentUser}
+          handleStageClick={(stage) => handleStageClick(stage)}
+          changeCharacter={changeCharacter}
+          isEntering={isEntering}
         />
-      </Box>
+      </MotionBox>
+
+      <GameDialog
+        open={openConfirm}
+        title="READY TO START?"
+        // description={
+        //   selectedStage ? `Enemy Lv. ${selectedStage.orderNo * 5}` : ""
+        // }
+        confirmText="START"
+        cancelText="BACK"
+        onConfirm={handleConfirmStage}
+        onCancel={() => setOpenConfirm(false)}
+      />
     </Box>
   );
 };

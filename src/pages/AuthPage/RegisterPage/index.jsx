@@ -19,7 +19,7 @@ const RegisterPage = () => {
     clearStateRegister,
     clearBackendMessage,
   } = useRegisPlayer();
-  const registerUser = useAuthStore((state)=> state.registerUser)
+  const registerUser = useAuthStore((state) => state.registerUser);
   const navigate = useNavigate();
 
   const [snackbar, setSnackbar] = useState({
@@ -79,20 +79,35 @@ const RegisterPage = () => {
   const validate = () => {
     const newErrors = {};
 
+    // ===== username =====
     if (!formRegister.username.trim()) {
       newErrors.username = "Please enter your username";
     }
+    // ห้ามเป็น email / gmail
+    else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formRegister.username)) {
+      newErrors.username = "Username cannot be an email";
+    }
+    // ความยาว username
+    else if (
+      formRegister.username.length < 3 ||
+      formRegister.username.length > 20
+    ) {
+      newErrors.username = "Username must be 3-20 characters long";
+    }
 
+    // ===== email =====
     if (!formRegister.email.trim()) {
       newErrors.email = "Please enter your email";
     }
 
+    // ===== password =====
     if (!formRegister.password) {
       newErrors.password = "Please enter your password";
     } else if (formRegister.password.length < 6) {
       newErrors.password = "รหัสผ่านต้องอย่างน้อย 6 ตัว";
     }
 
+    // ===== confirm password =====
     if (formRegister.password !== formRegister.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
@@ -116,11 +131,11 @@ const RegisterPage = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    registerUser(
-     {email: formRegister.email,
-      username : formRegister.username,
-      password : formRegister.password}
-    );
+    registerUser({
+      email: formRegister.email,
+      username: formRegister.username,
+      password: formRegister.password,
+    });
 
     // clearForm();
     navigate("/auth/login");

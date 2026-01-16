@@ -1,13 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, Grid, Typography, Stack, Chip ,Divider} from "@mui/material";
+import {
+  Box,
+  Button,
+  Grid,
+  Typography,
+  Stack,
+  Chip,
+  Divider,
+} from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import { Title } from "../../AdvantureFeature";
 import BackArrow from "../../../components/BackArrow";
 import StarBackground from "../../../components/StarBackground";
 import { useData } from "../../../hook/useData";
 import { useIdleFrame } from "../../../hook/useIdleFrame";
-import { usePreloadFrames , LoadImage } from "../../../hook/usePreloadFrams";
+import { usePreloadFrames, LoadImage } from "../../../hook/usePreloadFrams";
 import { THEME } from "../../../hook/const";
 // const PAGE_SIZE = 15;
 // const name ="img_monster"
@@ -466,8 +474,6 @@ import { THEME } from "../../../hook/const";
 // import { useIdleFrame } from "../../../hook/useIdleFrame";
 // import { usePreloadFrames, LoadImage } from "../../../hook/usePreloadFrams";
 
-
-
 const PAGE_SIZE = 15;
 const name = "img_monster";
 
@@ -491,7 +497,7 @@ const StatTextBox = ({ label, value }) => (
       sx={{
         flex: 1,
         backgroundColor: THEME.brownDark, // กล่องสีเข้ม
-        color: THEME.textLight,           // ตัวหนังสือสีสว่าง
+        color: THEME.textLight, // ตัวหนังสือสีสว่าง
         border: `2px solid ${THEME.brownLight}`,
         borderRadius: "4px",
         py: 0.5,
@@ -508,10 +514,11 @@ const StatTextBox = ({ label, value }) => (
 );
 
 // 2. หลอด Bar สำหรับ EXP / SPEED
-const StatBarBox = ({ label, value, max = 20 }) => { // สมมติ max bar เป็น 20 ช่อง หรือ 100%
+const StatBarBox = ({ label, value, max = 20 }) => {
+  // สมมติ max bar เป็น 20 ช่อง หรือ 100%
   // คำนวณ % ความยาวหลอด (ปรับ logic ได้ตาม data จริง)
-  const percent = Math.min(100, (value / max) * 100); 
-  
+  const percent = Math.min(100, (value / max) * 100);
+
   return (
     <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
       <Typography
@@ -537,19 +544,28 @@ const StatBarBox = ({ label, value, max = 20 }) => { // สมมติ max bar 
         }}
       >
         <Box
-            sx={{
-                width: `${percent}%`,
-                height: "100%",
-                background: `linear-gradient(90deg, ${THEME.navyLight}, ${THEME.navy})`, // ไล่สีน้ำเงิน
-                boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)"
-            }}
+          sx={{
+            width: `${percent}%`,
+            height: "100%",
+            background: `linear-gradient(90deg, ${THEME.navyLight}, ${THEME.navy})`, // ไล่สีน้ำเงิน
+            boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
+          }}
         />
         {/* ตัวเลขบนหลอด (Optional) */}
-        <Typography sx={{
-            position: 'absolute', width: '100%', textAlign: 'center', top: 0, 
-            fontSize: 8, fontFamily: "'Press Start 2P'", color: '#fff', lineHeight: '14px', textShadow: '1px 1px 0 #000'
-        }}>
-            {value}
+        <Typography
+          sx={{
+            position: "absolute",
+            width: "100%",
+            textAlign: "center",
+            top: 0,
+            fontSize: 8,
+            fontFamily: "'Press Start 2P'",
+            color: "#fff",
+            lineHeight: "14px",
+            textShadow: "1px 1px 0 #000",
+          }}
+        >
+          {value}
         </Typography>
       </Box>
     </Box>
@@ -559,16 +575,23 @@ const StatBarBox = ({ label, value, max = 20 }) => { // สมมติ max bar 
 // 3. Info Tab Content
 const InfoTab = ({ monster }) => {
   return (
-    <Box sx={{ m: 2, height: '100%', overflowY: 'auto', pr: 1 }}>
+    <Box sx={{ m: 2, height: "100%", overflowY: "auto", pr: 1 }}>
       {/* Header Name & Desc */}
-      <Box sx={{ mb: 2, textAlign: 'center', borderBottom: `2px dashed ${THEME.brownDark}`, pb: 2 }}>
+      <Box
+        sx={{
+          mb: 2,
+          textAlign: "center",
+          borderBottom: `2px dashed ${THEME.brownDark}`,
+          pb: 2,
+        }}
+      >
         <Typography
           sx={{
             fontFamily: "'Press Start 2P'",
             fontSize: 16,
             color: THEME.brownDark,
             mb: 1,
-            textTransform: 'uppercase'
+            textTransform: "uppercase",
           }}
         >
           {monster?.name || "Unknown"}
@@ -581,7 +604,8 @@ const InfoTab = ({ monster }) => {
             lineHeight: 1.6,
           }}
         >
-          {monster?.description || "No description available for this creature."}
+          {monster?.description ||
+            "No description available for this creature."}
         </Typography>
       </Box>
 
@@ -589,9 +613,11 @@ const InfoTab = ({ monster }) => {
       <Box sx={{ mt: 3 }}>
         {/* Group 1: Text Boxes */}
         <StatTextBox label="HP" value={monster?.max_hp || 0} />
-        <StatTextBox 
-            label="ATK" 
-            value={`${monster?.atk_power_min || 0} - ${monster?.atk_power_max || 0}`} 
+        <StatTextBox
+          label="ATK"
+          value={`${monster?.atk_power_min || 0} - ${
+            monster?.atk_power_max || 0
+          }`}
         />
 
         <Divider sx={{ my: 2, borderColor: THEME.brownDark, opacity: 0.3 }} />
@@ -606,64 +632,85 @@ const InfoTab = ({ monster }) => {
 
 // 4. Moves Tab Content (New!)
 const MovesTab = ({ moves }) => {
-    if (!moves || moves.length === 0) {
-        return (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-                <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 10, color: THEME.brownDark }}>
-                    No move patterns found.
-                </Typography>
-            </Box>
-        )
-    }
-
+  if (!moves || moves.length === 0) {
     return (
-        <Box sx={{ m: 2, overflowY: 'auto', height: '280px', pr: 1 }}>
-            {moves.map((pattern, index) => (
-                <Box key={index} sx={{ mb: 3 }}>
-                    <Typography sx={{ 
-                        fontFamily: "'Press Start 2P'", 
-                        fontSize: 10, 
-                        color: THEME.navy, 
-                        mb: 1, 
-                        borderBottom: `2px solid ${THEME.brownDark}`,
-                        display: 'inline-block'
-                    }}>
-                        PATTERN {pattern.pattern_no}
-                    </Typography>
-                    
-                    {/* Move Sequence Flow */}
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-                        {pattern.moves
-                            .sort((a, b) => a.pattern_order - b.pattern_order)
-                            .map((move, i) => (
-                            <Box key={i} sx={{ display: 'flex', alignItems: 'center' }}>
-                                {/* Move Box */}
-                                <Chip 
-                                    label={`${move.pattern_order}. ${move.pattern_move}`}
-                                    sx={{
-                                        fontFamily: "'Press Start 2P'",
-                                        fontSize: 9,
-                                        height: 24,
-                                        backgroundColor: THEME.brownLight,
-                                        color: '#fff',
-                                        borderRadius: '4px',
-                                        border: '1px solid #000',
-                                        '& .MuiChip-label': { px: 1 }
-                                    }}
-                                />
-                                {/* Arrow (ยกเว้นตัวสุดท้าย) */}
-                                {i < pattern.moves.length - 1 && (
-                                    <Typography sx={{ mx: 0.5, color: THEME.brownDark, fontWeight: 'bold' }}>
-                                        →
-                                    </Typography>
-                                )}
-                            </Box>
-                        ))}
-                    </Stack>
-                </Box>
-            ))}
-        </Box>
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Typography
+          sx={{
+            fontFamily: "'Press Start 2P'",
+            fontSize: 10,
+            color: THEME.brownDark,
+          }}
+        >
+          No move patterns found.
+        </Typography>
+      </Box>
     );
+  }
+
+  return (
+    <Box sx={{ m: 2, height: "100%", overflowY: "auto", pr: 1 }}>
+      {moves.map((pattern, index) => (
+        <Box key={index} sx={{ mb: 3 }}>
+          <Typography
+            sx={{
+              fontFamily: "'Press Start 2P'",
+              fontSize: 10,
+              color: THEME.navy,
+              mb: 1,
+              borderBottom: `2px solid ${THEME.brownDark}`,
+              display: "inline-block",
+            }}
+          >
+            PATTERN {pattern.pattern_no}
+          </Typography>
+
+          {/* Move Sequence Flow */}
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            flexWrap="wrap"
+            useFlexGap
+            sx={{ mt: 1 }}
+          >
+            {pattern.moves
+              .sort((a, b) => a.pattern_order - b.pattern_order)
+              .map((move, i) => (
+                <Box key={i} sx={{ display: "flex", alignItems: "center" }}>
+                  {/* Move Box */}
+                  <Chip
+                    label={`${move.pattern_order}. ${move.pattern_move}`}
+                    sx={{
+                      fontFamily: "'Press Start 2P'",
+                      fontSize: 9,
+                      height: 24,
+                      backgroundColor: THEME.brownLight,
+                      color: "#fff",
+                      borderRadius: "4px",
+                      border: "1px solid #000",
+                      "& .MuiChip-label": { px: 1 },
+                    }}
+                  />
+                  {/* Arrow (ยกเว้นตัวสุดท้าย) */}
+                  {i < pattern.moves.length - 1 && (
+                    <Typography
+                      sx={{
+                        mx: 0.5,
+                        color: THEME.brownDark,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      →
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+          </Stack>
+        </Box>
+      ))}
+    </Box>
+  );
 };
 
 // --- MAIN COMPONENTS ---
@@ -678,7 +725,7 @@ const DetailMonster = ({ monster }) => {
     <Grid container spacing={0} sx={{ height: "100%" }}>
       {/* LEFT: Picture Monster */}
       <Grid
-        size={{ xs: 12, sm: 5 }}
+        size={{ xs: 5, sm: 5 }}
         sx={{
           display: "flex",
           justifyContent: "center",
@@ -698,21 +745,30 @@ const DetailMonster = ({ monster }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundImage: "radial-gradient(#d7ccc8 10%, transparent 11%), radial-gradient(#d7ccc8 10%, transparent 11%)",
+            backgroundImage:
+              "radial-gradient(#d7ccc8 10%, transparent 11%), radial-gradient(#d7ccc8 10%, transparent 11%)",
             backgroundSize: "20px 20px",
-            position: 'relative'
+            position: "relative",
           }}
         >
-             {/* ID Badge */}
-             <Box sx={{
-                 position: 'absolute', top: 8, left: 8, 
-                 bgcolor: THEME.navy, color: '#fff', 
-                 px: 1, py: 0.5, borderRadius: 1, 
-                 fontFamily: "'Press Start 2P'", fontSize: 10,
-                 border: '2px solid #fff'
-             }}>
-                 #{monster?.id}
-             </Box>
+          {/* ID Badge */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 8,
+              left: 8,
+              bgcolor: THEME.navy,
+              color: "#fff",
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              fontFamily: "'Press Start 2P'",
+              fontSize: 10,
+              border: "2px solid #fff",
+            }}
+          >
+            #{monster?.id}
+          </Box>
 
           {frames.length > 0 ? (
             <img
@@ -723,20 +779,28 @@ const DetailMonster = ({ monster }) => {
                 height: "80%",
                 objectFit: "contain",
                 imageRendering: "pixelated",
-                filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.3))"
+                filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.3))",
               }}
               onError={(e) => {
                 e.currentTarget.src = "/fallback/unknown-monster.png";
               }}
             />
           ) : (
-             <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 10, color: '#aaa' }}>No Image</Typography>
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: 10,
+                color: "#aaa",
+              }}
+            >
+              No Image
+            </Typography>
           )}
         </Box>
       </Grid>
 
       {/* RIGHT: Details & Tabs */}
-      <Grid size={{ xs: 12, sm: 7 }}>
+      <Grid size={{ xs: 7, sm: 7 }}>
         <Box
           sx={{
             height: "100%",
@@ -754,13 +818,19 @@ const DetailMonster = ({ monster }) => {
               border: `3px solid ${THEME.brownDark}`,
               borderRadius: "8px",
               boxShadow: `inset 0 0 20px ${THEME.creamDark}`,
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              width: "100%",
+              height: "100%", // เต็มพื้นที่
+              maxHeight: "350px",
             }}
           >
             {/* Tab Header */}
-            <Stack direction="row" sx={{ borderBottom: `3px solid ${THEME.brownDark}` }}>
+            <Stack
+              direction="row"
+              sx={{ borderBottom: `3px solid ${THEME.brownDark}` }}
+            >
               {["info", "moves"].map((t) => (
                 <Button
                   key={t}
@@ -771,7 +841,8 @@ const DetailMonster = ({ monster }) => {
                     fontSize: 10,
                     borderRadius: 0,
                     py: 1.5,
-                    backgroundColor: tab === t ? THEME.brownDark : THEME.creamDark,
+                    backgroundColor:
+                      tab === t ? THEME.brownDark : THEME.creamDark,
                     color: tab === t ? "#fff" : THEME.brownDark,
                     "&:hover": {
                       backgroundColor: tab === t ? THEME.brownDark : "#dccbb5",
@@ -784,7 +855,7 @@ const DetailMonster = ({ monster }) => {
             </Stack>
 
             {/* Tab Content */}
-            <Box sx={{ flex: 1, overflow: 'hidden' }}>
+            <Box sx={{ flex: 1, overflow: "hidden" }}>
               {tab === "info" && <InfoTab monster={monster} />}
               {tab === "moves" && <MovesTab moves={monster?.monster_moves} />}
             </Box>
@@ -798,6 +869,7 @@ const DetailMonster = ({ monster }) => {
 // --- LIST MONSTER (Bottom) ---
 
 const arrowBtnStyle = {
+  mx:1,
   minWidth: 40,
   height: 40,
   fontSize: 16,
@@ -806,8 +878,11 @@ const arrowBtnStyle = {
   border: `2px solid ${THEME.brownDark}`,
   boxShadow: `2px 2px 0 ${THEME.brownDark}`,
   "&:hover": { backgroundColor: "#7a4a34" },
-  "&:active": { boxShadow: "inset 2px 2px 0 #2b140c", transform: 'translate(2px, 2px)' },
-  "&:disabled": { opacity: 0.5, boxShadow: 'none', cursor: 'not-allowed' },
+  "&:active": {
+    boxShadow: "inset 2px 2px 0 #2b140c",
+    transform: "translate(2px, 2px)",
+  },
+  "&:disabled": { opacity: 0.5, boxShadow: "none", cursor: "not-allowed" },
 };
 
 const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
@@ -826,11 +901,13 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
         width: "100%",
         display: "flex",
         alignItems: "center",
-        p: 1.5,
+        // p: 1.5,
+        py:1,
+        px: 0.5,
         gap: 2,
         backgroundColor: "rgba(0,0,0,0.2)", // พื้นหลังจางๆ รองรับ List
         borderRadius: "8px",
-        border: `2px solid ${THEME.brownDark}`
+        border: `2px solid ${THEME.brownDark}`,
       }}
     >
       <Button
@@ -855,7 +932,7 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
             style={{
               display: "flex",
               gap: 12,
-              justifyContent: "center",
+              justifyContent: "start",
               alignItems: "center",
               height: "100%",
             }}
@@ -869,23 +946,25 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
                   sx={{
                     width: 50,
                     height: 50,
-                    border: `2px solid ${isActive ? '#fff' : THEME.brownDark}`, // Active สีขาวให้เด่น
+                    border: `2px solid ${isActive ? "#fff" : THEME.brownDark}`, // Active สีขาวให้เด่น
                     backgroundColor: isActive ? THEME.navy : THEME.cream,
-                    borderRadius: '4px',
+                    borderRadius: "4px",
                     boxShadow: isActive ? `0 0 10px ${THEME.navy}` : "none",
                     cursor: "pointer",
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
-                    "&:hover": { transform: 'scale(1.1)' }
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.2s",
+                    "&:hover": { transform: "scale(1.1)" },
                   }}
                 >
                   <img
                     src={LoadImage(name, m.id, 1)}
                     alt={m.name}
-                    style={{ height: "40px", imageRendering: 'pixelated' }}
-                    onError={(e) => { e.currentTarget.src = "/fallback/unknown-monster.png"; }}
+                    style={{ height: "40px", imageRendering: "pixelated" }}
+                    onError={(e) => {
+                      e.currentTarget.src = "/fallback/unknown-monster.png";
+                    }}
                   />
                 </Box>
               );
@@ -930,7 +1009,7 @@ const MonsterLibrary = () => {
     <Box sx={{ m: 2 }}>
       <StarBackground />
       <BackArrow onClick={() => navigate("/home/library")} />
-      
+
       <MotionBox
         initial={false}
         animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
@@ -940,37 +1019,40 @@ const MonsterLibrary = () => {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          
+
           // Container Design (Book/Panel style)
           background: THEME.cream,
           border: `8px solid ${THEME.brownLight}`,
           borderRadius: "12px",
           boxShadow: `
             0 0 0 4px ${THEME.brownDark},
-            0 20px 60px rgba(0,0,0,0.8)
+            0 20px 60px rgba(49, 49, 49, 0.8)
           `,
           width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
           height: "550px",
           p: 1,
-          display: 'flex',
-          flexDirection: 'column',
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         {/* Header Title */}
-        <Box sx={{ 
-            py: 2, 
-            textAlign: 'center', 
-            background: THEME.brownDark, 
-            mx: -1, mt: -1, 
+        <Box
+          sx={{
+            py: 2,
+            textAlign: "center",
+            background: THEME.brownDark,
+            mx: -1,
+            mt: -1,
             mb: 2,
-            borderBottom: `4px solid ${THEME.brownLight}`
-        }}>
+            borderBottom: `4px solid ${THEME.brownLight}`,
+          }}
+        >
           <Typography
             sx={{
               fontFamily: "'Press Start 2P'",
               color: THEME.textLight,
               fontSize: { xs: 16, md: 24 },
-              textShadow: "2px 2px 0 #000"
+              textShadow: "2px 2px 0 #000",
             }}
           >
             MONSTER LIBRARY
@@ -978,19 +1060,26 @@ const MonsterLibrary = () => {
         </Box>
 
         {/* Content Area */}
-        <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ flex: 1, mb: 1 }}>
-                <DetailMonster monster={selectedMonster} />
-            </Box>
-            
-            {/* Footer List */}
-            <Box sx={{ height: '80px', px: 2, mb: 1 }}>
-                <ListMonster
-                    listMonster={monsters}
-                    selectedMonster={selectedMonster}
-                    onSelectMonster={setSelectedMonster}
-                />
-            </Box>
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box sx={{ flex: 1, mb: 1 }}>
+            <DetailMonster monster={selectedMonster} />
+          </Box>
+
+          {/* Footer List */}
+          <Box sx={{ height: "80px", px: 2, mb: 1 }}>
+            <ListMonster
+              listMonster={monsters}
+              selectedMonster={selectedMonster}
+              onSelectMonster={setSelectedMonster}
+            />
+          </Box>
         </Box>
       </MotionBox>
     </Box>
