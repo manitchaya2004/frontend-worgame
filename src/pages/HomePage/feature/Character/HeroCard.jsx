@@ -39,7 +39,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   // Map ข้อมูล 5 ตัวตามที่ขอ
   const stats = {
     hp: isOwned ? playerHero?.hp : hero.base_hp || 10,
-    power: isOwned ? playerHero?.power : 0, // หรือ base_power ถ้ามี
+    power: isOwned ? playerHero?.power : hero.power, // หรือ base_power ถ้ามี
     speed: isOwned ? playerHero?.speed : hero.base_speed || 5,
     slot: isOwned ? playerHero?.slot : 10, // Default 10
     spin: isOwned ? playerHero?.spin_point : 0,
@@ -202,7 +202,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             {/* POWER */}
             <StatBar
               label="POWER"
-              value={Number(stats.power).toFixed(2)}
+              value={Number(stats.power)}
               icon={<FlashOnIcon fontSize="small" />}
               color="#ffca28"
             />
