@@ -3,14 +3,12 @@ import { motion } from "framer-motion";
 import {
   GiHearts,
   GiStarShuriken,
-  GiMuscleUp,
-  GiScrollUnfurled,
-  GiCrystalBall,
-  GiClover,
+  GiWalkingBoot,
+  GiBroadsword,
+  GiBrain,
   GiCheckedShield,
 } from "react-icons/gi";
-
-const getStatBonus = (val) => Math.max(0, val - 10);
+import { useGameStore } from "../../../../store/useGameStore";
 
 /* ===== Stat Item (Simplified) ===== */
 const StatItem = ({ icon, label, value, color }) => (
@@ -36,10 +34,18 @@ const StatItem = ({ icon, label, value, color }) => (
   </div>
 );
 
-export const PlayerStatusCard = ({ store }) => {
+export const PlayerStatusCard = () => {
+  // 🟢 ดึงข้อมูลทั้งหมดจาก playerData เลย ไม่ต้องคำนวณใหม่
+  const store = useGameStore();
   const { playerData, accumulatedExp } = store;
-  const strBonus = getStatBonus(playerData.stats.STR || 10);
-  const luckBonus = getStatBonus(playerData.stats.LUCK || 10);
+  const { 
+      name, 
+      hp, max_hp, 
+      shield, 
+      atk,          // ค่า ATK (Bonus) ที่คำนวณมาแล้ว
+      speed,        // ค่า Speed
+      unlockedSlots,// ค่า Slot
+  } = playerData;
 
   return (
     <div
@@ -58,7 +64,7 @@ export const PlayerStatusCard = ({ store }) => {
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>
           <div style={{ fontSize: "15px", fontWeight: "900", color: "#f5d76e" }}>
-            {playerData.name.toUpperCase()}
+            {name.toUpperCase()}
           </div>
           <div style={{ fontSize: "10px", color: "#aaa" }}>
             EXP {accumulatedExp || 0}
@@ -78,7 +84,7 @@ export const PlayerStatusCard = ({ store }) => {
           }}
         >
           <GiCheckedShield />
-          {playerData.shield}
+          {shield}
         </div>
       </div>
 
@@ -95,11 +101,10 @@ export const PlayerStatusCard = ({ store }) => {
       >
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${(playerData.hp / playerData.max_hp) * 100}%` }}
+          animate={{ width: `${(hp / max_hp) * 100}%` }}
           style={{
             height: "100%",
-            background:
-              "linear-gradient(180deg,#ff6b6b,#c0392b,#7f1d1d)",
+            background: "linear-gradient(180deg,#ff6b6b,#c0392b,#7f1d1d)",
           }}
         />
         <div
@@ -114,53 +119,49 @@ export const PlayerStatusCard = ({ store }) => {
             color: "#fff",
           }}
         >
-          {playerData.hp} / {playerData.max_hp}
+          {hp} / {max_hp}
         </div>
       </div>
 
-      {/* ===== Stats ===== */}
+{/* ===== Stats ===== */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3,2fr)",
-          gap: "0px",
+          // 🔴 แก้ตรงนี้: มี StatItem 4 อัน ก็ใส่แค่ 4 พอครับ มันจะเฉลี่ยเต็มพื้นที่พอดี
+          gridTemplateColumns: "repeat(4, 1fr)", 
+          
+          gap: "8px", // ขยับ Gap ให้ห่างขึ้นนิดนึงดูสบายตา
+          width: "100%", // บังคับให้ Grid กว้างเต็มพื้นที่พ่อ
+          
+          // จัดให้ของในแต่ละช่อง อยู่กึ่งกลางทั้งแนวตั้งและแนวนอน
+          justifyItems: "center", 
+          alignItems: "center",
         }}
       >
         <StatItem
           icon={<GiHearts />}
           label="HP"
-          value={playerData.max_hp}
+          value={max_hp}
           color="#ff6b6b"
         />
         <StatItem
-          icon={<GiMuscleUp />}
-          label="ATK"
-          value={`+${(strBonus * 0.25).toFixed(2)}`}
-          color="#ff7675"
-        />
-        <StatItem
-          icon={<GiStarShuriken />}
-          label="SPD"
-          value={`${playerData.speed-1}-${playerData.speed+1}`}
-          color="#feca57"
-        />
-        <StatItem
-          icon={<GiScrollUnfurled />}
+          icon={<GiBrain />}
           label="SLOT"
-          value={playerData.unlockedSlots}
+          value={unlockedSlots}
           color="#74b9ff"
         />
         <StatItem
-          icon={<GiCrystalBall />}
-          label="RP"
-          value={playerData.max_rp}
-          color="#a29bfe"
+          icon={<GiBroadsword />}
+          label="ATK"
+          // โชว์ค่าที่คำนวณมาแล้ว
+          value={`+${(atk).toFixed(2)}`} 
+          color="#ff7675"
         />
         <StatItem
-          icon={<GiClover />}
-          label="LCK"
-          value={`+${luckBonus * 2}%`}
-          color="#55efc4"
+          icon={<GiWalkingBoot />}
+          label="SPD"
+          value={`${speed-1}-${speed+1}`}
+          color="#feca57"
         />
       </div>
     </div>

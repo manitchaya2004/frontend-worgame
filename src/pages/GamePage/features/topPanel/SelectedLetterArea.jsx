@@ -3,11 +3,9 @@ import { Reorder, AnimatePresence, motion } from "framer-motion";
 import { FaLock, FaSkullCrossbones } from "react-icons/fa";
 import { getLetterDamage } from "../../../../const/letterValues";
 
-const getStatBonus = (val) => Math.max(0, val - 10);
 
 export const SelectedLetterArea = ({ store, constraintsRef }) => {
   const activeSelectedItems = store.selectedLetters.filter((i) => i !== null);
-  const totalModifier = getStatBonus(store.playerData.stats.STR || 10);
 
   return (
     <div ref={constraintsRef} style={styles.reorderContainer}>
@@ -22,7 +20,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
             const isStunned = item?.status === "stun";
             const isPoisoned = item?.status === "poison";
             const duration = item?.statusDuration || 0;
-            const displayDamage = getLetterDamage(item.char, totalModifier);
+            const displayDamage = getLetterDamage(item.char, store.playerData.atk);
 
             return (
               <Reorder.Item
@@ -71,7 +69,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
 
                     {/* ดาเมจมุมขวาล่าง */}
                     <div style={styles.damageTextPos(isPoisoned)}>
-                      {displayDamage}
+                      {displayDamage.toFixed(2)}
                     </div>
                   </div>
                 </div>

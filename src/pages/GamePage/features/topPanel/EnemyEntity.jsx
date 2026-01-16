@@ -178,7 +178,7 @@ export const EnemyEntity = ({
               alignItems: "center",
             }}
           >
-            <HpBar hp={enemy.hp} max={enemy.maxHp} color="#ff4d4d" />
+            <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
             <div
               style={{
                 position: "absolute",
