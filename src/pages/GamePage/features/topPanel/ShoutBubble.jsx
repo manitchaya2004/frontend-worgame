@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
  * แสดงกล่องคำพูด (Speech Bubble) เหนือหัวตัวละครหรือศัตรู
  * @param {string|null|undefined} text - ข้อความที่ต้องการแสดง ถ้าไม่มีจะไม่เรนเดอร์คอมโพเนนต์
  */
-export const ShoutBubble = ({ text }) => {
+export const ShoutBubble = ({ text}) => {
   return (
     <AnimatePresence>
       {text && (
@@ -24,15 +24,15 @@ export const ShoutBubble = ({ text }) => {
             whiteSpace: "nowrap",
             border: "2px solid #000",
             boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-            position: "relative", // เปลี่ยนเป็น relative เพื่อให้สามเหลี่ยมอ้างอิงตำแหน่งได้ถูกต้อง
+            position: "relative", 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 100000,
           }}
         >
           {text}
           
-          {/* สามเหลี่ยมชี้ลง (Tail) */}
           <div
             style={{
               position: "absolute",
@@ -44,7 +44,6 @@ export const ShoutBubble = ({ text }) => {
               borderTop: "8px solid #000",
             }}
           />
-          {/* ส่วนไส้ในของสามเหลี่ยม (สีขาว) เพื่อให้ดูเหมือนเป็นกรอบเดียวกัน */}
           <div
             style={{
               position: "absolute",
@@ -54,7 +53,7 @@ export const ShoutBubble = ({ text }) => {
               borderLeft: "6px solid transparent",
               borderRight: "6px solid transparent",
               borderTop: "6px solid white",
-              zIndex: 1,
+              zIndex: 100000,
             }}
           />
         </motion.div>

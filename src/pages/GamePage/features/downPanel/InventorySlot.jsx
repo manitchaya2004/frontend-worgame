@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaLock, FaSkullCrossbones } from "react-icons/fa";
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa"; // ✅ เพิ่ม FaTint
 import { INVENTORY_COUNT } from "../../../../const/index";
 import { getLetterDamage } from "../../../../const/letterValues";
 import { useGameStore } from "../../../../store/useGameStore";
@@ -14,22 +14,24 @@ const SingleSlot = ({ index }) => {
 
   const inventory = store.playerData.inventory;
   const playerSlots = store.playerData.unlockedSlots;
-  const atk = store.playerData.atk ;
+  const atk = store.playerData.atk;
   const isPlayerTurn = store.gameState === "PLAYERTURN";
 
   const item = inventory[index] ?? null;
   const isLocked = index >= playerSlots;
   const isDisabled = !isPlayerTurn;
 
-  const displayDamage = item
-    ? getLetterDamage(item.char, atk)
-    : 0;
+  const displayDamage = item ? getLetterDamage(item.char, atk) : 0;
 
+  // ✅ เช็คสถานะต่างๆ
   const isStunned = item?.status === "stun";
   const isPoisoned = item?.status === "poison";
+  const isBlind = item?.status === "blind";
+  const isBleed = item?.status === "bleed"; // ✅ เพิ่มสถานะ Bleed
   const duration = item?.statusDuration || 0;
 
   const onSelect = () => {
+    // ✅ Blind และ Bleed ไม่ห้ามกด (กดได้ปกติ)
     if (isDisabled || isStunned || isLocked || !item) return;
     store.selectLetter(item, index);
   };
@@ -40,12 +42,16 @@ const SingleSlot = ({ index }) => {
         style={{
           width: "100%",
           height: "100%",
-          // พื้นหลังช่องว่างๆ ยังคงเป็น Dark Tone เพื่อให้กลืนกับกรอบใหญ่
           background: isLocked ? "rgba(10,10,10,0.8)" : "rgba(30,30,30,0.3)",
+          // ✅ ปรับสีขอบกล่อง (Container Border)
           border: isStunned
             ? "2px solid #7f8c8d"
             : isPoisoned
             ? "2px solid #2ecc71"
+            : isBlind
+            ? "2px solid #8e44ad"
+            : isBleed
+            ? "2px solid #c0392b" // ✅ สีแดงเลือดหมู
             : `1px solid ${isLocked ? "#333" : "#5c4033"}`,
           borderRadius: "6px",
           display: "flex",
@@ -53,7 +59,7 @@ const SingleSlot = ({ index }) => {
           alignItems: "center",
           position: "relative",
           overflow: "hidden",
-          boxShadow: isLocked ? "none" : "inset 0 0 5px rgba(0,0,0,0.5)"
+          boxShadow: isLocked ? "none" : "inset 0 0 5px rgba(0,0,0,0.5)",
         }}
       >
         <AnimatePresence mode="popLayout">
@@ -74,17 +80,26 @@ const SingleSlot = ({ index }) => {
               style={{
                 width: "92%",
                 height: "94%",
-                // ✅ กลับมาใช้สีเดิม (Original Colors)
-                background: isPoisoned
-                  ? "linear-gradient(145deg,#d4fcd4,#a2e0a2)"
-                  : isStunned
+                // ✅ จัดการสีพื้นหลัง (Priority: Stun > Blind > Poison > Bleed > Normal)
+                background: isStunned
                   ? "linear-gradient(145deg,#bdc3c7,#95a5a6)"
-                  : "linear-gradient(145deg,#ffffff,#e8dcc4)", // สีครีม/ขาวเดิม
-                
+                  : isBlind
+                  ? "linear-gradient(145deg,#2c003e,#000000)"
+                  : isPoisoned
+                  ? "linear-gradient(145deg,#d4fcd4,#a2e0a2)"
+                  : isBleed
+                  ? "linear-gradient(145deg,#e74c3c,#922b21)" // ✅ สีแดงไล่เฉดเลือด
+                  : "linear-gradient(145deg,#ffffff,#e8dcc4)",
+
+                // ✅ จัดการสีขอบการ์ด (Card Border)
                 border: isStunned
                   ? "2px solid #34495e"
+                  : isBlind
+                  ? "2px solid #4a148c"
+                  : isBleed
+                  ? "2px solid #641e16" // ✅ ขอบแดงเข้มเกือบดำ
                   : "2px solid #8b4513",
-                
+
                 borderRadius: "5px",
                 display: "flex",
                 justifyContent: "center",
@@ -92,22 +107,27 @@ const SingleSlot = ({ index }) => {
                 fontWeight: 900,
                 fontSize: "25px",
                 fontFamily: "'Palatino', serif",
-                
-                // ✅ กลับมาใช้สีตัวอักษรเดิม
-                color: isPoisoned
+
+                // ✅ เปลี่ยนสีตัวอักษรให้ตัดกับพื้นหลัง
+                color: isBlind
+                  ? "#dcdde1"
+                  : isPoisoned
                   ? "#1b5e20"
+                  : isBleed
+                  ? "#fadbd8" // ✅ สีชมพูซีด/ขาวบนพื้นแดง
                   : isStunned
                   ? "#2c3e50"
-                  : "#3e2723", // สีน้ำตาลเข้มเดิม
-                
+                  : "#3e2723",
+
                 cursor: isDisabled || isStunned ? "not-allowed" : "pointer",
                 position: "relative",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.4)" // เพิ่มเงานิดหน่อยให้ลอยขึ้นจากพื้นหลังดำ
+                boxShadow: "0 2px 4px rgba(0,0,0,0.4)",
               }}
             >
-              {item.char === "QU" ? "Qu" : item.char}
+              {/* Logic การแสดงตัวอักษร: ถ้า Blind ให้โชว์ ? */}
+              {isBlind ? "?" : item.char === "QU" ? "Qu" : item.char}
 
-              {/* status duration */}
+              {/* Status Duration Bubble */}
               {item.status && (
                 <div
                   style={{
@@ -116,7 +136,14 @@ const SingleSlot = ({ index }) => {
                     left: "-2px",
                     width: "16px",
                     height: "16px",
-                    background: isPoisoned ? "#2ecc71" : "#7f8c8d",
+                    // ✅ สี Bubble ตามสถานะ
+                    background: isBlind
+                      ? "#8e44ad"
+                      : isPoisoned
+                      ? "#2ecc71"
+                      : isBleed
+                      ? "#c0392b" // ✅ แดงเข้ม
+                      : "#7f8c8d",
                     borderRadius: "50%",
                     fontSize: "9px",
                     color: "#fff",
@@ -131,7 +158,7 @@ const SingleSlot = ({ index }) => {
                 </div>
               )}
 
-              {/* status icon */}
+              {/* Status Icon (มุมขวาบน) */}
               <div
                 style={{
                   position: "absolute",
@@ -139,7 +166,8 @@ const SingleSlot = ({ index }) => {
                   right: "4px",
                 }}
               >
-                {isPoisoned && (
+                {/* 1. Poison Icon */}
+                {isPoisoned && !isBlind && !isBleed && (
                   <motion.div
                     animate={{ y: [0, -2, 0] }}
                     transition={{ repeat: Infinity, duration: 2 }}
@@ -148,14 +176,34 @@ const SingleSlot = ({ index }) => {
                     <FaSkullCrossbones />
                   </motion.div>
                 )}
+                
+                {/* 2. Stun Icon */}
                 {isStunned && (
                   <div style={{ color: "#34495e", fontSize: "12px" }}>
                     <FaLock />
                   </div>
                 )}
+                
+                {/* 3. Blind Icon */}
+                {isBlind && (
+                  <div style={{ color: "#bdc3c7", fontSize: "12px" }}>
+                    <FaEyeSlash />
+                  </div>
+                )}
+
+                {/* 4. ✅ Bleed Icon (เต้นตุบๆ) */}
+                {isBleed && (
+                  <motion.div
+                    animate={{ scale: [1, 1.25, 1] }} // อนิเมชั่นหัวใจเต้น
+                    transition={{ repeat: Infinity, duration: 0.8 }}
+                    style={{ color: "#922b21", fontSize: "12px" }}
+                  >
+                    <FaTint />
+                  </motion.div>
+                )}
               </div>
 
-              {/* damage */}
+              {/* Damage Display (มุมขวาล่าง) */}
               <div
                 style={{
                   position: "absolute",
@@ -163,9 +211,11 @@ const SingleSlot = ({ index }) => {
                   right: "4px",
                   fontSize: "10px",
                   fontWeight: 900,
+                  opacity: 0.8,
                 }}
               >
-                {displayDamage}
+                {/* ถ้า Blind ให้ซ่อนดาเมจ */}
+                {isBlind ? "?" : displayDamage}
               </div>
             </motion.div>
           )}
@@ -193,45 +243,44 @@ export const InventorySlot = () => {
       style={{
         width: "30%",
         height: "95%",
-        // ✅ ใช้ Black Tone Theme: พื้นหลังดำโปร่ง
         background: "rgba(0,0,0,0.4)",
         border: "1px solid #4d3a2b",
         borderRadius: "10px",
         display: "flex",
         flexDirection: "column",
         padding: "10px",
-        filter: isPlayerTurn
-          ? "none"
-          : "grayscale(0.6) brightness(0.7)",
+        filter: isPlayerTurn ? "none" : "grayscale(0.6) brightness(0.7)",
         transition: "all 0.3s ease",
       }}
     >
-      {/* Header Style ใหม่ (เหมือน Command/Status) */}
+      {/* Header */}
       <div
         style={{
-            display: "flex", 
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            borderBottom: "1px solid #4d3a2b",
-            paddingBottom: "8px",
-            marginBottom: "10px"
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          borderBottom: "1px solid #4d3a2b",
+          paddingBottom: "8px",
+          marginBottom: "10px",
         }}
       >
         <GiBrain style={{ color: "#d4af37", fontSize: "18px" }} />
         <div
           style={{
-            color: "#d4af37", // สีทอง
+            color: "#d4af37",
             fontSize: "15px",
             fontWeight: "900",
             letterSpacing: "2px",
             textTransform: "uppercase",
-            textShadow: "0 2px 0 #000"
+            textShadow: "0 2px 0 #000",
           }}
         >
           BRAIN SLOT
         </div>
-        <GiBrain style={{ color: "#d4af37", fontSize: "18px", transform: "scaleX(-1)" }} />
+        <GiBrain
+          style={{ color: "#d4af37", fontSize: "18px", transform: "scaleX(-1)" }}
+        />
       </div>
 
       <div
@@ -242,9 +291,9 @@ export const InventorySlot = () => {
           gridTemplateRows: "repeat(4,1fr)",
           gap: "6px",
           padding: "4px",
-          background: "rgba(0,0,0,0.2)", // พื้นหลังรองจางๆ
+          background: "rgba(0,0,0,0.2)",
           borderRadius: "8px",
-          border: "1px solid #333"
+          border: "1px solid #333",
         }}
       >
         {Array.from({ length: INVENTORY_COUNT }).map((_, index) => (

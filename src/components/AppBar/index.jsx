@@ -20,7 +20,7 @@ import taro from "../../assets/icons/taro.jpg";
 import coin from "../../assets/icons/coin.svg";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
-import bag from "../../assets/icons/bag.png";
+// import bag from "../../assets/icons/bag.png";
 const name = "img_hero";
 
 // --- ส่วน AnimatedMoney สำหรับจัดการตัวเลขวิ่งและสี ---

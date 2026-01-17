@@ -71,7 +71,8 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
 
         <div style={styles.content}>
           <div style={styles.header}>
-            <span style={styles.label}>TIME REMAINING: {(timeLeft / 1000).toFixed(1)}s</span>
+            {/* ✅ แก้ไข: ข้อความ "Time remaining" เป็นตัวพิมพ์เล็ก (ยกเว้นตัวแรก) */}
+            <span style={styles.label}>Time remaining: {(timeLeft / 1000).toFixed(1)}s</span>
             <h2 style={styles.questionText}>"{data.question}"</h2>
           </div>
 
@@ -100,7 +101,8 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
                     textShadow: "0 2px 2px #000"
                   }}
                 >
-                  {selectedChoice === data.correctAnswer ? "✦ CORRECT ✦" : "✘ INCORRECT"}
+                  {/* ✅ แก้ไข: ข้อความ Correct/Incorrect เป็นตัวพิมพ์เล็ก (ยกเว้นตัวแรก) */}
+                  {selectedChoice === data.correctAnswer ? "✦ Correct ✦" : "✘ Incorrect"}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -227,7 +229,7 @@ const styles = {
     display: "block",
     marginBottom: "8px",
     fontWeight: "bold",
-    textTransform: "uppercase"
+    // ✅ ลบ textTransform: "uppercase" ออกเพื่อให้แสดงผลตามที่พิมพ์
   },
   questionText: {
     color: "#f1c40f", // สีทองสว่าง
@@ -244,7 +246,7 @@ const styles = {
     cursor: "pointer",
     fontWeight: "bold",
     fontSize: "1.1rem",
-    textTransform: "uppercase",
+    // ✅ ลบ textTransform: "uppercase" ออกเพื่อให้แสดงผลตามที่พิมพ์
     transition: "all 0.2s ease",
     fontFamily: '"Cinzel", serif', // ใช้ Font เดียวกับเกม
     letterSpacing: "1px"
