@@ -4,9 +4,21 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ShieldIcon from "@mui/icons-material/Shield";
 import CasinoIcon from "@mui/icons-material/Casino";
 import StarIcon from "@mui/icons-material/Star";
+import { API_URL } from "../../../store/const";
 
 export const MAX_STAT = 20;
 export const MAX_LEVEL = 5;
+
+export const THEMES = {
+  bgMain: "#2b1d14", // พื้นหลังหลัก
+  bgPanel: "#3e2723", // พื้นหลัง Panel ข้อมูล
+  border: "#5a3e2b", // ขอบทองแดง
+  accent: "#ffecb3", // สีทอง (Text/Active)
+  textMain: "#d7ccc8", // สีตัวหนังสือ
+  textDark: "#1a120b", // สีตัวหนังสือบนพื้นสว่าง
+  magic: "#00bcd4", // สีฟ้าเวทมนตร์
+  shadow: "#1a120b", // สีเงา
+};
 
 export const THEME = {
   cream: "#eaddcf", // พื้นหลังหลัก (สีครีมอุ่นๆ ไม่สว่างจ้า)
@@ -49,4 +61,10 @@ export const STAT_CONFIG = {
     icon: <CasinoIcon sx={{ fontSize: 12 }} />,
     labelBg: "#efe6f3",
   },
+};
+
+export const name = "img_hero";
+
+export const backgroundStage = () => {
+  return `${API_URL}/img_map/grassland.png`;
 };

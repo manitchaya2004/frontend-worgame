@@ -10,7 +10,7 @@ import {
 
 import { SearchComponent } from "../components/SearchComponent";
 import { useData } from "../hook/useData";
-import { Title } from "./AdvantureFeature";
+import { Title } from "./AdvantureFeature/AdvantureFeature";
 import BackArrow from "../components/BackArrow";
 import { useLoadData } from "../../AuthPage/LoginPage/hook/useLoadData";
 import { Loading } from "../../../components/Loading/Loading";

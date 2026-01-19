@@ -26,14 +26,14 @@ export default function PrivateRoute() {
 
   // ❌ ยังไม่ login
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   // ⭐ ยังไม่เลือก hero → บังคับไป select-hero
   // ⛔ แต่ต้องไม่ redirect ซ้ำ ถ้าอยู่หน้านั้นอยู่แล้ว
-  if (isFirstTime && location.pathname !== "/select-hero") {
-    return <Navigate to="/select-hero" replace />;
-  }
+  // if (isFirstTime && location.pathname !== "/select-hero") {
+  //   return <Navigate to="/select-hero" replace />;
+  // }
 
   // ⭐ เลือก hero แล้ว แต่พยายามเข้า select-hero อีก
   if (!isFirstTime && location.pathname === "/select-hero") {

@@ -7,7 +7,7 @@ export default function RootRedirect() {
 
   // App กัน authLoading ไว้แล้ว → ไม่ต้องเช็คซ้ำ
   if (!currentUser) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   if (currentUser.role === "admin") {

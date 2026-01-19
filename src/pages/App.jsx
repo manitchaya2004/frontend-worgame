@@ -8,7 +8,7 @@ import AuthLayout from "../components/AuthLayout/AuthLayout";
 import LoginPage from "./AuthPage/LoginPage";
 import RegisterPage from "./AuthPage/RegisterPage";
 import HomePage from "./HomePage";
-import AdvantureFeature from "./HomePage/feature/AdvantureFeature";
+import AdvantureFeature from "./HomePage/feature/AdvantureFeature/AdvantureFeature.jsx";
 import ShopSpellFeature from "./HomePage/feature/ShopSpellFeature";
 import DictionaryLibrary from "./HomePage/feature/LibraryFeature/dictionary/DictionaryLibrary";
 import MonsterLibrary from "./HomePage/feature/LibraryFeature/monster/MonsterLibrary";
