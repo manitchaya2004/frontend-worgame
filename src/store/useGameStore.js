@@ -5,7 +5,7 @@ import { sfx, bgm } from "../utils/sfx";
 import { DeckManager, WordSystem } from "../utils/gameSystem";
 
 // ============================================================================
-// 🛠️ UTILITIES & MATH HELPERS
+// UTILITIES & MATH HELPERS
 // ============================================================================
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,12 +18,12 @@ const chanceRound = (val, luckBonus = 0) => {
 };
 
 // ============================================================================
-// 📦 GAME STORE
+// GAME STORE
 // ============================================================================
 
 export const useGameStore = create((set, get) => ({
   // --------------------------------------------------------------------------
-  // 🆕 SECTION: SETTINGS & MENU STATE
+  // SECTION: SETTINGS & MENU STATE
   // --------------------------------------------------------------------------
   isMenuOpen: false,
   isBgmOn: true,
@@ -56,12 +56,15 @@ export const useGameStore = create((set, get) => ({
   toggleSfx: () => set((state) => ({ isSfxOn: !state.isSfxOn })),
 
   // --------------------------------------------------------------------------
-  // 1️⃣ SECTION: STATE DEFINITIONS
+  // SECTION: STATE DEFINITIONS
   // --------------------------------------------------------------------------
   gameState: "LOADING",
   loadingProgress: 0,
   dictionary: [],
   stageData: [],
+
+  // 📦 เก็บ Log คำศัพท์ที่ใช้ไป (Word, Meaning, Type, Count, TotalDamage)
+  wordLog: {},
 
   distance: 0,
   coin: 0,
@@ -107,7 +110,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   // --------------------------------------------------------------------------
-  // 2️⃣ SECTION: UI & BASIC SETTERS
+  // SECTION: UI & BASIC SETTERS
   // --------------------------------------------------------------------------
   addPopup: (p) => set((s) => ({ damagePopups: [...s.damagePopups, p] })),
   removePopup: (id) =>
@@ -135,7 +138,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   // --------------------------------------------------------------------------
-  // 3️⃣ SECTION: INVENTORY & WORD LOGIC
+  // SECTION: INVENTORY & WORD LOGIC
   // --------------------------------------------------------------------------
   initSelectedLetters: () => {
     const { playerData } = get();
@@ -229,7 +232,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   // --------------------------------------------------------------------------
-  // 4️⃣ SECTION: SYSTEM LOOP & INITIALIZATION
+  // SECTION: SYSTEM LOOP & INITIALIZATION
   // --------------------------------------------------------------------------
   initializeGame: async (userData, stageId) => {
     console.log("Initializing Game...", userData, "Stage ID:", stageId);
@@ -299,12 +302,14 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
+  // 🔥 UPDATE LOOP (แก้ไข Logic เดินออกฉาก)
   update: (dt) =>
     set((state) => {
       let updates = {};
       const ANIM_SPEED = 300;
       let newTimer = (state.animTimer || 0) + dt;
 
+      // Animation Loop
       if (newTimer >= ANIM_SPEED) {
         newTimer -= ANIM_SPEED;
         updates.animFrame = state.animFrame === 1 ? 2 : 1;
@@ -312,32 +317,57 @@ export const useGameStore = create((set, get) => ({
       }
       updates.animTimer = newTimer;
 
+      // Adventure Logic
       if (state.gameState === "ADVANTURE") {
-        const speed = 0.005;
-        const newDist = state.distance + dt * speed;
-        let nextTargetDist = Infinity;
-        if (state.stageData && state.stageData.events[state.currentEventIndex]) {
-          nextTargetDist = state.stageData.events[state.currentEventIndex].distance;
-        }
+        const goal = state.stageData.distant_goal;
 
-        if (newDist >= nextTargetDist) {
-          if (state.isBgmOn) {
-            bgm.stop();
-            bgm.playBattle();
-          }
+        // 🟢 1. เช็คว่าถึงเส้นชัยหรือยัง
+        if (goal && state.distance >= goal) {
+           // A. หยุดขยับฉากหลัง (Fix Distance)
+           updates.distance = goal;
 
-          setTimeout(() => {
-            const store = get();
-            if (store.gameState === "PREPARING_COMBAT") {
-              const activeSlots = store.playerData.unlockedSlots || 10;
-              const initialLoot = DeckManager.generateList(activeSlots);
-              store.spawnEnemies(initialLoot, true);
-            }
-          }, 50);
-          updates.distance = nextTargetDist;
-          updates.gameState = "PREPARING_COMBAT";
+           // B. ขยับตัวผู้เล่นไปทางขวา (Walk Out)
+           const walkOutSpeed = 0.1; // ความเร็วเดินออก
+           const nextX = state.playerX + (dt * walkOutSpeed);
+           updates.playerX = nextX;
+
+           // C. เช็คว่าเดินพ้นจอหรือยัง (สมมติจอ 1500px)
+           if (nextX > 2000) {
+              get().finishStage(); // จบเกมจริงๆ
+              return updates;
+           }
+
         } else {
-          updates.distance = newDist;
+           // 🔵 2. กรณีปกติ (ยังไม่ถึงเส้นชัย)
+           const speed = 0.005;
+           const newDist = state.distance + dt * speed;
+           updates.playerX = PLAYER_X_POS; // ตรึงตำแหน่งผู้เล่นไว้ที่เดิม
+
+           // เช็ค Event Encounter
+           let nextTargetDist = Infinity;
+           if (state.stageData && state.stageData.events[state.currentEventIndex]) {
+             nextTargetDist = state.stageData.events[state.currentEventIndex].distance;
+           }
+
+           if (newDist >= nextTargetDist) {
+             if (state.isBgmOn) {
+               bgm.stop();
+               bgm.playBattle();
+             }
+
+             setTimeout(() => {
+               const store = get();
+               if (store.gameState === "PREPARING_COMBAT") {
+                 const activeSlots = store.playerData.unlockedSlots || 10;
+                 const initialLoot = DeckManager.generateList(activeSlots);
+                 store.spawnEnemies(initialLoot, true);
+               }
+             }, 50);
+             updates.distance = nextTargetDist;
+             updates.gameState = "PREPARING_COMBAT";
+           } else {
+             updates.distance = newDist;
+           }
         }
       }
       return updates;
@@ -361,12 +391,14 @@ export const useGameStore = create((set, get) => ({
       turnQueue: [],
       activeCombatant: null,
       distance: 0,
+      playerX: PLAYER_X_POS, 
       isMenuOpen: false,
+      wordLog: {}, 
     });
   },
 
   // --------------------------------------------------------------------------
-  // 5️⃣ SECTION: COMBAT FLOW
+  // SECTION: COMBAT FLOW
   // --------------------------------------------------------------------------
   spawnEnemies: (loot, autoStart = false) => {
     const store = get();
@@ -382,8 +414,8 @@ export const useGameStore = create((set, get) => ({
         x: currentX,
         hp: e.max_hp,
         shield: 0,
-        currentStep: 1,
-        selectedPattern: 1, // Default pattern
+        currentStep: 1, // เท่าไหร่ของแพทเทิร์นนั้น
+        selectedPattern: 1, // แพทเทิร์นไหน
       };
     });
 
@@ -582,28 +614,40 @@ export const useGameStore = create((set, get) => ({
     get().processNextTurn();
   },
 
+  // 🔥 HANDLE WAVE CLEAR (แก้ไข: ไม่จบเกมที่นี่ ให้แค่วิ่งต่อ)
   handleWaveClear: async () => {
     const store = get();
     set({ gameState: "WAVE_CLEARED", playerShoutText: "Victory!" });
     await delay(2000);
 
+    // เลื่อนไป Event ถัดไป (ถ้ามี) หรือแค่วิ่งเปล่าๆ
     const nextEventIdx = store.currentEventIndex + 1;
-    if (store.stageData.events && store.stageData.events[nextEventIdx]) {
-      set({
-        gameState: "ADVANTURE",
-        playerShoutText: "",
-        currentEventIndex: nextEventIdx,
-        turnQueue: [],
-        activeCombatant: null,
-        hasSpawnedEnemies: false,
-      });
-      if (store.isBgmOn) {
-        bgm.stop();
-        bgm.playGreenGrass();
-      }
-    } else {
+    
+    // กลับไปวิ่ง (ADVANTURE) ไม่ว่าจะมี Event ต่อหรือไม่
+    // เพราะเราใช้ distance เป็นตัวจบเกม
+    set({
+      gameState: "ADVANTURE",
+      playerShoutText: "",
+      currentEventIndex: nextEventIdx,
+      turnQueue: [],
+      activeCombatant: null,
+      hasSpawnedEnemies: false,
+    });
+
+    if (store.isBgmOn) {
+      bgm.stop();
+      bgm.playGreenGrass();
+    }
+  },
+
+  // 🔥 FINISH STAGE (NEW: ฟังก์ชันจบเกมใหม่ เรียกเมื่อเดินพ้นจอ)
+  finishStage: async () => {
+      const store = get();
+      if (store.gameState === "LOADING" || store.gameState === "GAME_CLEARED") return; // กันเรียกซ้ำ
+
       bgm.stop();
       set({ gameState: "LOADING", playerShoutText: "Saving..." });
+      
       try {
         const token = localStorage.getItem("token");
         const totalMoney = (store.currentCoin || 0) + (store.coin || 0);
@@ -614,12 +658,14 @@ export const useGameStore = create((set, get) => ({
           "Authorization": `Bearer ${token}`
         };
 
+        // 1. Update Money
         await fetch(`${ipAddress}/update-money`, {
           method: "POST",
           headers: headers,
           body: JSON.stringify({ money: totalMoney })
         });
 
+        // 2. Unlock Stage / Complete
         const unlockRes = await fetch(`${ipAddress}/complete-stage`, {
           method: "POST",
           headers: headers,
@@ -632,7 +678,7 @@ export const useGameStore = create((set, get) => ({
         set({
           currentCoin: totalMoney,
           coin: 0,
-          gameState: "GAME_CLEARED",
+          gameState: "GAME_CLEARED", // สถานะชนะ
           enemies: [],
           playerShoutText: "All Clear!",
         });
@@ -644,11 +690,10 @@ export const useGameStore = create((set, get) => ({
           playerShoutText: "Error Saving!" 
         });
       }
-    }
   },
 
   // --------------------------------------------------------------------------
-  // 6️⃣ SECTION: PLAYER ACTIONS
+  // SECTION: PLAYER ACTIONS
   // --------------------------------------------------------------------------
   startPlayerTurn: () => {
     const store = get();
@@ -670,6 +715,41 @@ export const useGameStore = create((set, get) => ({
 
   performPlayerAction: async (actionType, word, targetId, usedIndices) => {
     const store = get();
+    
+    // 1. คำนวณ Damage ก่อน เพื่อให้เอาไปใช้ใน Log ได้
+    let totalDmgRaw = 0;
+    for (let char of word)
+      totalDmgRaw += getLetterDamage(char, store.playerData.atk);
+    const totalDmg = chanceRound(totalDmgRaw); 
+
+    // 2. LOGGING LOGIC
+    const { dictionary, wordLog } = store;
+    const lowerWord = word.toLowerCase();
+    
+    const vocabData = dictionary.find((v) => v.word.toLowerCase() === lowerWord);
+    
+    if (vocabData) {
+      const existingEntry = wordLog[lowerWord] || {
+        word: vocabData.word,
+        meaning: vocabData.meaning,
+        type: vocabData.category || vocabData.type || "-", 
+        count: 0,
+        totalDamage: 0 
+      };
+
+      set({
+        wordLog: {
+          ...wordLog,
+          [lowerWord]: {
+            ...existingEntry,
+            count: existingEntry.count + 1,
+            totalDamage: existingEntry.totalDamage + totalDmg // ➕ บวกค่า Damage ที่ทำได้สะสมไป
+          }
+        }
+      });
+    }
+
+    // 3. Clear Inventory
     let currentInv = [...store.playerData.inventory];
     usedIndices.forEach((idx) => {
       currentInv[idx] = null;
@@ -690,17 +770,13 @@ export const useGameStore = create((set, get) => ({
 
     await delay(300);
 
+    // 4. Action Logic (ใช้ค่า totalDmg ที่คำนวณไว้แล้ว)
     if (actionType === "SHIELD") {
-        let totalDmgRaw = 0;
-        for (let char of word)
-          totalDmgRaw += getLetterDamage(char, store.playerData.atk);
-        const totalDmg = chanceRound(totalDmgRaw);
-
       set({
         playerVisual: "guard-1",
         playerData: {
           ...store.playerData,
-          shield: store.playerData.shield + totalDmg,
+          shield: store.playerData.shield + totalDmg, // ✅ ใช้ totalDmg เดิม
         },
       });
       await delay(200);
@@ -718,17 +794,12 @@ export const useGameStore = create((set, get) => ({
         set({ playerX: target.x - 10, playerVisual: "walk" });
         await delay(200);
 
-        let totalDmgRaw = 0;
-        for (let char of word)
-          totalDmgRaw += getLetterDamage(char, store.playerData.atk);
-        const totalDmg = chanceRound(totalDmgRaw);
-
         set({ playerVisual: "attack-1" });
         await delay(400);
         if (store.isSfxOn) sfx.playHit();
         set({ playerVisual: "attack-2" });
 
-        get().damageEnemy(targetId, totalDmg);
+        get().damageEnemy(targetId, totalDmg); // ✅ ใช้ totalDmg เดิม
         await delay(400);
       }
       set({ playerX: PLAYER_X_POS, playerVisual: "walk" });
@@ -784,7 +855,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   // --------------------------------------------------------------------------
-  // 7️⃣ SECTION: ENEMY AI & LOGIC (REFRACTORED MAJOR UPDATE) 🚀
+  // SECTION: ENEMY AI & LOGIC (REFRACTORED MAJOR UPDATE) 🚀
   // --------------------------------------------------------------------------
 
   updateEnemy: (id, data) =>
@@ -871,7 +942,7 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  // ✅ ฟังก์ชันช่วยใส่สถานะ (เรียกใช้ซ้ำได้)
+  // ฟังก์ชันช่วยใส่สถานะ (เรียกใช้ซ้ำได้)
   applyStatusToPlayer: (code, chance, count, turn) => {
      if (!code) return;
      // เช็คโอกาสติด (0-100)
@@ -885,47 +956,46 @@ export const useGameStore = create((set, get) => ({
      const currentInv = [...store.playerData.inventory];
      // หาช่องว่างที่ไม่มีสถานะ
      const availableSlots = currentInv
-        .map((s, i) => (s && !s.status ? i : null))
-        .filter((i) => i !== null);
+       .map((s, i) => (s && !s.status ? i : null))
+       .filter((i) => i !== null);
 
-        if (availableSlots.length > 0) {
-          // สุ่มช่องที่จะโดนตามจำนวน count
-          // เช่น ถ้า count = 2 แต่เหลือที่ว่าง 1 ก็โดนแค่ 1
-          const targets = [];
-          for(let i=0; i<count; i++) {
-              if (availableSlots.length === 0) break;
-              const randIndex = Math.floor(Math.random() * availableSlots.length);
-              targets.push(availableSlots.splice(randIndex, 1)[0]);
-          }
+       if (availableSlots.length > 0) {
+         // สุ่มช่องที่จะโดนตามจำนวน count
+         // เช่น ถ้า count = 2 แต่เหลือที่ว่าง 1 ก็โดนแค่ 1
+         const targets = [];
+         for(let i=0; i<count; i++) {
+             if (availableSlots.length === 0) break;
+             const randIndex = Math.floor(Math.random() * availableSlots.length);
+             targets.push(availableSlots.splice(randIndex, 1)[0]);
+         }
 
-          targets.forEach(idx => {
-              currentInv[idx].status = code.toLowerCase(); // poison, bleed, blind, stun
-              currentInv[idx].statusDuration = turn;
-          });
-          
-          // ✅ กำหนดสีตาม Debuff code
-          const debuffColors = {
-              "POISON": "#2ecc71", // สีเขียว
-              "BLEED":  "#e74c3c", // สีแดง
-              "BLIND":  "#8e44ad", // สีม่วง
-              "STUN":   "#f1c40f", // สีเหลือง 
-          };
+         targets.forEach(idx => {
+             currentInv[idx].status = code.toLowerCase(); // poison, bleed, blind, stun
+             currentInv[idx].statusDuration = turn;
+         });
+         
+         const debuffColors = {
+             "POISON": "#2ecc71", 
+             "BLEED":  "#e74c3c", 
+             "BLIND":  "#8e44ad", 
+             "STUN":   "#f1c40f", 
+         };
 
-          // เลือกสี ถ้าไม่มีในรายการให้เป็นสีม่วงเดิม หรือ ขาว
-          const popupColor = debuffColors[code] || "#8e44ad"; 
+         // เลือกสี ถ้าไม่มีในรายการให้เป็นสีม่วงเดิม หรือ ขาว
+         const popupColor = debuffColors[code] || "#8e44ad"; 
 
-          set({ playerData: { ...store.playerData, inventory: currentInv } });
-          get().addPopup({
-              id: Math.random(),
-              x: PLAYER_X_POS,
-              y: FIXED_Y - 80,
-              value: `${code}!`,
-              color: popupColor, 
-          });
+         set({ playerData: { ...store.playerData, inventory: currentInv } });
+         get().addPopup({
+             id: Math.random(),
+             x: PLAYER_X_POS,
+             y: FIXED_Y - 80,
+             value: `${code}!`,
+             color: popupColor, 
+         });
       }
   },
 
-  // ✅ ฟังก์ชันประมวลผลเทิร์นศัตรูแบบใหม่ (Data-Driven)
+  // ฟังก์ชันประมวลผลเทิร์นศัตรูแบบใหม่ (Data-Driven)
   runSingleEnemyTurn: async (enemyId) => {
     const store = get();
     set({ playerShoutText: "", gameState: "ENEMYTURN" });
@@ -1040,7 +1110,7 @@ export const useGameStore = create((set, get) => ({
     get().endTurn();
   },
 
-  // ✅ Logic Quiz แยกออกมา (ปรับให้รับค่าจาก Move)
+  // Logic Quiz แยกออกมา
   handleQuizMove: async (en, penaltyDmg, moveData) => {
     const store = get();
     // 1. หาคำศัพท์
@@ -1090,12 +1160,12 @@ export const useGameStore = create((set, get) => ({
       get().damagePlayer(penaltyDmg);
       
       if (moveData.debuff_code) {
-         get().applyStatusToPlayer(
-             moveData.debuff_code, 
-             moveData.debuff_chance, 
-             moveData.debuff_count, 
-             moveData.debuff_turn
-         );
+          get().applyStatusToPlayer(
+              moveData.debuff_code, 
+              moveData.debuff_chance, 
+              moveData.debuff_count, 
+              moveData.debuff_turn
+          );
       }
     }
     await delay(800);

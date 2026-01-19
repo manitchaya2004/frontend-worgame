@@ -53,13 +53,12 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
         animate={{ opacity: 1, scale: 1 }}
         style={styles.card}
       >
-        {/* Time Bar แบบ Black Theme */}
         <div style={styles.timeBarBg}>
           <motion.div
             initial={{ width: "100%" }}
             animate={{ 
               width: isAnswered ? `${(timeLeft / DURATION_MS) * 100}%` : "0%",
-              backgroundColor: timeLeft < 1500 ? "#c0392b" : "#27ae60" // แดงเข้ม/เขียวเข้ม
+              backgroundColor: timeLeft < 1500 ? "#c0392b" : "#27ae60" 
             }}
             transition={{ duration: isAnswered ? 0.3 : DURATION_MS / 1000, ease: "linear" }}
             style={{
@@ -71,7 +70,6 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
 
         <div style={styles.content}>
           <div style={styles.header}>
-            {/* ✅ แก้ไข: ข้อความ "Time remaining" เป็นตัวพิมพ์เล็ก (ยกเว้นตัวแรก) */}
             <span style={styles.label}>Time remaining: {(timeLeft / 1000).toFixed(1)}s</span>
             <h2 style={styles.questionText}>"{data.question}"</h2>
           </div>
@@ -101,7 +99,6 @@ export const QuizOverlay = ({ data, onAnswer, onTimeout }) => {
                     textShadow: "0 2px 2px #000"
                   }}
                 >
-                  {/* ✅ แก้ไข: ข้อความ Correct/Incorrect เป็นตัวพิมพ์เล็ก (ยกเว้นตัวแรก) */}
                   {selectedChoice === data.correctAnswer ? "✦ Correct ✦" : "✘ Incorrect"}
                 </motion.span>
               )}
@@ -122,21 +119,18 @@ const ChoiceButton = ({ choice, isCorrect, isSelected, isAnswered, onClick }) =>
     : 'idle';
 
   const stylesMap = {
-    // Idle: ดำโปร่ง + ขอบน้ำตาล
     idle: { 
         bg: "rgba(30, 30, 30, 0.6)", 
         border: "#4d3a2b", 
-        text: "#d4af37", // สีทอง
+        text: "#d4af37", 
         shadow: "none"
     },
-    // Correct: เขียวเข้ม
     correct: { 
         bg: "rgba(39, 174, 96, 0.8)", 
         border: "#2ecc71", 
         text: "#fff",
         shadow: "0 0 10px #2ecc71"
     },
-    // Wrong: แดงเข้ม
     wrong: { 
         bg: "rgba(192, 57, 43, 0.8)", 
         border: "#c0392b", 
@@ -175,24 +169,20 @@ const ChoiceButton = ({ choice, isCorrect, isSelected, isAnswered, onClick }) =>
   );
 };
 
-/* =========================================
-   STYLES (Black Tone Theme)
-   ========================================= */
 const styles = {
   relativeWrapper: {
     position: "relative",
     width: "100%",
-    height: "100%", // เต็มพื้นที่
+    height: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "10px", // ลด padding ลงหน่อยจะได้ไม่กินที่มาก
+    padding: "10px",
     boxSizing: "border-box"
   },
   card: {
     width: "100%",
     maxWidth: "800px",
-    // ✅ Black Tone Theme: ดำโปร่งแสง + ขอบน้ำตาลเข้ม
     background: "rgba(0, 0, 0, 0.85)", 
     borderRadius: "12px",
     overflow: "hidden",
@@ -218,7 +208,7 @@ const styles = {
   },
   header: {
     textAlign: "center",
-    borderBottom: "1px solid #4d3a2b", // เส้นคั่นบางๆ
+    borderBottom: "1px solid #4d3a2b", 
     paddingBottom: "15px",
     marginBottom: "5px"
   },
@@ -229,26 +219,24 @@ const styles = {
     display: "block",
     marginBottom: "8px",
     fontWeight: "bold",
-    // ✅ ลบ textTransform: "uppercase" ออกเพื่อให้แสดงผลตามที่พิมพ์
   },
   questionText: {
-    color: "#f1c40f", // สีทองสว่าง
+    color: "#f1c40f", 
     fontSize: "1.8rem",
     margin: 0,
-    fontFamily: '"Cinzel", serif', // ใช้ Font เดียวกับเกม
+    fontFamily: '"Cinzel", serif', 
     textShadow: "0 2px 5px rgba(0,0,0,1)",
     lineHeight: "1.3"
   },
   btnBase: {
     padding: "15px",
     borderRadius: "8px",
-    border: "1px solid", // ขอบบางลงเพื่อให้ดู Elegant
+    border: "1px solid", 
     cursor: "pointer",
     fontWeight: "bold",
     fontSize: "1.1rem",
-    // ✅ ลบ textTransform: "uppercase" ออกเพื่อให้แสดงผลตามที่พิมพ์
     transition: "all 0.2s ease",
-    fontFamily: '"Cinzel", serif', // ใช้ Font เดียวกับเกม
+    fontFamily: '"Cinzel", serif', 
     letterSpacing: "1px"
   },
   footer: {

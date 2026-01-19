@@ -10,7 +10,7 @@ import {
 import { useGameStore } from "../../../../store/useGameStore";
 
 /* =========================
-   Helper Functions (คงเดิม)
+   Helper Functions 
 ========================= */
 
 const calculateRawValue = (word, strMod) => {
@@ -23,7 +23,6 @@ const calculateRawValue = (word, strMod) => {
 const formatSubLabel = (
   type,
   lowValue,
-  lowChance,
   highValue,
   highChance,
 ) => {
@@ -54,7 +53,7 @@ const formatSubLabel = (
 };
 
 /* =========================
-   Fantasy List Button (ปรับธีมให้เป็น Black Tone)
+   Fantasy List Button 
 ========================= */
 const FantasyListButton = ({
   label,
@@ -103,25 +102,22 @@ const FantasyListButton = ({
         zIndex: 2,
         display: "flex",
         alignItems: "center",
-        paddingLeft: "10px", // ลด padding นิดหน่อย
+        paddingLeft: "10px",
         width: "100%",
       }}
     >
-      {/* Icon Box: ปรับให้เป็น Black Tone */}
       <div
         style={{
           width: "36px",
           height: "36px",
-          // พื้นหลังดำโปร่ง
           background: disabled ? "rgba(30,30,30,0.5)" : "rgba(0,0,0,0.6)",
-          // ขอบสีตาม Theme หรือสีเทาถ้า Disabled
           border: `1px solid ${disabled ? "#444" : "#4d3a2b"}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           marginRight: "15px",
           fontSize: "20px",
-          color: disabled ? "#555" : color, // ใช้สีประจำปุ่มเลยเพื่อความชัดเจน
+          color: disabled ? "#555" : color, 
           boxShadow: highlight && !disabled ? `0 0 8px ${color}44` : "none"
         }}
       >
@@ -169,9 +165,8 @@ export const ActionControls = ({
 
   const wordText = validWordInfo?.word || "";
 
-  // คำนวณค่าดิบ
   const rawDmg = calculateRawValue(wordText, playerData.atk);
-  const rawDef = hasWord ? (wordText.length * 1.5) : 0;
+  const rawDef = calculateRawValue(wordText, playerData.atk);
 
   const getChance = (val) => {
     const decimal = val % 1;
@@ -188,7 +183,6 @@ export const ActionControls = ({
   return (
     <div
       style={{
-        // ✅ ใช้ Theme Black Tone แบบเดียวกับ PlayerStatusCard
         width: "25%",
         background: "rgba(0,0,0,0.4)",
         border: "1px solid #4d3a2b",
@@ -196,10 +190,9 @@ export const ActionControls = ({
         display: "flex",
         flexDirection: "column",
         gap: "10px",
-        height: "fit-content" // ป้องกันการยืดเกินจำเป็น
+        height: "fit-content"
       }}
     >
-      {/* Header Style ใหม่ (เหมือน PlayerStatusCard) */}
       <div
         style={{
           display: "flex", 
@@ -212,7 +205,7 @@ export const ActionControls = ({
       >
         <div
           style={{
-            color: "#d4af37", // สีทอง
+            color: "#d4af37", 
             fontSize: "15px",
             fontWeight: "900",
             letterSpacing: "2px",
@@ -222,13 +215,10 @@ export const ActionControls = ({
         >
           COMMANDS
         </div>
-        {/* Status Indicator เล็กๆ มุมขวา */}
         <div style={{ fontSize: "10px", color: isPlayerTurn ? "#4cd137" : "#888", fontWeight: "bold" }}>
             {isPlayerTurn ? "ACTIVE" : "WAITING"}
         </div>
       </div>
-
-      {/* Buttons Container */}
       <div
         style={{
           display: "flex",
@@ -256,7 +246,6 @@ export const ActionControls = ({
           highlight={isPlayerTurn && hasWord}
           onClick={onAttackClick}
         />
-
         {/* GUARD BUTTON */}
         <FantasyListButton
           label="GUARD"
@@ -279,10 +268,9 @@ export const ActionControls = ({
           highlight={isPlayerTurn && hasWord}
           onClick={onShieldClick}
         />
-
         {/* SPIN BUTTON */}
         <FantasyListButton
-          label="REROLL" // เปลี่ยนชื่อให้สั้นกระชับ
+          label="REROLL" 
           icon={<GiRollingDices />}
           subLabel={
              <span style={{ fontSize: "11px", color: "#aaa" }}>
@@ -294,7 +282,6 @@ export const ActionControls = ({
           highlight={isPlayerTurn && playerData.rp > 0}
           onClick={onSpinClick}
         />
-
         {/* PASS BUTTON */}
         <FantasyListButton
           label="PASS"

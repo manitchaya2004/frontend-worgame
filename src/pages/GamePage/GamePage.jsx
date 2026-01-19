@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ipAddress } from "../../const";
 
-// 🆕 IMPORT ICONS (Game Icons Set)
 import { 
   GiHamburgerMenu,  // ปุ่มเมนู
   GiTatteredBanner, // ธงระยะทาง
@@ -77,7 +76,7 @@ export default function GameApp() {
   }
 
   // --------------------------------------------------------------------------
-  // 🛡️ PREVENT NAVIGATION & EXIT LOGIC (ส่วนที่เพิ่มใหม่)
+  // 🛡️ PREVENT NAVIGATION & EXIT LOGIC
   // --------------------------------------------------------------------------
   
   useEffect(() => {
@@ -91,14 +90,11 @@ export default function GameApp() {
     // 2. ป้องกันปุ่ม Back -> ให้เปิดเมนู Pause แทน
     const handlePopState = (e) => {
       e.preventDefault();
-      // ดัน History กลับมาที่เดิม เพื่อไม่ให้ URL เปลี่ยน
       window.history.pushState(null, document.title, window.location.href);
       store.setMenuOpen(true);
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    
-    // Push State 1 ครั้งเพื่อให้มี History ให้ดักจับได้
     window.history.pushState(null, document.title, window.location.href);
     window.addEventListener("popstate", handlePopState);
 
@@ -108,18 +104,46 @@ export default function GameApp() {
     };
   }, []);
 
-  // ฟังก์ชันออกเกมแบบทันที (ใช้ในปุ่ม Exit, Give Up, Return)
+  // --------------------------------------------------------------------------
+  // 🧭 GAME OVER / CLEAR NAVIGATION LOGIC (ส่วนที่เพิ่มใหม่)
+  // --------------------------------------------------------------------------
+  // พั้นแก้
+  useEffect(() => {
+    // กรณีแพ้ (LOSE)
+    if (store.gameState === "OVER") {
+       if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
+
+       navigate("/summary", { 
+         state: {
+           result: "LOSE",
+           earnedCoins: Math.floor(store.coin / 2), // ได้เงินครึ่งเดียว
+           wordLog: store.wordLog // 📦 ส่ง Log คำศัพท์ไปด้วย
+         }
+       });
+    }
+
+    // กรณีชนะ (WIN)
+    if (store.gameState === "GAME_CLEARED") {
+       if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
+
+       navigate("/summary", {
+         state: {
+           result: "WIN",
+           earnedCoins: store.coin, // ได้เงินเต็ม
+           wordLog: store.wordLog // 📦 ส่ง Log คำศัพท์ไปด้วย
+         }
+       });
+    }
+  }, [store.gameState, navigate, store.coin, store.wordLog, store.isBgmOn]);
+
+
+  // ฟังก์ชันออกเกมแบบทันที (ใช้ในปุ่ม Exit ใน Pause Menu)
   const handleExit = () => {
-    // หยุด Loop เกม
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    
-    // ปิดเพลง
     if (store.isBgmOn) store.toggleBgm();
     
-    // เปลี่ยนหน้าทันที
     navigate("/home/adventure");
 
-    // Reset Store ตามหลัง (เพื่อให้หน้าจอเปลี่ยนไปก่อนค่อยเคลียร์ค่า)
     setTimeout(() => {
       store.reset();
       store.resetSelection();
@@ -127,7 +151,7 @@ export default function GameApp() {
   };
 
   // --------------------------------------------------------------------------
-  // 🟡 INITIALIZATION & GAME LOOP
+  // INITIALIZATION & GAME LOOP
   // --------------------------------------------------------------------------
 
   const initGameData = async () => {
@@ -176,7 +200,7 @@ export default function GameApp() {
   }, [appStatus]);
 
   // --------------------------------------------------------------------------
-  // 🔴 ACTIONS & HANDLERS
+  // ACTIONS & HANDLERS
   // --------------------------------------------------------------------------
 
   const executeAction = async (type, targetId) => {
@@ -228,13 +252,10 @@ export default function GameApp() {
     store.actionSpin(nextInv);
   };
 
-// 1. ฟังก์ชันกดใช้ยาเพิ่มเลือด
+  // 1. ฟังก์ชันกดใช้ยาเพิ่มเลือด
   const handleHeal = () => {
     const { potions, hp, max_hp } = store.playerData;
-    // ถ้ายาหมด หรือ เลือดเต็ม ไม่ต้องทำอะไร
     if (potions.health <= 0 || hp >= max_hp) return;
-    
-    // เรียก Action ใน Store: ใช้ยา Health, เพิ่มเลือด 30 หน่วย (ปรับเลขได้ตามต้องการ)
     store.usePotion("health", 30);
   };
 
@@ -243,17 +264,14 @@ export default function GameApp() {
     const { potions } = store.playerData;
     if (potions.reroll <= 0) return;
 
-    // ลดจำนวนยา
     store.usePotion("reroll");
 
-    // ทำการสุ่มของใหม่ (ใช้ Logic เดียวกับ Spin ปกติ)
     const currentInv = store.playerData.inventory;
     const unlockedSlots = store.playerData.unlockedSlots;
     let tempInvForLogic = [...currentInv];
 
     const nextInv = currentInv.map((item, index) => {
       if (!item) return null;
-      // จั่วการ์ดใหม่
       const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
       const newItem = {
         id: Math.random(),
@@ -267,7 +285,6 @@ export default function GameApp() {
       return newItem;
     });
 
-    // อัพเดท Inventory ใน Store
     store.actionSpin(nextInv);
   };
 
@@ -311,7 +328,7 @@ export default function GameApp() {
             🆕 UI: HUD (HEADS-UP DISPLAY) & MENU
            =================================================================== */}
 
-        {/* 1. ปุ่มเมนู (Menu Button) - Style เดิมของคุณ */}
+        {/* 1. ปุ่มเมนู (Menu Button) */}
         <div
             onClick={() => store.setMenuOpen(true)}
             style={{
@@ -320,15 +337,12 @@ export default function GameApp() {
                 left: "20px",
                 zIndex: 1000,
                 cursor: "pointer",
-                // ✅ แก้ไข: เปลี่ยนพื้นหลังเป็นไล่เฉดสีดำ/เทาเข้ม (Dark Metal Gradient)
                 background: "linear-gradient(to bottom, #2b2b2b, #0a0a0a)",
-                // ✅ แก้ไข: เปลี่ยนขอบเป็นโทนโลหะเทาเข้ม
                 border: "2px solid #333",
-                borderTopColor: "#555", // ขอบบนสว่างขึ้นเล็กน้อย (Metallic highlight)
-                borderBottomColor: "#000", // ขอบล่างดำสนิท (Deep shadow)
+                borderTopColor: "#555",
+                borderBottomColor: "#000", 
                 borderRadius: "6px",
                 padding: "8px 12px",
-                // เงา 3D สีดำคงเดิม เพราะเข้ากับธีมมืดอยู่แล้ว
                 boxShadow: "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)",
                 display: "flex",
                 alignItems: "center",
@@ -338,19 +352,18 @@ export default function GameApp() {
                 fontFamily: '"Cinzel", serif',
             }}
             onMouseDown={(e) => {
-                e.currentTarget.style.transform = "translateY(3px)"; // กดแล้วยุบ
-                e.currentTarget.style.boxShadow = "0 1px 0 #0f0a08, inset 0 2px 5px rgba(0,0,0,0.5)"; // เงาหาย
+                e.currentTarget.style.transform = "translateY(3px)";
+                e.currentTarget.style.boxShadow = "0 1px 0 #0f0a08, inset 0 2px 5px rgba(0,0,0,0.5)";
             }}
             onMouseUp={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
                 e.currentTarget.style.boxShadow = "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)";
             }}
         >
-            {/* ไอคอนสีทองคงเดิมเพื่อให้เด่นบนพื้นดำ */}
             <GiHamburgerMenu size={24} color="#f1c40f" />
         </div>
 
-        {/* 2. ระยะทาง (Distance Badge) - Style เดิมของคุณ */}
+        {/* 2. ระยะทาง  */}
         <div style={{
              position: "absolute",
              top: "20px",
@@ -391,12 +404,12 @@ export default function GameApp() {
              </div>
         </div>
 
-        {/* 3. MENU OVERLAY */}
+        {/* 3. MENU OVERLAY (Pause Menu) */}
         {store.isMenuOpen && (
             <div style={{
                 position: "absolute",
                 inset: 0,
-                background: "rgba(0, 0, 0, 0.85)", // พื้นหลัง Blur มืด
+                background: "rgba(0, 0, 0, 0.85)", 
                 zIndex: 2000,
                 display: "flex",
                 justifyContent: "center",
@@ -408,22 +421,20 @@ export default function GameApp() {
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
                     style={{
-                        // ✅ Black Tone Theme: ดำด้าน + ขอบทองหรู
                         background: "rgba(20, 20, 20, 0.95)",
                         width: "320px",
                         padding: "25px 20px",
                         borderRadius: "12px",
-                        border: "1px solid #4d3a2b", // ขอบทอง
-                        boxShadow: "0 0 30px rgba(0,0,0,1)", // เงาลึก
+                        border: "1px solid #4d3a2b", 
+                        boxShadow: "0 0 30px rgba(0,0,0,1)", 
                         display: "flex",
                         flexDirection: "column",
                         gap: "12px",
                     }}
                 >
-                    {/* Header ตกแต่งด้วยไอคอน Helm */}
                     <div style={{
                         textAlign: "center",
-                        borderBottom: "1px solid #4d3a2b", // เส้นคั่นสีน้ำตาลเข้ม
+                        borderBottom: "1px solid #4d3a2b", 
                         paddingBottom: "15px",
                         marginBottom: "5px",
                         display: "flex",
@@ -580,97 +591,6 @@ export default function GameApp() {
             </div>
           )}
         </div>
-
-        {/* ===================================================================
-            3. FULL SCREEN OVERLAYS (End Game States)
-           =================================================================== */}
-
-        {/* GAME OVER */}
-        {store.gameState === "OVER" && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.9)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 3000,
-            }}
-          >
-            <h1
-              style={{
-                color: "#c0392b",
-                fontSize: "4rem",
-                textShadow: "0 0 10px #000",
-                fontFamily: '"Cinzel", serif',
-                marginBottom: "20px"
-              }}
-            >
-              GAME OVER
-            </h1>
-            <div
-              style={{ color: "#d1c4b6", fontSize: "1.5rem", marginTop: "10px", fontFamily: '"Cinzel", serif' }}
-            >
-              Coin Gained:{" "}
-              <span style={{ color: "#f1c40f", fontWeight: "bold" }}>
-                {Math.floor(store.coin / 2)}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", gap: "20px", marginTop: "30px" }}>
-              <RpgButton onClick={() => { store.reset(); store.resetSelection(); initGameData(); }} color="gold">
-                 RETRY
-              </RpgButton>
-              {/* ✅ ใช้ handleExit */}
-              <RpgButton onClick={handleExit} color="wood">
-                 GIVE UP
-              </RpgButton>
-            </div>
-          </div>
-        )}
-
-        {/* MISSION COMPLETE */}
-        {store.gameState === "GAME_CLEARED" && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.9)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 3000,
-            }}
-          >
-            <h1
-              style={{
-                color: "#f1c40f",
-                fontSize: "4rem",
-                textShadow: "0 0 20px #c6a664",
-                fontFamily: '"Cinzel", serif',
-                textAlign: "center"
-              }}
-            >
-              MISSION COMPLETE
-            </h1>
-            <div
-              style={{ color: "#fff", fontSize: "1.5rem", marginTop: "20px", fontFamily: '"Cinzel", serif' }}
-            >
-              Total Coin Reward:{" "}
-              <span style={{ color: "#f1c40f", fontSize: "2rem" }}>{store.coin}</span>
-            </div>
-            
-            <div style={{ marginTop: "40px" }}>
-                {/* ✅ ใช้ handleExit */}
-                <RpgButton onClick={handleExit} color="green">
-                    RETURN TO MAP
-                </RpgButton>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -716,7 +636,7 @@ const RpgButton = ({ children, onClick, color = "wood", style = {} }) => {
             style={{
                 background: theme.bg,
                 border: `2px solid ${theme.border}`,
-                borderBottom: `4px solid ${theme.border}`, // ขอบล่างหนาดูนูน
+                borderBottom: `4px solid ${theme.border}`, 
                 borderRadius: "6px",
                 color: theme.text,
                 padding: "12px 20px",
@@ -737,8 +657,8 @@ const RpgButton = ({ children, onClick, color = "wood", style = {} }) => {
                 ...style
             }}
             onMouseDown={(e) => {
-                e.currentTarget.style.transform = "translateY(4px)"; // กดลง
-                e.currentTarget.style.boxShadow = `0 0 0 ${theme.shadow}, inset 0 2px 5px rgba(0,0,0,0.5)`; // เงาหาย
+                e.currentTarget.style.transform = "translateY(4px)"; 
+                e.currentTarget.style.boxShadow = `0 0 0 ${theme.shadow}, inset 0 2px 5px rgba(0,0,0,0.5)`; 
                 e.currentTarget.style.borderBottomWidth = "2px";
             }}
             onMouseUp={(e) => {

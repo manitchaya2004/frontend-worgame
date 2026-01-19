@@ -1,6 +1,5 @@
-import React from "react";
 import { Reorder, AnimatePresence, motion } from "framer-motion";
-import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa"; // ✅ เพิ่ม Icon ครบชุด
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa"; 
 import { getLetterDamage } from "../../../../const/letterValues";
 
 export const SelectedLetterArea = ({ store, constraintsRef }) => {
@@ -16,7 +15,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
       >
         <AnimatePresence initial={false} mode="popLayout">
           {activeSelectedItems.map((item) => {
-            // ✅ เช็คสถานะทั้งหมด
+            // เช็คสถานะทั้งหมด
             const isStunned = item?.status === "stun";
             const isPoisoned = item?.status === "poison";
             const isBlind = item?.status === "blind";
@@ -36,7 +35,6 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
                 <div
                   style={{
                     ...styles.cardBase,
-                    // ✅ ปรับสีขอบ Container ตามสถานะ
                     border: isStunned
                       ? "2px solid #7f8c8d"
                       : isPoisoned
@@ -56,7 +54,6 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
                   <div
                     style={{
                       ...styles.cardContent,
-                      // ✅ ปรับสีพื้นหลังการ์ด
                       background: isStunned
                         ? "linear-gradient(145deg, #bdc3c7 0%, #95a5a6 100%)"
                         : isBlind
@@ -67,7 +64,6 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
                         ? "linear-gradient(145deg, #e74c3c 0%, #922b21 100%)"
                         : "linear-gradient(145deg, #ffffff 0%, #e8dcc4 100%)",
 
-                      // ✅ ปรับสีขอบการ์ด
                       border: isStunned
                         ? "1.5px solid #34495e"
                         : isBlind
@@ -80,7 +76,6 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
                         ? "brightness(0.7) grayscale(0.3)"
                         : "none",
                         
-                      // ✅ ปรับสีตัวอักษร
                       color: isBlind
                         ? "#dcdde1"
                         : isBleed
@@ -110,7 +105,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
                       </div>
                     )}
 
-                    {/* Icon สถานะ (มุมขวาบน) */}
+                    {/* Icon สถานะ */}
                     <div style={styles.statusIconPos}>
                       {isPoisoned && !isBlind && !isBleed && (
                         <motion.div
@@ -144,7 +139,6 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
 
                     {/* ดาเมจมุมขวาล่าง */}
                     <div style={styles.damageTextPos(isPoisoned, isBlind, isBleed)}>
-                      {/* ✅ Logic Blind: ซ่อนดาเมจ */}
                       {isBlind ? "?" : displayDamage}
                     </div>
                   </div>
@@ -201,7 +195,6 @@ const styles = {
   cardContent: {
     width: "100%",
     height: "100%",
-    // background & border ย้ายไปทำ inline style ด้านบนเพื่อให้รองรับ logic
     borderRadius: "4px",
     display: "flex",
     justifyContent: "center",
@@ -212,7 +205,6 @@ const styles = {
     position: "relative",
     boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
   },
-  // ✅ ปรับสี Badge Duration ตามสถานะ
   statusDurationBadge: (isPoisoned, isBlind, isBleed) => ({
     position: "absolute",
     top: "-3px",
@@ -242,7 +234,6 @@ const styles = {
     right: "3px",
     zIndex: 5,
   },
-  // ✅ ปรับสีตัวเลขดาเมจ
   damageTextPos: (isPoisoned, isBlind, isBleed) => ({
     position: "absolute",
     bottom: "1px",

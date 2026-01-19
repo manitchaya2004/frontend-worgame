@@ -1,4 +1,3 @@
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ipAddress } from "../../../../const/index";
 
@@ -117,7 +116,7 @@ const styles = {
     borderRadius: "12px",
     border: "2px solid #ecf0f1",
     boxShadow: "0px 4px 10px rgba(0,0,0,0.5)",
-    pointerEvents: "auto", // บังคับให้รับเมาส์
+    pointerEvents: "auto", 
   },
   queueList: {
     display: "flex",

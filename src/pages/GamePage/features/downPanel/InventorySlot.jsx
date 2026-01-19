@@ -1,13 +1,13 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa"; // ✅ เพิ่ม FaTint
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa"; 
 import { INVENTORY_COUNT } from "../../../../const/index";
 import { getLetterDamage } from "../../../../const/letterValues";
 import { useGameStore } from "../../../../store/useGameStore";
 import { GiBrain } from "react-icons/gi";
 
 /* =========================
-   SINGLE SLOT (Container: Dark, Card: Original Colors)
+   SINGLE SLOT 
 ========================= */
 const SingleSlot = ({ index }) => {
   const store = useGameStore();
@@ -23,11 +23,11 @@ const SingleSlot = ({ index }) => {
 
   const displayDamage = item ? getLetterDamage(item.char, atk) : 0;
 
-  // ✅ เช็คสถานะต่างๆ
+  // เช็คสถานะต่างๆ
   const isStunned = item?.status === "stun";
   const isPoisoned = item?.status === "poison";
   const isBlind = item?.status === "blind";
-  const isBleed = item?.status === "bleed"; // ✅ เพิ่มสถานะ Bleed
+  const isBleed = item?.status === "bleed"; 
   const duration = item?.statusDuration || 0;
 
   const onSelect = () => {
@@ -43,7 +43,6 @@ const SingleSlot = ({ index }) => {
           width: "100%",
           height: "100%",
           background: isLocked ? "rgba(10,10,10,0.8)" : "rgba(30,30,30,0.3)",
-          // ✅ ปรับสีขอบกล่อง (Container Border)
           border: isStunned
             ? "2px solid #7f8c8d"
             : isPoisoned
@@ -51,7 +50,7 @@ const SingleSlot = ({ index }) => {
             : isBlind
             ? "2px solid #8e44ad"
             : isBleed
-            ? "2px solid #c0392b" // ✅ สีแดงเลือดหมู
+            ? "2px solid #c0392b"
             : `1px solid ${isLocked ? "#333" : "#5c4033"}`,
           borderRadius: "6px",
           display: "flex",
@@ -80,7 +79,7 @@ const SingleSlot = ({ index }) => {
               style={{
                 width: "92%",
                 height: "94%",
-                // ✅ จัดการสีพื้นหลัง (Priority: Stun > Blind > Poison > Bleed > Normal)
+                // จัดการสีพื้นหลัง (Priority: Stun > Blind > Poison > Bleed > Normal)
                 background: isStunned
                   ? "linear-gradient(145deg,#bdc3c7,#95a5a6)"
                   : isBlind
@@ -88,16 +87,15 @@ const SingleSlot = ({ index }) => {
                   : isPoisoned
                   ? "linear-gradient(145deg,#d4fcd4,#a2e0a2)"
                   : isBleed
-                  ? "linear-gradient(145deg,#e74c3c,#922b21)" // ✅ สีแดงไล่เฉดเลือด
+                  ? "linear-gradient(145deg,#e74c3c,#922b21)" 
                   : "linear-gradient(145deg,#ffffff,#e8dcc4)",
 
-                // ✅ จัดการสีขอบการ์ด (Card Border)
                 border: isStunned
                   ? "2px solid #34495e"
                   : isBlind
                   ? "2px solid #4a148c"
                   : isBleed
-                  ? "2px solid #641e16" // ✅ ขอบแดงเข้มเกือบดำ
+                  ? "2px solid #641e16" 
                   : "2px solid #8b4513",
 
                 borderRadius: "5px",
@@ -108,13 +106,12 @@ const SingleSlot = ({ index }) => {
                 fontSize: "25px",
                 fontFamily: "'Palatino', serif",
 
-                // ✅ เปลี่ยนสีตัวอักษรให้ตัดกับพื้นหลัง
                 color: isBlind
                   ? "#dcdde1"
                   : isPoisoned
                   ? "#1b5e20"
                   : isBleed
-                  ? "#fadbd8" // ✅ สีชมพูซีด/ขาวบนพื้นแดง
+                  ? "#fadbd8" 
                   : isStunned
                   ? "#2c3e50"
                   : "#3e2723",
@@ -136,13 +133,12 @@ const SingleSlot = ({ index }) => {
                     left: "-2px",
                     width: "16px",
                     height: "16px",
-                    // ✅ สี Bubble ตามสถานะ
                     background: isBlind
                       ? "#8e44ad"
                       : isPoisoned
                       ? "#2ecc71"
                       : isBleed
-                      ? "#c0392b" // ✅ แดงเข้ม
+                      ? "#c0392b" 
                       : "#7f8c8d",
                     borderRadius: "50%",
                     fontSize: "9px",
@@ -158,7 +154,7 @@ const SingleSlot = ({ index }) => {
                 </div>
               )}
 
-              {/* Status Icon (มุมขวาบน) */}
+              {/* Status Icon */}
               <div
                 style={{
                   position: "absolute",
@@ -191,10 +187,10 @@ const SingleSlot = ({ index }) => {
                   </div>
                 )}
 
-                {/* 4. ✅ Bleed Icon (เต้นตุบๆ) */}
+                {/* 4. Bleed Icon */}
                 {isBleed && (
                   <motion.div
-                    animate={{ scale: [1, 1.25, 1] }} // อนิเมชั่นหัวใจเต้น
+                    animate={{ scale: [1, 1.25, 1] }} 
                     transition={{ repeat: Infinity, duration: 0.8 }}
                     style={{ color: "#922b21", fontSize: "12px" }}
                   >
@@ -202,8 +198,6 @@ const SingleSlot = ({ index }) => {
                   </motion.div>
                 )}
               </div>
-
-              {/* Damage Display (มุมขวาล่าง) */}
               <div
                 style={{
                   position: "absolute",
@@ -214,7 +208,6 @@ const SingleSlot = ({ index }) => {
                   opacity: 0.8,
                 }}
               >
-                {/* ถ้า Blind ให้ซ่อนดาเมจ */}
                 {isBlind ? "?" : displayDamage}
               </div>
             </motion.div>
@@ -232,7 +225,7 @@ const SingleSlot = ({ index }) => {
 };
 
 /* =========================
-   INVENTORY SLOT (Container: Dark Tone)
+   INVENTORY SLOT 
 ========================= */
 export const InventorySlot = () => {
   const store = useGameStore();
