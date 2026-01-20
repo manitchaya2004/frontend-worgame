@@ -1,8 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa"; 
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
 import { INVENTORY_COUNT } from "../../../../const/index";
-import { getLetterDamage } from "../../../../const/letterValues";
 import { useGameStore } from "../../../../store/useGameStore";
 import { GiBrain } from "react-icons/gi";
 
@@ -14,24 +13,29 @@ const SingleSlot = ({ index }) => {
 
   const inventory = store.playerData.inventory;
   const playerSlots = store.playerData.unlockedSlots;
-  const atk = store.playerData.atk;
+  
+  const power = store.playerData.power; 
   const isPlayerTurn = store.gameState === "PLAYERTURN";
 
   const item = inventory[index] ?? null;
   const isLocked = index >= playerSlots;
   const isDisabled = !isPlayerTurn;
 
-  const displayDamage = item ? getLetterDamage(item.char, atk) : 0;
+  let displayDamage = 0;
+  if (item && power) {
+      const charUpper = item.char.toUpperCase();
+      displayDamage = power[charUpper] !== undefined ? Number(power[charUpper]) : 0;
+  }
 
   // เช็คสถานะต่างๆ
   const isStunned = item?.status === "stun";
   const isPoisoned = item?.status === "poison";
   const isBlind = item?.status === "blind";
-  const isBleed = item?.status === "bleed"; 
+  const isBleed = item?.status === "bleed";
   const duration = item?.statusDuration || 0;
 
   const onSelect = () => {
-    // ✅ Blind และ Bleed ไม่ห้ามกด (กดได้ปกติ)
+    // Blind และ Bleed ไม่ห้ามกด (กดได้ปกติ)
     if (isDisabled || isStunned || isLocked || !item) return;
     store.selectLetter(item, index);
   };
@@ -87,7 +91,7 @@ const SingleSlot = ({ index }) => {
                   : isPoisoned
                   ? "linear-gradient(145deg,#d4fcd4,#a2e0a2)"
                   : isBleed
-                  ? "linear-gradient(145deg,#e74c3c,#922b21)" 
+                  ? "linear-gradient(145deg,#e74c3c,#922b21)"
                   : "linear-gradient(145deg,#ffffff,#e8dcc4)",
 
                 border: isStunned
@@ -95,7 +99,7 @@ const SingleSlot = ({ index }) => {
                   : isBlind
                   ? "2px solid #4a148c"
                   : isBleed
-                  ? "2px solid #641e16" 
+                  ? "2px solid #641e16"
                   : "2px solid #8b4513",
 
                 borderRadius: "5px",
@@ -111,7 +115,7 @@ const SingleSlot = ({ index }) => {
                   : isPoisoned
                   ? "#1b5e20"
                   : isBleed
-                  ? "#fadbd8" 
+                  ? "#fadbd8"
                   : isStunned
                   ? "#2c3e50"
                   : "#3e2723",
@@ -138,7 +142,7 @@ const SingleSlot = ({ index }) => {
                       : isPoisoned
                       ? "#2ecc71"
                       : isBleed
-                      ? "#c0392b" 
+                      ? "#c0392b"
                       : "#7f8c8d",
                     borderRadius: "50%",
                     fontSize: "9px",
@@ -208,6 +212,7 @@ const SingleSlot = ({ index }) => {
                   opacity: 0.8,
                 }}
               >
+                {/* แสดง Damage ที่คำนวณใหม่ */}
                 {isBlind ? "?" : displayDamage}
               </div>
             </motion.div>

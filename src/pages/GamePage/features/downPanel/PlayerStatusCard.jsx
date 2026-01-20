@@ -81,7 +81,6 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
     hp = 0, 
     max_hp = 100, 
     shield = 0, 
-    atk = 0, 
     speed = 0, 
     unlockedSlots = 0,
     potions = { health: 0, reroll: 0, buff: 0 }
@@ -144,7 +143,6 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", width: "100%", justifyItems: "center", alignItems: "center" }}>
         <StatItem icon={<GiHearts />} label="HP" value={max_hp} color="#ff6b6b" />
         <StatItem icon={<GiBrain />} label="SLOT" value={unlockedSlots} color="#74b9ff" />
-        <StatItem icon={<GiBroadsword />} label="ATK" value={`+${(atk).toFixed(2)}`} color="#ff7675" />
         <StatItem icon={<GiWalkingBoot />} label="SPD" value={`${speed - 1}-${speed + 1}`} color="#feca57" />
       </div>
 

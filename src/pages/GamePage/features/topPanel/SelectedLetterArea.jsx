@@ -1,9 +1,12 @@
 import { Reorder, AnimatePresence, motion } from "framer-motion";
-import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa"; 
-import { getLetterDamage } from "../../../../const/letterValues";
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
+// ❌ ลบ import getLetterDamage ออก
 
 export const SelectedLetterArea = ({ store, constraintsRef }) => {
   const activeSelectedItems = store.selectedLetters.filter((i) => i !== null);
+  
+  // ✅ ดึงค่า Power จาก Store
+  const power = store.playerData.power;
 
   return (
     <div ref={constraintsRef} style={styles.reorderContainer}>
@@ -21,7 +24,13 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
             const isBlind = item?.status === "blind";
             const isBleed = item?.status === "bleed";
             const duration = item?.statusDuration || 0;
-            const displayDamage = getLetterDamage(item.char, store.playerData.atk);
+
+            // ✅ คำนวณ Damage ใหม่ตรงนี้เลย
+            let displayDamage = 0;
+            if (power) {
+                const charUpper = item.char.toUpperCase();
+                displayDamage = power[charUpper] !== undefined ? Number(power[charUpper]) : 0;
+            }
 
             return (
               <Reorder.Item
