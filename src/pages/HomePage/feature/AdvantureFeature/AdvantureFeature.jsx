@@ -1,79 +1,17 @@
 import { useNavigate, useLocation } from "react-router-dom"; //เปลี่ยน หน้า
-import { memo, useEffect, useState, useMemo, useRef } from "react";
-import { Box, Typography, IconButton, Button } from "@mui/material";
+import { useEffect, useState, useMemo } from "react";
+import { Box, Typography } from "@mui/material";
 import { useData } from "../../hook/useData";
-import { AnimatePresence, motion, useAnimation } from "framer-motion";
-import { GameDialog } from "../../../../components/GameDialog";
-import BackArrow from "../../components/BackArrow";
+import { motion } from "framer-motion";
 import { useLoadData } from "../../../AuthPage/LoginPage/hook/useLoadData";
 import { Loading } from "../../../../components/Loading/Loading";
-import StarBackground from "../../components/StarBackground";
 import { useLoginPlayer } from "../../../AuthPage/LoginPage/hook/useLoginPlayer";
-import GameAppBar from "../../../../components/AppBar";
-import { THEME, THEMES } from "../../hook/const";
+import { THEMES } from "../../hook/const";
 import ListSection from "./AdvantureList";
+
+import { preloadImage } from "../../hook/usePreloadFrams";
+import { backgroundStage } from "../../hook/const";
 const MotionBox = motion(Box);
-export const Title = ({ title }) => {
-  return (
-    <Box
-      sx={{
-        position: "absolute",
-        top: "-50px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 10000,
-        pointerEvents: "none",
-        width: { xs: "90vw", sm: "90%", md: "90%" },
-      }}
-    >
-      <motion.div
-        initial={
-          // { opacity: 0, scale: 0.6, y: -10 }
-          false
-        }
-        animate={{
-          opacity: 1,
-          scale: 1,
-          y: [0, -4, 0], // ลอยขึ้นลง
-        }}
-        transition={{
-          opacity: { duration: 0.5 },
-          scale: { duration: 0.5 },
-          y: {
-            repeat: Infinity,
-            duration: 2.5,
-            ease: "easeInOut",
-          },
-        }}
-      >
-        <Typography
-          sx={{
-            fontFamily: `"Press Start 2P", monospace`,
-            fontSize: { xs: 20, md: 28 },
-            color: "#fffbe6",
-            paddingX: 3,
-            paddingY: 2,
-            background: "#3a1c14",
-            border: "3px solid #b22222",
-            textAlign: "center",
-            boxShadow: `
-              0 0 0 2px #000,
-              4px 4px 0 #000,
-              0 0 12px rgba(255,80,80,0.8)
-            `,
-            textShadow: `
-              2px 2px 0 #000,
-              0 0 8px rgba(255,80,80,0.9)
-            `,
-            letterSpacing: 2,
-          }}
-        >
-          {title}
-        </Typography>
-      </motion.div>
-    </Box>
-  );
-};
 
 const AdvantureFeature = () => {
   const { currentUser } = useLoginPlayer();
@@ -82,12 +20,11 @@ const AdvantureFeature = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [openConfirm, setOpenConfirm] = useState(false);
-  const [selectedStage, setSelectedStage] = useState(null);
+  const completedStageId = location.state?.completedStageId;
+
   const [isEntering, setIsEntering] = useState(false);
 
   const handleStageClick = (stage) => {
-    setSelectedStage(stage);
     setIsEntering(true);
 
     setTimeout(() => {
@@ -98,20 +35,6 @@ const AdvantureFeature = () => {
         },
       });
     }, 2500);
-  };
-
-  const handleConfirmStage = () => {
-    setOpenConfirm(false);
-    setIsEntering(true);
-
-    // setTimeout(() => {
-    //   navigate("/battle", {
-    //     state: {
-    //       currentUser: currentUser,
-    //       selectedStage: selectedStage,
-    //     },
-    //   });
-    // }, 2500);
   };
 
   const changeCharacter = () => {
@@ -163,6 +86,14 @@ const AdvantureFeature = () => {
   const initialStageIndex = useMemo(() => {
     if (!playableStages.length || !currentUser?.stages) return 0;
 
+    // สำหรับเมื่อเล่นด่านจบ หลังจากกลับมาหน้านี้จะเล่นอนิเมชั่นแล้วเปลี่ยนเป็นด่านล่าสุด
+    if (completedStageId) {
+      const foundIndex = playableStages.findIndex(
+        (s) => s.id === completedStageId,
+      );
+      if (foundIndex !== -1) return foundIndex;
+    }
+
     const userStageMap = new Map(
       currentUser.stages.map((s) => [s.stage_id, s]),
     );
@@ -179,13 +110,31 @@ const AdvantureFeature = () => {
       (s) => !userStageMap.get(s.id)?.is_completed,
     );
 
-    return firstUncompleted !== -1 ? firstUncompleted : 0;
-  }, [playableStages, currentUser]);
+    return 0;
+  }, [playableStages, currentUser, completedStageId]);
 
   // โหลดข้อมูลตอนเปิดหน้า
-  useEffect(() => {
-    fetchAllStage();
-  }, [fetchAllStage]);
+useEffect(() => {
+  fetchAllStage();
+}, [fetchAllStage]);
+
+// preload background ของ stage
+useEffect(() => {
+  if (!stages || stages.length === 0) return;
+
+  stages.forEach((stage) => {
+    const src = backgroundStage(stage.id);
+    preloadImage(src);
+  });
+}, [stages]);
+
+
+  // const preloadStages = (stages = []) => {
+  //   stages.forEach((stage) => {
+  //     const src = backgroundStage(stage.id);
+  //     preloadImage(src);
+  //   });
+  // };
 
   // loading
   if (loadingStage === "LOADING") {
@@ -281,20 +230,9 @@ const AdvantureFeature = () => {
           handleStageClick={(stage) => handleStageClick(stage)}
           changeCharacter={changeCharacter}
           isEntering={isEntering}
+          completedStageId={completedStageId}
         />
       </MotionBox>
-
-      <GameDialog
-        open={openConfirm}
-        title="READY TO START?"
-        // description={
-        //   selectedStage ? `Enemy Lv. ${selectedStage.orderNo * 5}` : ""
-        // }
-        confirmText="START"
-        cancelText="BACK"
-        onConfirm={handleConfirmStage}
-        onCancel={() => setOpenConfirm(false)}
-      />
     </Box>
   );
 };

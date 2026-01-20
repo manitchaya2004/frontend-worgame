@@ -15,7 +15,7 @@ export default function PrivateRoute() {
   useEffect(() => {
     const run = async () => {
       if (isAuthenticated) {
-        await checkFirstTime();
+        // await checkFirstTime();
       }
       setLoading(false);
     };

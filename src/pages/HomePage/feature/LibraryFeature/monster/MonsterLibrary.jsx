@@ -10,12 +10,15 @@ import {
   Chip,
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-import BackArrow from "../../../components/BackArrow";
-import StarBackground from "../../../components/StarBackground";
+import LoadingScreen from "../../../../../components/Loading/LoadingPage";
 import { useData } from "../../../hook/useData";
 import { useIdleFrame } from "../../../hook/useIdleFrame";
-import { usePreloadFrames, LoadImage } from "../../../hook/usePreloadFrams";
- const MotionBox = motion(Box);
+import {
+  usePreloadFrames,
+  LoadImage,
+  preloadImageAsync,
+} from "../../../hook/usePreloadFrams";
+const MotionBox = motion(Box);
 // --- NEW THEME CONFIG (Dark Magical Wood) ---
 const THEME = {
   bgMain: "#2b1d14", // พื้นหลังหลัก
@@ -129,7 +132,6 @@ const StatBarBox = ({ label, value, max = 20 }) => {
 
 // 3. Info Tab Content
 const InfoTab = ({ monster }) => {
-
   // between coin drop
   const minCoin = monster?.exp - 1;
   const maxCoin = monster?.exp + 1;
@@ -175,15 +177,15 @@ const InfoTab = ({ monster }) => {
           label="ATK"
           value={`${monster?.atk_power_min || 0} - ${monster?.atk_power_max || 0}`}
         />
-        <StatTextBox label="SPEED" value={monster?.speed || 0}/>
+        <StatTextBox label="SPEED" value={monster?.speed || 0} />
         <Divider sx={{ my: 2, borderColor: THEME.border, opacity: 0.9 }} />
         {/* <StatBarBox label="EXP" value={monster?.exp || 0} max={100} /> */}
         {/* <StatBarBox label="SPEED" value={monster?.speed || 0} max={20} /> */}
-        <Box sx={{mt:3}}>
+        <Box sx={{ mt: 3 }}>
           <StatTextBox
-          label="COIN DROP"
-          value={`${minCoin || 0} - ${maxCoin || 0}`}
-        />
+            label="COIN DROP"
+            value={`${minCoin || 0} - ${maxCoin || 0}`}
+          />
         </Box>
       </Box>
     </Box>
@@ -549,9 +551,12 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
 // --- MAIN PAGE ---
 
 const MonsterLibrary = () => {
-  const { monsters, getMonsters } = useData();
+  const { monsters, getMonsters, monsterState } = useData();
   const navigate = useNavigate();
   const [selectedMonster, setSelectedMonster] = useState(null);
+
+  const [isMinLoading, setIsMinLoading] = useState(true);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(true);
 
   useEffect(() => {
     getMonsters();
@@ -562,6 +567,28 @@ const MonsterLibrary = () => {
       setSelectedMonster(monsters[0]);
     }
   }, [monsters, selectedMonster]);
+
+  // preload image monster
+  useEffect(() => {
+    if (!monsters || monsters.length === 0) return;
+
+    const preloadAssets = async () => {
+      setIsLoadingAssets(true);
+
+      const tasks = monsters.map((m) =>
+        preloadImageAsync(LoadImage("img_monster", m.id, 1)),
+      );
+
+      await Promise.all(tasks);
+      setIsLoadingAssets(false);
+    };
+
+    preloadAssets();
+  }, [monsters]);
+
+  if (monsterState === "LOADING" || isLoadingAssets ) {
+    return <LoadingScreen open={true} />;
+  }
 
   return (
     <Box sx={{ m: 2 }}>

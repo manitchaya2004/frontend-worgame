@@ -167,7 +167,7 @@ export const useAuthStore = create(
           if (!res.ok) throw new Error("server error");
 
           const data = await res.json();
-          console.log("data", data);
+          // console.log("data", data);
 
           if (!data.isSuccess) throw new Error(data.message);
 

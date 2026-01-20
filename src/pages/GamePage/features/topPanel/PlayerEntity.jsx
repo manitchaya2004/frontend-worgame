@@ -46,14 +46,16 @@ export const PlayerEntity = ({ store }) => {
   // =========================================================
 
   // 2. โหลดรูป (ใช้แค่ชื่อ Action หลัก ไม่เอาเลข)
-  const frames = usePreloadFrames("img_hero", playerData.name, 2, currentAction);
+  const frames = usePreloadFrames("img_hero", playerData.img_path, 2, currentAction);
   
   // 3. เลือกรูปที่จะโชว์ตาม targetFrame ที่คำนวณมา
   const currentSrc = frames[targetFrame - 1] 
     ? frames[targetFrame - 1].src 
-    : `${ipAddress}/img_hero/${playerData.name}-${currentAction}-${targetFrame}.png`;
-    
+    : `${ipAddress}/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
+  
   return (
+    <>
+    <pre>{}</pre>
     <motion.div
       animate={{ left: `${playerX ?? PLAYER_X_POS}%` }}
       transition={
@@ -105,5 +107,6 @@ export const PlayerEntity = ({ store }) => {
 
       </motion.div>
     </motion.div>
+    </>
   );
 };

@@ -35,7 +35,7 @@ export const TurnQueueBar = ({ store }) => {
 
             // 1. จัดการรูปภาพตามประเภท (Player vs Enemy)
             if (unit.type === "player") {
-              imgSrc = `${ipAddress}/img_hero/${playerData.name}-idle-1.png`;
+              imgSrc = `${ipAddress}/img_hero/${playerData.img_path}-idle-1.png`;
             } else {
               const enemyData = enemies.find((e) => e.id === unit.id);
               imgSrc = enemyData

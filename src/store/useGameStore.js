@@ -103,6 +103,7 @@ export const useGameStore = create((set, get) => ({
   
   playerData: {
     name: "Hero",
+    img_path: "",
     level: 1,
     next_exp: 0,
     exp: 0,
@@ -264,6 +265,7 @@ export const useGameStore = create((set, get) => ({
           playerData: {
             ...state.playerData,
             name: selectedHero.name,
+            img_path: selectedHero.hero_id,
             level: selectedHero.level,
             next_exp: selectedHero.next_exp || 100,
             exp: 0,
@@ -291,8 +293,8 @@ export const useGameStore = create((set, get) => ({
       const stageRes = await fetch(`${ipAddress}/getStageById/${stageId}`);
       const stageData = await stageRes.json();
 
-      console.log("stageData");
-      console.log(stageData);
+      // console.log("stageData");
+      console.log("stageData",stageData);
 
       set({ loadingProgress: 75 });
       DeckManager.init();

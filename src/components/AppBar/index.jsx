@@ -16,11 +16,12 @@ import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon"; // Monste
 import ShieldIcon from "@mui/icons-material/Shield"; // Adventure
 import PersonIcon from "@mui/icons-material/Person"; // Character
 import InventoryIcon from "@mui/icons-material/Inventory";
-
+import SettingsIcon from "@mui/icons-material/Settings";
 // Assets เดิมของคุณ
 import coin from "../../assets/icons/coin.svg";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
+import { GameDialog } from "../GameDialog";
 
 // --- THEME CONFIG (เพื่อให้แก้สีง่ายๆ) ---
 const THEME = {
@@ -82,13 +83,29 @@ const AnimatedMoney = ({ value }) => {
 };
 
 const GameAppBar = () => {
-  const { currentUser } = useLoginPlayer();
+  const { currentUser ,logout} = useLoginPlayer();
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
   const currentLevel = activeHero?.level || 1;
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
+  const handleLogout = () => {
+      logout();
+      navigate("/login");
+      setConfirmLogout(false);
+  };
+
+  const handleConfirmLogout = () => {
+    setConfirmLogout(true);
+  };
+
+  const handleCancelLogout = () => {
+    setConfirmLogout(false);
+  };
 
   // --- MENU CONFIGURATION ---
   // แก้ไข Path ตรงนี้ให้ตรงกับ Route ของคุณ
@@ -127,6 +144,7 @@ const GameAppBar = () => {
   ];
 
   return (
+    <>
     <AppBar
       position="static"
       sx={{
@@ -323,9 +341,22 @@ const GameAppBar = () => {
           </Box>
 
           {/* ถ้าอยากใส่ปุ่ม Setting เพิ่ม ต่อท้ายตรงนี้ได้เลย */}
+          <SettingsIcon onClick={handleConfirmLogout}/>
+
         </Box>
       </Toolbar>
     </AppBar>
+
+    <GameDialog
+            open={confirmLogout}
+            title="Confirm Logout"
+            description="Are you sure you want to logout?"
+            onConfirm={handleLogout}
+            onCancel={handleCancelLogout}
+            confirmText="Logout"
+            cancelText="Cancel"
+          />
+    </>
   );
 };
 

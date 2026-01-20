@@ -65,6 +65,6 @@ export const STAT_CONFIG = {
 
 export const name = "img_hero";
 
-export const backgroundStage = () => {
-  return `${API_URL}/img_map/grassland.png`;
+export const backgroundStage = (stageIDName) => {
+  return `${API_URL}/img_map/${stageIDName}.png`;
 };

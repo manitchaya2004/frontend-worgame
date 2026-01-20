@@ -44,7 +44,6 @@ const LoadingScreen = ({ open }) => {
       }}
       open={open}
     >
-    <StarBackground/>
       {/* 1. Custom Pixel Spinner (สี่เหลี่ยมหมุน) */}
       <Box
         sx={{

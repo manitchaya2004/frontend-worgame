@@ -1,16 +1,12 @@
-import React, {
-  useEffect,
-  useState,
-  useRef,
-} from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ipAddress } from "../../const";
 
-import { 
-  GiHamburgerMenu,  // ปุ่มเมนู
+import {
+  GiHamburgerMenu, // ปุ่มเมนู
   GiTatteredBanner, // ธงระยะทาง
-  GiDungeonGate     // ปุ่มออกเกม
+  GiDungeonGate, // ปุ่มออกเกม
 } from "react-icons/gi";
 
 // --- Store & System ---
@@ -37,6 +33,7 @@ import { GameMenu } from "./features/TopPanel/Menu";
 
 // --- Components: System Views ---
 import LoadingView from "../../components/LoadingView";
+import LoadingScreen from "../../components/Loading/LoadingPage";
 import ErrorView from "../../components/ErrorView";
 
 export default function GameApp() {
@@ -79,12 +76,12 @@ export default function GameApp() {
   // --------------------------------------------------------------------------
   // 🛡️ PREVENT NAVIGATION & EXIT LOGIC
   // --------------------------------------------------------------------------
-  
+
   useEffect(() => {
     // 1. ป้องกัน Refresh / ปิด Tab
     const handleBeforeUnload = (e) => {
       e.preventDefault();
-      e.returnValue = ""; 
+      e.returnValue = "";
       return "";
     };
 
@@ -112,37 +109,50 @@ export default function GameApp() {
   useEffect(() => {
     // กรณีแพ้ (LOSE)
     if (store.gameState === "OVER") {
-       if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
+      if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
 
-       navigate("/summary", { 
-         state: {
-           result: "LOSE",
-           earnedCoins: Math.floor(store.receivedCoin / 2), // ได้เงินครึ่งเดียว
-           wordLog: store.wordLog // 📦 ส่ง Log คำศัพท์ไปด้วย
-         }
-       });
+      navigate("/summary", {
+        state: {
+          result: "LOSE",
+          earnedCoins: Math.floor(store.receivedCoin / 2), // ได้เงินครึ่งเดียว
+          wordLog: store.wordLog, // 📦 ส่ง Log คำศัพท์ไปด้วย
+        },
+      });
     }
+    const currentStageRecord = currentUser?.stages?.find(
+      (userStage) => userStage.stage_id === store.stageData?.id,
+    );
+
+    // เช็คว่าเล่นไปยาง 
+    const isReplay = currentStageRecord?.is_completed === true;
 
     // กรณีชนะ (WIN)
     if (store.gameState === "GAME_CLEARED") {
-       if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
+      if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
 
-       navigate("/summary", {
-         state: {
-           result: "WIN",
-           earnedCoins: store.receivedCoin, // ได้เงินเต็ม
-           wordLog: store.wordLog // ส่ง Log คำศัพท์ไปด้วย
-         }
-       });
+      navigate("/summary", {
+        state: {
+          result: "WIN",
+          earnedCoins: store.receivedCoin, // ได้เงินเต็ม
+          stageCoins: store.stageData?.id ? 0 : store.stageData?.money_reward,
+          wordLog: store.wordLog, // ส่ง Log คำศัพท์ไปด้วย
+        },
+      });
     }
-  }, [store.gameState, navigate, store.receivedCoin, store.wordLog, store.isBgmOn]);
-
+  }, [
+    store.gameState,
+    navigate,
+    store.receivedCoin,
+    store.wordLog,
+    store.isBgmOn,
+    store.stageData?.money_reward,
+  ]);
 
   // ฟังก์ชันออกเกมแบบทันที (ใช้ในปุ่ม Exit ใน Pause Menu)
   const handleExit = () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     if (store.isBgmOn) store.toggleBgm();
-    
+
     navigate("/home");
 
     setTimeout(() => {
@@ -169,7 +179,7 @@ export default function GameApp() {
 
   useEffect(() => {
     if (!selectedStage || !currentUser) {
-      navigate("/home/adventure");
+      navigate("/home");
       return;
     }
     initGameData();
@@ -180,9 +190,9 @@ export default function GameApp() {
     if (appStatus !== "READY") return;
 
     if (store.isMenuOpen) {
-        lastTimeRef.current = time;
-        requestRef.current = requestAnimationFrame(animate);
-        return;
+      lastTimeRef.current = time;
+      requestRef.current = requestAnimationFrame(animate);
+      return;
     }
 
     if (lastTimeRef.current !== undefined) {
@@ -294,7 +304,7 @@ export default function GameApp() {
   // --------------------------------------------------------------------------
 
   if (appStatus === "LOADING")
-    return <LoadingView progress={store.loadingProgress} />;
+    return <LoadingScreen open={true}/>;
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
@@ -322,7 +332,7 @@ export default function GameApp() {
           background: "#B3F1FF",
           position: "relative",
           overflow: "hidden",
-          boxShadow: "0 0 20px rgba(0,0,0,0.8)"
+          boxShadow: "0 0 20px rgba(0,0,0,0.8)",
         }}
       >
         {/* ===================================================================
@@ -331,78 +341,97 @@ export default function GameApp() {
 
         {/* 1. ปุ่มเมนู (Menu Button) */}
         <div
-            onClick={() => store.setMenuOpen(true)}
-            style={{
-                position: "absolute",
-                top: "20px",
-                left: "20px",
-                zIndex: 1000,
-                cursor: "pointer",
-                background: "linear-gradient(to bottom, #2b2b2b, #0a0a0a)",
-                border: "2px solid #333",
-                borderTopColor: "#555",
-                borderBottomColor: "#000", 
-                borderRadius: "6px",
-                padding: "8px 12px",
-                boxShadow: "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                transition: "all 0.1s",
-                color: "#e6c88b",
-                fontFamily: '"Cinzel", serif',
-            }}
-            onMouseDown={(e) => {
-                e.currentTarget.style.transform = "translateY(3px)";
-                e.currentTarget.style.boxShadow = "0 1px 0 #0f0a08, inset 0 2px 5px rgba(0,0,0,0.5)";
-            }}
-            onMouseUp={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)";
-            }}
+          onClick={() => store.setMenuOpen(true)}
+          style={{
+            position: "absolute",
+            top: "20px",
+            left: "20px",
+            zIndex: 1000,
+            cursor: "pointer",
+            background: "linear-gradient(to bottom, #2b2b2b, #0a0a0a)",
+            border: "2px solid #333",
+            borderTopColor: "#555",
+            borderBottomColor: "#000",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            boxShadow: "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            transition: "all 0.1s",
+            color: "#e6c88b",
+            fontFamily: '"Cinzel", serif',
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = "translateY(3px)";
+            e.currentTarget.style.boxShadow =
+              "0 1px 0 #0f0a08, inset 0 2px 5px rgba(0,0,0,0.5)";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)";
+          }}
         >
-            <GiHamburgerMenu size={24} color="#f1c40f" />
+          <GiHamburgerMenu size={24} color="#f1c40f" />
         </div>
 
         {/* 2. ระยะทาง  */}
-        <div style={{
-             position: "absolute",
-             top: "20px",
-             right: "20px",
-             zIndex: 1000,
-             background: "rgba(20, 14, 10, 0.9)",
-             border: "2px solid #5e4b35",
-             borderBottom: "4px solid #5e4b35",
-             borderRadius: "8px",
-             padding: "8px 20px",
-             display: "flex",
-             alignItems: "center",
-             gap: "12px",
-             boxShadow: "0 4px 10px rgba(0,0,0,0.6)"
-        }}>
-             <GiTatteredBanner size={28} color="#f1c40f" style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }} />
-             
-             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1 }}>
-                 <span style={{ 
-                     color: "#f1c40f", 
-                     fontWeight: "bold", 
-                     fontSize: "20px", 
-                     fontFamily: '"Cinzel", serif',
-                     textShadow: "0 2px 4px #000"
-                 }}>
-                     {Math.floor(store.distance)} 
-                 </span>
-                 <span style={{ 
-                     color: "#8c734b", 
-                     fontSize: "10px", 
-                     fontFamily: "sans-serif",
-                     textTransform: "uppercase",
-                     fontWeight: "bold",
-                     letterSpacing: "1px"
-                 }}>
-                     METERS
-                 </span>
-             </div>
+        <div
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            zIndex: 1000,
+            background: "rgba(20, 14, 10, 0.9)",
+            border: "2px solid #5e4b35",
+            borderBottom: "4px solid #5e4b35",
+            borderRadius: "8px",
+            padding: "8px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.6)",
+          }}
+        >
+          <GiTatteredBanner
+            size={28}
+            color="#f1c40f"
+            style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              lineHeight: 1,
+            }}
+          >
+            <span
+              style={{
+                color: "#f1c40f",
+                fontWeight: "bold",
+                fontSize: "20px",
+                fontFamily: '"Cinzel", serif',
+                textShadow: "0 2px 4px #000",
+              }}
+            >
+              {Math.floor(store.distance)}
+            </span>
+            <span
+              style={{
+                color: "#8c734b",
+                fontSize: "10px",
+                fontFamily: "sans-serif",
+                textTransform: "uppercase",
+                fontWeight: "bold",
+                letterSpacing: "1px",
+              }}
+            >
+              METERS
+            </span>
+          </div>
         </div>
 
         {/* 3. MENU OVERLAY (Pause Menu) */}
@@ -422,12 +451,15 @@ export default function GameApp() {
             backgroundRepeat: "repeat-x",
             backgroundSize: "auto 100%",
             backgroundPositionY: "bottom",
-            backgroundPositionX: `-${store.distance * 20}px`, 
+            backgroundPositionX: `-${store.distance * 20}px`,
           }}
         >
           {/* UI Elements */}
           <TurnQueueBar store={store} />
-          <DamagePopup popups={store.damagePopups} removePopup={store.removePopup} />
+          <DamagePopup
+            popups={store.damagePopups}
+            removePopup={store.removePopup}
+          />
           <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
           <BossHpBar boss={boss} />
 
@@ -471,7 +503,10 @@ export default function GameApp() {
           }}
         >
           {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
-            <QuizOverlay data={store.currentQuiz} onAnswer={store.resolveQuiz} />
+            <QuizOverlay
+              data={store.currentQuiz}
+              onAnswer={store.resolveQuiz}
+            />
           ) : showTargetPicker ? (
             <TargetPickerOverlay
               store={store}
@@ -492,9 +527,9 @@ export default function GameApp() {
                 gap: "12px",
               }}
             >
-              <PlayerStatusCard 
-                onHeal={handleHeal} 
-                onReroll={handlePotionRoll} 
+              <PlayerStatusCard
+                onHeal={handleHeal}
+                onReroll={handlePotionRoll}
               />
 
               <InventorySlot />

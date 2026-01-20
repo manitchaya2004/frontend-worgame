@@ -10,7 +10,6 @@ import {
 
 import { SearchComponent } from "../components/SearchComponent";
 import { useData } from "../hook/useData";
-import { Title } from "./AdvantureFeature/AdvantureFeature";
 import BackArrow from "../components/BackArrow";
 import { useLoadData } from "../../AuthPage/LoginPage/hook/useLoadData";
 import { Loading } from "../../../components/Loading/Loading";
@@ -260,7 +259,6 @@ const ShopSpellFeature = () => {
           padding: 2,
         }}
       >
-        <Title title="SHOP MARKET" />
         <Box sx={{ display: "flex", padding: 2, mt: 2 }}>
           <SearchAndFilterSection
             inputValue={inputValue}

@@ -7,13 +7,12 @@ import DetailItem from "./AdvantureDetail";
 import { THEMES } from "../../hook/const";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/Replay";
+import { useNavigate } from "react-router-dom";
 // --- Config Animation สำหรับ Slide ---
 const slideVariants = {
   enter: (direction) => ({
-    // เข้ามา: ถ้ากดขวา (1) เข้าจากขวา(700), ถ้ากดซ้าย (-1) เข้าจากซ้าย(-700)
     x: direction > 0 ? 700 : -700,
     opacity: 0,
-    // scale: 1, // ตัด scale ออกเพื่อให้เลื่อนแบบเรียบๆ
   }),
   center: {
     zIndex: 1,
@@ -23,10 +22,8 @@ const slideVariants = {
   },
   exit: (direction) => ({
     zIndex: 0,
-    // ออกไป: ถ้ากดขวา (1) ของเก่าไปซ้าย(-700), ถ้ากดซ้าย (-1) ของเก่าไปขวา(700)
     x: direction < 0 ? 700 : -700,
     opacity: 0,
-    // scale: 1,
     position: "absolute",
   }),
 };
@@ -38,7 +35,9 @@ const ListSection = memo(
     handleStageClick,
     changeCharacter,
     isEntering,
+    completedStageId,
   }) => {
+    const navigate = useNavigate();
     const [index, setIndex] = useState(initialIndex);
     const [direction, setDirection] = useState(0);
 
@@ -51,7 +50,9 @@ const ListSection = memo(
 
     const currentStage = sortedStages[index];
 
+    // ตัวกัน Slide ซ้ำ
     const isInitialized = useRef(false);
+    const hasAutoSlided = useRef(false);
 
     useEffect(() => {
       // เงื่อนไข: ถ้ายังไม่เคย Init และได้ค่า initialIndex มาแล้ว (ไม่ใช่ 0)
@@ -60,6 +61,40 @@ const ListSection = memo(
         isInitialized.current = true; // จำไว้ว่าทำแล้ว จะได้ไม่ทำซ้ำอีก
       }
     }, [initialIndex]); // เอา isEntering ออกจาก dependency เพื่อกันเหนียว
+
+    useEffect(() => {
+      const isTargetStage =
+        currentStage && currentStage.id === completedStageId;
+      // เงื่อนไข: มี ID เพิ่งจบ + เป็นด่านที่แสดงอยู่ + ยังไม่เคย Slide + ไม่ได้กำลังเข้าเกม
+      if (
+        completedStageId &&
+        isTargetStage &&
+        !hasAutoSlided.current &&
+        !isEntering
+      ) {
+        const timer = setTimeout(() => {
+          // ถ้ามีด่านถัดไป ให้เลื่อน
+          if (index < sortedStages.length - 1) {
+            paginate(1);
+          }
+
+          hasAutoSlided.current = true; // ล็อกไม่ให้ทำซ้ำ
+
+          // 🧹 ล้าง State ทิ้ง เพื่อไม่ให้รีเฟรชแล้วทำอีก
+          navigate(location.pathname, { replace: true, state: {} });
+        }, 1500); // รอ 1.5 วินาที (ให้ Stamp โชว์ก่อนค่อยเลื่อน)
+
+        return () => clearTimeout(timer);
+      }
+    }, [
+      completedStageId,
+      index,
+      sortedStages.length,
+      isEntering,
+      navigate,
+      location.pathname,
+      currentStage,
+    ]);
 
     // เช็ค Completed
     const isCompleted = useMemo(() => {
@@ -170,6 +205,7 @@ const ListSection = memo(
                   isCompleted={isCompleted}
                   onStartClick={() => handleStageClick(currentStage?.id)}
                   onChangeCharClick={changeCharacter}
+                  isJustCompleted={currentStage.id === completedStageId}
                 />
               </motion.div>
             </AnimatePresence>

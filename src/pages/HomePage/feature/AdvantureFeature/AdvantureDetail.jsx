@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Box, Typography, IconButton, Button } from "@mui/material";
 import { motion } from "framer-motion";
-import { usePreloadFrames, LoadImage } from "../../hook/usePreloadFrams";
+import {
+  usePreloadFrames,
+  LoadImage,
+  preloadImage,
+} from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { backgroundStage, name } from "../../hook/const";
 import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew"; // ไอคอนสำหรับเปลี่ยนตัว
@@ -86,14 +90,20 @@ const stampStyle = {
   pointerEvents: "none",
 };
 
+// ⭐ Animation Definition
+const stampVariants = {
+  start: { opacity: 0, scale: 2, rotate: -30 }, // ท่าเริ่มกระแทก (แบบที่คุณชอบ)
+  end: { opacity: 1, scale: 1, rotate: -5 },
+};
+
 const DetailItem = ({
   stage,
   currentUser,
   isEntering,
-  // รับ Props เพิ่มเพื่อจัดการปุ่มภายใน
   onStartClick,
   onChangeCharClick,
   isCompleted,
+  isJustCompleted,
 }) => {
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
@@ -102,8 +112,9 @@ const DetailItem = ({
   const frame = useIdleFrame(frames.length, 200);
 
   const [isLanded, setIsLanded] = useState(false);
-
   const isGrayscale = isCompleted && !isEntering;
+
+  console.log("stages in detail", stage);
 
   useEffect(() => {
     let timer;
@@ -136,7 +147,7 @@ const DetailItem = ({
             justifyContent: "center",
             position: "absolute",
             inset: 0,
-            backgroundImage: `url(${backgroundStage()})`,
+            backgroundImage: `url(${backgroundStage(stage.id)})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             zIndex: 0, // อยู่ล่างสุด
@@ -263,8 +274,8 @@ const DetailItem = ({
               onClick={onChangeCharClick}
               sx={{
                 position: "absolute",
-                top: 16,
-                right: 16,
+                bottom: 15,
+                right: 30,
                 zIndex: 25,
                 backgroundColor: "rgba(43, 29, 20, 0.9)", // bgMain แบบใสๆ
                 border: `2px solid ${THEMES.accent}`, // ขอบสีทอง
@@ -299,9 +310,11 @@ const DetailItem = ({
             alt="character"
             initial={{ y: 0, x: 0 }}
             animate={
-              isEntering
-                ? { y: [0, -150, 0, 0], x: [0, 0, 0, 1000] }
-                : { y: [0, -2, 0] }
+              isCompleted
+                ? false
+                : isEntering
+                  ? { y: [0, -150, 0, 0], x: [0, 0, 0, 1000] }
+                  : { y: [0, -2, 0] }
             }
             transition={
               isEntering
@@ -310,11 +323,13 @@ const DetailItem = ({
             }
             style={{
               position: "relative",
-              top: 65, // ขยับตัวละครขึ้นนิดนึง เพื่อเปิดทางให้ปุ่ม Start ด้านล่าง
+              top: 70, // ขยับตัวละครขึ้นนิดนึง เพื่อเปิดทางให้ปุ่ม Start ด้านล่าง
               transform: "translateX(-50%)",
               height: "55%",
               imageRendering: "pixelated",
-              filter: "drop-shadow(0 6px 6px rgba(255, 255, 255, 0.6))",
+              filter: isCompleted
+                ? null
+                : "drop-shadow(0 6px 6px rgba(255, 255, 255, 0.6))",
               zIndex: 4,
             }}
           />
@@ -336,52 +351,13 @@ const DetailItem = ({
               }}
             />
           )}
-
-          {/* ⭐ NEW: Start Game Button (Bottom Center)
-        {!isEntering && !isCompleted && (
-          <motion.div
-            animate={{ scale: [1, 1.05, 1] }} // Animation ปุ่มเต้นตุบๆ
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            style={{
-              position: "absolute",
-              bottom: 10,
-              left: "50%",
-              translateX: "-50%",
-              zIndex: 10,
-              transform: "translateX(-50%)", // Fix center
-            }}
-          >
-            <Button
-              onClick={onStartClick}
-              startIcon={<PlayArrowIcon />}
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                fontSize: "16px",
-                color: "#fff",
-                backgroundColor: "#43a047", // ยังคงสีเขียวไว้ เพื่อให้เด่นสุด (Call to Action)
-                border: "3px solid #1b5e20",
-                borderRadius: "12px",
-                px: 5,
-                py: 1.5,
-                boxShadow: "0 6px 0 #1b5e20, 0 10px 10px rgba(0,0,0,0.4)",
-                "&:hover": {
-                  backgroundColor: "#66bb6a",
-                  transform: "translateY(2px)",
-                  boxShadow: "0 4px 0 #1b5e20",
-                },
-                "&:active": { transform: "translateY(6px)", boxShadow: "none" },
-              }}
-            >
-              START
-            </Button>
-          </motion.div>
-        )} */}
         </Box>
       </Box>
       {/* Completed Text (ถ้าผ่านแล้ว) */}
       {/* ⭐ STAMP COMPLETED (อยู่นอก Box ที่เป็น Grayscale เพื่อให้สีสดใส) */}
       {isCompleted && !isEntering && (
         <motion.div
+          variants={stampVariants}
           initial={{ opacity: 0, scale: 2, rotate: -30 }}
           animate={{ opacity: 1, scale: 1, rotate: -5 }} // หมุน -15 องศา
           transition={{

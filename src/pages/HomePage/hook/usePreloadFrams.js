@@ -56,3 +56,16 @@ export const LoadImage = (name = "img_monster", Id, i) => {
 //     }
 //     return `${API_URL}/${name}/${id}-${action}-${frame}.png`;
 // }
+
+export const preloadImage = (src) => {
+  const img = new Image();
+  img.src = src;
+};
+
+export const preloadImageAsync = (src) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = resolve;
+    img.onerror = resolve; // กันค้าง
+  });
