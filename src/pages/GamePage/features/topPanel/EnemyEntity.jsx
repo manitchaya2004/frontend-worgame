@@ -8,7 +8,7 @@ import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 export const EnemyEntity = ({
   enemy,
   index,
-  animFrame, // รับค่ามา (จะเป็น 0, 1 หรือ 1, 2 ก็ได้ เดี๋ยวสูตรข้างล่างจัดการให้)
+  animFrame, 
   isTargeted,
   gameState,
   onSelect,
@@ -99,7 +99,7 @@ export const EnemyEntity = ({
       }}
     >
       {/* --- HUD --- */}
-      {enemy.hp > 0 && !isBoss && (
+      {enemy.hp > 0 && (
         <div
           style={{
             position: "absolute",
@@ -155,11 +155,12 @@ export const EnemyEntity = ({
 
           <div
             style={{
-              marginBottom: "10px",
+              marginBottom: isBoss ?"200px":"10px",
               height: "20px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              zIndex: 100000,
             }}
           >
             <ShoutBubble text={enemy.shoutText} />
@@ -178,7 +179,9 @@ export const EnemyEntity = ({
               alignItems: "center",
             }}
           >
-            <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
+            
+            {!isBoss&& (<>
+              <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
             <div
               style={{
                 position: "absolute",
@@ -216,6 +219,7 @@ export const EnemyEntity = ({
                 {enemy.shield || 0}
               </span>
             </div>
+            </>)}
           </div>
         </div>
       )}

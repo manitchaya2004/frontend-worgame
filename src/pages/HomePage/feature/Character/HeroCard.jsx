@@ -13,7 +13,6 @@ import correct from "../../../../assets/icons/correct.png";
 import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
 import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
-import backpackIcon from "../../../../assets/icons/bag.png"; // Slot (ใช้รูปกระเป๋าที่มี หรือใช้ Inventory2Icon ก็ได้)
 import AutorenewIcon from "@mui/icons-material/Autorenew"; // Spin
 import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
 

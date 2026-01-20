@@ -25,7 +25,7 @@ export const BossHpBar = ({ boss }) => {
       <div
         style={{
           position: "absolute",
-          top: "-20px",                // 👈 ลอยอยู่เหนือหลอด
+          top: "-20px",            
           left: "50%",
           transform: "translateX(-50%)",
           fontSize: "14px",

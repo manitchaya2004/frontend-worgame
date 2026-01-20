@@ -26,12 +26,11 @@ export const TargetPickerOverlay = ({
   onClose,
   onSelectTarget,
 }) => {
-  // ⭐ เรียงศัตรูตามตำแหน่งในฉาก (ซ้าย → ขวา)
+  // เรียงศัตรูตามตำแหน่งในฉาก (ซ้าย → ขวา)
   const sortedEnemies = [...store.enemies]
     .filter((e) => e.hp > 0)
     .sort((a, b) => a.x - b.x);
 
-  // ✅ เคลียร์ hover ตอน overlay ถูกถอด
   useEffect(() => {
     return () => {
       store.setHoveredEnemyId(null);
@@ -51,7 +50,6 @@ export const TargetPickerOverlay = ({
         zIndex: 10,
         width: "100%",
       }}
-      // 🔥 FIX หลัก: เช็คเมาส์ทุกครั้งที่ขยับ
       onPointerMove={(e) => {
         const el = document.elementFromPoint(e.clientX, e.clientY);
 

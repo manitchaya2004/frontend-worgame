@@ -35,10 +35,10 @@ export const PlayerEntity = ({ store }) => {
 
     // เช็คว่า Store สั่งเลขเฟรมมาด้วยไหม? (เช่น -1, -2)
     if (split[1]) {
-      // ✅ ถ้ามีเลข: Store สั่งล็อคเฟรมนี้ (เช่น attack-1 ก็ต้องโชว์เฟรม 1)
+      // ถ้ามีเลข: Store สั่งล็อคเฟรมนี้ (เช่น attack-1 ก็ต้องโชว์เฟรม 1)
       targetFrame = parseInt(split[1]);
     } else {
-      // ❌ ถ้าไม่มีเลข: ให้ขยับตามจังหวะชีพจรเกม (animFrame)
+      // ถ้าไม่มีเลข: ให้ขยับตามจังหวะชีพจรเกม (animFrame)
       targetFrame = animFrame;
     }
   }

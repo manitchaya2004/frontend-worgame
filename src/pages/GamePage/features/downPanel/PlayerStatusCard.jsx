@@ -70,7 +70,6 @@ const PotionSlot = ({ icon, count, color, label, onClick }) => {
   );
 };
 
-// ✅ เพิ่ม onHeal, onReroll ใน Props
 export const PlayerStatusCard = ({ onHeal, onReroll }) => {
   const store = useGameStore();
   const { playerData } = store;
@@ -158,7 +157,7 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
             gap: "10px", 
         }}
       >
-        {/* ✅ ผูก onClick กับ onHeal */}
+        {/* ผูก onClick กับ onHeal */}
         <PotionSlot 
             label="HEAL"
             icon={<GiHealthPotion />} 
@@ -176,7 +175,7 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
             onClick={() => console.log("Use Buff")}
         />
 
-        {/* ✅ ผูก onClick กับ onReroll */}
+        {/* ผูก onClick กับ onReroll */}
         <PotionSlot 
             label="ROLL"
             icon={<GiMagicPotion />} 

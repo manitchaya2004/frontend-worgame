@@ -22,7 +22,7 @@ export const Tooltip = ({ target }) => {
     <div
       style={{
         position: "absolute",
-        left: `${target.x}%`, // ใช้ค่า X จาก target ที่ส่งมา
+        left: `${target.x}%`, 
         top: topPos,
         transform: "translate(-50%, -100%)",
         zIndex: 9999,
@@ -35,7 +35,7 @@ export const Tooltip = ({ target }) => {
         src={arrowImg}
         alt="tooltip-arrow"
         style={{
-          width: "24px",  // ปรับขนาดให้เห็นชัดขึ้นเล็กน้อย
+          width: "24px",  
           height: "24px",
           imageRendering: "pixelated",
         }}
