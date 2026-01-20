@@ -19,12 +19,13 @@ import LibraryFeature from "./HomePage/feature/LibraryFeature";
 import ShopHeroFeature from "./HomePage/feature/Character/ShopHeroFeature.jsx";
 import AdminPage from "./AdminPage/AdminPage.jsx";
 import SelectHero from "./CharacterPage/SelectHero.jsx";
+import SummaryPage from "./SummaryPage/summaryPage.jsx";
 // import ItemShopFeature from "./HomePage/feature/ItemShopFeature.jsx";
 // import ProfileFeature  from "./HomePage/feature/ProfileFeature/ProfileFeature .jsx";
 // import NotFoundPage from "./NotFoundPage";
 export default function App() {
   const authLoading = useAuthStore((state) => state.authLoading);
-  const checkAuth = useAuthStore((state)=>state.checkAuth);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
 
   // เช็ค auth ตอนเปิดเว็บ
   useEffect(() => {
@@ -47,20 +48,20 @@ export default function App() {
 
       {/* private (player)*/}
       <Route element={<PrivateRoute />}>
-        <Route path="/select-hero" element={<SelectHero/>}/>
+        <Route path="/select-hero" element={<SelectHero />} />
         <Route path="/home" element={<HomePage />}>
-          <Route index element={<HomeLobbyLayout />} />
+          <Route index element={<AdvantureFeature />} />
+          <Route path="/home/character" element={<ShopHeroFeature />} />
+          <Route
+            path="/home/dictionary"
+            element={<DictionaryLibrary />}
+          />
+          <Route path="/home/monster" element={<MonsterLibrary />} />
         </Route>
         {/* <Route path="/home/bag-inventory" element={<ProfileFeature />}/> */}
-        <Route path="/home/adventure" element={<AdvantureFeature />} />
+        {/* <Route path="/home/library" element={<LibraryFeature />} /> */}
         {/* <Route path="/home/item-shop" element={<ItemShopFeature />} /> */}
-        <Route path="/home/character" element={<ShopHeroFeature/>}/>
-        <Route path="/home/library" element={<LibraryFeature />} />
-        <Route
-          path="/home/library/dictionary"
-          element={<DictionaryLibrary />}
-        />
-        <Route path="/home/library/monster" element={<MonsterLibrary />} />
+        <Route path="/summary" element={<SummaryPage/>}/>
         <Route path="/battle" element={<GamePage />} />
       </Route>
 

@@ -565,8 +565,7 @@ const MonsterLibrary = () => {
 
   return (
     <Box sx={{ m: 2 }}>
-      <StarBackground />
-      <BackArrow onClick={() => navigate("/home/library")} />
+      {/* <StarBackground /> */}
 
       <MotionBox
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
@@ -574,7 +573,7 @@ const MonsterLibrary = () => {
         transition={{ duration: 0.5, type: "spring" }}
         sx={{
           position: "fixed",
-          top: "50%",
+          top: "55%",
           left: "50%",
           transform: "translate(-50%, -50%)",
 

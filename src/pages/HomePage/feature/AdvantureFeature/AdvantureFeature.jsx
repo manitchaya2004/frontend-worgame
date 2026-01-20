@@ -90,14 +90,14 @@ const AdvantureFeature = () => {
     setSelectedStage(stage);
     setIsEntering(true);
 
-    // setTimeout(() => {
-    //   navigate("/battle", {
-    //     state: {
-    //       currentUser: currentUser,
-    //       selectedStage: stage,
-    //     },
-    //   });
-    // }, 2500);
+    setTimeout(() => {
+      navigate("/battle", {
+        state: {
+          currentUser: currentUser,
+          selectedStage: stage,
+        },
+      });
+    }, 2500);
   };
 
   const handleConfirmStage = () => {
@@ -210,10 +210,6 @@ const AdvantureFeature = () => {
 
   return (
     <Box sx={{ display: "flex" }}>
-      
-      {/* <BackArrow onClick={() => navigate("/home")} /> */}
-      <GameAppBar />
-      <StarBackground />
       <MotionBox
         initial={false}
         animate={{
@@ -228,7 +224,7 @@ const AdvantureFeature = () => {
         }}
         sx={{
           position: "fixed",
-          top: "52%",
+          top: "55%",
           left: "50%",
           transform: "translate(-50%, -50%)",
 
@@ -248,16 +244,6 @@ const AdvantureFeature = () => {
         }}
       >
         {/* <Title title="ADVENTURE" /> */}
-        <Box
-          sx={{
-            position: "absolute",
-            left: 16,
-            top: "6%",
-            transform: "translateY(-50%)",
-          }}
-        >
-          <BackArrow onClick={() => navigate("/home")} />
-        </Box>
         {/* Header Title */}
         <Box
           sx={{

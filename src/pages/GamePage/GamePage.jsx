@@ -142,7 +142,7 @@ export default function GameApp() {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     if (store.isBgmOn) store.toggleBgm();
     
-    navigate("/home/adventure");
+    navigate("/home");
 
     setTimeout(() => {
       store.reset();

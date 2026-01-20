@@ -2,7 +2,7 @@ import { Box } from "@mui/material";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 
-const STAR_COUNT = 70;
+const STAR_COUNT = 140;
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export default function StarBackground() {

@@ -57,14 +57,13 @@ const ShopHeroFeature = () => {
   console.log(heros);
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <GameAppBar />
-      <StarBackground />
+    <>
+     
       <Box sx={{ mt: 2 }}>
         <Box
           sx={{
             position: "fixed",
-            top: "53%",
+            top: "55%",
             left: "50%",
             transform: "translate(-50%, -50%)",
 
@@ -77,7 +76,7 @@ const ShopHeroFeature = () => {
             0 20px 60px rgba(0,0,0,0.8)
           `,
             width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
-            height: "580px",
+            height: "570px",
             p: 1,
             display: "flex",
             flexDirection: "column",
@@ -96,17 +95,6 @@ const ShopHeroFeature = () => {
               borderBottom: `4px solid ${THEME.brownLight}`,
             }}
           >
-            {/* Arrow ริมกรอบ */}
-            <Box
-              sx={{
-                position: "absolute",
-                left: 16,
-                top: "50%",
-                transform: "translateY(-50%)",
-              }}
-            >
-              <BackArrow onClick={handleBack} />
-            </Box>
 
             {/* Title กลางจริง */}
             <Typography
@@ -196,7 +184,7 @@ const ShopHeroFeature = () => {
           </Box>
         </Box>
       </Box>
-    </Box>
+    </>
   );
 };
 export default ShopHeroFeature;

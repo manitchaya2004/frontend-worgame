@@ -5,11 +5,12 @@ import { useDictionaryStore } from "../../../../../store/useDictionaryStore";
 import { SearchDictionary } from "./SearchDictionary";
 import { useData } from "../../../hook/useData";
 import { SelectComponent } from "../../../components/SelectComponent";
-import BackArrow from "../../../components/BackArrow";
+import { motion } from "framer-motion";
 import StarBackground from "../../../components/StarBackground";
-import { THEME } from "../../../hook/const";
-const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+import { THEMES } from "../../../hook/const";
 
+const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const MotionBox = motion(Box);
 const shortType = (type) => {
   if (!type) return "";
   switch (type) {
@@ -418,44 +419,48 @@ const DictionaryLibrary = () => {
 
   return (
     <Box sx={{ m: 2 }}>
-      <StarBackground />
-      <BackArrow onClick={() => navigate("/home/library")} />
-      <Box
+      <MotionBox
+        initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
+        animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+        transition={{ duration: 0.5, type: "spring" }}
         sx={{
           position: "fixed",
-          top: "50%",
+          top: "55%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          paddingTop: 6, // เผื่อหัว
-          background: "linear-gradient(#7b4a3b, #5a3328)",
-          border: "6px solid #7a1f1f",
+
+          background: `linear-gradient(${THEMES.bgMain}, #1a120b)`,
+          border: `8px solid ${THEMES.border}`,
+          borderRadius: "12px",
           boxShadow: `
-    inset 0 0 0 3px #d6b46a,
-    0 0 20px rgba(180,40,40,0.5),
-    0 20px 40px rgba(0,0,0,0.8)
-  `,
+            0 0 0 4px #1a120b,
+            0 20px 60px rgba(49, 49, 49, 0.8)
+          `,
           width: { xs: "90vw", sm: "90%", md: "70%" },
-          height: "550px",
-          padding: 2,
-          mt: 1.5,
+          height: "570px",
+          p: 1,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         {/* Title */}
         <Box
           sx={{
-            mt: 2,
+            py: 2,
+            textAlign: "center",
+            background: "#1a120b",
+            mx: -1,
+            mt: -1,
             mb: 2,
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            borderBottom: `4px solid ${THEMES.border}`,
           }}
         >
           <Typography
             sx={{
               fontFamily: "'Press Start 2P'",
-              color: "#fffbe6",
-              fontSize: { xs: 20, md: 28 },
+              color: THEMES.accent,
+              fontSize: { xs: 16, md: 24 },
+              textShadow: `3px 3px 0 #000, 0 0 10px ${THEMES.accent}`,
             }}
           >
             Dictionary Library
@@ -571,7 +576,7 @@ const DictionaryLibrary = () => {
             <WordDetail dictionary={selectedWord} />
           </Box>
         </Box>
-      </Box>
+      </MotionBox>
     </Box>
   );
 };
