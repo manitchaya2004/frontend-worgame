@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { getLetterDamage } from "../../../../const/letterValues";
+// ❌ ลบ import getLetterDamage ออก
 import {
   GiBroadsword,
   GiShield,
@@ -13,40 +13,30 @@ import { useGameStore } from "../../../../store/useGameStore";
    Helper Functions 
 ========================= */
 
-const calculateRawValue = (word, strMod) => {
+// ✅ สร้าง Helper function ไว้ใช้คำนวณ Preview ในนี้
+const getLetterDamage = (char, powerMap) => {
+  if (!char || !powerMap) return 0;
+  const upperChar = char.toUpperCase();
+  const value = powerMap[upperChar];
+  return value !== undefined ? Number(value) : 0;
+};
+
+const calculateRawValue = (word, powerMap) => {
   if (!word) return 0;
   return word
     .split("")
-    .reduce((acc, char) => acc + getLetterDamage(char, strMod), 0);
+    .reduce((acc, char) => acc + getLetterDamage(char, powerMap), 0);
 };
 
 const formatSubLabel = (
   type,
-  lowValue,
-  highValue,
-  highChance,
+  value,
 ) => {
-  if (lowValue === highValue || highChance <= 0) {
-    return ( <>
-      <span style={{ fontSize: "11px", fontWeight: "bold" }}>
-        <span style={{color: type === "DMG" ? "#ff7675" : "#74b9ff"}}>{type}: </span>
-        <span style={{color: "#eae133" }}>
-          {lowValue}
-        </span>
-      </span>
-      </>
-    );
-  }
-
   return (
     <span style={{ fontSize: "11px", fontWeight: "bold" }}>
       <span style={{color: type === "DMG" ? "#ff7675" : "#74b9ff"}}>{type}: </span>
       <span style={{color: "#eae133" }}>
-        {lowValue}
-      </span>
-      <span style={{color: "#aaa" }}>-</span>
-      <span style={{color: "#eae133" }}>
-        {highValue}
+        {value}
       </span>
     </span>
   );
@@ -165,20 +155,9 @@ export const ActionControls = ({
 
   const wordText = validWordInfo?.word || "";
 
-  const rawDmg = calculateRawValue(wordText, playerData.atk);
-  const rawDef = calculateRawValue(wordText, playerData.atk);
-
-  const getChance = (val) => {
-    const decimal = val % 1;
-    if (decimal === 0) return 0;
-    return Math.min(100, Math.round((decimal) * 100));
-  };
-
-  const dmgChanceHigh = getChance(rawDmg);
-  const dmgChanceLow = 100 - dmgChanceHigh;
-
-  const defChanceHigh = getChance(rawDef);
-  const defChanceLow = 100 - defChanceHigh;
+  // ✅ เปลี่ยนจาก atk เป็น power
+  const rawDmg = calculateRawValue(wordText, playerData.power);
+  const rawDef = calculateRawValue(wordText, playerData.power);
 
   return (
     <div
@@ -234,10 +213,7 @@ export const ActionControls = ({
             hasWord
               ? formatSubLabel(
                   "DMG",
-                  Math.floor(rawDmg),
-                  dmgChanceLow,
-                  Math.ceil(rawDmg),
-                  dmgChanceHigh
+                  rawDmg,
                 )
               : null
           }
@@ -254,12 +230,7 @@ export const ActionControls = ({
             hasWord
               ? formatSubLabel(
                   "DEF",
-                  Math.floor(rawDef),
-                  defChanceLow,
-                  Math.ceil(rawDef),
-                  defChanceHigh,
-                  "#4facfe",
-                  "#aaa"
+                  rawDef,
                 )
               : null
           }
@@ -272,14 +243,7 @@ export const ActionControls = ({
         <FantasyListButton
           label="REROLL" 
           icon={<GiRollingDices />}
-          subLabel={
-             <span style={{ fontSize: "11px", color: "#aaa" }}>
-                COST: <span style={{color: playerData.rp > 0 ? "#f1c40f" : "#555"}}>{playerData.rp > 0 ? "1 RP" : "NO RP"}</span>
-             </span>
-          }
           color="#f1c40f"
-          disabled={!isPlayerTurn || playerData.rp <= 0}
-          highlight={isPlayerTurn && playerData.rp > 0}
           onClick={onSpinClick}
         />
         {/* PASS BUTTON */}

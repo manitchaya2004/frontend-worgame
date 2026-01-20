@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { PLAYER_X_POS, FIXED_Y, ipAddress } from "../const/index";
-import { getLetterDamage } from "../const/letterValues";
 import { sfx, bgm } from "../utils/sfx";
 import { DeckManager, WordSystem } from "../utils/gameSystem";
 
@@ -15,6 +14,15 @@ const chanceRound = (val, luckBonus = 0) => {
   const decimal = val - floor;
   const luckFactor = luckBonus * 0.02;
   return Math.random() < decimal + luckFactor ? floor + 1 : floor;
+};
+
+// ฟังก์ชันคำนวณดาเมจจากตัวอักษร โดยใช้ Power Map ของผู้เล่น
+const getLetterDamage = (char, powerMap) => {
+  if (!char || !powerMap) return 0;
+  const upperChar = char.toUpperCase();
+  const value = powerMap[upperChar];
+  // ถ้าหาค่าไม่เจอให้เป็น 0
+  return value !== undefined ? Number(value) : 0;
 };
 
 // ============================================================================
@@ -67,7 +75,6 @@ export const useGameStore = create((set, get) => ({
   wordLog: {},
 
   distance: 0,
-  coin: 0,
   currentEventIndex: 0,
 
   animTimer: 0,
@@ -86,26 +93,25 @@ export const useGameStore = create((set, get) => ({
 
   username: "",
   currentCoin: 0,
+  receivedCoin: 0,
   
   playerX: PLAYER_X_POS,
   playerShoutText: "",
   playerVisual: "idle",
   animFrame: 1,
   selectedLetters: [],
+  
   playerData: {
     name: "Hero",
     level: 1,
     next_exp: 0,
     exp: 0,
-    max_hp: 0,
-    hp: 0,
-    atk: 0,
+    max_hp: 0, hp: 0,
+    power: {}, // เก็บ Object Power Stat ({A: 1, B: 0.5...})
     shield: 0,
-    max_rp: 0,
-    rp: 0,
     speed: 0,
     unlockedSlots: 0,
-    potions: { health: 5, reroll: 2 },
+    potions: { health: 1, cure: 1, reroll: 1 },
     inventory: [],
   },
 
@@ -252,19 +258,25 @@ export const useGameStore = create((set, get) => ({
       }
 
       if (selectedHero) {
+        const { stats } = selectedHero;
+
         set((state) => ({
           playerData: {
             ...state.playerData,
-            name: selectedHero.hero_id,
+            name: selectedHero.name,
             level: selectedHero.level,
-            next_exp: selectedHero.next_exp,
-            exp: selectedHero.current_exp,
-            max_hp: selectedHero.hp,
-            hp: selectedHero.hp,
-            atk: selectedHero.power,
-            speed: selectedHero.speed,
-            unlockedSlots: selectedHero.slot,
-            max_rp: selectedHero.spin_point,
+            next_exp: selectedHero.next_exp || 100,
+            exp: 0,
+            
+            // ใช้ค่า Stat จริงจาก backend
+            max_hp: stats?.hp || 20,
+            hp: stats?.hp || 20,
+            
+            // เก็บ Object Power ลงใน playerData.power
+            power: stats?.power || {},
+            
+            speed: stats?.speed || 3,
+            unlockedSlots: stats?.slot || 5,
           },
         }));
       }
@@ -279,8 +291,8 @@ export const useGameStore = create((set, get) => ({
       const stageRes = await fetch(`${ipAddress}/getStageById/${stageId}`);
       const stageData = await stageRes.json();
 
-      console.log("stageData")
-      console.log(stageData)
+      console.log("stageData");
+      console.log(stageData);
 
       set({ loadingProgress: 75 });
       DeckManager.init();
@@ -302,7 +314,7 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  // 🔥 UPDATE LOOP (แก้ไข Logic เดินออกฉาก)
+  // 🔥 UPDATE LOOP
   update: (dt) =>
     set((state) => {
       let updates = {};
@@ -331,10 +343,10 @@ export const useGameStore = create((set, get) => ({
            const nextX = state.playerX + (dt * walkOutSpeed);
            updates.playerX = nextX;
 
-           // C. เช็คว่าเดินพ้นจอหรือยัง (สมมติจอ 1500px)
-           if (nextX > 2000) {
-              get().finishStage(); // จบเกมจริงๆ
-              return updates;
+           // C. เช็คว่าเดินพ้นจอหรือยัง (สมมติจอ 1200px)
+           if (nextX > 1200) {
+             get().finishStage(); // จบเกมจริงๆ
+             return updates;
            }
 
         } else {
@@ -377,7 +389,7 @@ export const useGameStore = create((set, get) => ({
     set({
       gameState: "ADVANTURE",
       currentEventIndex: 0,
-      coin: 0,
+      receivedCoin: 0,
       selectedLetters: [],
       validWordInfo: null,
       playerData: {
@@ -423,7 +435,6 @@ export const useGameStore = create((set, get) => ({
       enemies: enemiesWithPos,
       playerData: {
         ...store.playerData,
-        rp: store.playerData.max_rp,
         inventory: loot,
       },
     });
@@ -614,7 +625,7 @@ export const useGameStore = create((set, get) => ({
     get().processNextTurn();
   },
 
-  // 🔥 HANDLE WAVE CLEAR (แก้ไข: ไม่จบเกมที่นี่ ให้แค่วิ่งต่อ)
+  // 🔥 HANDLE WAVE CLEAR
   handleWaveClear: async () => {
     const store = get();
     set({ gameState: "WAVE_CLEARED", playerShoutText: "Victory!" });
@@ -640,7 +651,7 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  // 🔥 FINISH STAGE (NEW: ฟังก์ชันจบเกมใหม่ เรียกเมื่อเดินพ้นจอ)
+  // 🔥 FINISH STAGE
   finishStage: async () => {
       const store = get();
       if (store.gameState === "LOADING" || store.gameState === "GAME_CLEARED") return; // กันเรียกซ้ำ
@@ -650,7 +661,7 @@ export const useGameStore = create((set, get) => ({
       
       try {
         const token = localStorage.getItem("token");
-        const totalMoney = (store.currentCoin || 0) + (store.coin || 0);
+        const totalMoney = (store.currentCoin || 0) + (store.receivedCoin || 0);
         const currentStageId = store.stageData.id;
 
         const headers = {
@@ -677,8 +688,8 @@ export const useGameStore = create((set, get) => ({
 
         set({
           currentCoin: totalMoney,
-          coin: 0,
-          gameState: "GAME_CLEARED", // สถานะชนะ
+          receivedCoin: 0,
+          gameState: "GAME_CLEARED", 
           enemies: [],
           playerShoutText: "All Clear!",
         });
@@ -707,7 +718,6 @@ export const useGameStore = create((set, get) => ({
       playerVisual: "idle",
       playerData: {
         ...s.playerData,
-        rp: s.playerData.max_rp,
         inventory: newInventory,
       },
     }));
@@ -716,10 +726,10 @@ export const useGameStore = create((set, get) => ({
   performPlayerAction: async (actionType, word, targetId, usedIndices) => {
     const store = get();
     
-    // 1. คำนวณ Damage ก่อน เพื่อให้เอาไปใช้ใน Log ได้
+    // 1. คำนวณ Damage โดยใช้ getLetterDamage และ playerData.power
     let totalDmgRaw = 0;
     for (let char of word)
-      totalDmgRaw += getLetterDamage(char, store.playerData.atk);
+      totalDmgRaw += getLetterDamage(char, store.playerData.power);
     const totalDmg = chanceRound(totalDmgRaw); 
 
     // 2. LOGGING LOGIC
@@ -840,11 +850,9 @@ export const useGameStore = create((set, get) => ({
 
   actionSpin: async (newInventory) => {
     const store = get();
-    if (store.playerData.rp < 1) return;
     set((s) => ({
       playerData: {
         ...s.playerData,
-        rp: s.playerData.max_rp - 1,
         inventory: newInventory,
       },
       playerShoutText: "SPIN!",
@@ -892,7 +900,7 @@ export const useGameStore = create((set, get) => ({
 
     if (newHp <= 0) {
       set((state) => ({
-        coin: state.coin + (target.exp || 0),
+        receivedCoin: state.receivedCoin + (target.exp || 0),
       }));
     }
   },
