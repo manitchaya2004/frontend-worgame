@@ -34,7 +34,7 @@ import { GameMenu } from "./features/TopPanel/Menu";
 // --- Components: System Views ---
 import LoadingView from "../../components/LoadingView";
 import LoadingScreen from "../../components/Loading/LoadingPage";
-import ErrorView from "../../components/ErrorView";
+import ErrorView from "../../components/Loading/ErrorView";
 
 export default function GameApp() {
   // --------------------------------------------------------------------------
@@ -134,7 +134,7 @@ export default function GameApp() {
         state: {
           result: "WIN",
           earnedCoins: store.receivedCoin, // ได้เงินเต็ม
-          stageCoins: store.stageData?.id ? 0 : store.stageData?.money_reward,
+          stageCoins: isReplay ? 0 : store.stageData?.money_reward,
           wordLog: store.wordLog, // ส่ง Log คำศัพท์ไปด้วย
         },
       });
