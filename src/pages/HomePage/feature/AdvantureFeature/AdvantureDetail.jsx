@@ -114,8 +114,6 @@ const DetailItem = ({
   const [isLanded, setIsLanded] = useState(false);
   const isGrayscale = isCompleted && !isEntering;
 
-  console.log("stages in detail", stage);
-
   useEffect(() => {
     let timer;
     if (isEntering) {
@@ -310,11 +308,11 @@ const DetailItem = ({
             alt="character"
             initial={{ y: 0, x: 0 }}
             animate={
-              isCompleted
-                ? false
-                : isEntering
-                  ? { y: [0, -150, 0, 0], x: [0, 0, 0, 1000] }
-                  : { y: [0, -2, 0] }
+              isEntering
+                ? { y: [0, -150, 0, 0], x: [0, 0, 0, 1000] } // 1. ถ้ากำลังเข้าเกม (ไม่ว่าจะ Start หรือ Play Again) ให้วิ่ง
+                : isCompleted
+                  ? false // 2. ถ้าไม่ได้เข้าเกม และด่านจบแล้ว ให้นิ่ง
+                  : { y: [0, -2, 0] } // 3. ถ้าด่านยังไม่จบ ให้เด้งดุ๊กดิ๊ก
             }
             transition={
               isEntering
