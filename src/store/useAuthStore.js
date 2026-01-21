@@ -11,7 +11,7 @@ export const useAuthStore = create(
       selectHeroState: INITIALIZED,
       buyHeroState: INITIALIZED,
       buyHeroError: null,
-      
+
       authLoading: true,
       isAuthenticated: false,
       isFirstTime: false,
@@ -147,6 +147,31 @@ export const useAuthStore = create(
             isAuthenticated: false,
             currentUser: null,
           });
+        }
+      },
+
+      /* ===== REFRESH USER DATA (แบบเงียบ ไม่หมุนติ้ว) ===== */
+      refreshUser: async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return; // ถ้าไม่มี token ก็ช่างมัน
+
+          const res = await fetch(`${API_URL}/checkAuth`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (!res.ok) return;
+
+          const data = await res.json();
+
+          set({
+            // อัปเดตแค่ข้อมูล User (เงิน, ด่านที่ผ่าน)
+            currentUser: data.user,
+            isAuthenticated: true,
+          });
+        } catch (error) {
+          console.error("Failed to refresh user data", error);
         }
       },
 
@@ -307,7 +332,7 @@ export const useAuthStore = create(
       isHeroSelected: (heroId) => {
         const user = get().currentUser;
         return !!user?.heroes?.some(
-          (h) => h.hero_id === heroId && h.is_selected === true
+          (h) => h.hero_id === heroId && h.is_selected === true,
         );
       },
     }),
@@ -317,6 +342,6 @@ export const useAuthStore = create(
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
       }),
-    }
-  )
+    },
+  ),
 );
