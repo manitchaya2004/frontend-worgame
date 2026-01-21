@@ -61,7 +61,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           height: 480,
           // background: "#eaddcf",
           background: isOwned
-            ? "transparent"
+            ? "#eaddcf"
             : "linear-gradient(180deg, #f2dfb6, #d9b97a)",
 
           border: isOwned ? "3px solid #6b3f1f" : "3px solid #6b3f1f",

@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Box, Typography, Divider , Tooltip } from "@mui/material";
-import BackArrow from "../../components/BackArrow";
+import { Box, Typography, Divider, Tooltip } from "@mui/material";
+import { motion } from "framer-motion";
 import arrowRight from "../../../../assets/icons/arrowRight.png";
 import arrowLeft from "../../../../assets/icons/arrowLeft.png";
 import StarBackground from "../../components/StarBackground";
@@ -9,10 +9,10 @@ import { useData } from "../../hook/useData";
 import GameAppBar from "../../../../components/AppBar";
 import LoadingScreen from "../../../../components/Loading/LoadingPage";
 import { useLoginPlayer } from "../../../AuthPage/LoginPage/hook/useLoginPlayer";
-import { THEME } from "../../hook/const";
+import { THEMES } from "../../hook/const";
 import HeroCard from "./HeroCard";
 
-
+const MotionBox = motion(Box);
 const ShopHeroFeature = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,9 +37,9 @@ const ShopHeroFeature = () => {
   }, [getAllHeros]);
 
   // 2. ปรับเงื่อนไข: แสดง Loading ถ้า (API กำลังโหลด) หรือ (เวลายังไม่ครบ)
-  if (heroState === "LOADING" || isMinLoading) {
-    return <LoadingScreen open={true} />;
-  }
+  // if (heroState === "LOADING" || isMinLoading) {
+  //   return <LoadingScreen open={true} />;
+  // }
 
   const scroll = (dir) => {
     if (!scrollRef.current) return;
@@ -58,9 +58,19 @@ const ShopHeroFeature = () => {
 
   return (
     <>
-     
       <Box sx={{ mt: 2 }}>
-        <Box
+        <MotionBox
+          initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: "-50%",
+            x: "-50%",
+          }}
+          transition={{
+            duration: 0.6,
+            ease: "easeOut",
+          }}
           sx={{
             position: "fixed",
             top: "55%",
@@ -68,12 +78,12 @@ const ShopHeroFeature = () => {
             transform: "translate(-50%, -50%)",
 
             // Container Design (Book/Panel style)
-            background: THEME.cream,
-            border: `8px solid ${THEME.brownLight}`,
+            background: `linear-gradient(${THEMES.bgMain}, #1a120b)`,
+            border: `8px solid ${THEMES.border}`,
             borderRadius: "12px",
             boxShadow: `
-            0 0 0 4px ${THEME.brownDark},
-            0 20px 60px rgba(0,0,0,0.8)
+            0 0 0 4px #1a120b,
+            0 20px 60px rgba(49, 49, 49, 0.8)
           `,
             width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
             height: "570px",
@@ -85,26 +95,25 @@ const ShopHeroFeature = () => {
           {/* Header Title */}
           <Box
             sx={{
-              position: "relative",
               py: 2,
               textAlign: "center",
-              background: THEME.brownDark,
+              background: "#1a120b",
               mx: -1,
               mt: -1,
-              // mb: 2,
-              borderBottom: `4px solid ${THEME.brownLight}`,
+             
+              borderBottom: `4px solid ${THEMES.border}`,
             }}
           >
-
             {/* Title กลางจริง */}
             <Typography
               sx={{
-                fontFamily: "'Press Start 2P'",
-                color: THEME.textLight,
-                fontSize: { xs: 16, md: 24 },
-                textShadow: "2px 2px 0 #000",
-                pointerEvents: "none", // กันโดน arrow ทับ
-              }}
+              fontFamily: "'Press Start 2P'",
+              color: THEMES.accent,
+              fontSize: { xs: 16, md: 26 },
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              textShadow: `3px 3px 0 #000, 0 0 10px ${THEMES.accent}`,
+            }}
             >
               CHARACTER
             </Typography>
@@ -182,7 +191,7 @@ const ShopHeroFeature = () => {
               />
             </Box>
           </Box>
-        </Box>
+        </MotionBox>
       </Box>
     </>
   );
