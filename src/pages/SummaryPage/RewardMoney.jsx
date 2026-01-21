@@ -105,9 +105,9 @@ export default function RewardMoney({
           </Typography>
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <RowLabelValue label="Monster Coins" value={`+${monsterMoney}`} />
+            <RowLabelValue label="Monster Drop" value={`+${monsterMoney}`} />
             <RowLabelValue
-              label="Stage Bonus"
+              label="Stage Reward"
               value={rewardMoney > 0 ? `+${rewardMoney}` : "0"}
               highlight={rewardMoney > 0}
             />
