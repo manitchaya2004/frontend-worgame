@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useLoginPlayer } from "./hook/useLoginPlayer";
 import GameSnackbar from "../../../components/Snackbar";
 import PaperFrame from "../../../components/PaparFrame/PaperFrame";
+import { THEMES } from "../../HomePage/hook/const";
 import MagicCursor from "../../../components/Cursor";
-
 const LoginPage = () => {
   const {
     message,
@@ -74,6 +74,10 @@ const LoginPage = () => {
     }));
   }, [message]);
 
+  useEffect(()=>{
+    clearStateLogin();
+  },[])
+
   const validate = () => {
     const newErrors = {};
 
@@ -129,19 +133,7 @@ const LoginPage = () => {
           gap: 3,
         }}
       >
-        <Typography
-          align="center"
-          sx={{
-            fontSize: "79px",
-            // fontWeight: "bold",
-            fontFamily: "'Press Start 2P'",
-            color: "#E8E9CD",
-            letterSpacing: "2px",
-          }}
-        >
-          Login
-        </Typography>{" "}
-        <PaperFrame>
+        <PaperFrame title="LOGIN">
           {/* <Box sx={{ position: "absolute", top: -10, left: -10 }}>⭐</Box> */}
 
           <FormTextField
@@ -200,7 +192,7 @@ const LoginPage = () => {
             }}
           >
             <Typography
-              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px" }}
+              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px",color: "white", }}
             >
               Don’t have an account ?
             </Typography>
@@ -209,6 +201,7 @@ const LoginPage = () => {
               sx={{
                 fontFamily: "'Press Start 2P'",
                 fontSize: "10px",
+                color: "white",
                 cursor: "pointer",
                 "&:hover": { textDecoration: "underline" },
               }}

@@ -166,19 +166,7 @@ const RegisterPage = () => {
       <Box
         sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
       >
-        <Typography
-          align="center"
-          sx={{
-            fontSize: "79px",
-            // fontWeight: "bold",
-            fontFamily: "'Press Start 2P'",
-            color: "#E8E9CD",
-            letterSpacing: "2px",
-          }}
-        >
-          Register
-        </Typography>
-        <PaperFrame>
+        <PaperFrame title="Register">
           <FormTextField
             label="Username"
             name="username"
@@ -255,13 +243,14 @@ const RegisterPage = () => {
             }}
           >
             <Typography
-              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px" }}
+              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px",color: "white", }}
             >
               Don’t have an account ?
             </Typography>
 
             <Typography
               sx={{
+                color: "white",
                 fontFamily: "'Press Start 2P'",
                 fontSize: "10px",
                 cursor: "pointer",
