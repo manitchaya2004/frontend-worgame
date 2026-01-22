@@ -159,7 +159,6 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
             gap: "10px", 
         }}
       >
-        {/* ผูก onClick กับ onHeal */}
         <PotionSlot 
             label="HEAL"
             icon={<GiHealthPotion />} 
@@ -168,7 +167,6 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
             onClick={onHeal}
         />
 
-        {/* Buff ยังไม่มี Logic */}
         <PotionSlot 
             label="CLEAN"
             icon={<GiStandingPotion />} 
@@ -177,7 +175,6 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
             onClick={onCure}
         />
 
-        {/* ผูก onClick กับ onReroll */}
         <PotionSlot 
             label="ROLL"
             icon={<GiMagicPotion />} 

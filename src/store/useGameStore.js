@@ -1207,9 +1207,12 @@ export const useGameStore = create((set, get) => ({
     const en = store.enemies.find(e => e.id === enemyId);
     if (!en || !en.quiz_move_info) return;
 
-    // 1. Reset Mana & Shout
-    get().updateEnemy(en.id, { mana: 0, shoutText: "ULTIMATE!" });
-    
+    const moveData = en.quiz_move_info;
+
+    // 1. Reset Mana & Shout Skill Name
+    get().updateEnemy(en.id, { mana: 0, shoutText: moveData.name || "ULTIMATE!" });
+    await delay(800); // 🟢 รอให้ผู้เล่นอ่านชื่อสกิลก่อน
+
     // 2. Animation (Dash In)
     const atkX = en.isBoss ? PLAYER_X_POS + 15 : PLAYER_X_POS + 10;
     const originalX = en.x;
@@ -1218,7 +1221,6 @@ export const useGameStore = create((set, get) => ({
 
     // 3. Execute Quiz Move
     const rawAtk = en.power;
-    const moveData = en.quiz_move_info;
     const finalValue = Math.floor((rawAtk * (moveData.power || 0)) / 100);
 
     await get().handleQuizMove(en, finalValue, moveData);
