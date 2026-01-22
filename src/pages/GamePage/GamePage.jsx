@@ -237,30 +237,40 @@ export default function GameApp() {
   const handleSelectTargetFromMenu = (enemyId) => {
     store.setHoveredEnemyId(null);
     setShowTargetPicker(false);
-    executeAction("ATTACK", enemyId);
+
+    if (pendingAction === "ATTACK") {
+      executeAction("ATTACK", enemyId);
+    } else if (pendingAction === "SKILL") {
+      // ถ้าเป็นการกดเลือกจากเมนูสกิล ให้ส่ง enemyId ไปที่ฟังก์ชันสกิล
+      store.castHeroAbility(enemyId);
+    }
+    setPendingAction(null);
   };
 
-  const handleSpinClick = () => {
-    const currentInv = store.playerData.inventory;
-    const unlockedSlots = store.playerData.unlockedSlots;
-    let tempInvForLogic = [...currentInv];
+  const handleSkillClick = async () => {
+    // ดึงชื่อสกิลมาเช็ค
+    const abilityCode = store.playerData.ability.code; 
+    
+    // ตรวจสอบเบื้องต้น (กันเหนียว)
+    if (!abilityCode) return;
 
-    const nextInv = currentInv.map((item, index) => {
-      if (!item) return null;
-      const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
-      const newItem = {
-        id: Math.random(),
-        char,
-        status: item.status || null,
-        statusDuration: item.statusDuration || 0,
-        visible: true,
-        originalIndex: index,
-      };
-      tempInvForLogic[index] = newItem;
-      return newItem;
-    });
+    // A. กรณีท่าหมู่ (AOE) : ไม่ต้องเลือกเป้า
+    if (abilityCode === "Expolsion") {
+       await store.castHeroAbility(null); // ส่ง null ไปเพราะยิงหมด
+       return;
+    }
 
-    store.actionSpin(nextInv);
+    // B. กรณีท่าเดี่ยว (Single Target) : ต้องเลือกเป้า
+    const alive = store.enemies.filter((e) => e.hp > 0);
+    
+    if (alive.length === 1) {
+       // ถ้าศัตรูเหลือตัวเดียว ใส่ตัวนั้นเลย ไม่ต้องเปิดเมนู
+       await store.castHeroAbility(alive[0].id);
+    } else {
+       // ถ้ามีหลายตัว ให้เปิด Target Picker
+       setPendingAction("SKILL"); // บอกระบบว่า "ฉันกำลังจะใช้สกิลนะ"
+       setShowTargetPicker(true);
+    }
   };
 
   // 1. ฟังก์ชันกดใช้ยาเพิ่มเลือด
@@ -270,7 +280,14 @@ export default function GameApp() {
     store.usePotion("health", 30);
   };
 
-  // 2. ฟังก์ชันกดใช้ยาสุ่มของใหม่ (Reroll)
+  // 2. เพิ่มฟังก์ชันกดใช้ยาแก้สถานะ (Cure)
+  const handlePotionCure = () => {
+    const { potions } = store.playerData;
+    if (potions.cure <= 0) return;
+    store.usePotion("cure"); 
+  };
+
+  // 3. ฟังก์ชันกดใช้ยาสุ่มของใหม่ (Reroll)
   const handlePotionRoll = () => {
     const { potions } = store.playerData;
     if (potions.reroll <= 0) return;
@@ -529,6 +546,7 @@ export default function GameApp() {
             >
               <PlayerStatusCard
                 onHeal={handleHeal}
+                onCure={handlePotionCure}
                 onReroll={handlePotionRoll}
               />
 
@@ -538,7 +556,8 @@ export default function GameApp() {
                 store={store}
                 onAttackClick={() => handleActionClick("ATTACK")}
                 onShieldClick={() => handleActionClick("SHIELD")}
-                onSpinClick={handleSpinClick}
+                // ⭐ เปลี่ยนจาก onSpinClick เป็น onSkillClick
+                onSkillClick={handleSkillClick}
                 onEndTurnClick={() => {
                   store.resetSelection();
                   store.endTurn();

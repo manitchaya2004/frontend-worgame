@@ -24,6 +24,8 @@ export default function SummaryPage() {
   const { result, earnedCoins, stageCoins, wordLog, stageId } =
     location.state || {};
 
+    console.log(earnedCoins)
+
   const [step, setStep] = useState(1); // 1 = Money, 2 = Log
   const isWin = result === "WIN";
 
@@ -53,6 +55,7 @@ export default function SummaryPage() {
         overflow: "hidden",
       }}
     >
+    
       <AnimatePresence mode="wait">
         {step === 1 ? (
           <RewardMoney

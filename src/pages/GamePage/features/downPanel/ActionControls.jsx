@@ -1,10 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
-// ❌ ลบ import getLetterDamage ออก
 import {
   GiBroadsword,
   GiShield,
-  GiRollingDices,
+  GiStarsStack,
   GiSandsOfTime
 } from "react-icons/gi";
 import { useGameStore } from "../../../../store/useGameStore";
@@ -13,10 +12,15 @@ import { useGameStore } from "../../../../store/useGameStore";
    Helper Functions 
 ========================= */
 
-// ✅ สร้าง Helper function ไว้ใช้คำนวณ Preview ในนี้
 const getLetterDamage = (char, powerMap) => {
   if (!char || !powerMap) return 0;
-  const upperChar = char.toUpperCase();
+  
+  let upperChar = char.toUpperCase();
+
+  if (upperChar === "QU") {
+      upperChar = "Q";
+  }
+
   const value = powerMap[upperChar];
   return value !== undefined ? Number(value) : 0;
 };
@@ -28,16 +32,11 @@ const calculateRawValue = (word, powerMap) => {
     .reduce((acc, char) => acc + getLetterDamage(char, powerMap), 0);
 };
 
-const formatSubLabel = (
-  type,
-  value,
-) => {
+const formatSubLabel = (type, value) => {
   return (
     <span style={{ fontSize: "11px", fontWeight: "bold" }}>
       <span style={{color: type === "DMG" ? "#ff7675" : "#74b9ff"}}>{type}: </span>
-      <span style={{color: "#eae133" }}>
-        {value}
-      </span>
+      <span style={{color: "#eae133" }}>{value}</span>
     </span>
   );
 };
@@ -115,14 +114,14 @@ const FantasyListButton = ({
       </div>
 
       {/* Text */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", overflow: "hidden" }}>
         <div
           style={{
             fontSize: "14px",
             fontWeight: "bold",
             color: disabled ? "#555" : (highlight ? "#fff" : "#c2a37d"),
             textTransform: "uppercase",
-            letterSpacing: "2px",
+            letterSpacing: "1px",
             fontFamily: "serif",
             textShadow: disabled ? "none" : "1px 1px 2px #000"
           }}
@@ -130,7 +129,7 @@ const FantasyListButton = ({
           {label}
         </div>
         {subLabel && (
-          <div style={{ fontFamily: "monospace", opacity: disabled ? 0.5 : 1 }}>
+          <div style={{ fontFamily: "monospace", opacity: disabled ? 0.5 : 1, width: "100%" }}>
             {subLabel}
           </div>
         )}
@@ -145,7 +144,7 @@ const FantasyListButton = ({
 export const ActionControls = ({
   onAttackClick,
   onShieldClick,
-  onSpinClick,
+  onSkillClick,
   onEndTurnClick
 }) => {
   const store = useGameStore();
@@ -155,9 +154,18 @@ export const ActionControls = ({
 
   const wordText = validWordInfo?.word || "";
 
-  // ✅ เปลี่ยนจาก atk เป็น power
+  // คำนวณ Damage/Def Preview
   const rawDmg = calculateRawValue(wordText, playerData.power);
   const rawDef = calculateRawValue(wordText, playerData.power);
+
+  // ⭐ ดึงข้อมูล Skill
+  const { ability, mana } = playerData;
+  const skillName = ability?.code || "SKILL"; 
+  const skillCost = ability?.cost || 0;
+  const skillDesc = ability?.description || ""; // คำอธิบายสกิล
+  
+  // ⭐ เช็คเงื่อนไข: มานาพอไหม
+  const isManaEnough = mana >= skillCost;
 
   return (
     <div
@@ -209,43 +217,55 @@ export const ActionControls = ({
         <FantasyListButton
           label="STRIKE"
           icon={<GiBroadsword />}
-          subLabel={
-            hasWord
-              ? formatSubLabel(
-                  "DMG",
-                  rawDmg,
-                )
-              : null
-          }
+          subLabel={hasWord ? formatSubLabel("DMG", rawDmg) : null}
           color="#e63946"
           disabled={!isPlayerTurn || !hasWord}
           highlight={isPlayerTurn && hasWord}
           onClick={onAttackClick}
         />
+        
         {/* GUARD BUTTON */}
         <FantasyListButton
           label="GUARD"
           icon={<GiShield />}
-          subLabel={
-            hasWord
-              ? formatSubLabel(
-                  "DEF",
-                  rawDef,
-                )
-              : null
-          }
+          subLabel={hasWord ? formatSubLabel("DEF", rawDef) : null}
           color="#4361ee"
           disabled={!isPlayerTurn || !hasWord}
           highlight={isPlayerTurn && hasWord}
           onClick={onShieldClick}
         />
-        {/* SPIN BUTTON */}
+        
+        {/* ⭐ SKILL BUTTON */}
         <FantasyListButton
-          label="REROLL" 
-          icon={<GiRollingDices />}
-          color="#f1c40f"
-          onClick={onSpinClick}
+          label={skillName} 
+          icon={<GiStarsStack />}
+          color="#9b59b6" 
+          // ❌ กดไม่ได้ถ้า: ไม่ใช่เทิร์น OR มานาไม่พอ OR ไม่มีคำศัพท์ (!hasWord)
+          disabled={!isPlayerTurn || !isManaEnough || !hasWord} 
+          highlight={isPlayerTurn && isManaEnough && hasWord}
+          onClick={onSkillClick}
+          subLabel={
+             <div style={{ 
+                 fontSize: "9px", 
+                 display: "flex", 
+                 alignItems: "center",
+                 gap: "6px",
+                 color: isManaEnough ? "#a29bfe" : "#636e72",
+                 width: "90%"
+             }}>
+               {/* Description (แสดงแทน หรือคู่กัน) */}
+               <span style={{ 
+                   color: "#dcdde1", 
+                   whiteSpace: "nowrap", 
+                   overflow: "hidden", 
+                   textOverflow: "ellipsis" 
+               }}>
+                 {skillDesc || "No description"}
+               </span>
+             </div>
+          }
         />
+
         {/* PASS BUTTON */}
         <FantasyListButton
           label="PASS"
