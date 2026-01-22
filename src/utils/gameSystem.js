@@ -74,20 +74,20 @@ export const DeckManager = {
       // --- 🚦 กฎการคัดกรอง (Filtering Rules) ---
 
       // 1. ถ้าสระเต็มโควต้าแล้ว ห้ามหยิบสระเพิ่ม
-      if (vowelCount >= vowelCeiling && isVowel) continue;
+      // if (vowelCount >= vowelCeiling && isVowel) continue;
 
       // 2. ถ้าสระขาดแคลน (< 2) และใบนี้ไม่ใช่สระ ให้ข้ามไปก่อน (พยายามหาสระ)
       // (แต่ถ้าไพ่เหลือน้อยกว่า 10 ใบ ยอมหยิบอะไรก็ได้ กันเกมค้าง)
-      if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
+      // if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
 
       // 3. ห้ามตัวซ้ำเกิน 2 ใบ และห้ามตัวยากซ้ำกัน
-      const isTooManyIdentical = countInHand >= 2;
-      const isTooManyHard = hasHardInHand && hardChars.includes(candidate);
+      // const isTooManyIdentical = countInHand >= 2;
+      // const isTooManyHard = hasHardInHand && hardChars.includes(candidate);
 
-      if (!isTooManyIdentical && !isTooManyHard) {
-        foundIdx = i; // เจอใบที่ผ่านทุกเงื่อนไข
-        break;
-      }
+      // if (!isTooManyIdentical && !isTooManyHard) {
+      //   foundIdx = i; // เจอใบที่ผ่านทุกเงื่อนไข
+      //   break;
+      // }
     }
 
     // --- 🏁 การหยิบจริง ---
@@ -127,7 +127,7 @@ export const DeckManager = {
   generateList(count) {
     let list = new Array(count).fill(null);
     for (let i = 0; i < count; i++) {
-      // ✅ เรียก createItem แทนการเขียนโค้ดซ้ำ
+      // เรียก createItem แทนการเขียนโค้ดซ้ำ
       // ส่ง 'list' เข้าไปเพื่อให้ draw() รู้ว่าเราเพิ่งหยิบอะไรไปบ้างใน Loop นี้
       list[i] = this.createItem(i, list, count);
     }
@@ -141,7 +141,7 @@ export const DeckManager = {
     for (let i = 0; i < limit; i++) {
       // เช็คว่าช่องว่าง (null) และไม่ติดสถานะจอง (reserved)
       if (!reservedIndices.includes(i) && nextInv[i] === null) {
-        // ✅ เรียก createItem เพื่อเติมของ
+        // เรียก createItem เพื่อเติมของ
         nextInv[i] = this.createItem(i, nextInv, limit);
       }
     }

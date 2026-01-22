@@ -70,7 +70,7 @@ const PotionSlot = ({ icon, count, color, label, onClick }) => {
   );
 };
 
-export const PlayerStatusCard = ({ onHeal, onReroll }) => {
+export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
   const store = useGameStore();
   const { playerData } = store;
 
@@ -79,7 +79,9 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
   const {
     name = "Hero", 
     hp = 0, 
-    max_hp = 100, 
+    max_hp = 0, 
+    mana = 0,
+    max_mana = 0,
     shield = 0, 
     speed = 0, 
     unlockedSlots = 0,
@@ -121,7 +123,7 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
               textShadow: "0 2px 0 #000"
             }}
           >
-            {name || "UNKNOWN"}
+            {name || "UNKNOWN"} { store.receivedCoin}
           </div>
         </div>
 
@@ -136,8 +138,10 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
 
       {/* ===== HP Bar ===== */}
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <PixelBar current={hp} max={max_hp} color="#4dff8b" height="24px" />
+        <PixelBar current={hp} max={max_hp} color="#4dff8b" height="20px" />
+        <PixelBar current={mana} max={max_mana} color="#4dcdff" height="12px" />
       </div>
+
 
       {/* ===== Stats Grid ===== */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", width: "100%", justifyItems: "center", alignItems: "center" }}>
@@ -166,11 +170,11 @@ export const PlayerStatusCard = ({ onHeal, onReroll }) => {
 
         {/* Buff ยังไม่มี Logic */}
         <PotionSlot 
-            label="BUFF"
+            label="CLEAN"
             icon={<GiBubblingFlask />} 
             color="#2ecc71"
-            count={potions.buff || 0}
-            onClick={() => console.log("Use Buff")}
+            count={potions.cure || 0}
+            onClick={onCure}
         />
 
         {/* ผูก onClick กับ onReroll */}
