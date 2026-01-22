@@ -19,6 +19,7 @@ const LoginPage = () => {
     clearBackendMessage,
   } = useLoginPlayer();
   const navigate = useNavigate();
+  console.log("message", message);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -46,8 +47,7 @@ const LoginPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
-    // clearBackendMessage();
+    clearBackendMessage();
 
     // // ล้าง error เฉพาะ field นี้
     setErrors((prev) => ({
@@ -74,9 +74,9 @@ const LoginPage = () => {
     }));
   }, [message]);
 
-  useEffect(()=>{
-    clearStateLogin();
-  },[])
+  // useEffect(()=>{
+  //   clearStateLogin();
+  // },[])
 
   const validate = () => {
     const newErrors = {};
@@ -111,16 +111,16 @@ const LoginPage = () => {
     goToHomePage();
   };
 
-  //error network reject
-  useEffect(() => {
-    if (isFailed) {
-      setSnackbar({
-        open: true,
-        message: "Failed to Login",
-        type: "error",
-      });
-    }
-  }, [isFailed]);
+  // //error network reject
+  // useEffect(() => {
+  //   if (isFailed) {
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Failed to Login",
+  //       type: "error",
+  //     });
+  //   }
+  // }, [isFailed]);
 
   return (
     <>
@@ -192,7 +192,11 @@ const LoginPage = () => {
             }}
           >
             <Typography
-              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px",color: "white", }}
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: "10px",
+                color: "white",
+              }}
             >
               Don’t have an account ?
             </Typography>

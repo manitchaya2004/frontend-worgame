@@ -44,7 +44,7 @@ const RegisterPage = () => {
   //error message from backend
   useEffect(() => {
     if (!message) return;
-
+    setSnackbar(() => ({ open: false, message: "", type: "info" }));
     setErrors((prev) => ({
       ...prev,
       username: message.includes("username") ? message : undefined,
@@ -127,11 +127,11 @@ const RegisterPage = () => {
   };
 
   // submit function
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    registerUser({
+    await registerUser({
       email: formRegister.email,
       username: formRegister.username,
       password: formRegister.password,
