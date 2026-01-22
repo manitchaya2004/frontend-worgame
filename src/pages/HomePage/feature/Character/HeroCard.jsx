@@ -1,10 +1,11 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { useState } from "react";
-import { Box, Typography, Tooltip, Divider, Grid } from "@mui/material";
+import { Box, Typography, Tooltip, Divider, Grid ,IconButton} from "@mui/material";
 import { usePreloadFrames } from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
 import StatBar from "./StatBar";
+import { StatNumericBox, StatVisualBar } from "./StatDisplay";
 import LevelBar from "./LevelBar";
 import iconic from "../../../../assets/icons/iconic.png";
 import correct from "../../../../assets/icons/correct.png";
@@ -15,11 +16,18 @@ import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
 import AutorenewIcon from "@mui/icons-material/Autorenew"; // Spin
 import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
+// Icons สำหรับปุ่ม Switch
+import ViewListIcon from '@mui/icons-material/ViewList'; // ดูแบบหลอด (List)
+import ViewModuleIcon from '@mui/icons-material/ViewModule'; // ดูแบบกล่อง (Grid)
 
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
 const HeroCard = ({ hero, playerHeroes, money }) => {
   const { selectHero, buyHero } = useAuthStore();
+  // dialog buyhero
   const [open, setOpen] = useState(false);
+
+  //  swip stat ว่าจะดูแบบ หลอดหรือกล่อง 
+  const [showDetail, setShowDetail] = useState(false);
 
   const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
@@ -37,11 +45,18 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
   // Map ข้อมูล 5 ตัวตามที่ขอ
   const stats = {
-    hp: isOwned ? playerHero?.hp : hero.base_hp || 10,
-    power: isOwned ? playerHero?.power : hero.power, // หรือ base_power ถ้ามี
-    speed: isOwned ? playerHero?.speed : hero.base_speed || 5,
-    slot: isOwned ? playerHero?.slot : 10, // Default 10
-    spin: isOwned ? playerHero?.spin_point : 0,
+    hp: isOwned ? playerHero?.hp_lv : hero.hp_lv,
+    power: isOwned ? playerHero?.power_lv : hero.power_lv, 
+    speed: isOwned ? playerHero?.speed_lv : hero.speed_lv,
+    slot: isOwned ? playerHero?.slot_lv : hero.slot_lv
+  };
+
+  // เดี๋ยวมาปรับ
+  const MAX_STATS_REF = {
+      hp: 500,   
+      power: 100, 
+      speed: 100,
+      slot: 20
   };
 
   const handleConfirmBuy = async () => {
@@ -177,51 +192,51 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             nextExp={nextExp}
           />
 
-          <Divider
-            sx={{ borderColor: "#444", mb: 2, mt: 1, borderStyle: "dashed" }}
-          />
-
-          {/* Grid Stats (ปรับ Layout ใหม่ให้กระชับและไม่เด่นเกินไปด้วย CSS Grid) */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 1, // ระยะห่างกำลังดี
-              alignItems: "stretch",
-            }}
-          >
-            {/* HP */}
-            <StatBar
-              label="HP"
-              value={stats.hp}
-              icon={<FavoriteIcon fontSize="small" />}
-              color="#ff5252"
-            />
-
-            {/* POWER */}
-            <StatBar
-              label="POWER"
-              value={Number(stats.power)}
-              icon={<FlashOnIcon fontSize="small" />}
-              color="#ffca28"
-            />
-
-            {/* SPEED */}
-            <StatBar
-              label="SPEED"
-              value={stats.speed}
-              icon={<SpeedIcon fontSize="small" />}
-              color="#00e5ff"
-            />
-
-            {/* SLOT */}
-            <StatBar
-              label="SLOT"
-              value={stats.slot}
-              icon={<BackpackIcon fontSize="small" />}
-              color="#d1c4e9"
-            />
+          {/* เส้นคั่น + ปุ่ม Toggle สลับโหมด */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1, mb: 1 }}>
+             <Divider sx={{ borderColor: "#444", borderStyle: "dashed", flex: 1 }} />
+             
+             {/* 🟢 ปุ่มสลับโหมด View (Flip Button) */}
+             <Tooltip title={showDetail ? "Switch to Bars" : "Switch to Details"} placement="top">
+                <IconButton 
+                    onClick={() => setShowDetail(!showDetail)}
+                    size="small"
+                    sx={{ 
+                        color: "#8d6e63", 
+                        ml: 1,
+                        border: "1px solid #5a3e2b",
+                        borderRadius: "4px",
+                        backgroundColor: "rgba(0,0,0,0.2)",
+                        "&:hover": { color: "#ffca28", backgroundColor: "rgba(255,255,255,0.05)" }
+                    }}
+                >
+                    {showDetail ? <ViewListIcon fontSize="small" /> : <ViewModuleIcon fontSize="small" />}
+                </IconButton>
+             </Tooltip>
           </Box>
+
+
+          {/* 🟢 CONDITIONAL RENDERING: สลับการแสดงผล */}
+          {showDetail ? (
+             // --- VIEW 1: NUMERIC BOX (Grid) ---
+             // โชว์ตัวเลขละเอียด เป็นกล่องๆ
+             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+                <StatNumericBox label="HP" value={stats.hp} icon={<FavoriteIcon />} color="#ff5252" />
+                <StatNumericBox label="ATK" value={stats.power} icon={<FlashOnIcon />} color="#ffca28" />
+                <StatNumericBox label="SPD" value={stats.speed} icon={<SpeedIcon />} color="#00e5ff" />
+                <StatNumericBox label="SLOT" value={stats.slot} icon={<BackpackIcon />} color="#d1c4e9" />
+             </Box>
+          ) : (
+             // --- VIEW 2: VISUAL BAR (List) ---
+             // โชว์หลอดพลังสวยๆ ไม่มีตัวเลขรกๆ
+             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 0.5 }}>
+                <StatVisualBar label="HP" value={stats.hp} max={MAX_STATS_REF.hp} icon={<FavoriteIcon />} color="#ff5252" />
+                <StatVisualBar label="ATK" value={stats.power} max={MAX_STATS_REF.power} icon={<FlashOnIcon />} color="#ffca28" />
+                <StatVisualBar label="SPD" value={stats.speed} max={MAX_STATS_REF.speed} icon={<SpeedIcon />} color="#00e5ff" />
+                <StatVisualBar label="SLOT" value={stats.slot} max={MAX_STATS_REF.slot} icon={<BackpackIcon />} color="#d1c4e9" />
+             </Box>
+          )}
+
         </Box>
 
         {/* === PART 4: BUTTON === */}
