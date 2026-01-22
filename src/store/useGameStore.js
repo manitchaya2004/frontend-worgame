@@ -443,7 +443,17 @@ export const useGameStore = create((set, get) => ({
         ...e,
         id: e.spawn_id || `enemy_${i}_${Date.now()}`,
         x: currentX,
-        hp: e.max_hp,
+        
+        max_hp: e.hp,    
+        hp: e.hp,        
+        power: e.power,     
+        
+        // --- MANA SYSTEM ---
+        mana: 0, 
+        quiz_move_cost: e.quiz_move_cost || 100,
+        quiz_move_info: e.quiz_move_info,
+        // -------------------
+        
         shield: 0,
         currentStep: 1,
         selectedPattern: 1,
@@ -465,6 +475,15 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     get().gainMana(10); // Start new round mana
 
+    // --- MONSTER GAIN MANA (Start Round) ---
+    const updatedEnemies = store.enemies.map(e => {
+        if (e.hp <= 0) return e;
+        const newMana = Math.min(e.quiz_move_cost, e.mana + 10);
+        return { ...e, shield: 0, mana: newMana };
+    });
+    set({ enemies: updatedEnemies, playerData: { ...store.playerData, shield: 0 } });
+    // ---------------------------------------
+
     get().addPopup({
       id: Math.random(),
       x: 30,
@@ -473,11 +492,6 @@ export const useGameStore = create((set, get) => ({
       color: "#ffffff",
     });
     await delay(500);
-
-    set((state) => ({
-      playerData: { ...state.playerData, shield: 0 },
-      enemies: state.enemies.map((e) => ({ ...e, shield: 0 })),
-    }));
 
     const playerInit = Math.max(
       1,
@@ -1074,7 +1088,12 @@ export const useGameStore = create((set, get) => ({
       get().updateEnemy(id, { shield: currentShield });
     }
     const newHp = Math.max(0, target.hp - finalDmg);
-    get().updateEnemy(id, { hp: newHp });
+
+    // --- MANA GAIN ON HIT (Pain Gain) ---
+    const newMana = Math.min(target.quiz_move_cost, target.mana + finalDmg); 
+    // ------------------------------------
+
+    get().updateEnemy(id, { hp: newHp, mana: newMana });
     get().addPopup({
       id: Math.random(),
       x: target.x - 2,
@@ -1180,15 +1199,60 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
+  // --------------------------------------------------------------------------
+  // ✅ ฟังก์ชันใหม่: CAST MONSTER ULTIMATE (ใช้ท่าไม้ตายฟรี)
+  // --------------------------------------------------------------------------
+  castMonsterUltimate: async (enemyId) => {
+    const store = get();
+    const en = store.enemies.find(e => e.id === enemyId);
+    if (!en || !en.quiz_move_info) return;
+
+    // 1. Reset Mana & Shout
+    get().updateEnemy(en.id, { mana: 0, shoutText: "ULTIMATE!" });
+    
+    // 2. Animation (Dash In)
+    const atkX = en.isBoss ? PLAYER_X_POS + 15 : PLAYER_X_POS + 10;
+    const originalX = en.x;
+    get().updateEnemy(en.id, { x: atkX, atkFrame: 1 });
+    await delay(400);
+
+    // 3. Execute Quiz Move
+    const rawAtk = en.power;
+    const moveData = en.quiz_move_info;
+    const finalValue = Math.floor((rawAtk * (moveData.power || 0)) / 100);
+
+    await get().handleQuizMove(en, finalValue, moveData);
+
+    // 4. Return to Position
+    get().updateEnemy(en.id, { x: originalX, atkFrame: 0, shoutText: "" });
+    await delay(300);
+  },
+
+  // --------------------------------------------------------------------------
+  // ✅ แก้ไข RUN SINGLE ENEMY TURN (เพิ่ม Logic Mana & Free Ultimate)
+  // --------------------------------------------------------------------------
   runSingleEnemyTurn: async (enemyId) => {
     const store = get();
     set({ playerShoutText: "", gameState: "ENEMYTURN" });
-    const en = store.enemies.find((e) => e.id === enemyId);
+    
+    let en = store.enemies.find((e) => e.id === enemyId);
     if (!en || en.hp <= 0) {
       get().endTurn();
       return;
     }
     get().updateEnemy(en.id, { shield: 0 });
+
+    // ⭐ CHECKPOINT 1: ตรวจสอบ Mana ต้นเทิร์น
+    if (en.mana >= en.quiz_move_cost && en.quiz_move_info) {
+        await get().castMonsterUltimate(en.id);
+        // Refresh & Check Death
+        en = get().enemies.find((e) => e.id === enemyId);
+        if (get().playerData.hp <= 0) {
+             bgm.stop(); set({ gameState: "OVER" }); return;
+        }
+    }
+
+    // --- STANDARD PATTERN LOGIC ---
     const actionObj = en.pattern_list?.find(
       (p) => p.pattern_no === en.selectedPattern && p.order === en.currentStep,
     );
@@ -1210,10 +1274,11 @@ export const useGameStore = create((set, get) => ({
       get().updateEnemy(en.id, { atkFrame: 1 });
       await delay(400);
     }
-    const rawAtk =
-      Math.floor(Math.random() * (en.atk_power_max - en.atk_power_min + 1)) +
-      en.atk_power_min;
+
+    const rawAtk = en.power; 
+
     const finalValue = Math.floor((rawAtk * (moveData.power || 0)) / 100);
+    
     if (moveData.is_quiz) {
       await get().handleQuizMove(en, finalValue, moveData);
     } else {
@@ -1222,6 +1287,11 @@ export const useGameStore = create((set, get) => ({
         if (finalValue > 0) {
           get().damagePlayer(finalValue);
           if (store.isSfxOn) sfx.playHit();
+          
+          // ⭐ ADD MANA ON SUCCESSFUL HIT
+          en = get().enemies.find((e) => e.id === enemyId); // Refresh state
+          const newMana = Math.min(en.quiz_move_cost, en.mana + 10);
+          get().updateEnemy(en.id, { mana: newMana });
         }
         if (moveData.debuff_code) {
           get().applyStatusToPlayer(
@@ -1253,6 +1323,20 @@ export const useGameStore = create((set, get) => ({
     } else {
       get().updateEnemy(en.id, { atkFrame: 0 });
     }
+
+    // ⭐ CHECKPOINT 2: ตรวจสอบ Mana หลังจบการกระทำ (ถ้าเต็มจากการตีผู้เล่น)
+    en = get().enemies.find((e) => e.id === enemyId);
+    if (en.mana >= en.quiz_move_cost && en.quiz_move_info) {
+        await delay(200); // หน่วงนิดนึงหลังกลับที่
+        await get().castMonsterUltimate(en.id);
+        
+        if (get().playerData.hp <= 0) {
+             bgm.stop(); set({ gameState: "OVER" }); return;
+        }
+    }
+
+    // Update Pattern Step
+    en = get().enemies.find((e) => e.id === enemyId); // Refresh again
     let nextStep = en.currentStep + 1;
     const hasNext = en.pattern_list?.some(
       (p) => p.pattern_no === en.selectedPattern && p.order === nextStep,
