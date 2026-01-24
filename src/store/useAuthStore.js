@@ -10,6 +10,7 @@ export const useAuthStore = create(
       loginState: INITIALIZED,
       selectHeroState: INITIALIZED,
       buyHeroState: INITIALIZED,
+      resourceStatus: INITIALIZED,
       buyHeroError: null,
 
       authLoading: true,
@@ -296,6 +297,57 @@ export const useAuthStore = create(
           setTimeout(() => {
             set({ buyHeroState: INITIALIZED });
           }, 800);
+        }
+      },
+
+      //update resource (item)
+      updateResources: async (payload) => {
+        set({ resourceStatus: LOADING });
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+          const res = await fetch(`${API_URL}/update-resources`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) throw new Error("server error");
+
+          const data = await res.json();
+          if (!data.isSuccess) throw new Error(data.message);
+
+          if (data.isSuccess) {
+            const { health, cure, reroll } = data.resources;
+
+            // อัปเดต State currentUser ทันทีเพื่อให้ UI เปลี่ยน
+            set((state) => ({
+              resourceStatus: LOADED,
+              currentUser: {
+                ...state.currentUser,
+                potion: {
+                  ...state.currentUser.potion,
+                  health: health,
+                  cure: cure,
+                  reroll: reroll,
+                },
+              },
+            }));
+
+            // Reset status กลับเป็น INIT หลังจากผ่านไป 1 วิ (เพื่อให้ UI หยุดหมุนหรือหยุดโชว์สถานะสำเร็จ)
+            setTimeout(() => {
+              set({ resourceStatus: INITIALIZED });
+            }, 1000);
+          } else {
+            // กรณีหลังบ้าน return 200 แต่ logic ไม่ผ่าน
+            set({ resourceStatus: FAILED });
+          }
+        } catch (err) {
+          console.error("updateResources error:", err);
+          set({ resourceStatus: FAILED });
         }
       },
 
