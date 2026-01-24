@@ -16,6 +16,7 @@ import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
 import AutorenewIcon from "@mui/icons-material/Autorenew"; // Spin
 import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 // Icons สำหรับปุ่ม Switch
 import ViewListIcon from '@mui/icons-material/ViewList'; // ดูแบบหลอด (List)
 import ViewModuleIcon from '@mui/icons-material/ViewModule'; // ดูแบบกล่อง (Grid)
@@ -53,9 +54,9 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
   // เดี๋ยวมาปรับ
   const MAX_STATS_REF = {
-      hp: 500,   
-      power: 100, 
-      speed: 100,
+      hp: 20,   
+      power: 20, 
+      speed: 20,
       slot: 20
   };
 
@@ -104,7 +105,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             position: "relative",
             background:
               "radial-gradient(circle, #fff8e1 10%, rgba(255,255,255,0) 70%)",
-            top: 20,
+            top: 10,
           }}
         >
           {frames.length > 0 && (
@@ -112,8 +113,8 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               src={frames[frame - 1].src}
               alt={hero.name}
               style={{
-                width: "160px",
-                height: "160px",
+                width: "150px",
+                height: "150px",
                 objectFit: "contain",
                 imageRendering: "pixelated",
                 filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
@@ -129,7 +130,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
         <Box
           sx={{
             // background: "#5d4037",
-            py: 1.5,
+            py: 1.2,
             textAlign: "center",
             // borderBottom: isOwned ? "none" : "2px solid #3e2723",
             // boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
@@ -190,10 +191,39 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             level={currentLevel}
             currentExp={currentExp}
             nextExp={nextExp}
+
+            isOwned={isOwned}
           />
+          <Box 
+            sx={{
+                display: "flex",
+                alignItems: "center", // จัดกึ่งกลางแนวตั้ง
+                justifyContent: "center",
+                gap: 1,
+                backgroundColor: "rgba(0,0,0,0.2)",
+                borderRadius: "4px",
+                padding: "4px 8px",
+                margin: "1px 0", // เว้นระยะห่างบนล่างนิดหน่อย
+                minHeight: "28px"
+            }}
+          >
+             <InfoOutlinedIcon sx={{ fontSize: 14, color: "#8d6e63" }} />
+             <Typography 
+                sx={{ 
+                    fontFamily: "'Verdana', sans-serif",
+                    fontSize: 11, // ฟอนต์เล็กหน่อยจะได้ไม่กินที่
+                    color: "#d7ccc8",
+                    lineHeight: 1,
+                    textAlign: "center",
+                    letterSpacing: 0.5
+                }}
+            >
+                {hero.ability_description}
+             </Typography>
+          </Box>
 
           {/* เส้นคั่น + ปุ่ม Toggle สลับโหมด */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1, mb: 1 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center"  }}>
              <Divider sx={{ borderColor: "#444", borderStyle: "dashed", flex: 1 }} />
              
              {/* 🟢 ปุ่มสลับโหมด View (Flip Button) */}
@@ -220,7 +250,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           {showDetail ? (
              // --- VIEW 1: NUMERIC BOX (Grid) ---
              // โชว์ตัวเลขละเอียด เป็นกล่องๆ
-             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 0.5  }}>
                 <StatNumericBox label="HP" value={stats.hp} icon={<FavoriteIcon />} color="#ff5252" />
                 <StatNumericBox label="ATK" value={stats.power} icon={<FlashOnIcon />} color="#ffca28" />
                 <StatNumericBox label="SPD" value={stats.speed} icon={<SpeedIcon />} color="#00e5ff" />

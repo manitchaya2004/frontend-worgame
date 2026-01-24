@@ -22,7 +22,7 @@ import SelectHero from "./CharacterPage/SelectHero.jsx";
 import SummaryPage from "./SummaryPage/summaryPage.jsx";
 import ServerRoute from "../routes/ServerRoute.jsx";
 import ServerClosedPage from "./ServerClosePage/ServerClosePage.jsx";
-import ItemShopFeature from "./HomePage/feature/Item/ItemShopFeature.jsx";
+import ItemFeature from "./HomePage/feature/Item/ItemFeature.jsx";
 // import ProfileFeature  from "./HomePage/feature/ProfileFeature/ProfileFeature .jsx";
 // import NotFoundPage from "./NotFoundPage";
 export default function App() {
@@ -56,7 +56,7 @@ export default function App() {
           <Route path="/home" element={<HomePage />}>
             <Route index element={<AdvantureFeature />} />
             <Route path="character" element={<ShopHeroFeature />} />
-            <Route path="item" element={<ItemShopFeature/>}/>
+            <Route path="item" element={<ItemFeature/>}/>
             <Route path="dictionary" element={<DictionaryLibrary />} />
             <Route path="monster" element={<MonsterLibrary />} />
           </Route>
