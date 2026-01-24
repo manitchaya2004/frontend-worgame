@@ -41,8 +41,9 @@ export const useGameStore = create((set, get) => ({
   isBgmOn: true,
   isSfxOn: true,
 
-  setMenuOpen: (isOpen) => set({ isMenuOpen: isOpen }),
+  setMenuOpen: (isOpen) => set({ isMenuOpen: isOpen }), // เปิดหน้าเมนู เปลี่ยนตัวแปรเป็น true
 
+  // เปิด/ปิดเสียงเพลง
   toggleBgm: () => {
     const { isBgmOn, gameState } = get();
     if (isBgmOn) {
@@ -65,34 +66,35 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
+  // เปิด/ปิดเสียงเอฟเฟค
   toggleSfx: () => set((state) => ({ isSfxOn: !state.isSfxOn })),
 
   // --------------------------------------------------------------------------
   // SECTION: STATE DEFINITIONS
   // --------------------------------------------------------------------------
-  gameState: "LOADING",
-  loadingProgress: 0,
-  dictionary: [],
-  stageData: [],
+  gameState: "LOADING", // เช็ค state ปัจจุบันของเกม
 
-  wordLog: {},
+  dictionary: [], // คำศัพท์ทั้งหมด
+  stageData: [], // ข้อมูลทุกอย่างในด่าน
 
-  distance: 0,
-  currentEventIndex: 0,
+  wordLog: {}, // คำศัพท์ที่ใช้ไปในเกมนี้
 
-  animTimer: 0,
+  distance: 0, // ระยะทางปัจจุบัน
+  currentEventIndex: 0, // เหตุการณ์ปัจจุบัน ไว้เช็คศัตรูที่จะเกิดในด่าน
+
+  animTimer: 0, // ใช้เช็ค frame การเดิน
   hasSpawnedEnemies: false,
 
-  damagePopups: [],
-  hoveredEnemyId: null,
-  validWordInfo: null,
+  damagePopups: [], // แสดงค่าความเสียหาย หรือ สถานะ
+  hoveredEnemyId: null, // ศัตรูที่เอาเมาส์ไปชี้
+  validWordInfo: null, // ข้อมูลคำศัพท์ที่เลือกอยู่
 
-  enemies: [],
-  turnQueue: [],
-  activeCombatant: null,
-
-  currentQuiz: null,
-  quizResolver: null,
+  enemies: [], // ศัตรูในสนามรบปัจจุบัน
+  turnQueue: [], // คิวเทิร์นของการต่อสู้
+  activeCombatant: null, // ตัวละครที่อยู่ในเทิร์นนั้น
+ 
+  currentQuiz: null, // ข้อมูลคำถาม Quiz ปัจจุบัน
+  quizResolver: null, // ฟังก์ชันที่ใช้แก้คำถาม Quiz
 
   username: "",
   currentCoin: 0,
@@ -109,7 +111,6 @@ export const useGameStore = create((set, get) => ({
     img_path: "",
     level: 1,
     next_exp: 0,
-    exp: 0,
     max_hp: 0,
     hp: 0,
     max_mana: 0,
@@ -268,10 +269,10 @@ export const useGameStore = create((set, get) => ({
   // --------------------------------------------------------------------------
   // SECTION: SYSTEM LOOP & INITIALIZATION
   // --------------------------------------------------------------------------
-  initializeGame: async (userData, stageId) => {
+  setupGame: async (userData, stageId) => {
     console.log("Initializing Game...", userData, "Stage ID:", stageId);
     get().reset();
-    set({ loadingProgress: 0, gameState: "LOADING" });
+    set({ gameState: "LOADING" });
 
     try {
       const selectedHero =
@@ -292,7 +293,6 @@ export const useGameStore = create((set, get) => ({
             img_path: selectedHero.hero_id,
             level: selectedHero.level,
             next_exp: selectedHero.next_exp || 100,
-            exp: 0,
 
             max_hp: stats?.hp || 20,
             hp: stats?.hp || 20,
@@ -316,21 +316,16 @@ export const useGameStore = create((set, get) => ({
           },
         }));
       }
-      set({ loadingProgress: 25 });
 
       const dictRes = await fetch(`${ipAddress}/dict`);
       const dictData = await dictRes.json();
-      set({ loadingProgress: 50 });
 
       const stageRes = await fetch(`${ipAddress}/getStageById/${stageId}`);
       const stageData = await stageRes.json();
       console.log("stageData", stageData);
 
-      set({ loadingProgress: 75 });
       DeckManager.init();
-
-      set({ loadingProgress: 100 });
-      await delay(1000);
+      await delay(500);
 
       if (get().isBgmOn) bgm.playGreenGrass();
       set({
@@ -365,7 +360,7 @@ export const useGameStore = create((set, get) => ({
           const walkOutSpeed = 0.1;
           const nextX = state.playerX + dt * walkOutSpeed;
           updates.playerX = nextX;
-          if (nextX > 150) {
+          if (nextX > 180) {
             get().finishStage();
             return updates;
           }
@@ -443,7 +438,17 @@ export const useGameStore = create((set, get) => ({
         ...e,
         id: e.spawn_id || `enemy_${i}_${Date.now()}`,
         x: currentX,
-        hp: e.max_hp,
+        
+        max_hp: e.hp,    
+        hp: e.hp,        
+        power: e.power,     
+        
+        // --- MANA SYSTEM ---
+        mana: 0, 
+        quiz_move_cost: e.quiz_move_cost || 100,
+        quiz_move_info: e.quiz_move_info,
+        // -------------------
+        
         shield: 0,
         currentStep: 1,
         selectedPattern: 1,
@@ -465,6 +470,15 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     get().gainMana(10); // Start new round mana
 
+    // --- MONSTER GAIN MANA (Start Round) ---
+    const updatedEnemies = store.enemies.map(e => {
+        if (e.hp <= 0) return e;
+        const newMana = Math.min(e.quiz_move_cost, e.mana + 10);
+        return { ...e, shield: 0, mana: newMana };
+    });
+    set({ enemies: updatedEnemies, playerData: { ...store.playerData, shield: 0 } });
+    // ---------------------------------------
+
     get().addPopup({
       id: Math.random(),
       x: 30,
@@ -473,11 +487,6 @@ export const useGameStore = create((set, get) => ({
       color: "#ffffff",
     });
     await delay(500);
-
-    set((state) => ({
-      playerData: { ...state.playerData, shield: 0 },
-      enemies: state.enemies.map((e) => ({ ...e, shield: 0 })),
-    }));
 
     const playerInit = Math.max(
       1,
@@ -686,31 +695,17 @@ export const useGameStore = create((set, get) => ({
 
   startPlayerTurn: () => {
     const store = get();
-    const oldInventory = store.playerData.inventory;
-    const slots = store.playerData.unlockedSlots;
-
-    // 1. ⭐ สุ่มตัวอักษรใหม่ทั้งหมด (ใช้ generateList แทน fillEmptySlots)
-    let newInventory = DeckManager.generateList(slots);
-
-    // 2. 🔥 ย้ายสถานะผิดปกติ (Debuff) จากของเก่ามาแปะใส่ของใหม่
-    // (ถ้าไม่ทำส่วนนี้ สกิลตาบอด/ใบ้ ของศัตรูจะหายไปฟรีๆ เมื่อเริ่มเทิร์นเรา)
-    newInventory = newInventory.map((newItem, i) => {
-      const oldItem = oldInventory[i];
-      // ถ้าช่องเดิมมีสถานะติดอยู่ (เช่น blind, stun) ให้ย้ายมาด้วย
-      if (oldItem && oldItem.status) {
-        return {
-          ...newItem,
-          status: oldItem.status,
-          statusDuration: oldItem.statusDuration,
-        };
-      }
-      return newItem;
-    });
+    const currentInv = [...store.playerData.inventory];
+    const filledInv = DeckManager.fillEmptySlots(
+      currentInv,
+      [], 
+      store.playerData.unlockedSlots
+    );
 
     set((s) => ({
       gameState: "PLAYERTURN",
       playerVisual: "idle",
-      playerData: { ...s.playerData, inventory: newInventory },
+      playerData: { ...s.playerData, inventory: filledInv },
     }));
   },
 
@@ -809,7 +804,6 @@ export const useGameStore = create((set, get) => ({
     get().endTurn();
   },
 
-  // ⭐⭐⭐ ปรับปรุง usePotion: ใช้ get() set() และเพิ่ม Cure Logic ⭐⭐⭐
   usePotion: (type, value = 0) => {
     const store = get();
     const { playerData, isSfxOn } = store;
@@ -889,11 +883,35 @@ export const useGameStore = create((set, get) => ({
     await delay(600);
     set({ playerShoutText: "", gameState: "PLAYERTURN" });
   },
+  passTurn: async () => {
+    // 1. เรียก store เพื่อเข้าถึงฟังก์ชันอื่น
+    const store = get(); 
+    
+    // (เพื่อให้ selectedLetters กลายเป็นค่าว่าง [] และ UI ช่องข้างบนเคลียร์)
+    store.resetSelection();
+
+    // 2. จากนั้นค่อยเริ่มกระบวนการสุ่มใหม่
+    const slots = store.playerData.unlockedSlots;
+    const newInventory = DeckManager.generateList(slots);
+
+    // 3. แสดง Effect
+    set({ playerShoutText: "PASS!", gameState: "ACTION" });
+    await delay(500);
+
+    // 4. อัปเดต Inventory ใหม่ และล้างข้อความ
+    set((s) => ({
+      playerData: { ...s.playerData, inventory: newInventory },
+      playerShoutText: "",
+    }));
+
+    // 5. จบเทิร์น
+    get().endTurn();
+  },
 
   // ============================================================================
   // ⭐ CAST SKILL (FULL LOGIC: Animation + Targeting + Mana + ChanceRound)
   // ============================================================================
-  castHeroAbility: async (manualTargetId = null) => {
+  performPlayerSkill: async (manualTargetId = null) => {
     const store = get();
     const { playerData, isSfxOn, selectedLetters } = store;
     const { ability, mana } = playerData;
@@ -1074,7 +1092,12 @@ export const useGameStore = create((set, get) => ({
       get().updateEnemy(id, { shield: currentShield });
     }
     const newHp = Math.max(0, target.hp - finalDmg);
-    get().updateEnemy(id, { hp: newHp });
+
+    // --- MANA GAIN ON HIT (Pain Gain) ---
+    const newMana = Math.min(target.quiz_move_cost, target.mana + finalDmg); 
+    // ------------------------------------
+
+    get().updateEnemy(id, { hp: newHp, mana: newMana });
     get().addPopup({
       id: Math.random(),
       x: target.x - 2,
@@ -1180,15 +1203,56 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  runSingleEnemyTurn: async (enemyId) => {
+  performEnemySkill: async (enemyId) => {
+    const store = get();
+    const en = store.enemies.find(e => e.id === enemyId);
+    if (!en || !en.quiz_move_info) return;
+
+    const moveData = en.quiz_move_info;
+
+    // 1. Reset Mana & Shout Skill Name
+    get().updateEnemy(en.id, { mana: 0, shoutText: moveData.name || "ULTIMATE!" });
+    await delay(800); // 🟢 รอให้ผู้เล่นอ่านชื่อสกิลก่อน
+
+    // 2. Animation (Dash In)
+    const atkX = en.isBoss ? PLAYER_X_POS + 15 : PLAYER_X_POS + 10;
+    const originalX = en.x;
+    get().updateEnemy(en.id, { x: atkX, atkFrame: 1 });
+    await delay(400);
+
+    // 3. Execute Quiz Move
+    const rawAtk = en.power;
+    const finalValue = Math.floor((rawAtk * (moveData.power || 0)) / 100);
+
+    await get().handleQuizMove(en, finalValue, moveData);
+
+    // 4. Return to Position
+    get().updateEnemy(en.id, { x: originalX, atkFrame: 0, shoutText: "" });
+    await delay(300);
+  },
+
+  runEnemyTurn: async (enemyId) => {
     const store = get();
     set({ playerShoutText: "", gameState: "ENEMYTURN" });
-    const en = store.enemies.find((e) => e.id === enemyId);
+    
+    let en = store.enemies.find((e) => e.id === enemyId);
     if (!en || en.hp <= 0) {
       get().endTurn();
       return;
     }
     get().updateEnemy(en.id, { shield: 0 });
+
+    // ⭐ CHECKPOINT 1: ตรวจสอบ Mana ต้นเทิร์น
+    if (en.mana >= en.quiz_move_cost && en.quiz_move_info) {
+        await get().castMonsterUltimate(en.id);
+        // Refresh & Check Death
+        en = get().enemies.find((e) => e.id === enemyId);
+        if (get().playerData.hp <= 0) {
+             bgm.stop(); set({ gameState: "OVER" }); return;
+        }
+    }
+
+    // --- STANDARD PATTERN LOGIC ---
     const actionObj = en.pattern_list?.find(
       (p) => p.pattern_no === en.selectedPattern && p.order === en.currentStep,
     );
@@ -1210,10 +1274,11 @@ export const useGameStore = create((set, get) => ({
       get().updateEnemy(en.id, { atkFrame: 1 });
       await delay(400);
     }
-    const rawAtk =
-      Math.floor(Math.random() * (en.atk_power_max - en.atk_power_min + 1)) +
-      en.atk_power_min;
+
+    const rawAtk = en.power; 
+
     const finalValue = Math.floor((rawAtk * (moveData.power || 0)) / 100);
+    
     if (moveData.is_quiz) {
       await get().handleQuizMove(en, finalValue, moveData);
     } else {
@@ -1222,6 +1287,11 @@ export const useGameStore = create((set, get) => ({
         if (finalValue > 0) {
           get().damagePlayer(finalValue);
           if (store.isSfxOn) sfx.playHit();
+          
+          // ⭐ ADD MANA ON SUCCESSFUL HIT
+          en = get().enemies.find((e) => e.id === enemyId); // Refresh state
+          const newMana = Math.min(en.quiz_move_cost, en.mana + 10);
+          get().updateEnemy(en.id, { mana: newMana });
         }
         if (moveData.debuff_code) {
           get().applyStatusToPlayer(
@@ -1253,6 +1323,20 @@ export const useGameStore = create((set, get) => ({
     } else {
       get().updateEnemy(en.id, { atkFrame: 0 });
     }
+
+    // ⭐ CHECKPOINT 2: ตรวจสอบ Mana หลังจบการกระทำ (ถ้าเต็มจากการตีผู้เล่น)
+    en = get().enemies.find((e) => e.id === enemyId);
+    if (en.mana >= en.quiz_move_cost && en.quiz_move_info) {
+        await delay(200); // หน่วงนิดนึงหลังกลับที่
+        await get().castMonsterUltimate(en.id);
+        
+        if (get().playerData.hp <= 0) {
+             bgm.stop(); set({ gameState: "OVER" }); return;
+        }
+    }
+
+    // Update Pattern Step
+    en = get().enemies.find((e) => e.id === enemyId); // Refresh again
     let nextStep = en.currentStep + 1;
     const hasNext = en.pattern_list?.some(
       (p) => p.pattern_no === en.selectedPattern && p.order === nextStep,

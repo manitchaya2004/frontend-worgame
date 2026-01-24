@@ -556,12 +556,8 @@ export default function GameApp() {
                 store={store}
                 onAttackClick={() => handleActionClick("ATTACK")}
                 onShieldClick={() => handleActionClick("SHIELD")}
-                // ⭐ เปลี่ยนจาก onSpinClick เป็น onSkillClick
                 onSkillClick={handleSkillClick}
-                onEndTurnClick={() => {
-                  store.resetSelection();
-                  store.endTurn();
-                }}
+                onEndTurnClick={() => {store.passTurn();  }}
               />
             </div>
           )}

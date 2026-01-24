@@ -8,7 +8,7 @@ import {
   GiCheckedShield,
   GiHealthPotion,
   GiMagicPotion,
-  GiBubblingFlask,
+  GiStandingPotion,
   GiVisoredHelm
 } from "react-icons/gi";
 import { useGameStore } from "../../../../store/useGameStore";
@@ -144,10 +144,10 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
 
 
       {/* ===== Stats Grid ===== */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", width: "100%", justifyItems: "center", alignItems: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", width: "100%", justifyItems: "center", alignItems: "center" }}>
         <StatItem icon={<GiHearts />} label="HP" value={max_hp} color="#ff6b6b" />
         <StatItem icon={<GiBrain />} label="SLOT" value={unlockedSlots} color="#74b9ff" />
-        <StatItem icon={<GiWalkingBoot />} label="SPD" value={`${speed - 1}-${speed + 1}`} color="#feca57" />
+        <StatItem icon={<GiWalkingBoot />} label="SPEED" value={`${speed - 1}-${speed + 1}`} color="#feca57" />
       </div>
 
       {/* ===== Potions Grid ===== */}
@@ -159,7 +159,6 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
             gap: "10px", 
         }}
       >
-        {/* ผูก onClick กับ onHeal */}
         <PotionSlot 
             label="HEAL"
             icon={<GiHealthPotion />} 
@@ -168,16 +167,14 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
             onClick={onHeal}
         />
 
-        {/* Buff ยังไม่มี Logic */}
         <PotionSlot 
             label="CLEAN"
-            icon={<GiBubblingFlask />} 
-            color="#2ecc71"
+            icon={<GiStandingPotion />} 
+            color="#ffffff"
             count={potions.cure || 0}
             onClick={onCure}
         />
 
-        {/* ผูก onClick กับ onReroll */}
         <PotionSlot 
             label="ROLL"
             icon={<GiMagicPotion />} 
