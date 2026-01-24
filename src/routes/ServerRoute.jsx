@@ -11,6 +11,7 @@ export default function ServerRoute() {
     checkServerInGame,
     isServerClose,
     serverChecked,
+    isOffline,
   } = useServerStore();
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function ServerRoute() {
   }
 
   // ❌ server ปิด → redirect ก่อน Home render
-  if (isServerClose) {
+  if (isServerClose && !isOffline) {
     return <Navigate to="/server-closed" replace />;
   }
 

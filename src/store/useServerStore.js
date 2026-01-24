@@ -12,13 +12,21 @@ export const useServerStore = create((set) => ({
   serverChecked: false,
 
   // ใช้เฉพาะหน้า server-closed
-  serverStatus: INITIALIZED, 
+  serverStatus: INITIALIZED,
   // INITIALIZED | LOADING | LOADED | FAILED
 
   // =========================
   // 🔴 ใช้หลัง login / ระหว่างเล่นเกม
   // =========================
   checkServerInGame: async (currentPath) => {
+    if (!navigator.onLine) {
+      set({
+        isOffline: true,
+        serverChecked: true,
+      });
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/server/${SERVER_ID}`);
       if (!res.ok) throw new Error();
@@ -35,12 +43,11 @@ export const useServerStore = create((set) => ({
       }
 
       // server เปิด
-      set({ serverChecked: true });
+      set({ serverChecked: true, isServerClose: false, isOffline: false });
     } catch {
       // backend ล่ม = ถือว่า server ใช้ไม่ได้
       set({
-        isServerClose: true,
-        lastPathBeforeClose: currentPath,
+        isOffline: true,
         serverChecked: true,
       });
     }
@@ -50,38 +57,38 @@ export const useServerStore = create((set) => ({
   // 🔵 ใช้เฉพาะหน้า server-closed
   // =========================
   refreshServer: async () => {
-  set({ serverStatus: LOADING });
+    set({ serverStatus: LOADING });
 
-  const start = Date.now();
+    const start = Date.now();
 
-  try {
-    const res = await fetch(`${API_URL}/server/${SERVER_ID}`);
-    if (!res.ok) throw new Error();
+    try {
+      const res = await fetch(`${API_URL}/server/${SERVER_ID}`);
+      if (!res.ok) throw new Error();
 
-    const data = await res.json();
+      const data = await res.json();
 
-    // ⭐ บังคับให้ loading อย่างน้อย 600ms
-    const elapsed = Date.now() - start;
-    if (elapsed < 600) {
-      await new Promise((r) => setTimeout(r, 600 - elapsed));
+      // ⭐ บังคับให้ loading อย่างน้อย 600ms
+      const elapsed = Date.now() - start;
+      if (elapsed < 600) {
+        await new Promise((r) => setTimeout(r, 600 - elapsed));
+      }
+
+      if (!data.is_close) {
+        set({
+          serverStatus: LOADED,
+          isServerClose: false,
+           isOffline: false,
+        });
+        return true;
+      }
+
+      set({ serverStatus: FAILED });
+      return false;
+    } catch {
+      set({ serverStatus: FAILED });
+      return false;
     }
-
-    if (!data.is_close) {
-      set({
-        serverStatus: LOADED,
-        isServerClose: false,
-      });
-      return true;
-    }
-
-    set({ serverStatus: FAILED });
-    return false;
-  } catch {
-    set({ serverStatus: FAILED });
-    return false;
-  }
-},
-
+  },
 
   // =========================
   // 🟢 clear หลัง server เปิด
@@ -92,9 +99,9 @@ export const useServerStore = create((set) => ({
       serverChecked: false,
       serverStatus: INITIALIZED,
       lastPathBeforeClose: null,
+       isOffline: false,
     }),
 }));
-
 
 // import { create } from "zustand";
 // import {
