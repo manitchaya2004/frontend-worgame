@@ -16,7 +16,7 @@ import BackpackIcon from "@mui/icons-material/Backpack";
 import SaveIcon from "@mui/icons-material/Save";
 import RestoreIcon from "@mui/icons-material/Restore";
 
-import { GiHealthPotion, GiMagicPotion, GiBubblingFlask } from "react-icons/gi";
+import { GiHealthPotion, GiMagicPotion, GiBubblingFlask,GiStandingPotion } from "react-icons/gi";
 
 const MotionBox = motion(Box);
 const ItemFeature = () => {
@@ -247,9 +247,9 @@ const ItemFeature = () => {
             />
 
             <ItemCard
-              type="cure"
-              label="CURE"
-              icon={<GiBubblingFlask />}
+              type="clean"
+              label="CLEAN"
+              icon={<GiStandingPotion />}
               level={cure_lv}
               count={inventoryPotions.cure}
               maxLimit={max_slot}

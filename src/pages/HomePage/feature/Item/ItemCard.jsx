@@ -2,11 +2,11 @@ import { Box, Typography, IconButton, Button, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import LevelBar from "../Character/LevelBar";
+import LevelBar from "../../components/LevelBar";
 
 const ITEM_COLORS = {
   heal: "#e57373", // แดงตุ่นๆ
-  cure: "#81c784", // เขียวตุ่นๆ
+  clean: "#ffffff", // เขียวตุ่นๆ
   reroll: "#64b5f6", // ฟ้าตุ่นๆ
 };
 
@@ -93,8 +93,8 @@ const ItemCard = ({
         </Box>
         <Box
           sx={{
-            width: 70,
-            height: 70,
+            width: 140,
+            height: 140,
             backgroundColor: "rgba(0,0,0,0.3)",
             borderRadius: "8px",
             // border: "2px solid #5a3e2b",
@@ -102,7 +102,7 @@ const ItemCard = ({
             justifyContent: "center",
             alignItems: "center",
             color: color,
-            "& svg": { fontSize: 50 },
+            "& svg": { fontSize: 100 },
           }}
         >
           {icon}
@@ -111,7 +111,7 @@ const ItemCard = ({
 
       {/* 2. LEVEL & UPGRADE */}
       
-      <Box
+      {/* <Box
         sx={{ backgroundColor: "rgba(0,0,0,0.2)", p: 1, borderRadius: "8px",mt:1.5 }}
       >
         <Box
@@ -131,7 +131,7 @@ const ItemCard = ({
           >
             UPGRADE
           </Typography>
-          {/* Upgrade Button */}
+   
           <Button
             size="small"
             onClick={onUpgrade}
@@ -152,9 +152,9 @@ const ItemCard = ({
           </Button>
         </Box>
 
-        {/* เรียกใช้ LevelBar ตัวที่คุณชอบ */}
+       
         <LevelBar level={level} canUpgrade={false} />
-      </Box>
+      </Box> */}
 
       {/* 3. EQUIP CONTROLS (Slot Management) */}
       <Box
