@@ -156,8 +156,6 @@ const AdvantureFeature = () => {
     );
   }
 
-  console.log("stage na", stages);
-  console.log("user", currentUser);
 
   return (
     <Box sx={{ display: "flex" }}>

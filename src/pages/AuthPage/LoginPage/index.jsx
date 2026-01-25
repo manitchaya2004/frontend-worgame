@@ -19,7 +19,6 @@ const LoginPage = () => {
     clearBackendMessage,
   } = useLoginPlayer();
   const navigate = useNavigate();
-  console.log("message", message);
 
   const [snackbar, setSnackbar] = useState({
     open: false,

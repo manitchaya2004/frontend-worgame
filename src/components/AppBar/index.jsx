@@ -11,6 +11,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { motion, animate } from "framer-motion";
+
 // Icons (MUI Icons เพื่อความชัวร์ หรือใช้ SVG ที่คุณ import มา)
 import AutoStoriesIcon from "@mui/icons-material/AutoStories"; // Dictionary
 import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon"; // Monster
@@ -19,8 +20,9 @@ import PersonIcon from "@mui/icons-material/Person"; // Character
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+
+
 // Assets เดิมของคุณ
-import coin from "../../assets/icons/coin.svg";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 import { GameDialog } from "../GameDialog";

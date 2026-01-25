@@ -10,7 +10,6 @@ const SelectHero = () => {
     // finishSelectHero(); // ✅ set isFirstTime = false
     navigate("/home"); // ✅ เข้าเกม
   };
-  console.log("SELECT HERO RENDER");
   return (
     <Box
       sx={{
