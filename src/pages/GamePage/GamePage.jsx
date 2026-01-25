@@ -168,7 +168,7 @@ export default function GameApp() {
   const initGameData = async () => {
     setAppStatus("LOADING");
     try {
-      await store.initializeGame(currentUser, selectedStage);
+      await store.setupGame(currentUser, selectedStage);
       store.initSelectedLetters();
       setAppStatus("READY");
     } catch (err) {

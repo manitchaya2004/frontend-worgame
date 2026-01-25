@@ -92,19 +92,19 @@ export const useGameStore = create((set, get) => ({
   enemies: [], // ศัตรูในสนามรบปัจจุบัน
   turnQueue: [], // คิวเทิร์นของการต่อสู้
   activeCombatant: null, // ตัวละครที่อยู่ในเทิร์นนั้น
- 
+  
   currentQuiz: null, // ข้อมูลคำถาม Quiz ปัจจุบัน
   quizResolver: null, // ฟังก์ชันที่ใช้แก้คำถาม Quiz
 
   username: "",
-  currentCoin: 0,
-  receivedCoin: 0,
+  currentCoin: 0, // เหรียญปัจจุบัน
+  receivedCoin: 0, // เหรียญที่ได้รับในด่านนี้
 
   playerX: PLAYER_X_POS,
   playerShoutText: "",
-  playerVisual: "idle",
-  animFrame: 1,
-  selectedLetters: [],
+  playerVisual: "idle", // ใช้แสดงท่าทางปัจจุบัน 
+  animFrame: 1, // ใช้แสดงอนิเมชั่น frame ปัจจุบัน
+  selectedLetters: [], // ตัวอักษรที่เลือกอยู่บนหน้าจอ
 
   playerData: {
     name: "Hero",
@@ -116,6 +116,12 @@ export const useGameStore = create((set, get) => ({
     max_mana: 0,
     mana: 0,
     power: {},
+    
+    // ⭐ UPDATE: เพิ่มค่า Default กัน Error
+    common_tile_dmg: 0,
+    uncommon_tile_dmg: 0,
+    rare_tile_dmg: 0,
+
     ability: {
       code: null,
       cost: 0,
@@ -157,7 +163,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   // ==========================================================================
-  // ⭐ HELPER: Gain Mana Function
+  // HELPER: Gain Mana Function
   // ==========================================================================
   gainMana: (amount) => {
     const { playerData } = get();
@@ -175,25 +181,27 @@ export const useGameStore = create((set, get) => ({
   // --------------------------------------------------------------------------
   // SECTION: INVENTORY & WORD LOGIC
   // --------------------------------------------------------------------------
+
+  // รีเซ็ตตัวอักษรที่เลือก
   initSelectedLetters: () => {
     const { playerData } = get();
     set({
-      selectedLetters: new Array(playerData.unlockedSlots).fill(null),
+      selectedLetters: new Array(playerData.unlockedSlots).fill(null), 
       validWordInfo: null,
     });
   },
-
+  // เลือกตัวอักษรจากมือไปวางบนหน้าจอ
   selectLetter: (item, invIndex) => {
+    // ถ้าติดสถานะ stun ห้ามกดเลือก
     if (item.status === "stun") return;
     const { selectedLetters, playerData } = get();
     const emptyIdx = selectedLetters.findIndex((s) => s === null);
-
     if (emptyIdx !== -1) {
       const newSelected = [...selectedLetters];
+      // เก็บ originalIndex ไว้ใน item เพื่อใช้ตอนยกเลิกการเลือก
       newSelected[emptyIdx] = { ...item, originalIndex: invIndex };
       const newInv = [...playerData.inventory];
       newInv[invIndex] = null;
-
       set({
         selectedLetters: newSelected,
         playerData: { ...playerData, inventory: newInv },
@@ -201,7 +209,7 @@ export const useGameStore = create((set, get) => ({
       get().checkCurrentWord(newSelected);
     }
   },
-
+  // เอาตัวอักษรที่หน้าจอ กลับเข้าสู่มือ
   deselectLetter: (item) => {
     if (!item) return;
     const { selectedLetters, playerData } = get();
@@ -226,7 +234,7 @@ export const useGameStore = create((set, get) => ({
     });
     get().checkCurrentWord(finalSelected);
   },
-
+  // เคลียร์ตัวอักษรทั้งหมดที่หน้าจอ
   resetSelection: () => {
     const { selectedLetters, playerData } = get();
     const itemsToReturn = selectedLetters.filter((i) => i !== null);
@@ -240,7 +248,7 @@ export const useGameStore = create((set, get) => ({
     }
     get().initSelectedLetters();
   },
-
+  // สลับที่ตัวอักษรบนหน้าจอ
   reorderLetters: (newOrder) => {
     const { playerData } = get();
     const fullList = [
@@ -250,7 +258,7 @@ export const useGameStore = create((set, get) => ({
     set({ selectedLetters: fullList });
     get().checkCurrentWord(fullList);
   },
-
+  // เช็คว่าตัวอักษรบนหน้าจอมีความหมายจริงๆไหมในคลังคำศัพท์
   checkCurrentWord: (currentSelected) => {
     const { dictionary } = get();
     const word = currentSelected
@@ -266,11 +274,11 @@ export const useGameStore = create((set, get) => ({
     set({ validWordInfo: found || null });
   },
 
-  // --------------------------------------------------------------------------
-  // SECTION: SYSTEM LOOP & INITIALIZATION
-  // --------------------------------------------------------------------------
+  // -----------
+  // เกมเพลย์หลัก
+  // -----------
   setupGame: async (userData, stageId) => {
-    console.log("Initializing Game...", userData, "Stage ID:", stageId);
+    // console.log("Initializing Game...", userData, "Stage ID:", stageId);
     get().reset();
     set({ gameState: "LOADING" });
 
@@ -284,11 +292,17 @@ export const useGameStore = create((set, get) => ({
         }));
       }
 
+      // ⭐ UPDATE: Logic ใหม่สำหรับการรับ Stats
       if (selectedHero) {
         const { stats } = selectedHero;
         set((state) => ({
           playerData: {
             ...state.playerData,
+            
+            // 1. เทข้อมูล Stats ลงไปก่อน (common/rare/uncommon/power จะเข้าตรงนี้)
+            ...stats,
+
+            // 2. กำหนดค่าที่ชื่อไม่ตรงกัน หรือต้อง Override
             name: selectedHero.name,
             img_path: selectedHero.hero_id,
             level: selectedHero.level,
@@ -300,7 +314,6 @@ export const useGameStore = create((set, get) => ({
             max_mana: selectedHero.ability_cost ,
             mana: 0,
 
-            power: stats?.power || {},
             ability: {
               code: selectedHero.ability_code || null,
               cost: selectedHero.ability_cost || 0,
