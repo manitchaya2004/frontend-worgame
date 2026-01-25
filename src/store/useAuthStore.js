@@ -5,25 +5,28 @@ import { LOADED, LOADING, FAILED, INITIALIZED, API_URL } from "./const";
 export const useAuthStore = create(
   persist(
     (set, get) => ({
+      currentUser: null,
+      previewData: null,
+
       /* ================= STATE (เหมือน Redux) ================= */
       registerState: INITIALIZED,
       loginState: INITIALIZED,
       selectHeroState: INITIALIZED,
       buyHeroState: INITIALIZED,
       resourceStatus: INITIALIZED,
-      buyHeroError: null,
+      upgradeStatus: INITIALIZED,
 
       authLoading: true,
       isAuthenticated: false,
       isFirstTime: false,
-      currentUser: null,
+
 
       backendRegisMessage: null,
       backendLoginMessage: null,
 
       errorLogin: false,
       errorRegister: false,
-
+      buyHeroError: null,
       /* ================= ACTIONS ================= */
 
       /* ===== REGISTER ===== */
@@ -81,7 +84,6 @@ export const useAuthStore = create(
             backendLoginMessage: null,
             errorLogin: false,
           });
-          console.log(JSON.stringify(credentials));
 
           const res = await fetch(`${API_URL}/login`, {
             method: "POST",
@@ -193,7 +195,6 @@ export const useAuthStore = create(
           if (!res.ok) throw new Error("server error");
 
           const data = await res.json();
-          // console.log("data", data);
 
           if (!data.isSuccess) throw new Error(data.message);
 
@@ -351,6 +352,75 @@ export const useAuthStore = create(
         }
       },
 
+      // level up
+      upgradeHero: async (heroId) => {
+        set({ upgradeStatus: LOADING });
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+          const res = await fetch(`${API_URL}/level-up"`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ heroId }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.isSuccess) throw new Error(data.message);
+
+          const { hero } = data; // ข้อมูล Hero ตัวใหม่ที่อัปเวลแล้ว
+
+          // อัปเดต Hero ใน List ทันที
+          set((state) => ({
+            upgradeStatus: LOADED, // สำเร็จ
+            currentUser: {
+              ...state.currentUser,
+              heroes: state.currentUser.heroes.map((h) =>
+                h.hero_id === heroId ? { ...h, ...hero } : h
+              ),
+              // ถ้า API ส่งเงินที่เหลือมาด้วยก็อัปเดตตรงนี้ได้เลย
+              // money: data.moneyLeft ?? state.currentUser.money 
+            },
+          }));
+
+          return true;
+        } catch (err) {
+          console.error("upgradeHero error:", err);
+          set({ upgradeStatus: FAILED });
+        }
+      },
+
+      //  preview data for level up
+      fetchPreviewData: async (heroId) => {
+        set({ previewData: null, upgradeStatus: LOADING });
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+          const res = await fetch(`${API_URL}/preview-level-up`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ heroId }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.isSuccess) throw new Error(data.message);
+
+          set({ 
+            previewData: data.data, // ข้อมูล comparison
+            upgradeStatus: LOADED // โหลดเสร็จแล้ว โชว์ข้อมูลได้
+          });
+        } catch (err) {
+          console.error("fetchPreviewData error:", err);
+          set({ upgradeStatus: FAILED });
+        }
+      },
+
+
       /* ===== CLEAR STATES (เหมือน reducers) ===== */
       logout: () => {
         localStorage.removeItem("token");
@@ -367,6 +437,8 @@ export const useAuthStore = create(
       clearLoginState: () => set({ loginState: INITIALIZED }),
 
       clearRegisterState: () => set({ registerState: INITIALIZED }),
+
+      clearUpgradeStatus: () => set({ upgradeStatus: INITIALIZED, previewData: null }),
 
       // hero ที่กำลังใช้อยู่
       getSelectedHero: () => {
