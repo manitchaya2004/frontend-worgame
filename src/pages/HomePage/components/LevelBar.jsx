@@ -1,6 +1,6 @@
 import { Box, Typography, IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { MAX_LEVEL } from "../../hook/const";
+import { MAX_LEVEL } from "../hook/const";
 // --- LevelBar ---
 const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
   const TOTAL_BLOCKS = 10; // แบ่งเป็น 10 ช่อง
@@ -8,7 +8,7 @@ const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
   const isMax = level >= TOTAL_BLOCKS;
 
   return (
-    <Box sx={{ mb: 1, width: "100%" }}>
+    <Box sx={{ mb: isOwned?1:2, width: "100%" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {/* 1. LABEL LV */}
         <Box sx={{ minWidth: 60, display: "flex", justifyContent: "center" }}>
@@ -80,7 +80,7 @@ const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
         {/* 3. UPGRADE BUTTON */}
         {isOwned && (
           <Box
-            onClick={canUpgrade ? onUpgrade : undefined}
+            onClick={onUpgrade}
             sx={{
               width: 50,
               height: 25,

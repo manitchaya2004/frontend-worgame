@@ -1,41 +1,56 @@
-import { Typography, Box, LinearProgress } from "@mui/material";
+import { Typography, Box, LinearProgress ,Tooltip} from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 // ------------------------------------------------
 // 1. แบบกล่องตัวเลข (Numeric Row) - กลับมาใช้แบบกล่องเดียว
 // ------------------------------------------------
-export const StatNumericBox = ({ label, value, icon, color }) => (
-  <Box
+export const StatNumericBox = ({ label, value, icon, color, description }) => {
+  const content = (
+    <Box
     sx={{
-      backgroundColor: "rgba(0, 0, 0, 0.4)",
-      borderRadius: "6px",
-      py: 0.2, // ความสูงแนวตั้ง
-      px: 1.5,
+      // --- Layout ---
+      width: "95px", // 🟢 ยืดเต็มช่อง Grid (xs=4) เสมอ
+      height: "35px", // สูงเท่ากัน
       display: "flex",
       alignItems: "center",
-      justifyContent: "space-between", // 🟢 ดันซ้ายสุด-ขวาสุด เหมือนเดิม
-      gap: 1.5,
-      border: "1px solid rgba(255,255,255,0.05)",
-      boxShadow: "inset 0 0 10px rgba(0,0,0,0.5)",
+      justifyContent: "space-between", // ดันซ้าย-ขวา
+      
+      // --- Appearance ---
+      backgroundColor: "rgba(0, 0, 0, 0.5)", 
+      borderRadius: "6px",
+      border: `1px solid ${color}40`, // ขอบสีจาง
+      
+      // --- Spacing (หัวใจสำคัญ: ลด Padding เพื่อไม่ให้ล้น) ---
+      py: 0.5, 
+      px: 0.8, // ลดขอบข้างลงนิดนึงจะได้ไม่เบียด
+      
+      boxShadow: "inset 0 0 5px rgba(0,0,0,0.5)",
+      boxSizing: "border-box", // 🟢 กันไม่ให้ Padding ดันจนกล่องบวม
+      
       transition: "all 0.2s",
       "&:hover": {
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        borderColor: "rgba(255,255,255,0.2)",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        borderColor: color,
+        transform: "translateY(-1px)",
       },
     }}
   >
     {/* LEFT: Icon & Label */}
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-      <Box sx={{ color: color, display: "flex", "& svg": { fontSize: 18 } }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+      {/* Icon: ปรับขนาดให้เล็กลงนิดนึงจะได้ไม่กินที่ */}
+      <Box sx={{ color: color, display: "flex", "& svg": { fontSize: 16 } }}>
         {icon}
       </Box>
+      
+      {/* Label: ย่อฟอนต์ลงเล็กน้อยเพื่อความปลอดภัย */}
       <Typography
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: 8,
-          color: "#aaa",
+          fontSize: 8, // ลดเหลือ 8px (จาก 9px) กันล้น
+          color: "#bbb",
           textTransform: "uppercase",
           mt: "2px",
+          whiteSpace: "nowrap", // 🟢 ห้ามขึ้นบรรทัดใหม่
         }}
       >
         {label}
@@ -45,18 +60,35 @@ export const StatNumericBox = ({ label, value, icon, color }) => (
     {/* RIGHT: Value */}
     <Typography
       sx={{
-        // 🟢 ใช้ฟอนต์ปกติให้อ่านเลข 8 ชัดๆ ตามที่ขอ
         fontFamily: "'Verdana', sans-serif",
         fontWeight: "bold",
         fontSize: 12,
         color: "#fff",
-        textShadow: `0 0 5px ${color}`, // เรืองแสงตามสี Stat
+        textShadow: `0 0 5px ${color}`,
+        ml: 0.5, // ดันห่างจาก Label นิดนึง
       }}
     >
       {value}
     </Typography>
   </Box>
-);
+  )
+  if (!description) return content;
+
+  return (
+    <Tooltip 
+      title={
+        <Typography sx={{ fontSize: 12, fontFamily: "'Verdana'" }}>
+          {description}
+        </Typography>
+      } 
+      arrow 
+      placement="top"
+    >
+      {content}
+    </Tooltip>
+  );
+
+};
 
 // ------------------------------------------------
 // 2. แบบหลอดภาพรวม (Visual Bar Row) - 20 ช่อง สไตล์เดียวกับ LevelBar
