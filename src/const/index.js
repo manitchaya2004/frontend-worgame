@@ -1,5 +1,5 @@
 // --- ตำแหน่งและขนาด (Layout) ---
-export const FIXED_Y = 280;         // ความสูงจากขอบบนที่เท้าตัวละครวางอยู่
+export const FIXED_Y = 290;         // ความสูงจากขอบบนที่เท้าตัวละครวางอยู่
 export const PLAYER_X_POS = 10;     // ตำแหน่งแกน X ของผู้เล่น (%)
 
 export const DISPLAY_NORMAL = 16 * 3.5;  // ขนาด Sprite ปกติ (16px scaled)

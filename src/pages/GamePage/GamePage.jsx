@@ -3,11 +3,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ipAddress } from "../../const";
 
+// --- Icons ---
 import {
-  GiHamburgerMenu, // ปุ่มเมนู
   GiTatteredBanner, // ธงระยะทาง
-  GiDungeonGate, // ปุ่มออกเกม
+  GiTwoCoins, // ไอคอนเงิน
+  GiSpeaker, // ลำโพงเปิด (SFX On)
+  GiSpeakerOff, // ลำโพงปิด (SFX Off)
+  GiMusicalNotes, // ดนตรีเปิด (BGM On)
 } from "react-icons/gi";
+
+// Import ไอคอนจาก Material Design
+import { MdMusicOff, MdFlag } from "react-icons/md";
 
 // --- Store & System ---
 import { useGameStore } from "../../store/useGameStore";
@@ -29,7 +35,6 @@ import { PlayerStatusCard } from "./features/downPanel/PlayerStatusCard";
 import { TurnQueueBar } from "./features/TopPanel/TurnQueueBar";
 import { DamagePopup } from "./features/TopPanel/DamagePopup";
 import { TargetPickerOverlay } from "./features/downPanel/TargetPickerOverlay";
-import { GameMenu } from "./features/TopPanel/Menu";
 
 // --- Components: System Views ---
 import LoadingView from "../../components/LoadingView";
@@ -85,11 +90,10 @@ export default function GameApp() {
       return "";
     };
 
-    // 2. ป้องกันปุ่ม Back -> ให้เปิดเมนู Pause แทน
+    // 2. ป้องกันปุ่ม Back
     const handlePopState = (e) => {
       e.preventDefault();
       window.history.pushState(null, document.title, window.location.href);
-      store.setMenuOpen(true);
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -103,9 +107,8 @@ export default function GameApp() {
   }, []);
 
   // --------------------------------------------------------------------------
-  // 🧭 GAME OVER / CLEAR NAVIGATION LOGIC (ส่วนที่เพิ่มใหม่)
+  // 🧭 GAME OVER / CLEAR NAVIGATION LOGIC
   // --------------------------------------------------------------------------
-  // พั้นแก้
   useEffect(() => {
     // กรณีแพ้ (LOSE)
     if (store.gameState === "OVER") {
@@ -114,28 +117,29 @@ export default function GameApp() {
       navigate("/summary", {
         state: {
           result: "LOSE",
-          earnedCoins: Math.floor(store.receivedCoin / 2), // ได้เงินครึ่งเดียว
-          wordLog: store.wordLog, // 📦 ส่ง Log คำศัพท์ไปด้วย
+          earnedCoins: Math.floor(store.receivedCoin / 2),
+          stageCoins: 0,
+          wordLog: store.wordLog,
         },
       });
     }
-    const currentStageRecord = currentUser?.stages?.find(
-      (userStage) => userStage.stage_id === store.stageData?.id,
-    );
-
-    // เช็คว่าเล่นไปยาง 
-    const isReplay = currentStageRecord?.is_completed === true;
 
     // กรณีชนะ (WIN)
     if (store.gameState === "GAME_CLEARED") {
-      if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
+      if (store.isBgmOn) store.toggleBgm();
+
+      const currentStageId = store.stageData?.id;
+      const stageRecord = currentUser?.stages?.find(
+        (s) => s.stage_id === currentStageId
+      );
+      const isFirstClear = !stageRecord || !stageRecord.is_completed;
 
       navigate("/summary", {
         state: {
           result: "WIN",
-          earnedCoins: store.receivedCoin, // ได้เงินเต็ม
-          stageCoins: isReplay ? 0 : store.stageData?.money_reward,
-          wordLog: store.wordLog, // ส่ง Log คำศัพท์ไปด้วย
+          earnedCoins: store.receivedCoin,
+          stageCoins: isFirstClear ? (store.stageData?.money_reward || 0) : 0,
+          wordLog: store.wordLog,
         },
       });
     }
@@ -145,15 +149,25 @@ export default function GameApp() {
     store.receivedCoin,
     store.wordLog,
     store.isBgmOn,
-    store.stageData?.money_reward,
+    store.stageData,
+    currentUser,
   ]);
 
-  // ฟังก์ชันออกเกมแบบทันที (ใช้ในปุ่ม Exit ใน Pause Menu)
-  const handleExit = () => {
+  const handleExit = async () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     if (store.isBgmOn) store.toggleBgm();
 
-    navigate("/home");
+    const halfCoins = Math.floor(store.receivedCoin / 2);
+    await store.saveQuitGame(halfCoins);
+
+    navigate("/summary", {
+      state: {
+        result: "LOSE",
+        earnedCoins: halfCoins,
+        stageCoins: 0,
+        wordLog: store.wordLog,
+      },
+    });
 
     setTimeout(() => {
       store.reset();
@@ -226,10 +240,10 @@ export default function GameApp() {
     if (!store.validWordInfo) return;
     setPendingAction(type);
     const alive = store.enemies.filter((e) => e.hp > 0);
-    if (type === "SHIELD") {
-      executeAction("SHIELD", null);
+    if (type === "Guard") {
+      executeAction("Guard", null);
     } else {
-      if (alive.length === 1) executeAction("ATTACK", alive[0].id);
+      if (alive.length === 1) executeAction("Strike", alive[0].id);
       else setShowTargetPicker(true);
     }
   };
@@ -238,56 +252,44 @@ export default function GameApp() {
     store.setHoveredEnemyId(null);
     setShowTargetPicker(false);
 
-    if (pendingAction === "ATTACK") {
-      executeAction("ATTACK", enemyId);
+    if (pendingAction === "Strike") {
+      executeAction("Strike", enemyId);
     } else if (pendingAction === "SKILL") {
-      // ถ้าเป็นการกดเลือกจากเมนูสกิล ให้ส่ง enemyId ไปที่ฟังก์ชันสกิล
-      store.castHeroAbility(enemyId);
+      store.performPlayerSkill(enemyId);
     }
     setPendingAction(null);
   };
 
   const handleSkillClick = async () => {
-    // ดึงชื่อสกิลมาเช็ค
-    const abilityCode = store.playerData.ability.code; 
-    
-    // ตรวจสอบเบื้องต้น (กันเหนียว)
+    const abilityCode = store.playerData.ability.code;
     if (!abilityCode) return;
 
-    // A. กรณีท่าหมู่ (AOE) : ไม่ต้องเลือกเป้า
     if (abilityCode === "Expolsion") {
-       await store.castHeroAbility(null); // ส่ง null ไปเพราะยิงหมด
-       return;
+      await store.performPlayerSkill(null);
+      return;
     }
 
-    // B. กรณีท่าเดี่ยว (Single Target) : ต้องเลือกเป้า
     const alive = store.enemies.filter((e) => e.hp > 0);
-    
     if (alive.length === 1) {
-       // ถ้าศัตรูเหลือตัวเดียว ใส่ตัวนั้นเลย ไม่ต้องเปิดเมนู
-       await store.castHeroAbility(alive[0].id);
+      await store.performPlayerSkill(alive[0].id);
     } else {
-       // ถ้ามีหลายตัว ให้เปิด Target Picker
-       setPendingAction("SKILL"); // บอกระบบว่า "ฉันกำลังจะใช้สกิลนะ"
-       setShowTargetPicker(true);
+      setPendingAction("SKILL");
+      setShowTargetPicker(true);
     }
   };
 
-  // 1. ฟังก์ชันกดใช้ยาเพิ่มเลือด
   const handleHeal = () => {
     const { potions, hp, max_hp } = store.playerData;
     if (potions.health <= 0 || hp >= max_hp) return;
     store.usePotion("health", 30);
   };
 
-  // 2. เพิ่มฟังก์ชันกดใช้ยาแก้สถานะ (Cure)
   const handlePotionCure = () => {
     const { potions } = store.playerData;
     if (potions.cure <= 0) return;
-    store.usePotion("cure"); 
+    store.usePotion("cure");
   };
 
-  // 3. ฟังก์ชันกดใช้ยาสุ่มของใหม่ (Reroll)
   const handlePotionRoll = () => {
     const { potions } = store.playerData;
     if (potions.reroll <= 0) return;
@@ -316,12 +318,47 @@ export default function GameApp() {
     store.actionSpin(nextInv);
   };
 
+  // ⭐ STYLES
+  const commonHudStyle = {
+    background: "rgba(20, 14, 10, 0.9)",
+    border: "2px solid #ffd700",
+    borderBottom: "4px solid #b8860b",
+    borderRadius: "8px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "52px",
+    boxSizing: "border-box",
+    transition: "all 0.1s",
+  };
+
+  // Style ปุ่มกด
+  const hudButtonStyle = {
+    ...commonHudStyle,
+    width: "52px",
+    cursor: "pointer",
+    color: "#e6c88b",
+  };
+
+  // Animation กดปุ่ม
+  const handleHudButtonDown = (e) => {
+    e.currentTarget.style.transform = "translateY(2px)";
+    e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.6)";
+    e.currentTarget.style.borderBottomWidth = "2px";
+  };
+
+  const handleHudButtonUp = (e) => {
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.6)";
+    e.currentTarget.style.borderBottomWidth = "4px";
+  };
+
   // --------------------------------------------------------------------------
   // 🔵 RENDER
   // --------------------------------------------------------------------------
 
-  if (appStatus === "LOADING")
-    return <LoadingScreen open={true}/>;
+  if (appStatus === "LOADING") return <LoadingScreen open={true} />;
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
@@ -353,106 +390,150 @@ export default function GameApp() {
         }}
       >
         {/* ===================================================================
-            🆕 UI: HUD (HEADS-UP DISPLAY) & MENU
+            🆕 UI: HUD (HEADS-UP DISPLAY)
            =================================================================== */}
 
-        {/* 1. ปุ่มเมนู (Menu Button) */}
+        {/* 1. ปุ่มควบคุมมุมซ้ายบน */}
         <div
-          onClick={() => store.setMenuOpen(true)}
           style={{
             position: "absolute",
             top: "20px",
             left: "20px",
             zIndex: 1000,
-            cursor: "pointer",
-            background: "linear-gradient(to bottom, #2b2b2b, #0a0a0a)",
-            border: "2px solid #333",
-            borderTopColor: "#555",
-            borderBottomColor: "#000",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            boxShadow: "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)",
             display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            transition: "all 0.1s",
-            color: "#e6c88b",
-            fontFamily: '"Cinzel", serif',
-          }}
-          onMouseDown={(e) => {
-            e.currentTarget.style.transform = "translateY(3px)";
-            e.currentTarget.style.boxShadow =
-              "0 1px 0 #0f0a08, inset 0 2px 5px rgba(0,0,0,0.5)";
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.boxShadow =
-              "0 4px 0 #0f0a08, 0 6px 6px rgba(0,0,0,0.5)";
+            gap: "12px",
           }}
         >
-          <GiHamburgerMenu size={24} color="#f1c40f" />
+          {/* ปุ่มออก */}
+          <div
+            onClick={handleExit}
+            style={hudButtonStyle}
+            onMouseDown={handleHudButtonDown}
+            onMouseUp={handleHudButtonUp}
+            title="Surrender"
+          >
+            <MdFlag size={26} color="#e74c3c" />
+          </div>
+
+          {/* ปุ่ม SFX */}
+          <div
+            onClick={store.toggleSfx}
+            style={hudButtonStyle}
+            onMouseDown={handleHudButtonDown}
+            onMouseUp={handleHudButtonUp}
+            title="Toggle SFX"
+          >
+            {store.isSfxOn ? (
+              <GiSpeaker size={26} />
+            ) : (
+              <GiSpeakerOff size={26} color="#9e9e9e" />
+            )}
+          </div>
+
+          {/* ปุ่ม BGM */}
+          <div
+            onClick={store.toggleBgm}
+            style={hudButtonStyle}
+            onMouseDown={handleHudButtonDown}
+            onMouseUp={handleHudButtonUp}
+            title="Toggle Music"
+          >
+            {store.isBgmOn ? (
+              <GiMusicalNotes size={26} />
+            ) : (
+              <MdMusicOff size={26} color="#9e9e9e" />
+            )}
+          </div>
         </div>
 
-        {/* 2. ระยะทาง  */}
+        {/* ⭐ Wrapper ขวาบน: รวม Coin และ Distance เพื่อจัดชิดกัน ⭐ */}
         <div
           style={{
             position: "absolute",
             top: "20px",
             right: "20px",
             zIndex: 1000,
-            background: "rgba(20, 14, 10, 0.9)",
-            border: "2px solid #5e4b35",
-            borderBottom: "4px solid #5e4b35",
-            borderRadius: "8px",
-            padding: "8px 20px",
             display: "flex",
             alignItems: "center",
-            gap: "12px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.6)",
+            gap: "10px", // ระยะห่างระหว่างปุ่มเงินกับปุ่มระยะทาง
           }}
         >
-          <GiTatteredBanner
-            size={28}
-            color="#f1c40f"
-            style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
-          />
-
+          {/* 2. แสดงเงิน (Coin) */}
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              lineHeight: 1,
+              ...commonHudStyle, // ใช้ Style พื้นฐาน
+              padding: "0 16px", // Auto Width ตามเนื้อหา
+              gap: "8px",
             }}
           >
+            <GiTwoCoins
+              size={28}
+              color="#ffd700"
+              style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
+            />
             <span
               style={{
-                color: "#f1c40f",
+                color: "#ffd700",
                 fontWeight: "bold",
-                fontSize: "20px",
+                fontSize: "22px",
                 fontFamily: '"Cinzel", serif',
                 textShadow: "0 2px 4px #000",
+                lineHeight: 1,
               }}
             >
-              {Math.floor(store.distance)}
-            </span>
-            <span
-              style={{
-                color: "#8c734b",
-                fontSize: "10px",
-                fontFamily: "sans-serif",
-                textTransform: "uppercase",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-              }}
-            >
-              METERS
+              {store.receivedCoin}
             </span>
           </div>
-        </div>
 
-        {/* 3. MENU OVERLAY (Pause Menu) */}
-        <GameMenu onExit={handleExit} />
+          {/* 3. ระยะทาง (Distance) */}
+          <div
+            style={{
+              ...commonHudStyle,
+              padding: "0 20px",
+              gap: "12px",
+              minWidth: "140px", // คง minWidth ไว้ให้ระยะทางไม่ขยับไปมา
+            }}
+          >
+            <GiTatteredBanner
+              size={28}
+              color="#f1c40f"
+              style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                lineHeight: 1,
+              }}
+            >
+              <span
+                style={{
+                  color: "#f1c40f",
+                  fontWeight: "bold",
+                  fontSize: "20px",
+                  fontFamily: '"Cinzel", serif',
+                  textShadow: "0 2px 4px #000",
+                }}
+              >
+                {Math.floor(store.distance)}
+              </span>
+              <span
+                style={{
+                  color: "#8c734b",
+                  fontSize: "10px",
+                  fontFamily: "sans-serif",
+                  textTransform: "uppercase",
+                  fontWeight: "bold",
+                  letterSpacing: "1px",
+                }}
+              >
+                METERS
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* ===================================================================
             1. TOP PANEL (BATTLE AREA)
@@ -554,10 +635,12 @@ export default function GameApp() {
 
               <ActionControls
                 store={store}
-                onAttackClick={() => handleActionClick("ATTACK")}
-                onShieldClick={() => handleActionClick("SHIELD")}
+                onAttackClick={() => handleActionClick("Strike")}
+                onShieldClick={() => handleActionClick("Guard")}
                 onSkillClick={handleSkillClick}
-                onEndTurnClick={() => {store.passTurn();  }}
+                onEndTurnClick={() => {
+                  store.passTurn();
+                }}
               />
             </div>
           )}
