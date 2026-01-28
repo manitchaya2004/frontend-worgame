@@ -395,3 +395,102 @@
 
 /* --- Loading text center --- */
 .loading-center { text-align: center; }
+
+/* ===== Form Labels & Hints ===== */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.form-label.required::after {
+  content: " *";
+  color: #ff5555;
+}
+
+.form-hint {
+  font-size: 11px;
+  color: #777;
+}
+
+/* =========================================
+   ⚔️ MOVES THEME (สีฟ้า/น้ำเงิน)
+   ========================================= */
+
+/* ปรับสีปุ่ม Tab เมื่อ Active */
+.tab-btn.active.move-tab {
+  color: #2196f3;
+  border-bottom: 4px solid #2196f3;
+}
+
+/* สีหัวตาราง */
+.dict-table.move-theme th {
+  background-color: #2196f3;
+  color: #fff;
+}
+
+/* สีกรอบฟอร์ม */
+.form-box.move-mode {
+  border-color: #2196f3;
+}
+
+/* สีข้อความในตาราง */
+.move-type-physical { color: #ff5555; } /* แดง */
+.move-type-magical { color: #55aaff; }  /* ฟ้า */
+.move-type-status { color: #ffd700; }    /* เหลือง */
+
+/* ===== Server Control (Top-Left) ===== */
+.server-control{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:#1f2023;
+  border:1px solid #444;
+  border-radius:10px;
+  padding:8px 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.server-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#777;
+  box-shadow: 0 0 10px rgba(255,255,255,0.1);
+}
+.server-dot.on{ background:#2f855a; box-shadow:0 0 10px rgba(47,133,90,0.7); }
+.server-dot.off{ background:#c53030; box-shadow:0 0 10px rgba(197,48,48,0.7); }
+
+.server-meta{ display:flex; flex-direction:column; gap:2px; }
+.server-title{ font-size:11px; color:#ddd; }
+.server-sub{ font-size:11px; color:#bbb; display:flex; gap:8px; align-items:center; }
+
+.server-badge{
+  font-size:10px;
+  padding:3px 6px;
+  border-radius:999px;
+  border:1px solid #555;
+}
+.badge-on{ background: rgba(47,133,90,0.25); color:#9ae6b4; border-color:#2f855a; }
+.badge-off{ background: rgba(197,48,48,0.25); color:#ff9999; border-color:#c53030; }
+
+.server-actions{ display:flex; gap:6px; margin-left:6px; }
+.server-btn{
+  padding:6px 10px;
+  border-radius:8px;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:11px;
+}
+.server-btn.open{ background:#2f855a; color:#fff; }
+.server-btn.close{ background:#c53030; color:#fff; }
+.server-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+.mono { font-family: monospace; }
+
