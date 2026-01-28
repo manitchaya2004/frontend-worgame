@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import GameAppBar from "../../components/AppBar";
@@ -6,15 +7,21 @@ import MagicCursor from "../../components/Cursor";
 import { motion } from "framer-motion";
 import background2 from "../../assets/icons/background2.png";
 import { useLoginPlayer } from "../AuthPage/LoginPage/hook/useLoginPlayer";
+import { useAuthStore } from "../../store/useAuthStore";
 const HomePage = () => {
   const { currentUser } = useLoginPlayer();
-  console.log(currentUser);
+  const {refreshUser} = useAuthStore();
+  console.log("wso", currentUser);
+
+  useEffect(() => {
+    refreshUser(); 
+  }, []);
 
   return (
     <>
       <MagicCursor />
       <Box sx={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
-        <GameAppBar/>
+        <GameAppBar />
         {/* <LeftFeatureBar/> */}
 
         {/* 🌌 Sky */}

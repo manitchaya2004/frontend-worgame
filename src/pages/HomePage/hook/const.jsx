@@ -7,7 +7,7 @@ import StarIcon from "@mui/icons-material/Star";
 import { API_URL } from "../../../store/const";
 
 export const MAX_STAT = 20;
-export const MAX_LEVEL = 5;
+export const MAX_LEVEL = 10;
 
 export const THEMES = {
   bgMain: "#2b1d14", // พื้นหลังหลัก

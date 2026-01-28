@@ -26,6 +26,7 @@ export const FormTextField = ({
         <Box sx={{ width: "100%" }}>
           <Typography
             sx={{
+              color: "white",
               fontFamily: "'Press Start 2P'",
               fontSize: "12px",
             }}
@@ -74,7 +75,7 @@ export const FormTextField = ({
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton onClick={onClick}>
-                    {showPassword ? <Visibility /> : <VisibilityOff />}
+                    {showPassword ? <VisibilityOff />  : <Visibility />}
                   </IconButton>
                 </InputAdornment>
               ),
@@ -87,6 +88,7 @@ export const FormTextField = ({
         <Box sx={{ width: "100%" }}>
           <Typography
             sx={{
+              color: "white",
               fontFamily: "'Press Start 2P'",
               fontSize: "12px",
             }}

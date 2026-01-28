@@ -586,9 +586,9 @@ const MonsterLibrary = () => {
     preloadAssets();
   }, [monsters]);
 
-  if (monsterState === "LOADING" || isLoadingAssets ) {
-    return <LoadingScreen open={true} />;
-  }
+  // if (monsterState === "LOADING" || isLoadingAssets ) {
+  //   return <LoadingScreen open={true} />;
+  // }
 
   return (
     <Box sx={{ m: 2 }}>

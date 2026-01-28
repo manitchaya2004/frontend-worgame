@@ -39,7 +39,7 @@ import { TargetPickerOverlay } from "./features/downPanel/TargetPickerOverlay";
 // --- Components: System Views ---
 import LoadingView from "../../components/LoadingView";
 import LoadingScreen from "../../components/Loading/LoadingPage";
-import ErrorView from "../../components/ErrorView";
+import ErrorView from "../../components/Loading/ErrorView";
 
 export default function GameApp() {
   // --------------------------------------------------------------------------

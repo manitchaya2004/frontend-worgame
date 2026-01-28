@@ -5,24 +5,28 @@ import { LOADED, LOADING, FAILED, INITIALIZED, API_URL } from "./const";
 export const useAuthStore = create(
   persist(
     (set, get) => ({
+      currentUser: null,
+      previewData: null,
+
       /* ================= STATE (เหมือน Redux) ================= */
       registerState: INITIALIZED,
       loginState: INITIALIZED,
       selectHeroState: INITIALIZED,
       buyHeroState: INITIALIZED,
-      buyHeroError: null,
-      
+      resourceStatus: INITIALIZED,
+      upgradeStatus: INITIALIZED,
+
       authLoading: true,
       isAuthenticated: false,
       isFirstTime: false,
-      currentUser: null,
+
 
       backendRegisMessage: null,
       backendLoginMessage: null,
 
       errorLogin: false,
       errorRegister: false,
-
+      buyHeroError: null,
       /* ================= ACTIONS ================= */
 
       /* ===== REGISTER ===== */
@@ -80,7 +84,6 @@ export const useAuthStore = create(
             backendLoginMessage: null,
             errorLogin: false,
           });
-          console.log(JSON.stringify(credentials));
 
           const res = await fetch(`${API_URL}/login`, {
             method: "POST",
@@ -150,6 +153,31 @@ export const useAuthStore = create(
         }
       },
 
+      /* ===== REFRESH USER DATA (แบบเงียบ ไม่หมุนติ้ว) ===== */
+      refreshUser: async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return; // ถ้าไม่มี token ก็ช่างมัน
+
+          const res = await fetch(`${API_URL}/checkAuth`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (!res.ok) return;
+
+          const data = await res.json();
+
+          set({
+            // อัปเดตแค่ข้อมูล User (เงิน, ด่านที่ผ่าน)
+            currentUser: data.user,
+            isAuthenticated: true,
+          });
+        } catch (error) {
+          console.error("Failed to refresh user data", error);
+        }
+      },
+
       /* ===== CHECK FIRST TIME ===== */
       checkFirstTime: async () => {
         try {
@@ -167,7 +195,6 @@ export const useAuthStore = create(
           if (!res.ok) throw new Error("server error");
 
           const data = await res.json();
-          // console.log("data", data);
 
           if (!data.isSuccess) throw new Error(data.message);
 
@@ -274,6 +301,126 @@ export const useAuthStore = create(
         }
       },
 
+      //update resource (item)
+      updateResources: async (payload) => {
+        set({ resourceStatus: LOADING });
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+          const res = await fetch(`${API_URL}/update-resources`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) throw new Error("server error");
+
+          const data = await res.json();
+          if (!data.isSuccess) throw new Error(data.message);
+
+          if (data.isSuccess) {
+            const { health, cure, reroll } = data.resources;
+
+            // อัปเดต State currentUser ทันทีเพื่อให้ UI เปลี่ยน
+            set((state) => ({
+              resourceStatus: LOADED,
+              currentUser: {
+                ...state.currentUser,
+                potion: {
+                  ...state.currentUser.potion,
+                  health: health,
+                  cure: cure,
+                  reroll: reroll,
+                },
+              },
+            }));
+
+            // Reset status กลับเป็น INIT หลังจากผ่านไป 1 วิ (เพื่อให้ UI หยุดหมุนหรือหยุดโชว์สถานะสำเร็จ)
+            setTimeout(() => {
+              set({ resourceStatus: INITIALIZED });
+            }, 1000);
+          } else {
+            // กรณีหลังบ้าน return 200 แต่ logic ไม่ผ่าน
+            set({ resourceStatus: FAILED });
+          }
+        } catch (err) {
+          console.error("updateResources error:", err);
+          set({ resourceStatus: FAILED });
+        }
+      },
+
+      // level up
+      upgradeHero: async (heroId) => {
+        set({ upgradeStatus: LOADING });
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+          const res = await fetch(`${API_URL}/level-up"`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ heroId }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.isSuccess) throw new Error(data.message);
+
+          const { hero } = data; // ข้อมูล Hero ตัวใหม่ที่อัปเวลแล้ว
+
+          // อัปเดต Hero ใน List ทันที
+          set((state) => ({
+            upgradeStatus: LOADED, // สำเร็จ
+            currentUser: {
+              ...state.currentUser,
+              heroes: state.currentUser.heroes.map((h) =>
+                h.hero_id === heroId ? { ...h, ...hero } : h
+              ),
+              // ถ้า API ส่งเงินที่เหลือมาด้วยก็อัปเดตตรงนี้ได้เลย
+              // money: data.moneyLeft ?? state.currentUser.money 
+            },
+          }));
+
+          return true;
+        } catch (err) {
+          console.error("upgradeHero error:", err);
+          set({ upgradeStatus: FAILED });
+        }
+      },
+
+      //  preview data for level up
+      fetchPreviewData: async (heroId) => {
+        set({ previewData: null, upgradeStatus: LOADING });
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+          const res = await fetch(`${API_URL}/preview-level-up`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ heroId }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.isSuccess) throw new Error(data.message);
+
+          set({ 
+            previewData: data.data, // ข้อมูล comparison
+            upgradeStatus: LOADED // โหลดเสร็จแล้ว โชว์ข้อมูลได้
+          });
+        } catch (err) {
+          console.error("fetchPreviewData error:", err);
+          set({ upgradeStatus: FAILED });
+        }
+      },
+
+
       /* ===== CLEAR STATES (เหมือน reducers) ===== */
       logout: () => {
         localStorage.removeItem("token");
@@ -291,6 +438,8 @@ export const useAuthStore = create(
 
       clearRegisterState: () => set({ registerState: INITIALIZED }),
 
+      clearUpgradeStatus: () => set({ upgradeStatus: INITIALIZED, previewData: null }),
+
       // hero ที่กำลังใช้อยู่
       getSelectedHero: () => {
         const user = get().currentUser;
@@ -307,7 +456,7 @@ export const useAuthStore = create(
       isHeroSelected: (heroId) => {
         const user = get().currentUser;
         return !!user?.heroes?.some(
-          (h) => h.hero_id === heroId && h.is_selected === true
+          (h) => h.hero_id === heroId && h.is_selected === true,
         );
       },
     }),
@@ -317,6 +466,6 @@ export const useAuthStore = create(
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
       }),
-    }
-  )
+    },
+  ),
 );

@@ -1,25 +1,49 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
-import { useState } from "react";
-import { Box, Typography, Tooltip, Divider, Grid } from "@mui/material";
+import { useState,useEffect } from "react";
+import {
+  Box,
+  Typography,
+  Tooltip,
+  Divider,
+  Grid,
+  IconButton,
+} from "@mui/material";
 import { usePreloadFrames } from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
-import StatBar from "./StatBar";
-import LevelBar from "./LevelBar";
+import UpgradeDialog from "./UpgradeLevel";
+
+import { StatNumericBox, StatVisualBar } from "../../components/StatDisplay";
+import LevelBar from "../../components/LevelBar";
 import iconic from "../../../../assets/icons/iconic.png";
 import correct from "../../../../assets/icons/correct.png";
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 
 // Icons
 import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
 import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
-import AutorenewIcon from "@mui/icons-material/Autorenew"; // Spin
 import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked"; // Common (วงกลมโปร่ง หรือจะใช้ Circle ก็ได้)
+import ChangeHistoryIcon from "@mui/icons-material/ChangeHistory"; // Uncommon (สามเหลี่ยม สื่อถึงความคม/พิเศษขึ้น)
+import DiamondIcon from "@mui/icons-material/Diamond";
+
+// Icons สำหรับปุ่ม Switch
+import ViewListIcon from "@mui/icons-material/ViewList"; // ดูแบบหลอด (List)
+import ViewModuleIcon from "@mui/icons-material/ViewModule"; // ดูแบบกล่อง (Grid)
 
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
 const HeroCard = ({ hero, playerHeroes, money }) => {
-  const { selectHero, buyHero } = useAuthStore();
-  const [open, setOpen] = useState(false);
+  const { selectHero, buyHero ,fetchPreviewData,previewData,} = useAuthStore();
+
+  // dialog buyhero
+  const [openBuy, setOpenBuy] = useState(false);
+  const [openUpgrade, setOpenUpgrade] = useState(false);  
+
+  //  swip stat ว่าจะดูแบบ หลอดหรือกล่อง
+  const [showDetail, setShowDetail] = useState(false);
 
   const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
@@ -29,6 +53,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   const isOwned = !!playerHero;
   const isSelected = playerHero?.is_selected === true;
   const canBuy = !isOwned && money > hero.price;
+  const upgradeCost = playerHero?.next_upgrade || 0;
 
   // === ดึงข้อมูลมาแสดง (ถ้ามี playerHero ใช้ของ playerHero ถ้าไม่มีใช้ base ของ hero) ===
   const currentLevel = playerHero?.level || 1;
@@ -36,96 +61,86 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   const nextExp = playerHero?.next_exp || 100;
 
   // Map ข้อมูล 5 ตัวตามที่ขอ
-  const stats = {
-    hp: isOwned ? playerHero?.hp : hero.base_hp || 10,
-    power: isOwned ? playerHero?.power : hero.power, // หรือ base_power ถ้ามี
-    speed: isOwned ? playerHero?.speed : hero.base_speed || 5,
-    slot: isOwned ? playerHero?.slot : 10, // Default 10
-    spin: isOwned ? playerHero?.spin_point : 0,
+  const base_stats = {
+    hp: playerHero?.hp_lv || hero.hp_lv,
+    power: playerHero?.power_lv || hero.power_lv,
+    speed: playerHero?.speed_lv || hero.speed_lv,
+    slot: playerHero?.slot_lv || hero.slot_lv,
+  };
+
+  const game_stats = isOwned
+    ? {
+        hp: playerHero?.stats?.hp || 0,
+        speed: playerHero?.stats?.speed || 0,
+        slot: playerHero?.stats?.slot || 0,
+        common: playerHero?.stats?.common_tile_dmg || 0,
+        uncommon: playerHero?.stats?.uncommon_tile_dmg || 0,
+        rare: playerHero?.stats?.rare_tile_dmg || 0,
+      }
+    : {};
+
+  // เดี๋ยวมาปรับ
+  const MAX_STATS_REF = {
+    hp: 20,
+    power: 20,
+    speed: 20,
+    slot: 20,
   };
 
   const handleConfirmBuy = async () => {
     await buyHero(hero.id);
-    setOpen(false);
+    setOpenBuy(false);
   };
 
   const handleCancelBuy = () => {
-    setOpen(false);
+    setOpenBuy(false);
   };
 
+  const handleOpenUpgrade = () => {
+     setOpenUpgrade(true);
+     fetchPreviewData(hero.id); // ยิง API ขอ Preview ทันที
+  };
+  
+ useEffect(() => {
+    if (previewData) {
+       console.log("✨ Preview Data Updated:", previewData);
+    }
+    if (playerHero) {
+      console.log("🔥 Player Hero Data:", playerHero);
+    }
+  }, [previewData,playerHero]); // Log เฉพาะตอน previewData เปลี่ยนค่า
   return (
     <>
       <Box
         sx={{
           width: 360,
           height: 480,
-          // background: "#eaddcf",
           background: isOwned
-            ? "transparent"
+            ? "#eaddcf"
             : "linear-gradient(180deg, #f2dfb6, #d9b97a)",
+          border: "3px solid #6b3f1f",
+          borderRadius: 3,
 
-          border: isOwned ? "3px solid #6b3f1f" : "3px solid #6b3f1f",
-          // borderRight: isOwned ? "3px solid #6b3f1f" : "3px solid #6b3f1f",
-          borderRadius: isOwned ? 3 : 3,
-
-    //       boxShadow: isOwned
-    //         ? "none"
-    //         : `inset 0 0 0 2px rgba(255,255,255,0.25),
-    //  0 6px 0 #4a2b16,
-    //  0 10px 20px rgba(0,0,0,0.5)`,
-          position: "relative",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
+          overflow: "hidden", // ตัดส่วนเกินทิ้ง ป้องกันการหลุดกรอบ
+          transform: "translateZ(0)",
+          willChange: "transform",
         }}
       >
-        {/* === PART 1: IMAGE === */}
+        {/* === SECTION 1: HEADER (Static Flow) === */}
         <Box
           sx={{
-            flex: "0 0 200px",
+            height: "48px",
             display: "flex",
-            justifyContent: "center",
             alignItems: "center",
-            position: "relative",
-            background:
-              "radial-gradient(circle, #fff8e1 10%, rgba(255,255,255,0) 70%)",
-            top: 20,
-          }}
-        >
-          {frames.length > 0 && (
-            <img
-              src={frames[frame - 1].src}
-              alt={hero.name}
-              style={{
-                width: "160px",
-                height: "160px",
-                objectFit: "contain",
-                imageRendering: "pixelated",
-                filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
-              }}
-              onError={(e) => {
-                e.currentTarget.src = "/fallback/unknown-monster.png";
-              }}
-            />
-          )}
-        </Box>
-
-        {/* === PART 2: NAME HEADER === */}
-        <Box
-          sx={{
-            // background: "#5d4037",
-            py: 1.5,
-            textAlign: "center",
-            // borderBottom: isOwned ? "none" : "2px solid #3e2723",
-            // boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-            position: "relative",
-            bottom: "42%",
-            display: "flex",
             justifyContent: "center",
             gap: 1.2,
-            background: isOwned ? "#5d4037" : "#5d4037",
-            borderBottom: isOwned ? "2px solid #3e2723" : "2px solid #3e2723",
-            boxShadow: isOwned ? "none" : "0 2px 5px rgba(0,0,0,0.3)",
+            background: "#5d4037",
+            borderBottom: "2px solid #3e2723",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+            zIndex: 10,
+            mx: 0, // ชิดขอบซ้ายขวา
           }}
         >
           <Typography
@@ -152,109 +167,276 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           </Tooltip>
         </Box>
 
-        {/* === PART 3: NEW STATS PANEL === */}
+        {/* === SECTION 2: IMAGE (Static Flow) === */}
+
+        <Box
+          sx={{
+            height: "140px", // กำหนดพื้นที่ให้รูป
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 5,
+            mb: 1.5,
+          }}
+        >
+          {frames.length > 0 && (
+            <img
+              src={frames[frame - 1].src}
+              alt={hero.name}
+              style={{
+                width: "150px",
+                height: "140px",
+                objectFit: "contain",
+                imageRendering: "pixelated",
+                filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
+              }}
+              onError={(e) => {
+                e.currentTarget.src = "/fallback/unknown-monster.png";
+              }}
+            />
+          )}
+        </Box>
+
+        {/* === SECTION 3: CONTENT BOX (Flex Grow) === */}
         <Box
           sx={{
             flex: 1,
-            
-            background: isOwned ? "#3a2416" : "#3a2416",
-            borderRadius: 2,
+            background: "#3a2416", // พื้นหลังน้ำตาลเข้มเฉพาะส่วนนี้
+            borderRadius: "16px", // มนทั้ง 4 มุม หรือจะมนแค่บนก็ได้
             border: isOwned ? "none" : "2px solid #2a160f",
-            boxShadow: isOwned ? "none" : "inset 0 0 8px rgba(0,0,0,0.8)",
-            mx: 1.5,
-            mb: 1.5,
-            p: 1.5,
+            boxShadow: "inset 0 0 10px rgba(0,0,0,0.5)",
+
+            mx: 1.5, // ระยะห่างซ้ายขวา
+            p: 1.5, // Padding ภายใน
+
             display: "flex",
             flexDirection: "column",
-            position: "relative",
-            bottom: 60,
+
+            marginTop: "-30px", // ดึงขึ้นไปเกยรูปนิดหน่อย
+            zIndex: 4, // อยู่ต่ำกว่ารูป (รูป z-index 5)
           }}
         >
-          {/* Level Bar (แบบช่องๆ) */}
           <LevelBar
             level={currentLevel}
             currentExp={currentExp}
             nextExp={nextExp}
+            isOwned={isOwned}
+            canUpgrade={isOwned}
+            onUpgrade={handleOpenUpgrade}
           />
 
-          <Divider
-            sx={{ borderColor: "#444", mb: 2, mt: 1, borderStyle: "dashed" }}
-          />
-
-          {/* Grid Stats (ปรับ Layout ใหม่ให้กระชับและไม่เด่นเกินไปด้วย CSS Grid) */}
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 1, // ระยะห่างกำลังดี
-              alignItems: "stretch",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+              backgroundColor: "rgba(0,0,0,0.2)",
+              border: "1px solid #5a3e2b",
+              borderRadius: "4px",
+              padding: "4px 8px",
+              // my: 1,
+              minHeight: "28px",
             }}
           >
-            {/* HP */}
-            <StatBar
-              label="HP"
-              value={stats.hp}
-              icon={<FavoriteIcon fontSize="small" />}
-              color="#ff5252"
+            <InfoOutlinedIcon sx={{ fontSize: 14, color: "#8d6e63" }} />
+            <Typography
+              sx={{
+                fontFamily: "'Verdana', sans-serif",
+                fontSize: 11,
+                color: "#d7ccc8",
+                lineHeight: 1.2,
+                textAlign: "center",
+              }}
+            >
+              {hero.ability_description}
+            </Typography>
+          </Box>
+
+          {/* ส่วน Divider และ ปุ่ม Toggle */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: 1,
+              mb: 0.5,
+              minHeight: "30px",
+            }}
+          >
+            {/* เส้นประ (จะยืดเต็มถ้าไม่มีปุ่ม หรือหดเองถ้ามีปุ่ม) */}
+            <Divider
+              sx={{ borderColor: "#444", borderStyle: "dashed", flex: 1 }}
             />
 
-            {/* POWER */}
-            <StatBar
-              label="POWER"
-              value={Number(stats.power)}
-              icon={<FlashOnIcon fontSize="small" />}
-              color="#ffca28"
-            />
+            {/* แสดงปุ่มเฉพาะตอนเป็นเจ้าของ (isOwned) */}
+            {isOwned && (
+              <Tooltip
+                title={showDetail ? "Switch to Bars" : "Switch to Details"}
+              >
+                <IconButton
+                  onClick={() => setShowDetail(!showDetail)}
+                  size="small"
+                  sx={{
+                    color: "#8d6e63",
+                    ml: 1,
+                    border: "1px solid #5a3e2b",
+                    borderRadius: "4px",
+                    backgroundColor: "rgba(0,0,0,0.2)",
+                    // เพิ่มความสูง/กว้างที่แน่นอนให้ปุ่ม (Optional แต่ช่วยให้เป๊ะขึ้น)
+                    width: "25px",
+                    height: "25px",
+                  }}
+                >
+                  {showDetail ? (
+                    <ViewListIcon sx={{ fontSize: "18px" }} />
+                  ) : (
+                    <ViewModuleIcon sx={{ fontSize: "18px" }} />
+                  )}
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
 
-            {/* SPEED */}
-            <StatBar
-              label="SPEED"
-              value={stats.speed}
-              icon={<SpeedIcon fontSize="small" />}
-              color="#00e5ff"
-            />
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            {showDetail ? (
+              <Grid
+                container
+                spacing={1}
+                sx={{
+                  mt: 0.5,
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  height: "80px",
+                }}
+              >
+                <Grid item xs={4}>
+                  <StatNumericBox
+                    label="HP"
+                    value={game_stats.hp}
+                    icon={<FavoriteIcon />}
+                    color="#ff5252"
+                    description="Max Health. 0 = Game Over."
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <StatNumericBox
+                    label="SPD"
+                    value={game_stats.speed}
+                    icon={<SpeedIcon />}
+                    color="#00e5ff"
+                    description="Turn Speed. Faster acts first."
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <StatNumericBox
+                    label="SLOT"
+                    value={game_stats.slot}
+                    icon={<BackpackIcon />}
+                    color="#d1c4e9"
+                    description="Bag Size. Max letters you can hold in hand."
+                  />
+                </Grid>
 
-            {/* SLOT */}
-            <StatBar
-              label="SLOT"
-              value={stats.slot}
-              icon={<BackpackIcon fontSize="small" />}
-              color="#d1c4e9"
-            />
+                {/* Divider
+                <Grid item xs={12}>
+                  <Divider sx={{ borderColor: "#ff0000", borderStyle: "dashed" }} />
+                </Grid> */}
+
+                <Grid item xs={4}>
+                  <StatNumericBox
+                    label="COM"
+                    value={game_stats.common}
+                    // G1: Common -> วงกลม (Basic)
+                    icon={<RadioButtonUncheckedIcon fontSize="small" />}
+                    color="#cd7f32" // Bronze
+                    description="Power of easy letters (A, E, I, O...)."
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <StatNumericBox
+                    label="UNC"
+                    value={game_stats.uncommon}
+                    // G2: Uncommon -> สามเหลี่ยม (Sharp/Medium)
+                    icon={<ChangeHistoryIcon fontSize="small" />}
+                    color="#b0bec5" // Silver
+                    description="Power of normal letters (D, L, S...)."
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <StatNumericBox
+                    label="RARE"
+                    value={game_stats.rare}
+                    // G3: Rare -> เพชร (Heavy/Valuable)
+                    icon={<DiamondIcon fontSize="small" />}
+                    color="#ffd700" // Gold
+                    description="Power of rare letters (J, Q, X, Z)."
+                  />
+                </Grid>
+              </Grid>
+            ) : (
+              <>
+                <StatVisualBar
+                  label="HP"
+                  value={base_stats.hp}
+                  max={MAX_STATS_REF.hp}
+                  icon={<FavoriteIcon />}
+                  color="#ff5252"
+                />
+                <StatVisualBar
+                  label="ATK"
+                  value={base_stats.power}
+                  max={MAX_STATS_REF.power}
+                  icon={<FlashOnIcon />}
+                  color="#ffca28"
+                />
+                <StatVisualBar
+                  label="SPD"
+                  value={base_stats.speed}
+                  max={MAX_STATS_REF.speed}
+                  icon={<SpeedIcon />}
+                  color="#00e5ff"
+                />
+                <StatVisualBar
+                  label="SLOT"
+                  value={base_stats.slot}
+                  max={MAX_STATS_REF.slot}
+                  icon={<BackpackIcon />}
+                  color="#d1c4e9"
+                />
+              </>
+            )}
           </Box>
         </Box>
 
-        {/* === PART 4: BUTTON === */}
+        {/* === 4. BUTTON (แยกออกมาอยู่ข้างนอก Stats Box แล้ว) === */}
+        {/* ตรงนี้ Background จะเป็นของ Card หลัก ไม่ใช่สีน้ำตาลเข้ม */}
         <Box
           sx={{
-            position: "absolute",
-            bottom: 15,
-            left: 12,
-            right: 12,
-            zIndex: 10,
+            mx: 1.5, // ให้กว้างเท่ากับ Box ข้างบน
+            mb: 1.5, // ระยะห่างจากขอบล่าง
+            mt: 1, // ระยะห่างจาก Stats Box
+
             py: 1,
             textAlign: "center",
+
+            // สีปุ่ม (Background) ของตัวเอง
             background: isSelected
               ? "linear-gradient(180deg, #aed2af, #427d45)"
               : isOwned
-              ? "linear-gradient(180deg, #81c784, #388e3c)"
-              : !canBuy
-              ? "linear-gradient(180deg, #757575, #424242)"
-              : "linear-gradient(180deg, #c49a3a, #8b5a1e)",
+                ? "linear-gradient(180deg, #81c784, #388e3c)"
+                : !canBuy
+                  ? "linear-gradient(180deg, #757575, #424242)"
+                  : "linear-gradient(180deg, #c49a3a, #8b5a1e)",
+
             cursor:
               isSelected || (!isOwned && !canBuy) ? "not-allowed" : "pointer",
             opacity: isSelected || (!isOwned && !canBuy) ? 0.7 : 1,
             border: "3px solid #5a3312",
             borderRadius: 2,
             color: "#2a160a",
-            boxShadow:
-              isSelected || (!isOwned && !canBuy)
-                ? "inset 0 2px 4px rgba(0,0,0,0.5)"
-                : `inset 0 1px 0 rgba(71, 97, 42, 0.25), inset 0 -2px 0 rgba(0,0,0,0.35), 0 5px 0 #3a1f0b, 0 8px 14px rgba(0,0,0,0.45)`,
-            "&:hover":
-              !isSelected && (isOwned || canBuy)
-                ? { filter: "brightness(1.05)" }
-                : {},
+            boxShadow: "0 4px 0 #3a1f0b",
+            zIndex: 20,
           }}
           onClick={() => {
             if (isSelected) return;
@@ -262,8 +444,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               selectHero(hero.id);
               return;
             }
-            if (!canBuy) return;
-            setOpen(true);
+            if (canBuy) setOpenBuy(true);
           }}
         >
           {isSelected ? (
@@ -272,7 +453,6 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: "100%",
               }}
             >
               <Box
@@ -281,22 +461,15 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 sx={{
                   position: "absolute",
                   left: 80,
-                  top: -13,
+                  bottom: 20,
                   width: "42px",
                   height: "42px",
-                  zIndex: 20,
-                  imageRendering: "pixelated",
-                  filter: "drop-shadow(2px 2px 0px rgba(0,0,0,0.8))",
+                  zIndex: 30,
                   transform: "rotate(5deg)",
                 }}
               />
               <Typography
-                sx={{
-                  fontFamily: "'Press Start 2P'",
-                  fontSize: 12,
-                  color: "#2a160a",
-                  ml: 3,
-                }}
+                sx={{ fontFamily: "'Press Start 2P'", fontSize: 12, ml: 3 }}
               >
                 SELECTED
               </Typography>
@@ -307,7 +480,6 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 fontFamily: "'Press Start 2P'",
                 fontSize: 12,
                 color: !isOwned && !canBuy ? "#ff1744" : "#2a160a",
-                textShadow: !isOwned && !canBuy ? "1px 1px 0px #000" : "none",
               }}
             >
               {isOwned ? "SELECT" : `💰 ${hero.price}`}
@@ -317,13 +489,22 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
       </Box>
 
       <GameDialog
-        open={open}
+        open={openBuy}
         title={`BUY HERO`}
         description={`${hero.name}\nCost: ${hero.price} 💰`}
         confirmText="BUY"
         cancelText="NO"
         onConfirm={handleConfirmBuy}
         onCancel={handleCancelBuy}
+      />
+
+      <UpgradeDialog 
+        open={openUpgrade} 
+        onClose={() => setOpenUpgrade(false)}
+        heroId={hero.id}
+        heroName={hero.name}
+        upgradeCost={upgradeCost}
+
       />
     </>
   );

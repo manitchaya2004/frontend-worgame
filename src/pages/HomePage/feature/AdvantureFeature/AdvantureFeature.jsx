@@ -8,6 +8,7 @@ import { Loading } from "../../../../components/Loading/Loading";
 import { useLoginPlayer } from "../../../AuthPage/LoginPage/hook/useLoginPlayer";
 import { THEMES } from "../../hook/const";
 import ListSection from "./AdvantureList";
+import { useGameStore } from "../../../../store/useGameStore";
 
 import { preloadImage } from "../../hook/usePreloadFrams";
 import { backgroundStage } from "../../hook/const";
@@ -16,6 +17,7 @@ const MotionBox = motion(Box);
 const AdvantureFeature = () => {
   const { currentUser } = useLoginPlayer();
   const { stages, loadingStage } = useData();
+  const store  = useGameStore();
   const { fetchAllStage } = useLoadData();
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,6 +27,7 @@ const AdvantureFeature = () => {
   const [isEntering, setIsEntering] = useState(false);
 
   const handleStageClick = (stage) => {
+    store.reset();
     setIsEntering(true);
 
     setTimeout(() => {
@@ -114,20 +117,19 @@ const AdvantureFeature = () => {
   }, [playableStages, currentUser, completedStageId]);
 
   // โหลดข้อมูลตอนเปิดหน้า
-useEffect(() => {
-  fetchAllStage();
-}, [fetchAllStage]);
+  useEffect(() => {
+    fetchAllStage();
+  }, [fetchAllStage]);
 
-// preload background ของ stage
-useEffect(() => {
-  if (!stages || stages.length === 0) return;
+  // preload background ของ stage
+  useEffect(() => {
+    if (!stages || stages.length === 0) return;
 
-  stages.forEach((stage) => {
-    const src = backgroundStage(stage.id);
-    preloadImage(src);
-  });
-}, [stages]);
-
+    stages.forEach((stage) => {
+      const src = backgroundStage(stage.id);
+      preloadImage(src);
+    });
+  }, [stages]);
 
   // const preloadStages = (stages = []) => {
   //   stages.forEach((stage) => {
@@ -154,13 +156,11 @@ useEffect(() => {
     );
   }
 
-  console.log("stage na", stages);
-  console.log("user", currentUser);
 
   return (
     <Box sx={{ display: "flex" }}>
       <MotionBox
-        initial={false}
+        initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{
           opacity: 1,
           scale: 1,

@@ -44,7 +44,7 @@ const RegisterPage = () => {
   //error message from backend
   useEffect(() => {
     if (!message) return;
-
+    setSnackbar(() => ({ open: false, message: "", type: "info" }));
     setErrors((prev) => ({
       ...prev,
       username: message.includes("username") ? message : undefined,
@@ -127,11 +127,11 @@ const RegisterPage = () => {
   };
 
   // submit function
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    registerUser({
+    await registerUser({
       email: formRegister.email,
       username: formRegister.username,
       password: formRegister.password,
@@ -166,19 +166,7 @@ const RegisterPage = () => {
       <Box
         sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
       >
-        <Typography
-          align="center"
-          sx={{
-            fontSize: "79px",
-            // fontWeight: "bold",
-            fontFamily: "'Press Start 2P'",
-            color: "#E8E9CD",
-            letterSpacing: "2px",
-          }}
-        >
-          Register
-        </Typography>
-        <PaperFrame>
+        <PaperFrame title="Register">
           <FormTextField
             label="Username"
             name="username"
@@ -255,13 +243,14 @@ const RegisterPage = () => {
             }}
           >
             <Typography
-              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px" }}
+              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px",color: "white", }}
             >
               Don’t have an account ?
             </Typography>
 
             <Typography
               sx={{
+                color: "white",
                 fontFamily: "'Press Start 2P'",
                 fontSize: "10px",
                 cursor: "pointer",

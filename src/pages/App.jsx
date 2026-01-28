@@ -20,7 +20,9 @@ import ShopHeroFeature from "./HomePage/feature/Character/ShopHeroFeature.jsx";
 import AdminPage from "./AdminPage/AdminPage.jsx";
 import SelectHero from "./CharacterPage/SelectHero.jsx";
 import SummaryPage from "./SummaryPage/summaryPage.jsx";
-// import ItemShopFeature from "./HomePage/feature/ItemShopFeature.jsx";
+import ServerRoute from "../routes/ServerRoute.jsx";
+import ServerClosedPage from "./ServerClosePage/ServerClosePage.jsx";
+import ItemFeature from "./HomePage/feature/Item/ItemFeature.jsx";
 // import ProfileFeature  from "./HomePage/feature/ProfileFeature/ProfileFeature .jsx";
 // import NotFoundPage from "./NotFoundPage";
 export default function App() {
@@ -46,24 +48,24 @@ export default function App() {
         <Route path="/auth/register" element={<RegisterPage />} />
       </Route>
 
-      {/* private (player)*/}
-      <Route element={<PrivateRoute />}>
-        <Route path="/select-hero" element={<SelectHero />} />
-        <Route path="/home" element={<HomePage />}>
-          <Route index element={<AdvantureFeature />} />
-          <Route path="/home/character" element={<ShopHeroFeature />} />
-          <Route
-            path="/home/dictionary"
-            element={<DictionaryLibrary />}
-          />
-          <Route path="/home/monster" element={<MonsterLibrary />} />
+      {/* player */}
+      {/* server route สำหรับ เช็คว่าถ้าปิดจะไป route server-closeed */}
+      <Route element={<ServerRoute />}>
+        <Route element={<PrivateRoute />}>
+          <Route path="/select-hero" element={<SelectHero />} />
+          <Route path="/home" element={<HomePage />}>
+            <Route index element={<AdvantureFeature />} />
+            <Route path="character" element={<ShopHeroFeature />} />
+            <Route path="item" element={<ItemFeature/>}/>
+            <Route path="dictionary" element={<DictionaryLibrary />} />
+            <Route path="monster" element={<MonsterLibrary />} />
+          </Route>
+          <Route path="/summary" element={<SummaryPage />} />
+          <Route path="/battle" element={<GamePage />} />
         </Route>
-        {/* <Route path="/home/bag-inventory" element={<ProfileFeature />}/> */}
-        {/* <Route path="/home/library" element={<LibraryFeature />} /> */}
-        {/* <Route path="/home/item-shop" element={<ItemShopFeature />} /> */}
-        <Route path="/summary" element={<SummaryPage/>}/>
-        <Route path="/battle" element={<GamePage />} />
       </Route>
+
+      <Route path="/server-closed" element={<ServerClosedPage />} />
 
       {/* Admin */}
       <Route element={<AdminRoute />}>
