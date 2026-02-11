@@ -1,5 +1,6 @@
 import { Box, Typography, IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { ArrowUp, ArrowBigUp } from "lucide-react";
 import { MAX_LEVEL } from "../hook/const";
 // --- LevelBar ---
 const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
@@ -8,7 +9,7 @@ const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
   const isMax = level >= TOTAL_BLOCKS;
 
   return (
-    <Box sx={{ mb: isOwned?1:2, width: "100%" }}>
+    <Box sx={{ mb: isOwned ? 1 : 2, width: "100%" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {/* 1. LABEL LV */}
         <Box sx={{ minWidth: 60, display: "flex", justifyContent: "center" }}>
@@ -78,41 +79,46 @@ const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
         </Box>
 
         {/* 3. UPGRADE BUTTON */}
-        {isOwned && (
+        {isOwned ? (
           <Box
             onClick={onUpgrade}
             sx={{
               width: 50,
               height: 25,
-              backgroundColor: canUpgrade ? "#66bb6a" : "#3e2723",
+              backgroundColor: "#66bb6a",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "4px",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              cursor: canUpgrade ? "pointer" : "not-allowed",
-              boxShadow: canUpgrade ? "0 2px 0 #1b5e20" : "none",
-              opacity: canUpgrade ? 1 : 0.6,
+              cursor: "pointer",
+              boxShadow: "0 2px 0 #1b5e20",
+              opacity: 1,
               transition: "all 0.1s",
-              "&:hover": canUpgrade
-                ? {
-                    backgroundColor: "#81c784",
-                    transform: "translateY(-1px)",
-                  }
-                : {},
-              "&:active": canUpgrade
-                ? {
-                    transform: "translateY(1px)",
-                    boxShadow: "none",
-                  }
-                : {},
+              "&:hover": {
+                backgroundColor: "#81c784",
+                transform: "translateY(-1px)",
+              },
+              "&:active": {
+                transform: "translateY(1px)",
+                boxShadow: "none",
+              },
             }}
           >
-            <AddIcon
-              sx={{ fontSize: 14, color: canUpgrade ? "#fff" : "#aaa" }}
+            <ArrowBigUp
+              size={20}
+              fill={canUpgrade ? "#FFD54F" : "#4a3b31"}
+              stroke={canUpgrade ? "#997c26" : "#2d1b10"} // ขอบน้ำตาลเข้มให้ดูมีมิติ
+              strokeWidth={1}
+              style={{
+                filter: canUpgrade
+                  ? "drop-shadow(0px 1px 0px rgba(0,0,0,0.4))"
+                  : "none",
+                zIndex: 1,
+              }}
             />
           </Box>
-        )}
+        ) : null}
       </Box>
     </Box>
   );

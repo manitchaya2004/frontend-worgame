@@ -1,4 +1,4 @@
-import { Typography, Box, LinearProgress ,Tooltip} from "@mui/material";
+import { Typography, Box, LinearProgress, Tooltip } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 // ------------------------------------------------
@@ -7,87 +7,168 @@ import { styled } from "@mui/material/styles";
 export const StatNumericBox = ({ label, value, icon, color, description }) => {
   const content = (
     <Box
-    sx={{
-      // --- Layout ---
-      width: "95px", // 🟢 ยืดเต็มช่อง Grid (xs=4) เสมอ
-      height: "35px", // สูงเท่ากัน
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between", // ดันซ้าย-ขวา
-      
-      // --- Appearance ---
-      backgroundColor: "rgba(0, 0, 0, 0.5)", 
-      borderRadius: "6px",
-      border: `1px solid ${color}40`, // ขอบสีจาง
-      
-      // --- Spacing (หัวใจสำคัญ: ลด Padding เพื่อไม่ให้ล้น) ---
-      py: 0.5, 
-      px: 0.8, // ลดขอบข้างลงนิดนึงจะได้ไม่เบียด
-      
-      boxShadow: "inset 0 0 5px rgba(0,0,0,0.5)",
-      boxSizing: "border-box", // 🟢 กันไม่ให้ Padding ดันจนกล่องบวม
-      
-      transition: "all 0.2s",
-      "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        borderColor: color,
-        transform: "translateY(-1px)",
-      },
-    }}
-  >
-    {/* LEFT: Icon & Label */}
-    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-      {/* Icon: ปรับขนาดให้เล็กลงนิดนึงจะได้ไม่กินที่ */}
-      <Box sx={{ color: color, display: "flex", "& svg": { fontSize: 16 } }}>
-        {icon}
-      </Box>
-      
-      {/* Label: ย่อฟอนต์ลงเล็กน้อยเพื่อความปลอดภัย */}
-      <Typography
-        sx={{
-          fontFamily: "'Press Start 2P'",
-          fontSize: 8, // ลดเหลือ 8px (จาก 9px) กันล้น
-          color: "#bbb",
-          textTransform: "uppercase",
-          mt: "2px",
-          whiteSpace: "nowrap", // 🟢 ห้ามขึ้นบรรทัดใหม่
-        }}
-      >
-        {label}
-      </Typography>
-    </Box>
-
-    {/* RIGHT: Value */}
-    <Typography
       sx={{
-        fontFamily: "'Verdana', sans-serif",
-        fontWeight: "bold",
-        fontSize: 12,
-        color: "#fff",
-        textShadow: `0 0 5px ${color}`,
-        ml: 0.5, // ดันห่างจาก Label นิดนึง
+        // --- Layout ---
+        width: "95px", // 🟢 ยืดเต็มช่อง Grid (xs=4) เสมอ
+        height: "35px", // สูงเท่ากัน
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between", // ดันซ้าย-ขวา
+
+        // --- Appearance ---
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        borderRadius: "6px",
+        border: `1px solid ${color}40`, // ขอบสีจาง
+
+        // --- Spacing (หัวใจสำคัญ: ลด Padding เพื่อไม่ให้ล้น) ---
+        py: 0.5,
+        px: 0.8, // ลดขอบข้างลงนิดนึงจะได้ไม่เบียด
+
+        boxShadow: "inset 0 0 5px rgba(0,0,0,0.5)",
+        boxSizing: "border-box", // 🟢 กันไม่ให้ Padding ดันจนกล่องบวม
+
+        transition: "all 0.2s",
+        "&:hover": {
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
+          borderColor: color,
+          transform: "translateY(-1px)",
+        },
       }}
     >
-      {value}
-    </Typography>
-  </Box>
-  )
+      {/* LEFT: Icon & Label */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        {/* Icon: ปรับขนาดให้เล็กลงนิดนึงจะได้ไม่กินที่ */}
+        <Box sx={{ color: color, display: "flex", "& svg": { fontSize: 16 } }}>
+          {icon}
+        </Box>
+
+        {/* Label: ย่อฟอนต์ลงเล็กน้อยเพื่อความปลอดภัย */}
+        <Typography
+          sx={{
+            fontFamily: "'Press Start 2P'",
+            fontSize: 8, // ลดเหลือ 8px (จาก 9px) กันล้น
+            color: "#bbb",
+            textTransform: "uppercase",
+            mt: "2px",
+            whiteSpace: "nowrap", // 🟢 ห้ามขึ้นบรรทัดใหม่
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+
+      {/* RIGHT: Value */}
+      <Typography
+        sx={{
+          fontFamily: "'Verdana', sans-serif",
+          fontWeight: "bold",
+          fontSize: 12,
+          color: "#fff",
+          textShadow: `0 0 5px ${color}`,
+          ml: 0.5, // ดันห่างจาก Label นิดนึง
+        }}
+      >
+        {value}
+      </Typography>
+    </Box>
+  );
   if (!description) return content;
 
   return (
-    <Tooltip 
+    <Tooltip
       title={
         <Typography sx={{ fontSize: 12, fontFamily: "'Verdana'" }}>
           {description}
         </Typography>
-      } 
-      arrow 
+      }
+      arrow
       placement="top"
     >
       {content}
     </Tooltip>
   );
+};
 
+export const StatLine = ({
+  label,
+  value,
+  isImproved,
+  icon,
+  color,
+  description,
+}) => {
+  const content = (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",
+        height: "12px",
+      
+        py:0.30,
+        px:0.20,
+
+         // --- Appearance ---
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        borderRadius: "6px",
+        border: `1px solid ${color}40`, // ขอบสีจาง
+      }}
+    >
+      {/* ฝั่งซ้าย: Icon + Label */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1,ml: 1 }}>
+        {/* กล่อง Icon */}
+        <Box sx={{ color: color, display: "flex", "& svg": { fontSize: 16 } }}>
+          {icon}
+        </Box>
+
+        {/* ชื่อ Stat */}
+         <Typography
+          sx={{
+            fontFamily: "'Press Start 2P'",
+            fontSize: 8, // ลดเหลือ 8px (จาก 9px) กันล้น
+            color: "#bbb",
+            textTransform: "uppercase",
+            mt: "2px",
+            whiteSpace: "nowrap", // 🟢 ห้ามขึ้นบรรทัดใหม่
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+
+      {/* ฝั่งขวา: ค่าตัวเลข */}
+      <Typography
+        sx={{
+          fontFamily: "'Verdana', sans-serif",
+          fontWeight: "bold",
+          fontSize: 11,
+          color: "#fff",
+          textShadow: `0 0 5px ${color}`,
+           mr: 1,
+          // color: isImproved ? "#69f0ae" : "#fff",
+          // textShadow: isImproved ? "0 0 5px rgba(105, 240, 174, 0.4)" : "none",
+        }}
+      >
+        {value}
+      </Typography>
+    </Box>
+  );
+
+  if (!description) return content;
+  return (
+    <Tooltip
+      title={
+        <Typography sx={{ fontSize: 12, fontFamily: "'Verdana'" }}>
+          {description}
+        </Typography>
+      }
+      arrow
+      placement="top"
+    >
+      {content}
+    </Tooltip>
+  );
 };
 
 // ------------------------------------------------
