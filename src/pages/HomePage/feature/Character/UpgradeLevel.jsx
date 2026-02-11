@@ -39,7 +39,7 @@ const STAT_CONFIG = {
   RARE: { icon: <DiamondIcon fontSize="inherit" />, color: "#ffd700" },
 };
 
-// 🟢 2. ปรับ StatLine ให้โชว์ Icon
+// 2. ปรับ StatLine ให้โชว์ Icon
 const StatLine = ({ label, value, isImproved }) => {
   // ดึง Config ตาม Label (ถ้าไม่มีให้ใช้ Default)
   const config = STAT_CONFIG[label] || { icon: null, color: "#aaa" };
@@ -105,7 +105,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
   const isError = upgradeStatus === FAILED;
 
   const userMoney = currentUser?.money || 0;
-  const canAfford = userMoney >= upgradeCost;
+  const canUpgrade = userMoney >= upgradeCost;
 
   useEffect(() => {
     if (!open) {
@@ -114,11 +114,8 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
   }, [open, clearUpgradeStatus]);
 
   const handleConfirmUpgrade = async () => {
-    if (!canAfford) return;
-    const success = await upgradeHero(heroId);
-    if (success) {
-      setTimeout(() => onClose(), 1500);
-    }
+    if (!canUpgrade) return;
+     await upgradeHero(heroId);
   };
 
   return (
@@ -375,15 +372,15 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
         <Box sx={{ p: 2, display: "flex", justifyContent: "center", pb: 3 , }}>
           <Button
             onClick={handleConfirmUpgrade}
-            disabled={!canAfford}
+            disabled={!canUpgrade}
             sx={{
               // 🟡 ใช้ Gradient ตามที่คุณขอ
-              background: canAfford 
+              background: canUpgrade 
                 ? "linear-gradient(180deg, #f2dfb6, #d9b97a)" 
                 : "#3e2723",
                 
               // 🟤 ตัวหนังสือสีน้ำตาลเข้ม (เพราะพื้นหลังสว่าง)
-              color: canAfford ? "#2b1d14" : "#795548",
+              color: canUpgrade ? "#2b1d14" : "#795548",
               
               fontFamily: "'Press Start 2P'",
               fontSize: 14,
@@ -394,8 +391,8 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               
               // 🧱 ปรับสีเงาด้านล่าง (Border Bottom) ให้เข้ากับ Gradient
               // ใช้สีน้ำตาลทองเข้มๆ (#af8f52) ตัดกับสี #d9b97a
-              borderBottom: canAfford
-                ? "6px solid #af8f52" 
+              borderBottom: canUpgrade
+                ? "6px solid #886d3a" 
                 : "6px solid #271c19",
                 
               borderRadius: "16px",
@@ -405,10 +402,10 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               
               // ✨ Hover: ปรับให้สว่างขึ้นนิดหน่อย
               "&:hover": {
-                background: canAfford 
-                  ? "linear-gradient(180deg, #fff3cd, #e6c587)" 
+                background: canUpgrade 
+                  ? "linear-gradient(180deg, #ebd29b, #ba9d61)" 
                   : "#3e2723",
-                transform: canAfford ? "translateY(-2px)" : "none",
+               
               },
               
               // 👇 Active: กดแล้วยุบ
@@ -418,7 +415,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               },
             }}
           >
-            <Typography sx={{ fontFamily: "inherit", fontSize: "inherit" }}>
+            <Typography sx={{ fontFamily: "inherit", fontSize: "inherit" ,color: canUpgrade ? "#2b1d14" : "#7b7677"}}>
               UPGRADE
             </Typography>
 
@@ -426,8 +423,6 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               sx={{
                 display: "flex",
                 alignItems: "center",
-                // พื้นหลังขาวจางๆ รองรับตัวเลข
-                backgroundColor: canAfford ? "rgba(255,255,255,0.5)" : "transparent",
                 borderRadius: "8px",
                 px: 1, 
                 py: 0.5
@@ -444,7 +439,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   border: "1px solid #B8860B",
                 }}
               />
-              <Typography sx={{ fontFamily: "inherit", fontSize: 14, lineHeight: 1 }}>
+              <Typography sx={{ fontFamily: "inherit", fontSize: 14, lineHeight: 1 ,color: canUpgrade ? "#2b1d14" : "#ff1744"}}>
                 {upgradeCost}
               </Typography>
             </Box>
