@@ -358,7 +358,7 @@ export const useAuthStore = create(
         try {
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
-          const res = await fetch(`${API_URL}/level-up"`, {
+          const res = await fetch(`${API_URL}/level-up`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -380,8 +380,7 @@ export const useAuthStore = create(
               heroes: state.currentUser.heroes.map((h) =>
                 h.hero_id === heroId ? { ...h, ...hero } : h
               ),
-              // ถ้า API ส่งเงินที่เหลือมาด้วยก็อัปเดตตรงนี้ได้เลย
-              // money: data.moneyLeft ?? state.currentUser.money 
+              money: data.moneyLeft ?? state.currentUser.money,
             },
           }));
 

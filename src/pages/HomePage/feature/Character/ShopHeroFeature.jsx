@@ -54,7 +54,6 @@ const ShopHeroFeature = () => {
     // console.log(location.state?.from)
   };
 
-  console.log(heros);
 
   return (
     <>

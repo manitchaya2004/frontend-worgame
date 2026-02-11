@@ -1,5 +1,5 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -13,7 +13,11 @@ import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
 import UpgradeDialog from "./UpgradeLevel";
 
-import { StatNumericBox, StatVisualBar } from "../../components/StatDisplay";
+import {
+  StatNumericBox,
+  StatVisualBar,
+  StatLine,
+} from "../../components/StatDisplay";
 import LevelBar from "../../components/LevelBar";
 import iconic from "../../../../assets/icons/iconic.png";
 import correct from "../../../../assets/icons/correct.png";
@@ -36,11 +40,11 @@ import ViewModuleIcon from "@mui/icons-material/ViewModule"; // ดูแบบ�
 
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
 const HeroCard = ({ hero, playerHeroes, money }) => {
-  const { selectHero, buyHero ,fetchPreviewData,previewData,} = useAuthStore();
+  const { selectHero, buyHero, fetchPreviewData, previewData } = useAuthStore();
 
   // dialog buyhero
   const [openBuy, setOpenBuy] = useState(false);
-  const [openUpgrade, setOpenUpgrade] = useState(false);  
+  const [openUpgrade, setOpenUpgrade] = useState(false);
 
   //  swip stat ว่าจะดูแบบ หลอดหรือกล่อง
   const [showDetail, setShowDetail] = useState(false);
@@ -62,10 +66,17 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
   // Map ข้อมูล 5 ตัวตามที่ขอ
   const base_stats = {
+<<<<<<< HEAD
     hp: playerHero?.hp_lv+currentLevel-1 || hero.hp_lv+currentLevel-1,
     power: playerHero?.power_lv+currentLevel-1 || hero.power_lv+currentLevel-1,
     speed: playerHero?.speed_lv+currentLevel-1 || hero.speed_lv+currentLevel-1,
     slot: playerHero?.slot_lv+currentLevel-1 || hero.slot_lv+currentLevel-1,
+=======
+    hp: isOwned ? playerHero?.stats?.levels?.hp_lv : hero.hp_lv,
+    power: isOwned ? playerHero?.stats?.levels?.power_lv : hero.power_lv,
+    speed: isOwned ? playerHero?.stats?.levels?.speed_lv : hero.speed_lv,
+    slot: isOwned ? playerHero?.stats?.levels?.slot_lv : hero.slot_lv,
+>>>>>>> f69d6a1ac1bf5928658b99a46dbe0820ef8c8ff1
   };
 
   const game_stats = isOwned
@@ -97,18 +108,10 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   };
 
   const handleOpenUpgrade = () => {
-     setOpenUpgrade(true);
-     fetchPreviewData(hero.id); // ยิง API ขอ Preview ทันที
+    setOpenUpgrade(true);
+    fetchPreviewData(hero.id); // ยิง API ขอ Preview ทันที
   };
-  
- useEffect(() => {
-    if (previewData) {
-       console.log("✨ Preview Data Updated:", previewData);
-    }
-    if (playerHero) {
-      console.log("🔥 Player Hero Data:", playerHero);
-    }
-  }, [previewData,playerHero]); // Log เฉพาะตอน previewData เปลี่ยนค่า
+
   return (
     <>
       <Box
@@ -139,7 +142,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             background: "#5d4037",
             borderBottom: "2px solid #3e2723",
             boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-            zIndex: 10,
+            zIndex: 100,
             mx: 0, // ชิดขอบซ้ายขวา
           }}
         >
@@ -154,7 +157,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           >
             {hero.name}
           </Typography>
-          <Tooltip title="Rare Hero">
+          {/* <Tooltip title="Rare Hero">
             <Box
               component="img"
               src={iconic}
@@ -164,19 +167,20 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 imageRendering: "pixelated",
               }}
             />
-          </Tooltip>
+          </Tooltip> */}
         </Box>
 
         {/* === SECTION 2: IMAGE (Static Flow) === */}
 
         <Box
           sx={{
-            height: "140px", // กำหนดพื้นที่ให้รูป
+            height: "180px", // กำหนดพื้นที่ให้รูป
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 5,
-            mb: 1.5,
+            zIndex: 1,
+            mb: 2,
+           
           }}
         >
           {frames.length > 0 && (
@@ -189,9 +193,6 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 objectFit: "contain",
                 imageRendering: "pixelated",
                 filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
-              }}
-              onError={(e) => {
-                e.currentTarget.src = "/fallback/unknown-monster.png";
               }}
             />
           )}
@@ -208,12 +209,10 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
             mx: 1.5, // ระยะห่างซ้ายขวา
             p: 1.5, // Padding ภายใน
-
             display: "flex",
             flexDirection: "column",
-
-            marginTop: "-30px", // ดึงขึ้นไปเกยรูปนิดหน่อย
-            zIndex: 4, // อยู่ต่ำกว่ารูป (รูป z-index 5)
+            marginTop: "-38px", // ดึงขึ้นไปเกยรูปนิดหน่อย
+            zIndex: 10, // อยู่ต่ำกว่ารูป (รูป z-index 5)
           }}
         >
           <LevelBar
@@ -298,84 +297,58 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             )}
           </Box>
 
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <>
             {showDetail ? (
-              <Grid
-                container
-                spacing={1}
-                sx={{
-                  mt: 0.5,
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  height: "80px",
-                }}
-              >
-                <Grid item xs={4}>
-                  <StatNumericBox
-                    label="HP"
-                    value={game_stats.hp}
-                    icon={<FavoriteIcon />}
-                    color="#ff5252"
-                    description="Max Health. 0 = Game Over."
-                  />
-                </Grid>
-                <Grid item xs={4}>
-                  <StatNumericBox
-                    label="SPD"
-                    value={game_stats.speed}
-                    icon={<SpeedIcon />}
-                    color="#00e5ff"
-                    description="Turn Speed. Faster acts first."
-                  />
-                </Grid>
-                <Grid item xs={4}>
-                  <StatNumericBox
-                    label="SLOT"
-                    value={game_stats.slot}
-                    icon={<BackpackIcon />}
-                    color="#d1c4e9"
-                    description="Bag Size. Max letters you can hold in hand."
-                  />
-                </Grid>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.2, width: "309px",height: "120px"}}>
+                <StatLine
+                  label="HP"
+                  value={game_stats.hp}
+                  icon={<FavoriteIcon />}
+                  color="#ff5252"
+                  description="Max Health. 0 = Game Over."
+                />
+                <StatLine
+                  label="SLOT"
+                  value={game_stats.slot}
+                  icon={<BackpackIcon />}
+                  color="#d1c4e9"
+                  description="Bag Size. Max letters you can hold in hand."
+                />
+                <StatLine
+                  label="SPD"
+                  value={game_stats.speed}
+                  icon={<SpeedIcon />}
+                  color="#00e5ff"
+                  description="Turn Speed. Faster acts first."
+                />
 
-                {/* Divider
-                <Grid item xs={12}>
-                  <Divider sx={{ borderColor: "#ff0000", borderStyle: "dashed" }} />
-                </Grid> */}
-
-                <Grid item xs={4}>
-                  <StatNumericBox
-                    label="COM"
-                    value={game_stats.common}
-                    // G1: Common -> วงกลม (Basic)
-                    icon={<RadioButtonUncheckedIcon fontSize="small" />}
-                    color="#cd7f32" // Bronze
-                    description="Power of easy letters (A, E, I, O...)."
-                  />
-                </Grid>
-                <Grid item xs={4}>
-                  <StatNumericBox
-                    label="UNC"
-                    value={game_stats.uncommon}
-                    // G2: Uncommon -> สามเหลี่ยม (Sharp/Medium)
-                    icon={<ChangeHistoryIcon fontSize="small" />}
-                    color="#b0bec5" // Silver
-                    description="Power of normal letters (D, L, S...)."
-                  />
-                </Grid>
-                <Grid item xs={4}>
-                  <StatNumericBox
-                    label="RARE"
-                    value={game_stats.rare}
-                    // G3: Rare -> เพชร (Heavy/Valuable)
-                    icon={<DiamondIcon fontSize="small" />}
-                    color="#ffd700" // Gold
-                    description="Power of rare letters (J, Q, X, Z)."
-                  />
-                </Grid>
-              </Grid>
+                <StatLine
+                  label="COM"
+                  value={game_stats.common}
+                  // G1: Common -> วงกลม (Basic)
+                  icon={<RadioButtonUncheckedIcon fontSize="small" />}
+                  color="#cd7f32" // Bronze
+                  description="Power of easy letters (A, E, I, O...)."
+                />
+                <StatLine
+                  label="UNC"
+                  value={game_stats.uncommon}
+                  // G2: Uncommon -> สามเหลี่ยม (Sharp/Medium)
+                  icon={<ChangeHistoryIcon fontSize="small" />}
+                  color="#b0bec5" // Silver
+                  description="Power of normal letters (D, L, S...)."
+                />
+                <StatLine
+                  label="RARE"
+                  value={game_stats.rare}
+                  // G3: Rare -> เพชร (Heavy/Valuable)
+                  icon={<DiamondIcon fontSize="small" />}
+                  color="#ffd700" // Gold
+                  description="Power of rare letters (J, Q, X, Z)."
+                />
+              </Box>
             ) : (
-              <>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 ,height: "120px"}}>
                 <StatVisualBar
                   label="HP"
                   value={base_stats.hp}
@@ -404,9 +377,9 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   icon={<BackpackIcon />}
                   color="#d1c4e9"
                 />
-              </>
+              </Box>
             )}
-          </Box>
+          </>
         </Box>
 
         {/* === 4. BUTTON (แยกออกมาอยู่ข้างนอก Stats Box แล้ว) === */}
@@ -498,13 +471,12 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
         onCancel={handleCancelBuy}
       />
 
-      <UpgradeDialog 
-        open={openUpgrade} 
+      <UpgradeDialog
+        open={openUpgrade}
         onClose={() => setOpenUpgrade(false)}
         heroId={hero.id}
         heroName={hero.name}
         upgradeCost={upgradeCost}
-
       />
     </>
   );

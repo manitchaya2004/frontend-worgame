@@ -11,7 +11,6 @@ import { useAuthStore } from "../../store/useAuthStore";
 const HomePage = () => {
   const { currentUser } = useLoginPlayer();
   const {refreshUser} = useAuthStore();
-  console.log("wso", currentUser);
 
   useEffect(() => {
     refreshUser(); 
