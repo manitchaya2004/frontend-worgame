@@ -3,8 +3,10 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
+import { MpBar } from "./MpBar"; // อย่าลืม Import MpBar นะครับ
 import { DISPLAY_NORMAL, FIXED_Y, ipAddress } from "../../../../const/index";
 import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
+
 export const EnemyEntity = ({
   enemy,
   index,
@@ -17,20 +19,15 @@ export const EnemyEntity = ({
   selectionCount = 0,
 }) => {
   // -------------------------------------------------------------
-  // ✅ 1. Logic คำนวณชื่อรูปภาพ (สูตรกันเหนียว)
+  // ✅ 1. Logic คำนวณชื่อรูปภาพ
   // -------------------------------------------------------------
   const isBoss = enemy.isBoss;
   const isAttack = enemy.atkFrame > 0;
   const actionName = isAttack ? "attack" : "idle";
 
-  // ถ้าโจมตี ใช้เฟรมโจมตี (1, 2)
-  // ถ้ายืนเฉยๆ ใช้สูตร (animFrame % 2) + 1 เพื่อแปลงเป็น 1 หรือ 2 เสมอ
   const monsterFrames = usePreloadFrames("img_monster", enemy.monster_id, 2, actionName);
-
-  // 2. คำนวณเลขเฟรม
   const frameNum = isAttack ? enemy.atkFrame : (animFrame % 2) + 1;
 
-  // 3. ดึงจาก Cache
   const currentSpriteUrl = monsterFrames[frameNum - 1]
     ? monsterFrames[frameNum - 1].src
     : `${ipAddress}/img_monster/${enemy.monster_id}-${actionName}-${frameNum}.png`;
@@ -40,8 +37,8 @@ export const EnemyEntity = ({
 
   const movementTransition =
     gameState === "QUIZ_MODE"
-      ? { duration: QUIZ_DURATION, ease: "linear" } // 🐢 ถ้าเป็น Quiz ให้เดินช้าๆ คงที่
-      : { type: "spring", stiffness: 300, damping: 25 }; // 🐇 ถ้าโหมดอื่น (เช่น เดินกลับ/พุ่งตี) ให้เร็วและเด้ง
+      ? { duration: QUIZ_DURATION, ease: "linear" } 
+      : { type: "spring", stiffness: 300, damping: 25 }; 
 
   return (
     <motion.div
@@ -61,7 +58,7 @@ export const EnemyEntity = ({
       }}
       transition={{
         default: { type: "spring", stiffness: 300, damping: 15 },
-        left: movementTransition, // ✅ ถูกต้อง
+        left: movementTransition,
         opacity: { duration: 0.3 },
       }}
       exit={{
@@ -112,6 +109,7 @@ export const EnemyEntity = ({
             pointerEvents: "none",
           }}
         >
+          {/* เป้าหมายการโจมตี */}
           {(isTargeted || selectionCount > 0) && (
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
@@ -153,6 +151,7 @@ export const EnemyEntity = ({
             </motion.div>
           )}
 
+          {/* คำพูดมอนสเตอร์ */}
           <div
             style={{
               marginBottom: isBoss ?"200px":"10px",
@@ -166,60 +165,53 @@ export const EnemyEntity = ({
             <ShoutBubble text={enemy.shoutText} />
           </div>
 
+          {/* ZONE: HP & MP BARS บนหัวมอนสเตอร์ */}
           <div
             style={{
               position: "relative",
               width: isBoss ? "1000px" : "100px",
-              height: isBoss ? "20px" : "16px",
               marginBottom: isBoss ? "-130px" : "35px",
               marginRight:  isBoss ? "780px" : "0px",
               zIndex: 15,
               display: "flex",
+              flexDirection: "column", // บังคับเรียงหลอดแนวตั้ง
+              alignItems: "center",    // จัดหลอดให้ตรงกลางหัว
               justifyContent: "center",
-              alignItems: "center",
             }}
           >
-            
-            {!isBoss&& (<>
-              <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
-            <div
-              style={{
-                position: "absolute",
-                right: isBoss ? "150px" :"10px",
-                top: "-20px",
-                padding: "0 6px",
-                height: "20px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "2px",
-                zIndex: 20,
-                minWidth: "24px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: enemy.shield > 0 ? "#ff9800" : "#888",
-                  fontWeight: "bold",
-                  lineHeight: 1,
-                }}
-              >
-                🛡
-              </span>
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  color: "#fff",
-                  textShadow: "1px 1px 0 #000",
-                  lineHeight: 1,
-                }}
-              >
-                {enemy.shield || 0}
-              </span>
-            </div>
-            </>)}
+            {!isBoss && (
+              <>
+                {/* หลอด HP ศัตรู */}
+                <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
+                
+                {/* หลอด MP ศัตรู (ติดกัน) */}
+                <MpBar mp={enemy.mana} max={enemy.quiz_move_cost} color="#3b82f6" />
+
+                {/* ตัวเลข Shield */}
+                <div
+                  style={{
+                    position: "absolute",
+                    right: isBoss ? "150px" :"10px",
+                    top: "-20px",
+                    padding: "0 6px",
+                    height: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "2px",
+                    zIndex: 20,
+                    minWidth: "24px",
+                  }}
+                >
+                  <span style={{ fontSize: "12px", color: enemy.shield > 0 ? "#ff9800" : "#888", fontWeight: "bold", lineHeight: 1 }}>
+                    🛡
+                  </span>
+                  <span style={{ fontSize: "12px", fontWeight: "bold", color: "#fff", textShadow: "1px 1px 0 #000", lineHeight: 1 }}>
+                    {enemy.shield || 0}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

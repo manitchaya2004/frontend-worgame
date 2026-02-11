@@ -62,10 +62,10 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
   // Map ข้อมูล 5 ตัวตามที่ขอ
   const base_stats = {
-    hp: playerHero?.hp_lv || hero.hp_lv,
-    power: playerHero?.power_lv || hero.power_lv,
-    speed: playerHero?.speed_lv || hero.speed_lv,
-    slot: playerHero?.slot_lv || hero.slot_lv,
+    hp: playerHero?.hp_lv+currentLevel-1 || hero.hp_lv+currentLevel-1,
+    power: playerHero?.power_lv+currentLevel-1 || hero.power_lv+currentLevel-1,
+    speed: playerHero?.speed_lv+currentLevel-1 || hero.speed_lv+currentLevel-1,
+    slot: playerHero?.slot_lv+currentLevel-1 || hero.slot_lv+currentLevel-1,
   };
 
   const game_stats = isOwned

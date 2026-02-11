@@ -35,6 +35,7 @@ import { PlayerStatusCard } from "./features/downPanel/PlayerStatusCard";
 import { TurnQueueBar } from "./features/TopPanel/TurnQueueBar";
 import { DamagePopup } from "./features/TopPanel/DamagePopup";
 import { TargetPickerOverlay } from "./features/downPanel/TargetPickerOverlay";
+import {GameDialog} from "../../components/GameDialog";
 
 // --- Components: System Views ---
 import LoadingView from "../../components/LoadingView";
@@ -54,7 +55,7 @@ export default function GameApp() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showTargetPicker, setShowTargetPicker] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const requestRef = useRef(0);
   const lastTimeRef = useRef(0);
   const constraintsRef = useRef(null);
@@ -130,7 +131,7 @@ export default function GameApp() {
 
       const currentStageId = store.stageData?.id;
       const stageRecord = currentUser?.stages?.find(
-        (s) => s.stage_id === currentStageId
+        (s) => s.stage_id === currentStageId,
       );
       const isFirstClear = !stageRecord || !stageRecord.is_completed;
 
@@ -138,7 +139,7 @@ export default function GameApp() {
         state: {
           result: "WIN",
           earnedCoins: store.receivedCoin,
-          stageCoins: isFirstClear ? (store.stageData?.money_reward || 0) : 0,
+          stageCoins: isFirstClear ? store.stageData?.money_reward || 0 : 0,
           wordLog: store.wordLog,
         },
       });
@@ -318,6 +319,14 @@ export default function GameApp() {
     store.actionSpin(nextInv);
   };
 
+  const handleOpenDialog = () => {
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+  };
+
   // ⭐ STYLES
   const commonHudStyle = {
     background: "rgba(20, 14, 10, 0.9)",
@@ -363,289 +372,302 @@ export default function GameApp() {
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "#121212",
-        overflow: "hidden",
-      }}
-    >
+    <>
       <div
         style={{
-          height: "95vh",
-          aspectRatio: "10/6",
-          width: "auto",
-          maxWidth: "100vw",
+          width: "100vw",
+          height: "100vh",
           display: "flex",
-          flexDirection: "column",
-          border: "4px solid #1e1510",
-          background: "#B3F1FF",
-          position: "relative",
+          justifyContent: "center",
+          alignItems: "center",
+          background: "#121212",
           overflow: "hidden",
-          boxShadow: "0 0 20px rgba(0,0,0,0.8)",
         }}
       >
-        {/* ===================================================================
+        <div
+          style={{
+            height: "95vh",
+            aspectRatio: "10/6",
+            width: "auto",
+            maxWidth: "100vw",
+            display: "flex",
+            flexDirection: "column",
+            border: "4px solid #1e1510",
+            background: "#B3F1FF",
+            position: "relative",
+            overflow: "hidden",
+            boxShadow: "0 0 20px rgba(0,0,0,0.8)",
+          }}
+        >
+          {/* ===================================================================
             🆕 UI: HUD (HEADS-UP DISPLAY)
            =================================================================== */}
 
-        {/* 1. ปุ่มควบคุมมุมซ้ายบน */}
-        <div
-          style={{
-            position: "absolute",
-            top: "20px",
-            left: "20px",
-            zIndex: 1000,
-            display: "flex",
-            gap: "12px",
-          }}
-        >
-          {/* ปุ่มออก */}
-          <div
-            onClick={handleExit}
-            style={hudButtonStyle}
-            onMouseDown={handleHudButtonDown}
-            onMouseUp={handleHudButtonUp}
-            title="Surrender"
-          >
-            <MdFlag size={26} color="#e74c3c" />
-          </div>
-
-          {/* ปุ่ม SFX */}
-          <div
-            onClick={store.toggleSfx}
-            style={hudButtonStyle}
-            onMouseDown={handleHudButtonDown}
-            onMouseUp={handleHudButtonUp}
-            title="Toggle SFX"
-          >
-            {store.isSfxOn ? (
-              <GiSpeaker size={26} />
-            ) : (
-              <GiSpeakerOff size={26} color="#9e9e9e" />
-            )}
-          </div>
-
-          {/* ปุ่ม BGM */}
-          <div
-            onClick={store.toggleBgm}
-            style={hudButtonStyle}
-            onMouseDown={handleHudButtonDown}
-            onMouseUp={handleHudButtonUp}
-            title="Toggle Music"
-          >
-            {store.isBgmOn ? (
-              <GiMusicalNotes size={26} />
-            ) : (
-              <MdMusicOff size={26} color="#9e9e9e" />
-            )}
-          </div>
-        </div>
-
-        {/* ⭐ Wrapper ขวาบน: รวม Coin และ Distance เพื่อจัดชิดกัน ⭐ */}
-        <div
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px", // ระยะห่างระหว่างปุ่มเงินกับปุ่มระยะทาง
-          }}
-        >
-          {/* 2. แสดงเงิน (Coin) */}
+          {/* 1. ปุ่มควบคุมมุมซ้ายบน */}
           <div
             style={{
-              ...commonHudStyle, // ใช้ Style พื้นฐาน
-              padding: "0 16px", // Auto Width ตามเนื้อหา
-              gap: "8px",
-            }}
-          >
-            <GiTwoCoins
-              size={28}
-              color="#ffd700"
-              style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
-            />
-            <span
-              style={{
-                color: "#ffd700",
-                fontWeight: "bold",
-                fontSize: "22px",
-                fontFamily: '"Cinzel", serif',
-                textShadow: "0 2px 4px #000",
-                lineHeight: 1,
-              }}
-            >
-              {store.receivedCoin}
-            </span>
-          </div>
-
-          {/* 3. ระยะทาง (Distance) */}
-          <div
-            style={{
-              ...commonHudStyle,
-              padding: "0 20px",
+              position: "absolute",
+              top: "20px",
+              left: "20px",
+              zIndex: 1000,
+              display: "flex",
               gap: "12px",
-              minWidth: "140px", // คง minWidth ไว้ให้ระยะทางไม่ขยับไปมา
             }}
           >
-            <GiTatteredBanner
-              size={28}
-              color="#f1c40f"
-              style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
-            />
+            {/* ปุ่มออก */}
+            <div
+              onClick={handleOpenDialog}
+              style={hudButtonStyle}
+              onMouseDown={handleHudButtonDown}
+              onMouseUp={handleHudButtonUp}
+              title="Surrender"
+            >
+              <MdFlag size={26} color="#e74c3c" />
+            </div>
 
+            {/* ปุ่ม SFX */}
+            <div
+              onClick={store.toggleSfx}
+              style={hudButtonStyle}
+              onMouseDown={handleHudButtonDown}
+              onMouseUp={handleHudButtonUp}
+              title="Toggle SFX"
+            >
+              {store.isSfxOn ? (
+                <GiSpeaker size={26} />
+              ) : (
+                <GiSpeakerOff size={26} color="#9e9e9e" />
+              )}
+            </div>
+
+            {/* ปุ่ม BGM */}
+            <div
+              onClick={store.toggleBgm}
+              style={hudButtonStyle}
+              onMouseDown={handleHudButtonDown}
+              onMouseUp={handleHudButtonUp}
+              title="Toggle Music"
+            >
+              {store.isBgmOn ? (
+                <GiMusicalNotes size={26} />
+              ) : (
+                <MdMusicOff size={26} color="#9e9e9e" />
+              )}
+            </div>
+          </div>
+
+          {/* ⭐ Wrapper ขวาบน: รวม Coin และ Distance เพื่อจัดชิดกัน ⭐ */}
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              zIndex: 1000,
+              display: "flex",
+              alignItems: "center",
+              gap: "10px", // ระยะห่างระหว่างปุ่มเงินกับปุ่มระยะทาง
+            }}
+          >
+            {/* 2. แสดงเงิน (Coin) */}
             <div
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                lineHeight: 1,
+                ...commonHudStyle, // ใช้ Style พื้นฐาน
+                padding: "0 16px", // Auto Width ตามเนื้อหา
+                gap: "8px",
               }}
             >
+              <GiTwoCoins
+                size={28}
+                color="#ffd700"
+                style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
+              />
               <span
                 style={{
-                  color: "#f1c40f",
+                  color: "#ffd700",
                   fontWeight: "bold",
-                  fontSize: "20px",
+                  fontSize: "22px",
                   fontFamily: '"Cinzel", serif',
                   textShadow: "0 2px 4px #000",
+                  lineHeight: 1,
                 }}
               >
-                {Math.floor(store.distance)}
-              </span>
-              <span
-                style={{
-                  color: "#8c734b",
-                  fontSize: "10px",
-                  fontFamily: "sans-serif",
-                  textTransform: "uppercase",
-                  fontWeight: "bold",
-                  letterSpacing: "1px",
-                }}
-              >
-                METERS
+                {store.receivedCoin}
               </span>
             </div>
-          </div>
-        </div>
 
-        {/* ===================================================================
-            1. TOP PANEL (BATTLE AREA)
-           =================================================================== */}
-        <div
-          style={{
-            flex: 1,
-            position: "relative",
-            overflow: "hidden",
-            borderBottom: "4px solid #0f0a08",
-            width: "100%",
-            backgroundImage: `url(${ipAddress}/img_map/${selectedStage}.png)`,
-            backgroundRepeat: "repeat-x",
-            backgroundSize: "auto 100%",
-            backgroundPositionY: "bottom",
-            backgroundPositionX: `-${store.distance * 20}px`,
-          }}
-        >
-          {/* UI Elements */}
-          <TurnQueueBar store={store} />
-          <DamagePopup
-            popups={store.damagePopups}
-            removePopup={store.removePopup}
-          />
-          <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
-          <BossHpBar boss={boss} />
-
-          {/* Entities */}
-          <PlayerEntity store={store} animFrame={store.animFrame} />
-
-          <AnimatePresence>
-            {store.enemies
-              .filter((en) => en.hp > 0)
-              .map((en, i) => (
-                <EnemyEntity
-                  key={en.id}
-                  enemy={en}
-                  index={i}
-                  animFrame={store.animFrame}
-                  gameState={store.gameState}
-                  isTargeted={false}
-                  onSelect={() => {}}
-                />
-              ))}
-          </AnimatePresence>
-
-          {/* Info Popups */}
-          {store.validWordInfo && (
-            <MeaningPopup meaning={store.validWordInfo.meaning} />
-          )}
-
-          <Tooltip target={tooltipTarget} />
-        </div>
-
-        {/* ===================================================================
-            2. BOTTOM PANEL (CONTROLS & INVENTORY)
-           =================================================================== */}
-        <div
-          style={{
-            flex: 1,
-            background: "#1a120b",
-            borderTop: "4px solid #5c4033",
-            display: "flex",
-            padding: "15px 0px 15px 0px",
-          }}
-        >
-          {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
-            <QuizOverlay
-              data={store.currentQuiz}
-              onAnswer={store.resolveQuiz}
-            />
-          ) : showTargetPicker ? (
-            <TargetPickerOverlay
-              store={store}
-              ipAddress={ipAddress}
-              onClose={() => {
-                setShowTargetPicker(false);
-                setPendingAction(null);
-              }}
-              onSelectTarget={(enemyId) => handleSelectTargetFromMenu(enemyId)}
-            />
-          ) : (
+            {/* 3. ระยะทาง (Distance) */}
             <div
               style={{
-                flex: 1.5,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
+                ...commonHudStyle,
+                padding: "0 20px",
                 gap: "12px",
+                minWidth: "140px", // คง minWidth ไว้ให้ระยะทางไม่ขยับไปมา
               }}
             >
-              <PlayerStatusCard
-                onHeal={handleHeal}
-                onCure={handlePotionCure}
-                onReroll={handlePotionRoll}
+              <GiTatteredBanner
+                size={28}
+                color="#f1c40f"
+                style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
               />
 
-              <InventorySlot />
-
-              <ActionControls
-                store={store}
-                onAttackClick={() => handleActionClick("Strike")}
-                onShieldClick={() => handleActionClick("Guard")}
-                onSkillClick={handleSkillClick}
-                onEndTurnClick={() => {
-                  store.passTurn();
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  lineHeight: 1,
                 }}
-              />
+              >
+                <span
+                  style={{
+                    color: "#f1c40f",
+                    fontWeight: "bold",
+                    fontSize: "20px",
+                    fontFamily: '"Cinzel", serif',
+                    textShadow: "0 2px 4px #000",
+                  }}
+                >
+                  {Math.floor(store.distance)}
+                </span>
+                <span
+                  style={{
+                    color: "#8c734b",
+                    fontSize: "10px",
+                    fontFamily: "sans-serif",
+                    textTransform: "uppercase",
+                    fontWeight: "bold",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  METERS
+                </span>
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* ===================================================================
+            1. TOP PANEL (BATTLE AREA)
+           =================================================================== */}
+          <div
+            style={{
+              flex: 1,
+              position: "relative",
+              overflow: "hidden",
+              borderBottom: "4px solid #0f0a08",
+              width: "100%",
+              backgroundImage: `url(${ipAddress}/img_map/${selectedStage}.png)`,
+              backgroundRepeat: "repeat-x",
+              backgroundSize: "auto 100%",
+              backgroundPositionY: "bottom",
+              backgroundPositionX: `-${store.distance * 20}px`,
+            }}
+          >
+            {/* UI Elements */}
+            <TurnQueueBar store={store} />
+            <DamagePopup
+              popups={store.damagePopups}
+              removePopup={store.removePopup}
+            />
+            <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
+            <BossHpBar boss={boss} />
+
+            {/* Entities */}
+            <PlayerEntity store={store} animFrame={store.animFrame} />
+
+            <AnimatePresence>
+              {store.enemies
+                .filter((en) => en.hp > 0)
+                .map((en, i) => (
+                  <EnemyEntity
+                    key={en.id}
+                    enemy={en}
+                    index={i}
+                    animFrame={store.animFrame}
+                    gameState={store.gameState}
+                    isTargeted={false}
+                    onSelect={() => {}}
+                  />
+                ))}
+            </AnimatePresence>
+
+            {/* Info Popups */}
+            {store.validWordInfo && (
+              <MeaningPopup meaning={store.validWordInfo.meaning} />
+            )}
+
+            <Tooltip target={tooltipTarget} />
+          </div>
+
+          {/* ===================================================================
+            2. BOTTOM PANEL (CONTROLS & INVENTORY)
+           =================================================================== */}
+          <div
+            style={{
+              flex: 1,
+              background: "#1a120b",
+              borderTop: "4px solid #5c4033",
+              display: "flex",
+              padding: "15px 0px 15px 0px",
+            }}
+          >
+            {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
+              <QuizOverlay
+                data={store.currentQuiz}
+                onAnswer={store.resolveQuiz}
+              />
+            ) : showTargetPicker ? (
+              <TargetPickerOverlay
+                store={store}
+                ipAddress={ipAddress}
+                onClose={() => {
+                  setShowTargetPicker(false);
+                  setPendingAction(null);
+                }}
+                onSelectTarget={(enemyId) =>
+                  handleSelectTargetFromMenu(enemyId)
+                }
+              />
+            ) : (
+              <div
+                style={{
+                  flex: 1.5,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <PlayerStatusCard
+                  onHeal={handleHeal}
+                  onCure={handlePotionCure}
+                  onReroll={handlePotionRoll}
+                />
+
+                <InventorySlot />
+
+                <ActionControls
+                  store={store}
+                  onAttackClick={() => handleActionClick("Strike")}
+                  onShieldClick={() => handleActionClick("Guard")}
+                  onSkillClick={handleSkillClick}
+                  onEndTurnClick={() => {
+                    store.passTurn();
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      <GameDialog
+        open={isDialogOpen}
+        onCancel={handleCloseDialog}
+        onConfirm={handleExit}
+        confirmText="Accept"
+        cancelText="Cancel"
+        title="Surrender?"
+        description="Your progress will be saved and you will receive half of your earned coins."
+      />
+    </>
   );
 }

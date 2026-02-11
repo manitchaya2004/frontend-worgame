@@ -3,6 +3,22 @@ import { PLAYER_X_POS, FIXED_Y, ipAddress } from "../const/index";
 import { sfx, bgm } from "../utils/sfx";
 import { DeckManager, WordSystem } from "../utils/gameSystem";
 
+const POWER_GROUPS = {
+  G1: ["A", "E", "I", "O", "U"],
+  G2: ["L", "N", "S", "T", "R", "D", "G", "B", "C", "M", "P", "F", "H", "K"],
+  G3: ["V", "W", "J", "X", "Y", "Q", "Z"]
+};
+
+// ใช้ค่าจาก Level 8 เป็นมาตรฐานตามที่คุณต้องการ
+const ENEMY_POWER_MAP = {};
+// สร้าง Map เพื่อให้ค้นหาพลังจากตัวอักษรได้เร็วขึ้น
+Object.entries(POWER_GROUPS).forEach(([group, chars]) => {
+  const powerValue = group === "G1" ? 0.50 : group === "G2" ? 1.00 : 1.50;
+  chars.forEach(char => {
+    ENEMY_POWER_MAP[char] = powerValue;
+  });
+});
+
 // ============================================================================
 // UTILITIES & MATH HELPERS
 // ============================================================================
@@ -29,6 +45,56 @@ const getLetterDamage = (char, powerMap) => {
   return value !== undefined ? Number(value) : 0;
 };
 
+// ฟังก์ชันหาคำที่ยาวที่สุดจากตัวอักษรที่มี
+const findBestWordFromLetters = (letters, dictionary, maxLetters) => {
+  if (!letters || letters.length === 0) return { bestWord: "", usedItems: [] }; // ป้องกันลูปฟรี
+
+  // 1. สร้าง Map ของตัวอักษรที่มีบนมือผู้เล่นไว้ก่อน
+  const availableChars = new Set(letters.map(l => l?.char.toLowerCase()));
+  const charCounts = {};
+  letters.forEach(item => {
+    if (!item) return;
+    const c = item.char.toLowerCase();
+    charCounts[c] = (charCounts[c] || 0) + 1;
+  });
+
+  let bestWord = "";
+  let usedItems = [];
+
+  // 2. กรอง Dictionary ล่วงหน้า
+  const possibleWords = dictionary.filter(({ word }) => 
+    word.length > 0 && 
+    word.length <= maxLetters && // ตัดคำที่ยาวเกินพลังโจมตีออกทันที
+    word.length > bestWord.length && // เช็คเฉพาะคำที่ยาวกว่าคำที่เจอแล้ว
+    [...word.toLowerCase()].every(char => availableChars.has(char)) // ต้องมีตัวอักษรนั้นบนมือ
+  );
+
+  // 3. วนลูปเฉพาะคำที่มีโอกาสเป็นไปได้จริงๆ
+  possibleWords.forEach(({ word }) => {
+    const w = word.toLowerCase();
+    const tempCounts = { ...charCounts };
+    let canMake = true;
+    
+    for (const char of w) {
+      if (!tempCounts[char]) { canMake = false; break; }
+      tempCounts[char]--;
+    }
+    
+    if (canMake) {
+      bestWord = w;
+      const tempLetters = [...letters];
+      const currentUsed = [];
+      for (const char of w) {
+        const idx = tempLetters.findIndex(l => l?.char.toLowerCase() === char);
+        currentUsed.push(tempLetters[idx]);
+        tempLetters[idx] = null;
+      }
+      usedItems = currentUsed;
+    }
+  });
+
+  return { bestWord, usedItems };
+};
 // ============================================================================
 // GAME STORE
 // ============================================================================
@@ -293,7 +359,6 @@ export const useGameStore = create((set, get) => ({
         }));
       }
 
-      // ⭐ UPDATE: Logic ใหม่สำหรับการรับ Stats
       if (selectedHero) {
         const { stats } = selectedHero;
         set((state) => ({
@@ -353,7 +418,6 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  // 🔥 UPDATE LOOP
   update: (dt) =>
     set((state) => {
       let updates = {};
@@ -456,6 +520,8 @@ export const useGameStore = create((set, get) => ({
         max_hp: e.hp,    
         hp: e.hp,        
         power: e.power,     
+
+        level: e.level || "A1",
         
         // --- MANA SYSTEM ---
         mana: 0, 
@@ -482,16 +548,19 @@ export const useGameStore = create((set, get) => ({
 
   startCombatRound: async () => {
     const store = get();
-    get().gainMana(10); // Start new round mana
+    const { playerData } = store;
 
-    // --- MONSTER GAIN MANA (Start Round) ---
+    // 1. เพิ่มมานาตอนเริ่มรอบ
+    const newPlayerMana = Math.min(playerData.max_mana, playerData.mana + 5);
     const updatedEnemies = store.enemies.map(e => {
-        if (e.hp <= 0) return e;
-        const newMana = Math.min(e.quiz_move_cost, e.mana + 10);
-        return { ...e, shield: 0, mana: newMana };
+      if (e.hp <= 0) return e;
+      return { ...e, shield: 0, mana: Math.min(e.quiz_move_cost, e.mana + 5) };
     });
-    set({ enemies: updatedEnemies, playerData: { ...store.playerData, shield: 0 } });
-    // ---------------------------------------
+
+    set({ 
+      enemies: updatedEnemies, 
+      playerData: { ...playerData, mana: newPlayerMana, shield: 0 } 
+    });
 
     get().addPopup({
       id: Math.random(),
@@ -502,6 +571,7 @@ export const useGameStore = create((set, get) => ({
     });
     await delay(500);
 
+    // 2. คำนวณค่า Initiative เริ่มต้น
     const playerInit = Math.max(
       1,
       store.playerData.speed + (Math.floor(Math.random() * 3) - 1),
@@ -520,20 +590,14 @@ export const useGameStore = create((set, get) => ({
         pool.push({ id: e.id, type: "enemy", name: e.name, initiative: init });
       });
 
-    const finalQueue = [];
-    const minInit = Math.min(...pool.map((u) => u.initiative));
-    let queueCounter = 0;
-
-    while (pool.length > 0) {
-      pool.sort((a, b) => b.initiative - a.initiative);
-      const winner = pool.shift();
-      finalQueue.push({
-        ...winner,
-        uniqueId: `${winner.id}_${queueCounter++}`,
-      });
-      const nextInit = Math.floor(winner.initiative / 2);
-      if (nextInit > minInit) pool.push({ ...winner, initiative: nextInit });
-    }
+    // 3. จัดเรียงคิวแบบเล่นคนละ 1 ครั้งเท่านั้น
+    // เรียงจากมากไปน้อย ใครไวกว่าได้เล่นก่อน
+    const finalQueue = pool
+      .sort((a, b) => b.initiative - a.initiative)
+      .map((unit, index) => ({
+        ...unit,
+        uniqueId: `${unit.id}_${index}_${Date.now()}`, // สร้าง Unique ID ให้แต่ละเทิร์น
+      }));
 
     set({ turnQueue: finalQueue });
     get().processNextTurn();
@@ -948,27 +1012,46 @@ export const useGameStore = create((set, get) => ({
     set({ playerShoutText: "", gameState: "PLAYERTURN" });
   },
   passTurn: async () => {
-    // 1. เรียก store เพื่อเข้าถึงฟังก์ชันอื่น
+    // 1. เรียก store เพื่อเข้าถึงข้อมูลปัจจุบัน
     const store = get(); 
     
-    // (เพื่อให้ selectedLetters กลายเป็นค่าว่าง [] และ UI ช่องข้างบนเคลียร์)
+    // เคลียร์การเลือกบนหน้าจอ
     store.resetSelection();
 
-    // 2. จากนั้นค่อยเริ่มกระบวนการสุ่มใหม่
     const slots = store.playerData.unlockedSlots;
-    const newInventory = DeckManager.generateList(slots);
+    const currentInventory = store.playerData.inventory; 
 
-    // 3. แสดง Effect
+    // 2. สุ่มของใหม่มาเตรียมไว้
+    let newInventory = DeckManager.generateList(slots);
+
+    // 3. (สำคัญ) วนลูปเอาสถานะจากของเก่า มาแปะใส่ของใหม่ ในตำแหน่งเดิม 
+    newInventory = newInventory.map((newItem, index) => {
+      const oldItem = currentInventory[index];
+      
+      // ถ้าช่องเดิมมีของ และมีสถานะติดอยู่
+      if (oldItem && oldItem.status) {
+        return {
+          ...newItem, // ใช้ตัวอักษรใหม่/ID ใหม่
+          status: oldItem.status, // แต่เอาสถานะเดิมมาใส่
+          statusDuration: oldItem.statusDuration // เอาระยะเวลาเดิมมาใส่
+        };
+      }
+      
+      // ถ้าไม่มีสถานะ ก็ใช้ของใหม่เพียวๆ
+      return newItem;
+    });
+
+    // 4. แสดง Effect
     set({ playerShoutText: "PASS!", gameState: "ACTION" });
     await delay(500);
 
-    // 4. อัปเดต Inventory ใหม่ และล้างข้อความ
+    // 5. อัปเดต Inventory ที่รวมร่างแล้วลง State
     set((s) => ({
       playerData: { ...s.playerData, inventory: newInventory },
       playerShoutText: "",
     }));
 
-    // 5. จบเทิร์น
+    // 6. จบเทิร์น (เพื่อให้สถานะ Poison/Burn ทำงานลดเลือด หรือลด Duration ลง)
     get().endTurn();
   },
 
@@ -1098,18 +1181,15 @@ export const useGameStore = create((set, get) => ({
             // 1. เดินไปหาศัตรู
             set({ playerX: target.x - 12, playerVisual: "walk" });
             await delay(400);
-            
             // 2. โจมตี
             set({ playerVisual: "attack-1" });
             await delay(200);
+            set({ playerVisual: "attack-2" });
             if (isSfxOn) sfx.playHit();
-            
             // 3. สร้างความเสียหาย
             get().damageEnemy(targetId, totalDmg);
-
             // 4. คำนวณดูดเลือด (50%)
             const healAmount = Math.floor(totalDmg * 0.5);
-            
             // 5. เพิ่มเลือด (แก้บั๊ก NaN)
             if (healAmount > 0) {
                 set((s) => {
@@ -1117,7 +1197,6 @@ export const useGameStore = create((set, get) => ({
                     const currentHp = Number(s.playerData.hp) || 0;
                     // เช็คชื่อตัวแปรให้ครบ (max_hp หรือ maxHp)
                     const maxHpVal = Number(s.playerData.max_hp) || Number(s.playerData.maxHp) || 20;
-
                     return {
                         playerData: {
                             ...s.playerData,
@@ -1125,7 +1204,6 @@ export const useGameStore = create((set, get) => ({
                         }
                     };
                 });
-
                 // แสดงตัวเลขสีเขียว
                 get().addPopup({
                     id: Math.random(),
@@ -1135,9 +1213,7 @@ export const useGameStore = create((set, get) => ({
                     color: "#2ecc71",
                 });
             }
-
             await delay(500);
-            
             // 6. เดินกลับมาที่เดิม
             set({ playerX: PLAYER_X_POS, playerVisual: "walk" });
             await delay(400);
@@ -1151,7 +1227,7 @@ export const useGameStore = create((set, get) => ({
         if (isSfxOn) sfx.playHit();
         store.enemies.forEach((e) => {
           if (e.hp > 0) {
-            get().damageEnemy(e.id, totalDmg); // Uses rounded totalDmg
+            get().damageEnemy(e.id, totalDmg); 
           }
         });
         await delay(300);
@@ -1358,26 +1434,98 @@ export const useGameStore = create((set, get) => ({
     // ⭐ CHECKPOINT 1: ตรวจสอบ Mana ต้นเทิร์น
     if (en.mana >= en.quiz_move_cost && en.quiz_move_info) {
         await get().performEnemySkill(en.id);
-        // Refresh & Check Death
         en = get().enemies.find((e) => e.id === enemyId);
         if (get().playerData.hp <= 0) {
               bgm.stop(); set({ gameState: "OVER" }); return;
         }
     }
 
-    // --- STANDARD PATTERN LOGIC ---
     const actionObj = en.pattern_list?.find(
       (p) => p.pattern_no === en.selectedPattern && p.order === en.currentStep,
     );
+
     if (!actionObj || !actionObj.move) {
       get().updateEnemy(en.id, { shoutText: "..." });
       await delay(800);
       get().endTurn();
       return;
     }
+
     const moveData = actionObj.move;
-    get().updateEnemy(en.id, { shoutText: moveData.name || "ATTACK!" });
-    await delay(500);
+    let wordDamageRaw = 0; 
+
+    // 🆕 ⭐ ENEMY STEAL & SPELL LOGIC
+    if (moveData.type === "ATTACK" && !moveData.is_quiz) {
+      const currentInv = [...store.playerData.inventory];
+      const availableItems = currentInv.filter(item => item !== null);
+      
+      const { bestWord, usedItems } = findBestWordFromLetters(availableItems, store.dictionary, en.power);
+
+      if (bestWord) {
+        get().updateEnemy(en.id, { shoutText: moveData.name || "STRIKE!" });
+        await delay(600);
+        get().updateEnemy(en.id, { shoutText: "" });
+        let newInv = [...currentInv];
+        let enemySelectedArea = new Array(store.playerData.unlockedSlots).fill(null);
+
+        // 1. จังหวะดึงตัวอักษรขึ้น Selected Area ทีละตัว
+        for (let i = 0; i < usedItems.length; i++) {
+          const targetItem = usedItems[i];
+          const invIdx = newInv.findIndex(item => item?.id === targetItem.id);
+          
+          if (invIdx !== -1) {
+            const char = targetItem.char.toUpperCase();
+            wordDamageRaw += ENEMY_POWER_MAP[char] || 0.5;
+
+            enemySelectedArea[i] = { ...newInv[invIdx], originalIndex: invIdx };
+            
+            const oldItem = newInv[invIdx];
+            newInv[invIdx] = oldItem.status ? { 
+              ...oldItem, char: "", id: `stolen_${Math.random()}`, visible: false 
+            } : null;
+
+            set({ 
+              selectedLetters: [...enemySelectedArea],
+              playerData: { ...store.playerData, inventory: [...newInv] } 
+            });
+
+            if (store.isSfxOn) sfx.playWalk();
+            await delay(500); 
+          }
+        }
+
+        // 2. ✅ แสดงคำแปล (MeaningPopup) ทันทีที่เรียงครบ
+        const wordData = store.dictionary.find(d => d.word.toLowerCase() === bestWord.toLowerCase());
+        set({ validWordInfo: wordData || { word: bestWord, meaning: "???" } });
+
+        // 3. ✅ แสดงชื่อคำศัพท์บนหัวศัตรู 2 วินาที (เพื่อให้สอดคล้องกับเวลาอ่านคำแปล)
+        await delay(1000); 
+
+        // 4. ✅ เอาความหมายและตัวอักษรออก
+        set({ validWordInfo: null });
+        store.initSelectedLetters();
+
+        // 5. ✅ ป๊อปอัพคำพูดศัตรูก่อนโจมตี (ค้างไว้ 1 วิ)
+        get().updateEnemy(en.id, { shoutText: bestWord.toUpperCase() });
+        await delay(1000); 
+
+      } else {
+        // กรณีหาคำไม่ได้: PASS
+        get().updateEnemy(en.id, { shoutText: "PASS..." });
+        await delay(1000);
+        let nextStep = en.currentStep + 1;
+        if (!en.pattern_list?.some(p => p.pattern_no === en.selectedPattern && p.order === nextStep)) nextStep = 1;
+        get().updateEnemy(en.id, { currentStep: nextStep });
+        get().endTurn();
+        return; 
+      }
+    } else {
+      // ท่าที่ไม่ใช่การขโมยตัวอักษร
+      get().updateEnemy(en.id, { shoutText: moveData.name || "ATTACK!" });
+      await delay(1000); // แสดงชื่อท่า 1 วิ เหมือนกัน
+    }
+
+    // --- 6. EXECUTE ATTACK (เริ่มพุ่งโจมตี) ---
     const originalX = en.x;
     if (moveData.is_dash) {
       const atkX = en.isBoss ? PLAYER_X_POS + 15 : PLAYER_X_POS + 10;
@@ -1388,9 +1536,7 @@ export const useGameStore = create((set, get) => ({
       await delay(400);
     }
 
-    const rawAtk = en.power; 
-
-    const finalValue = Math.floor((rawAtk * (moveData.power || 0)) / 100);
+    const finalValue = chanceRound((wordDamageRaw * (moveData.power || 100)) / 100);
     
     if (moveData.is_quiz) {
       await get().handleQuizMove(en, finalValue, moveData);
@@ -1401,93 +1547,61 @@ export const useGameStore = create((set, get) => ({
           get().damagePlayer(finalValue);
           if (store.isSfxOn) sfx.playHit();
           
-          // ⭐ ADD MANA ON SUCCESSFUL HIT
-          en = get().enemies.find((e) => e.id === enemyId); // Refresh state
+          en = get().enemies.find((e) => e.id === enemyId); 
           const newMana = Math.min(en.quiz_move_cost, en.mana + 10);
           get().updateEnemy(en.id, { mana: newMana });
         }
         if (moveData.debuff_code) {
           get().applyStatusToPlayer(
-            moveData.debuff_code,
-            moveData.debuff_chance,
-            moveData.debuff_count,
-            moveData.debuff_turn,
+            moveData.debuff_code, moveData.debuff_chance, moveData.debuff_count, moveData.debuff_turn
           );
         }
       } else if (moveData.type === "HEAL") {
-        get().updateEnemy(en.id, {
-          hp: Math.min(en.max_hp, en.hp + finalValue),
-        });
-        get().addPopup({
-          id: Math.random(),
-          x: en.x,
-          y: FIXED_Y - 100,
-          value: `+${finalValue}`,
-          color: "#2ecc71",
-          fontSize: "34px",
-        });
+        get().updateEnemy(en.id, { hp: Math.min(en.max_hp, en.hp + finalValue) });
       } else if (moveData.type === "GUARD") {
         get().updateEnemy(en.id, { shield: (en.shield || 0) + finalValue });
       }
       await delay(500);
     }
+
+    // จบการโจมตี
     if (moveData.is_dash) {
       get().updateEnemy(en.id, { x: originalX, atkFrame: 0 });
     } else {
       get().updateEnemy(en.id, { atkFrame: 0 });
     }
 
-    // ⭐ CHECKPOINT 2: ตรวจสอบ Mana หลังจบการกระทำ (ถ้าเต็มจากการตีผู้เล่น)
+    // ⭐ CHECKPOINT 2: Mana หลังจบการกระทำ
     en = get().enemies.find((e) => e.id === enemyId);
     if (en.mana >= en.quiz_move_cost && en.quiz_move_info) {
-        await delay(200); // หน่วงนิดนึงหลังกลับที่
+        await delay(200);
         await get().performEnemySkill(en.id);
-        
-        if (get().playerData.hp <= 0) {
-             bgm.stop(); set({ gameState: "OVER" }); return;
-        }
+        if (get().playerData.hp <= 0) { bgm.stop(); set({ gameState: "OVER" }); return; }
     }
 
-    // Update Pattern Step
-    en = get().enemies.find((e) => e.id === enemyId); // Refresh again
+    // อัปเดตสถานะเทิร์นถัดไป
+    en = get().enemies.find((e) => e.id === enemyId); 
     let nextStep = en.currentStep + 1;
-    let nextPattern = en.selectedPattern; // Default to current
-
-    // Check if next step exists in current pattern
-    const hasNext = en.pattern_list?.some(
-      (p) => p.pattern_no === en.selectedPattern && p.order === nextStep,
-    );
+    let nextPattern = en.selectedPattern;
+    const hasNext = en.pattern_list?.some(p => p.pattern_no === en.selectedPattern && p.order === nextStep);
 
     if (!hasNext) {
        nextStep = 1;
-       // Randomize Pattern Logic
-       const allPatterns = en.pattern_list?.map(p => p.pattern_no) || [];
-       const uniquePatterns = [...new Set(allPatterns)];
-       
+       const uniquePatterns = [...new Set(en.pattern_list?.map(p => p.pattern_no) || [])];
        if (uniquePatterns.length > 1) {
-           // Pick a random one from available patterns
-           const randomIndex = Math.floor(Math.random() * uniquePatterns.length);
-           nextPattern = uniquePatterns[randomIndex];
-       } else if (uniquePatterns.length === 1) {
-           nextPattern = uniquePatterns[0];
+           nextPattern = uniquePatterns[Math.floor(Math.random() * uniquePatterns.length)];
        }
     }
 
     get().updateEnemy(en.id, { shoutText: "", currentStep: nextStep, selectedPattern: nextPattern });
-
-    if (get().playerData.hp <= 0) {
-      bgm.stop();
-      set({ gameState: "OVER" });
-      return;
-    }
+    if (get().playerData.hp <= 0) { bgm.stop(); set({ gameState: "OVER" }); return; }
     get().endTurn();
   },
 
   handleQuizMove: async (en, penaltyDmg, moveData) => {
     const store = get();
     const vocabList = store.dictionary;
-    let targetLen = Math.max(3, Math.min(8, Math.floor(penaltyDmg / 5)));
-    let candidateWords = vocabList.filter((v) => v.word.length === targetLen);
+    let candidateWords = vocabList;
     if (candidateWords.length === 0) candidateWords = vocabList;
     const correctEntry =
       candidateWords[Math.floor(Math.random() * candidateWords.length)];
