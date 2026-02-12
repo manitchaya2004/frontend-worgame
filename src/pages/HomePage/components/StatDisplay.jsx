@@ -104,11 +104,11 @@ export const StatLine = ({
         justifyContent: "space-between",
         alignItems: "center",
         width: "100%",
-        height: "12px",
-      
-        py:0.30,
-        px:0.20,
-
+       height: "22px",
+        
+        // py:0.30,
+        // px:0.20,
+        
          // --- Appearance ---
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         borderRadius: "6px",

@@ -69,17 +69,14 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
     hp: isOwned ? playerHero?.stats?.levels?.hp_lv : hero.hp_lv,
     power: isOwned ? playerHero?.stats?.levels?.power_lv : hero.power_lv,
     speed: isOwned ? playerHero?.stats?.levels?.speed_lv : hero.speed_lv,
-    slot: isOwned ? playerHero?.stats?.levels?.slot_lv : hero.slot_lv,
+    // slot: isOwned ? playerHero?.stats?.levels?.slot_lv : hero.slot_lv,
   };
 
   const game_stats = isOwned
     ? {
         hp: playerHero?.stats?.hp || 0,
         speed: playerHero?.stats?.speed || 0,
-        slot: playerHero?.stats?.slot || 0,
-        common: playerHero?.stats?.common_tile_dmg || 0,
-        uncommon: playerHero?.stats?.uncommon_tile_dmg || 0,
-        rare: playerHero?.stats?.rare_tile_dmg || 0,
+        power: playerHero?.stats?.power || 0,
       }
     : {};
 
@@ -172,8 +169,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             justifyContent: "center",
             alignItems: "center",
             zIndex: 1,
-            mb: 2,
-           
+            mb: 1,
           }}
         >
           {frames.length > 0 && (
@@ -292,7 +288,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
           <>
             {showDetail ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.2, width: "309px",height: "120px"}}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.7 }}>
                 <StatLine
                   label="HP"
                   value={game_stats.hp}
@@ -301,47 +297,22 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   description="Max Health. 0 = Game Over."
                 />
                 <StatLine
-                  label="SLOT"
-                  value={game_stats.slot}
-                  icon={<BackpackIcon />}
-                  color="#d1c4e9"
-                  description="Bag Size. Max letters you can hold in hand."
-                />
-                <StatLine
-                  label="SPD"
+                  label="SPEED"
                   value={game_stats.speed}
                   icon={<SpeedIcon />}
                   color="#00e5ff"
                   description="Turn Speed. Faster acts first."
                 />
-
                 <StatLine
-                  label="COM"
-                  value={game_stats.common}
-                  // G1: Common -> วงกลม (Basic)
-                  icon={<RadioButtonUncheckedIcon fontSize="small" />}
-                  color="#cd7f32" // Bronze
-                  description="Power of easy letters (A, E, I, O...)."
-                />
-                <StatLine
-                  label="UNC"
-                  value={game_stats.uncommon}
-                  // G2: Uncommon -> สามเหลี่ยม (Sharp/Medium)
-                  icon={<ChangeHistoryIcon fontSize="small" />}
-                  color="#b0bec5" // Silver
-                  description="Power of normal letters (D, L, S...)."
-                />
-                <StatLine
-                  label="RARE"
-                  value={game_stats.rare}
-                  // G3: Rare -> เพชร (Heavy/Valuable)
-                  icon={<DiamondIcon fontSize="small" />}
-                  color="#ffd700" // Gold
-                  description="Power of rare letters (J, Q, X, Z)."
+                  label="POWER"
+                  value={game_stats.power}
+                  icon={<BackpackIcon />}
+                  color="#d1c4e9"
+                  description="Bag Size. Max letters you can hold in hand."
                 />
               </Box>
             ) : (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 ,height: "120px"}}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <StatVisualBar
                   label="HP"
                   value={base_stats.hp}
@@ -350,25 +321,18 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   color="#ff5252"
                 />
                 <StatVisualBar
-                  label="ATK"
-                  value={base_stats.power}
-                  max={MAX_STATS_REF.power}
-                  icon={<FlashOnIcon />}
-                  color="#ffca28"
-                />
-                <StatVisualBar
-                  label="SPD"
+                  label="SPEED"
                   value={base_stats.speed}
                   max={MAX_STATS_REF.speed}
                   icon={<SpeedIcon />}
                   color="#00e5ff"
                 />
                 <StatVisualBar
-                  label="SLOT"
-                  value={base_stats.slot}
-                  max={MAX_STATS_REF.slot}
-                  icon={<BackpackIcon />}
-                  color="#d1c4e9"
+                  label="POWER"
+                  value={base_stats.power}
+                  max={MAX_STATS_REF.power}
+                  icon={<FlashOnIcon />}
+                  color="#ffca28"
                 />
               </Box>
             )}
