@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import { Outlet } from "react-router-dom";
@@ -8,7 +9,16 @@ import { motion } from "framer-motion";
 import background2 from "../../assets/icons/background2.png";
 import { useLoginPlayer } from "../AuthPage/LoginPage/hook/useLoginPlayer";
 import { useAuthStore } from "../../store/useAuthStore";
+import AdvantureFeature from "./feature/AdvantureFeature/AdvantureFeature";
+import ItemFeature from "./feature/Item/ItemFeature";
+import ShopHeroFeature from "./feature/Character/ShopHeroFeature";
+import MonsterLibrary from "./feature/LibraryFeature/monster/MonsterLibrary";
+import DictionaryLibrary from "./feature/LibraryFeature/dictionary/DictionaryLibrary";
 const HomePage = () => {
+  const location = useLocation();
+
+  const pathname = location.pathname;
+  
   const { currentUser } = useLoginPlayer();
   const {refreshUser} = useAuthStore();
 
@@ -16,6 +26,7 @@ const HomePage = () => {
     refreshUser(); 
   }, []);
 
+  console.log("Current User in HomePage:", currentUser);
   return (
     <>
       <MagicCursor />

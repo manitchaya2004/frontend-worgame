@@ -22,6 +22,7 @@ const ShopHeroFeature = () => {
   const scrollRef = useRef(null);
 
   const [isMinLoading, setIsMinLoading] = useState(true);
+  
 
   useEffect(() => {
     // เรียก API ตามปกติ

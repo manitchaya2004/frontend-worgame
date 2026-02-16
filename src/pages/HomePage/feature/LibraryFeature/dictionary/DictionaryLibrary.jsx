@@ -418,11 +418,14 @@ const DictionaryLibrary = () => {
   }, [dictionary, selectType]);
 
   return (
-    <Box sx={{ m: 2 }}>
+    <Box sx={{ display: "flex" }}>
       <MotionBox
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-        transition={{ duration: 0.5, type: "spring" }}
+        transition={{
+          duration: 0.6,
+          ease: "easeOut",
+        }}
         sx={{
           position: "fixed",
           top: "55%",
