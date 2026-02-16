@@ -17,10 +17,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "cors": "^2.8.5",
     "framer-motion": "^12.24.2",
-<<<<<<< HEAD
-=======
     "lucide-react": "^0.563.0",
->>>>>>> f69d6a1ac1bf5928658b99a46dbe0820ef8c8ff1
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",

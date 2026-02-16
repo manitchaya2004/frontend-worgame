@@ -16,6 +16,7 @@ const MotionBox = motion(Box);
 
 const AdvantureFeature = () => {
   const { currentUser } = useLoginPlayer();
+  console.log("currentUser in AdvantureFeature:", currentUser);
   const { stages, loadingStage } = useData();
   const store  = useGameStore();
   const { fetchAllStage } = useLoadData();

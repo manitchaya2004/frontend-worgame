@@ -8,42 +8,29 @@ import {
 } from "react-icons/gi";
 import { useGameStore } from "../../../../store/useGameStore";
 
-/* =========================
-   Helper Functions 
-========================= */
-
-const getLetterDamage = (char, powerMap) => {
-  if (!char || !powerMap) return 0;
-  
-  let upperChar = char.toUpperCase();
-
-  if (upperChar === "QU") {
-      upperChar = "Q";
-  }
-
-  const value = powerMap[upperChar];
-  return value !== undefined ? Number(value) : 0;
-};
-
-const calculateRawValue = (word, powerMap) => {
-  if (!word) return 0;
-  return word
-    .split("")
-    .reduce((acc, char) => acc + getLetterDamage(char, powerMap), 0);
-};
-
-const formatSubLabel = (type, value) => {
+const formatSubLabel = (text) => {
   return (
-    <span style={{ fontSize: "11px", fontWeight: "bold" }}>
-      <span style={{color: type === "DMG" ? "#ff7675" : "#74b9ff"}}>{type}: </span>
-      <span style={{color: "#eae133" }}>{value}</span>
-    </span>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      alignItems: "flex-start",
+      width: "100%",
+      marginTop: "2px"
+    }}>
+      <span style={{ 
+        fontSize: "10px", 
+        fontWeight: "normal",
+        color: "#bdc3c7",
+        fontFamily: "sans-serif",
+        fontStyle: "normal",
+        letterSpacing: "0.5px"
+      }}>
+        {text}
+      </span>
+    </div>
   );
 };
 
-/* =========================
-   Fantasy List Button 
-========================= */
 const FantasyListButton = ({
   label,
   subLabel,
@@ -63,7 +50,7 @@ const FantasyListButton = ({
       border: "none",
       background: "transparent",
       width: "100%",
-      height: "54px",
+      height: "58px",
       cursor: disabled ? "not-allowed" : "pointer",
       padding: 0,
       display: "flex",
@@ -71,7 +58,6 @@ const FantasyListButton = ({
       marginBottom: "4px"
     }}
   >
-    {/* Active Bar */}
     {highlight && !disabled && (
       <div
         style={{
@@ -91,14 +77,14 @@ const FantasyListButton = ({
         zIndex: 2,
         display: "flex",
         alignItems: "center",
-        paddingLeft: "10px",
+        paddingLeft: "12px",
         width: "100%",
       }}
     >
       <div
         style={{
-          width: "36px",
-          height: "36px",
+          width: "38px",
+          height: "38px",
           background: disabled ? "rgba(30,30,30,0.5)" : "rgba(0,0,0,0.6)",
           border: `1px solid ${disabled ? "#444" : "#4d3a2b"}`,
           display: "flex",
@@ -107,30 +93,38 @@ const FantasyListButton = ({
           marginRight: "15px",
           fontSize: "20px",
           color: disabled ? "#555" : color, 
-          boxShadow: highlight && !disabled ? `0 0 8px ${color}44` : "none"
+          boxShadow: highlight && !disabled ? `0 0 10px ${color}66` : "none",
+          flexShrink: 0
         }}
       >
         {icon}
       </div>
 
-      {/* Text */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", overflow: "hidden" }}>
+      <div style={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        justifyContent: "center",
+        alignItems: "flex-start", 
+        width: "100%", 
+        overflow: "hidden" 
+      }}>
         <div
           style={{
-            fontSize: "14px",
+            fontSize: "15px",
             fontWeight: "bold",
             color: disabled ? "#555" : (highlight ? "#fff" : "#c2a37d"),
             textTransform: "uppercase",
             letterSpacing: "1px",
-            fontFamily: "serif",
+            fontFamily: "sans-serif",
             textShadow: disabled ? "none" : "1px 1px 2px #000"
           }}
         >
           {label}
         </div>
+        
         {subLabel && (
-          <div style={{ fontFamily: "monospace", opacity: disabled ? 0.5 : 1, width: "100%" }}>
-            {subLabel}
+          <div style={{ width: "100%" }}>
+            {formatSubLabel(subLabel)}
           </div>
         )}
       </div>
@@ -138,9 +132,6 @@ const FantasyListButton = ({
   </motion.button>
 );
 
-/* =========================
-   Action Controls Main
-========================= */
 export const ActionControls = ({
   onAttackClick,
   onShieldClick,
@@ -152,31 +143,22 @@ export const ActionControls = ({
   const isPlayerTurn = gameState === "PLAYERTURN";
   const hasWord = !!validWordInfo;
 
-  const wordText = validWordInfo?.word || "";
-
-  // คำนวณ Damage/Def Preview
-  const rawDmg = calculateRawValue(wordText, playerData.power);
-  const rawDef = calculateRawValue(wordText, playerData.power);
-
-  // ⭐ ดึงข้อมูล Skill
   const { ability, mana } = playerData;
   const skillName = ability?.code || "SKILL"; 
   const skillCost = ability?.cost || 0;
-  const skillDesc = ability?.description || ""; // คำอธิบายสกิล
-  
-  // ⭐ เช็คเงื่อนไข: มานาพอไหม
+  const skillDesc = ability?.description || ""; 
   const isManaEnough = mana >= skillCost;
 
   return (
     <div
       style={{
         width: "25%",
-        background: "rgba(0,0,0,0.4)",
+        background: "rgba(0,0,0,0.5)",
         border: "1px solid #4d3a2b",
-        padding: "10px",
+        padding: "12px",
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
+        gap: "8px",
         height: "fit-content"
       }}
     >
@@ -187,86 +169,57 @@ export const ActionControls = ({
           justifyContent: "space-between",
           borderBottom: "1px solid #4d3a2b",
           paddingBottom: "8px",
-          marginBottom: "4px"
+          marginBottom: "6px"
         }}
       >
         <div
           style={{
             color: "#d4af37", 
-            fontSize: "15px",
+            fontSize: "16px",
             fontWeight: "900",
-            letterSpacing: "2px",
+            letterSpacing: "1.5px",
             textTransform: "uppercase",
-            textShadow: "0 2px 0 #000"
+            fontFamily: "sans-serif"
           }}
         >
-          COMMANDS
+          ACTION
         </div>
-        <div style={{ fontSize: "10px", color: isPlayerTurn ? "#4cd137" : "#888", fontWeight: "bold" }}>
-            {isPlayerTurn ? "ACTIVE" : "WAITING"}
+        <div style={{ fontSize: "11px", color: isPlayerTurn ? "#4cd137" : "#888", fontWeight: "bold" }}>
+            {isPlayerTurn ? "● ACTIVE" : "○ WAITING"}
         </div>
       </div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px"
-        }}
-      >
-        {/* STRIKE BUTTON */}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <FantasyListButton
           label="STRIKE"
           icon={<GiBroadsword />}
-          subLabel={hasWord ? formatSubLabel("DMG", rawDmg) : null}
+          subLabel="Deal damage equal to score"
           color="#e63946"
           disabled={!isPlayerTurn || !hasWord}
           highlight={isPlayerTurn && hasWord}
           onClick={onAttackClick}
         />
         
-        {/* GUARD BUTTON */}
         <FantasyListButton
           label="GUARD"
           icon={<GiShield />}
-          subLabel={hasWord ? formatSubLabel("DEF", rawDef) : null}
+          subLabel="Gain shield equal to score"
           color="#4361ee"
           disabled={!isPlayerTurn || !hasWord}
           highlight={isPlayerTurn && hasWord}
           onClick={onShieldClick}
         />
         
-        {/* ⭐ SKILL BUTTON */}
         <FantasyListButton
           label={skillName} 
           icon={<GiStarsStack />}
           color="#9b59b6" 
-          // ❌ กดไม่ได้ถ้า: ไม่ใช่เทิร์น OR มานาไม่พอ OR ไม่มีคำศัพท์ (!hasWord)
           disabled={!isPlayerTurn || !isManaEnough || !hasWord} 
           highlight={isPlayerTurn && isManaEnough && hasWord}
           onClick={onSkillClick}
-          subLabel={
-             <div style={{ 
-                 fontSize: "9px", 
-                 display: "flex", 
-                 alignItems: "center",
-                 gap: "6px",
-                 color: isManaEnough ? "#a29bfe" : "#636e72",
-                 width: "90%"
-             }}>
-               {/* Description (แสดงแทน หรือคู่กัน) */}
-               <span style={{ 
-                   color: "#dcdde1", 
-                   whiteSpace: "nowrap", 
-                   overflow: "hidden", 
-                   textOverflow: "ellipsis" 
-               }}>
-                 {skillDesc || "No description"}
-               </span>
-             </div>
-          }
+          subLabel={skillDesc || "Use special ability"}
         />
 
-        {/* PASS BUTTON */}
         <FantasyListButton
           label="PASS"
           icon={<GiSandsOfTime />}
@@ -274,9 +227,7 @@ export const ActionControls = ({
           disabled={!isPlayerTurn}
           highlight={isPlayerTurn}
           onClick={onEndTurnClick}
-          subLabel={
-            <span style={{ fontSize: "10px", color: "#666" }}>END TURN</span>
-          }
+          subLabel="Shuffle and end turn"
         />
       </div>
     </div>

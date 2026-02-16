@@ -112,13 +112,17 @@ export default function GameApp() {
   // --------------------------------------------------------------------------
   useEffect(() => {
     // กรณีแพ้ (LOSE)
-    if (store.gameState === "OVER") {
-      if (store.isBgmOn) store.toggleBgm(); // ปิดเพลง
+  if (store.gameState === "OVER") {
+      if (store.isBgmOn) store.toggleBgm();
+
+      const halfCoins = Math.floor(store.receivedCoin / 2);
+      
+      store.saveQuitGame(halfCoins); 
 
       navigate("/summary", {
         state: {
           result: "LOSE",
-          earnedCoins: Math.floor(store.receivedCoin / 2),
+          earnedCoins: halfCoins,
           stageCoins: 0,
           wordLog: store.wordLog,
         },
@@ -371,7 +375,7 @@ export default function GameApp() {
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
-  return (
+return (
     <>
       <div
         style={{
@@ -401,7 +405,7 @@ export default function GameApp() {
         >
           {/* ===================================================================
             🆕 UI: HUD (HEADS-UP DISPLAY)
-           =================================================================== */}
+            =================================================================== */}
 
           {/* 1. ปุ่มควบคุมมุมซ้ายบน */}
           <div
@@ -465,14 +469,14 @@ export default function GameApp() {
               zIndex: 1000,
               display: "flex",
               alignItems: "center",
-              gap: "10px", // ระยะห่างระหว่างปุ่มเงินกับปุ่มระยะทาง
+              gap: "10px",
             }}
           >
             {/* 2. แสดงเงิน (Coin) */}
             <div
               style={{
-                ...commonHudStyle, // ใช้ Style พื้นฐาน
-                padding: "0 16px", // Auto Width ตามเนื้อหา
+                ...commonHudStyle,
+                padding: "0 16px",
                 gap: "8px",
               }}
             >
@@ -501,7 +505,7 @@ export default function GameApp() {
                 ...commonHudStyle,
                 padding: "0 20px",
                 gap: "12px",
-                minWidth: "140px", // คง minWidth ไว้ให้ระยะทางไม่ขยับไปมา
+                minWidth: "140px",
               }}
             >
               <GiTatteredBanner
@@ -547,7 +551,7 @@ export default function GameApp() {
 
           {/* ===================================================================
             1. TOP PANEL (BATTLE AREA)
-           =================================================================== */}
+            =================================================================== */}
           <div
             style={{
               flex: 1,
@@ -600,7 +604,7 @@ export default function GameApp() {
 
           {/* ===================================================================
             2. BOTTOM PANEL (CONTROLS & INVENTORY)
-           =================================================================== */}
+            =================================================================== */}
           <div
             style={{
               flex: 1,
@@ -608,54 +612,66 @@ export default function GameApp() {
               borderTop: "4px solid #5c4033",
               display: "flex",
               padding: "15px 0px 15px 0px",
+              boxSizing: "border-box",
+              overflow: "hidden",
+              position: "relative" // เพิ่มเพื่อให้เนื้อหาข้างในอิงตำแหน่งได้แม่นยำ
             }}
           >
-            {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
-              <QuizOverlay
-                data={store.currentQuiz}
-                onAnswer={store.resolveQuiz}
-              />
-            ) : showTargetPicker ? (
-              <TargetPickerOverlay
-                store={store}
-                ipAddress={ipAddress}
-                onClose={() => {
-                  setShowTargetPicker(false);
-                  setPendingAction(null);
-                }}
-                onSelectTarget={(enemyId) =>
-                  handleSelectTargetFromMenu(enemyId)
-                }
-              />
-            ) : (
-              <div
-                style={{
-                  flex: 1.5,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "12px",
-                }}
-              >
-                <PlayerStatusCard
-                  onHeal={handleHeal}
-                  onCure={handlePotionCure}
-                  onReroll={handlePotionRoll}
-                />
-
-                <InventorySlot />
-
-                <ActionControls
-                  store={store}
-                  onAttackClick={() => handleActionClick("Strike")}
-                  onShieldClick={() => handleActionClick("Guard")}
-                  onSkillClick={handleSkillClick}
-                  onEndTurnClick={() => {
-                    store.passTurn();
+            {/* Main Content Wrapper: บังคับให้ขนาดคงที่เสมอ */}
+            <div style={{ flex: 1, display: "flex", width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}>
+              
+              {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
+                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <QuizOverlay
+                    data={store.currentQuiz}
+                    onAnswer={store.resolveQuiz}
+                  />
+                </div>
+              ) : showTargetPicker ? (
+                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <TargetPickerOverlay
+                    store={store}
+                    ipAddress={ipAddress}
+                    onClose={() => {
+                      setShowTargetPicker(false);
+                      setPendingAction(null);
+                    }}
+                    onSelectTarget={(enemyId) =>
+                      handleSelectTargetFromMenu(enemyId)
+                    }
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "12px",
+                    width: "100%",
+                    height: "100%"
                   }}
-                />
-              </div>
-            )}
+                >
+                  <PlayerStatusCard
+                    onHeal={handleHeal}
+                    onCure={handlePotionCure}
+                    onReroll={handlePotionRoll}
+                  />
+
+                  <InventorySlot />
+
+                  <ActionControls
+                    store={store}
+                    onAttackClick={() => handleActionClick("Strike")}
+                    onShieldClick={() => handleActionClick("Guard")}
+                    onSkillClick={handleSkillClick}
+                    onEndTurnClick={() => {
+                      store.passTurn();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
