@@ -1,16 +1,25 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../../../store/const";
+const frameCache = new Map();
 
-export const usePreloadFrames = (name = "img_hero", heroId, actionOrCount, actionName = "idle") => {
+export const usePreloadFrames = (
+  name = "img_hero",
+  heroId,
+  actionOrCount,
+  actionName = "idle",
+   enabled = true // เพิ่ม แต่ default = true (ของเดิมไม่พัง)
+) => {
   const [frames, setFrames] = useState([]);
 
   useEffect(() => {
     if (!heroId || !actionOrCount) return;
-
-    // เช็คว่าเป็น Single Frame (มีขีด เช่น "walk-1") หรือ Multi Frames (เป็นตัวเลข)
-    const isSingleFrame = typeof actionOrCount === "string" && actionOrCount.includes("-");
-    const count = typeof actionOrCount === "number" ? actionOrCount : 1;
+    if (!enabled) return;
     
+    // เช็คว่าเป็น Single Frame (มีขีด เช่น "walk-1") หรือ Multi Frames (เป็นตัวเลข)
+    const isSingleFrame =
+      typeof actionOrCount === "string" && actionOrCount.includes("-");
+    const count = typeof actionOrCount === "number" ? actionOrCount : 1;
+
     let isMounted = true;
     const imgs = [];
     let loaded = 0;
@@ -38,7 +47,9 @@ export const usePreloadFrames = (name = "img_hero", heroId, actionOrCount, actio
       };
       imgs.push(img);
     }
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [name, heroId, actionOrCount, actionName]);
 
   return frames;
@@ -47,7 +58,6 @@ export const usePreloadFrames = (name = "img_hero", heroId, actionOrCount, actio
 export const LoadImage = (name = "img_monster", Id, i) => {
   return `${API_URL}/${name}/${Id}-idle-${i}.png`;
 };
-
 
 // export const LoadImage = (name = "img_hero", id, frame = 1, action = "idle") => {
 //     // ถ้าตัวแปร action มีเลขเฟรมติดมาแล้ว (เช่น "walk-1") ให้ใช้ได้เลย

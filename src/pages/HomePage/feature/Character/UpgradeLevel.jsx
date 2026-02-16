@@ -294,11 +294,9 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                 <Divider sx={{ borderColor: "#3e2723", mb: 1.5 }} />
 
                 <StatLine label="HP" value={previewData.hp.current} />
-                <StatLine label="SPD" value={previewData.speed.current} />
-                <StatLine label="SLOT" value={previewData.slot.current} />
-                <StatLine label="COM" value={previewData.power_G1.current} />
-                <StatLine label="UNC" value={previewData.power_G2.current} />
-                <StatLine label="RARE" value={previewData.power_G3.current} />
+                <StatLine label="SPEED" value={previewData.speed.current} />
+                <StatLine label="POWER" value={previewData.power.current} />
+               
               </Box>
 
               {/* Arrow Icon */}
@@ -337,30 +335,17 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
 
                 <StatLine label="HP" value={previewData.hp.next} isImproved />
                 <StatLine
-                  label="SPD"
+                  label="SPEED"
                   value={previewData.speed.next}
                   isImproved
                 />
                 <StatLine
-                  label="SLOT"
-                  value={previewData.slot.next}
+                  label="POWER"
+                  value={previewData.power.next}
                   isImproved
                 />
-                <StatLine
-                  label="COM"
-                  value={previewData.power_G1.next}
-                  isImproved
-                />
-                <StatLine
-                  label="UNC"
-                  value={previewData.power_G2.next}
-                  isImproved
-                />
-                <StatLine
-                  label="RARE"
-                  value={previewData.power_G3.next}
-                  isImproved
-                />
+                
+                
               </Box>
             </Box>
           </Box>

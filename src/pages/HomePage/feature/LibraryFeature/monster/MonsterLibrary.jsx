@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -8,127 +8,117 @@ import {
   Stack,
   Divider,
   Chip,
+  Tooltip,
+  IconButton,
+  useMediaQuery,
+  useTheme as useMuiTheme,
 } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { motion, AnimatePresence } from "framer-motion";
-import LoadingScreen from "../../../../../components/Loading/LoadingPage";
-import { useData } from "../../../hook/useData";
+import { THEME } from "../../../hook/const";
+import { useMonsterStore } from "../../../../../store/useMonsterStore";
 import { useIdleFrame } from "../../../hook/useIdleFrame";
 import {
   usePreloadFrames,
   LoadImage,
   preloadImageAsync,
 } from "../../../hook/usePreloadFrams";
+// --- Icons ที่เพิ่มเข้ามา ---
+import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
+import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
+import SpeedIcon from "@mui/icons-material/Speed"; // Speed
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh"; // MANA
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn"; // COIN
 const MotionBox = motion(Box);
-// --- NEW THEME CONFIG (Dark Magical Wood) ---
-const THEME = {
-  bgMain: "#2b1d14", // พื้นหลังหลัก
-  bgPanel: "#3e2723", // พื้นหลัง Panel ข้อมูล
-  border: "#5a3e2b", // ขอบทองแดง
-  accent: "#ffecb3", // สีทอง (Text/Active)
-  textMain: "#d7ccc8", // สีตัวหนังสือ
-  textDark: "#1a120b", // สีตัวหนังสือบนพื้นสว่าง
-  magic: "#00bcd4", // สีฟ้าเวทมนตร์
-  shadow: "#1a120b", // สีเงา
+
+// ฟังก์ชันสำหรับเลือก Icon และสีตาม Label อัตโนมัติ
+const getStatIcon = (label) => {
+  const lowerLabel = label.toLowerCase();
+  if (lowerLabel.includes("hp")) return <FavoriteIcon sx={{ color: "#ff4d4d", fontSize: 16 }} />;
+  if (lowerLabel.includes("power")) return <FlashOnIcon sx={{ color: "#ffb84d", fontSize: 16 }} />;
+  if (lowerLabel.includes("speed")) return <SpeedIcon sx={{ color: "#33cc33", fontSize: 16 }} />;
+  if (lowerLabel.includes("mana")) return <AutoFixHighIcon sx={{ color: "#9933ff", fontSize: 16 }} />;
+  if (lowerLabel.includes("coin")) return <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 16 }} />;
+  return null;
 };
 
-const PAGE_SIZE = 15;
+// const PAGE_SIZE = 15;
 const name = "img_monster";
 
 // --- COMPONENTS ---
 
-// 1. กล่อง Text สำหรับ HP / ATK (ธีมมืด)
-const StatTextBox = ({ label, value }) => (
+const StatTextBox = ({
+  label,
+  value,
+  showTooltip = false,
+  tooltipText = "",
+}) => (
   <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
-    <Typography
-      sx={{
-        fontFamily: "'Press Start 2P'",
-        fontSize: 10,
-        color: THEME.accent, // Label สีทอง
-        width: "130px",
-        flexShrink: 0,
-        textShadow: `1px 1px 0 ${THEME.shadow}`,
-      }}
-    >
-      {label}
-    </Typography>
+    {/* LABEL + INFO ICON */}
     <Box
       sx={{
+        width: "140px", // ขยับความกว้างเพิ่มนิดหน่อยเผื่อพื้นที่ให้ Icon 
+        display: "flex",
+        alignItems: "center",
+        gap: 0.8, // เพิ่มระยะห่างระหว่าง Icon กับ Text ให้อ่านง่ายขึ้น
+        flexShrink: 0,
+      }}
+    >
+      {/* วาง Icon ตรงนี้ */}
+      {getStatIcon(label)}
+
+      <Typography
+        sx={{
+          fontFamily: "'Press Start 2P'",
+          fontSize: {xs: 8, md: 10}, // ปรับขนาดตัวอักษรให้เล็กลงหน่อยเพื่อความพอดี
+          color: THEME.accent,
+          textShadow: `1px 1px 0 ${THEME.shadow}`,
+          letterSpacing: "1px",
+        }}
+      >
+        {label}
+      </Typography>
+
+      {showTooltip && (
+        <Tooltip title={tooltipText} arrow placement="top">
+          <IconButton
+            size="small"
+            sx={{
+              p: 0,
+              color: THEME.accent,
+              "&:hover": {
+                color: "#ffd966", // hover glow
+              },
+            }}
+          >
+            <InfoOutlinedIcon sx={{ fontSize: 12 }} />
+          </IconButton>
+        </Tooltip>
+      )}
+    </Box>
+
+    {/* VALUE BOX */}
+    <Box
+      sx={{
+        ml: { xs: 0, md: 3 }, // เพิ่มระยะห่างระหว่าง Label กับ Value
         flex: 1,
-        backgroundColor: "#1a120b", // พื้นหลังกล่องดำ
-        color: THEME.accent, // ตัวเลขสีทอง
+        backgroundColor: "#1a120b",
+        color: THEME.accent,
         border: `2px solid ${THEME.border}`,
         borderRadius: "4px",
         py: 0.5,
         px: 2,
         textAlign: "center",
         boxShadow: "inset 0 2px 5px rgba(0,0,0,0.8)",
-        fontFamily: "'Press Start 2P'",
-        fontSize: 10,
+        fontFamily: "'Verdana', sans-serif",
+          fontWeight: "bold",
+        fontSize: 13,
       }}
     >
       {value}
     </Box>
   </Box>
 );
-
-// 2. หลอด Bar สำหรับ EXP / SPEED (ธีมเวทมนตร์)
-const StatBarBox = ({ label, value, max = 20 }) => {
-  const percent = Math.min(100, (value / max) * 100);
-
-  return (
-    <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
-      <Typography
-        sx={{
-          fontFamily: "'Press Start 2P'",
-          fontSize: 10,
-          color: THEME.accent,
-          width: "80px",
-          flexShrink: 0,
-          textShadow: `1px 1px 0 ${THEME.shadow}`,
-        }}
-      >
-        {label}
-      </Typography>
-      <Box
-        sx={{
-          flex: 1,
-          height: 16,
-          backgroundColor: "#1a120b", // พื้นหลังหลอดดำ
-          border: `2px solid ${THEME.border}`,
-          borderRadius: "8px",
-          overflow: "hidden",
-          position: "relative",
-          boxShadow: "inset 0 2px 5px rgba(0,0,0,1)",
-        }}
-      >
-        <Box
-          sx={{
-            width: `${percent}%`,
-            height: "100%",
-            // หลอดสีฟ้าเวทมนตร์เรืองแสง
-            background: `linear-gradient(90deg, ${THEME.magic}, #4dd0e1)`,
-            boxShadow: `0 0 10px ${THEME.magic}`,
-          }}
-        />
-        <Typography
-          sx={{
-            position: "absolute",
-            width: "100%",
-            textAlign: "center",
-            top: 0,
-            fontSize: 8,
-            fontFamily: "'Press Start 2P'",
-            color: "#fff",
-            lineHeight: "14px",
-            textShadow: "1px 1px 0 #000",
-          }}
-        >
-          {value}
-        </Typography>
-      </Box>
-    </Box>
-  );
-};
 
 // 3. Info Tab Content
 const InfoTab = ({ monster }) => {
@@ -137,7 +127,7 @@ const InfoTab = ({ monster }) => {
   const maxCoin = monster?.exp + 1;
 
   return (
-    <Box sx={{ m: 2, height: "100%", overflowY: "auto", pr: 1 }}>
+    <Box sx={{m:2,height: "100%", overflowY: "auto", pr: 1 }}>
       <Box
         sx={{
           mb: 2,
@@ -151,14 +141,14 @@ const InfoTab = ({ monster }) => {
             fontFamily: "'Press Start 2P'",
             fontSize: 16,
             color: THEME.accent, // ชื่อสีทอง
-            mb: 1,
+            mb: 0.5,
             textTransform: "uppercase",
             textShadow: `2px 2px 0 ${THEME.shadow}`,
           }}
         >
           {monster?.name || "Unknown"}
         </Typography>
-        <Typography
+        {/* <Typography
           sx={{
             fontFamily: "'Press Start 2P'",
             fontSize: 10,
@@ -168,25 +158,26 @@ const InfoTab = ({ monster }) => {
         >
           {monster?.description ||
             "No description available for this creature."}
-        </Typography>
+        </Typography> */}
       </Box>
 
       <Box sx={{ mt: 3 }}>
-        <StatTextBox label="HP" value={monster?.max_hp || 0} />
-        <StatTextBox
-          label="ATK"
-          value={`${monster?.atk_power_min || 0} - ${monster?.atk_power_max || 0}`}
-        />
+        <StatTextBox label="HP" value={monster?.hp || 0} />
+        <StatTextBox label="POWER" value={monster?.power || 0} />
         <StatTextBox label="SPEED" value={monster?.speed || 0} />
         <Divider sx={{ my: 2, borderColor: THEME.border, opacity: 0.9 }} />
         {/* <StatBarBox label="EXP" value={monster?.exp || 0} max={100} /> */}
         {/* <StatBarBox label="SPEED" value={monster?.speed || 0} max={20} /> */}
-        <Box sx={{ mt: 3 }}>
-          <StatTextBox
-            label="COIN DROP"
-            value={`${minCoin || 0} - ${maxCoin || 0}`}
-          />
-        </Box>
+        <StatTextBox
+          label="MANA COST"
+          value={monster?.quiz_move_cost || 0}
+          showTooltip
+          tooltipText="Mana required to use this monster’s skill"
+        />
+        <StatTextBox
+          label="COIN DROP"
+          value={`${minCoin || 0} - ${maxCoin || 0}`}
+        />
       </Box>
     </Box>
   );
@@ -244,7 +235,7 @@ const MovesTab = ({ moves }) => {
                     label={`${move.pattern_order}. ${move.pattern_move}`}
                     sx={{
                       fontFamily: "'Press Start 2P'",
-                      fontSize: 9,
+                      fontSize: 10,
                       height: 24,
                       backgroundColor: THEME.bgMain, // Chip สีเข้ม
                       color: THEME.textMain,
@@ -274,8 +265,15 @@ const MovesTab = ({ moves }) => {
 const DetailMonster = ({ monster }) => {
   const [tab, setTab] = useState("info");
 
-  const frames = usePreloadFrames(name, monster?.id, 2);
+  // สมมติว่า name ถูกส่งมาหรือมีอยู่ใน scope (อิงตามโค้ดเดิม)
+  const frames = usePreloadFrames("img_monster", monster?.id, 2); 
   const frame = useIdleFrame(frames.length, 450);
+
+  // เช็คว่าเป็น Boss ไหม เพื่อกำหนดสี Effect
+  const isBoss = monster?.isBoss;
+  const glowColor = isBoss ? "rgba(255, 50, 50, 0.4)" : "rgba(0,188,212,0.2)";
+  const bgGradient = isBoss ? "rgba(255,50,50,0.15)" : "rgba(0,188,212,0.1)";
+  const borderColor = isBoss ? "#ff3333" : THEME.border;
 
   return (
     <Grid container spacing={0} sx={{ height: "100%" }}>
@@ -291,11 +289,11 @@ const DetailMonster = ({ monster }) => {
       >
         <Box
           sx={{
-            // กรอบรูปสีเข้ม มีแสงเรือง
-            backgroundColor: "#1a120b",
-            border: `4px solid ${THEME.border}`,
+            // กรอบรูปสีเข้ม มีแสงเรือง (เปลี่ยนสีตาม isBoss)
+            backgroundColor: isBoss ? "#2a0a0a" : "#1a120b",
+            border: `4px solid ${borderColor}`,
             borderRadius: "8px",
-            boxShadow: `6px 6px 0 ${THEME.shadow}, 0 0 20px rgba(0,188,212,0.2)`,
+            boxShadow: `6px 6px 0 ${THEME.shadow}, 0 0 20px ${glowColor}`,
             width: "100%",
             height: "100%",
             maxHeight: "350px",
@@ -303,26 +301,46 @@ const DetailMonster = ({ monster }) => {
             alignItems: "center",
             justifyContent: "center",
             // พื้นหลังแสงเวทมนตร์หลังมอนสเตอร์
-            backgroundImage: `radial-gradient(circle, rgba(0,188,212,0.1) 0%, rgba(0,0,0,0) 70%)`,
+            backgroundImage: `radial-gradient(circle, ${bgGradient} 0%, rgba(0,0,0,0) 70%)`,
             position: "relative",
           }}
         >
-          <Box
-            sx={{
-              position: "absolute",
-              top: 8,
-              left: 8,
-              bgcolor: THEME.bgMain,
-              color: THEME.accent,
-              px: 1,
-              py: 0.5,
-              borderRadius: 1,
-              fontFamily: "'Press Start 2P'",
-              fontSize: 10,
-              border: `2px solid ${THEME.border}`,
-            }}
-          >
-            #{monster?.id}
+          {/* Badge Zone */}
+          <Box sx={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 1 }}>
+            <Box
+              sx={{
+                bgcolor: THEME.bgMain,
+                color: THEME.accent,
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                fontFamily: "'Press Start 2P'",
+                fontSize: 10,
+                border: `2px solid ${THEME.border}`,
+              }}
+            >
+              #{monster?.id}
+            </Box>
+
+            {/* หากเป็น Boss ให้โชว์ Badge สีแดง */}
+            {isBoss && (
+              <Box
+                sx={{
+                  bgcolor: "#ff3333",
+                  color: "#fff",
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1,
+                  fontFamily: "'Press Start 2P'",
+                  fontSize: 10,
+                  border: `2px solid #800000`,
+                  boxShadow: "0 0 5px rgba(255,0,0,0.8)",
+                  animation: "pulse 1.5s infinite", // ถ้ามี keyframe pulse ก็จะกระพริบได้
+                }}
+              >
+                BOSS
+              </Box>
+            )}
           </Box>
 
           {frames.length > 0 ? (
@@ -413,7 +431,7 @@ const DetailMonster = ({ monster }) => {
               ))}
             </Stack>
 
-            <Box sx={{ flex: 1, overflow: "hidden" }}>
+            <Box sx={{ flex: 1, overflow: "hidden"}}>
               {tab === "info" && <InfoTab monster={monster} />}
               {tab === "moves" && <MovesTab moves={monster?.monster_moves} />}
             </Box>
@@ -421,8 +439,7 @@ const DetailMonster = ({ monster }) => {
         </Box>
       </Grid>
     </Grid>
-  );
-};
+  )};
 
 // --- LIST MONSTER (Bottom) ---
 
@@ -444,14 +461,21 @@ const arrowBtnStyle = {
 };
 
 const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
-  const [page, setPage] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const total = listMonster.length;
-  const hasPagination = total > PAGE_SIZE;
-  const maxPage = hasPagination ? Math.ceil(total / PAGE_SIZE) - 1 : 0;
-  const visibleMonsters = hasPagination
-    ? listMonster.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
-    : listMonster;
+  const scrollRef = useRef(null);
+
+  // ฟังก์ชันเลื่อนซ้าย-ขวา
+  const scroll = (dir) => {
+    if (!scrollRef.current) return;
+
+    // 1 item = 50px + gap 12px = 62px
+    // เลื่อนทีละ 5 ตัว = 62 * 5 = 310px เพื่อความลื่นไหล
+    const scrollAmount = dir === "left" ? -310 : 310;
+
+    scrollRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: "smooth",
+    });
+  };
 
   return (
     <Box
@@ -459,145 +483,163 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
         width: "100%",
         display: "flex",
         alignItems: "center",
+        justifyContent: "center", // จัดให้อยู่ตรงกลางเมื่อจอใหญ่
         py: 1,
         px: 0.5,
-        gap: 2,
+        gap: { xs: 1, sm: 2 },
         backgroundColor: "rgba(0,0,0,0.3)",
         borderRadius: "8px",
         border: `2px solid ${THEME.border}`,
       }}
     >
       <Button
-        disabled={!hasPagination || page === 0}
-        onClick={() => {
-          setDirection(-1);
-          setPage((p) => Math.max(p - 1, 0));
+        onClick={() => scroll("left")}
+        sx={{
+          ...arrowBtnStyle,
         }}
-        sx={arrowBtnStyle}
       >
         ◀
       </Button>
 
-      <Box sx={{ flex: 1, overflow: "hidden", height: 60 }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={page}
-            initial={{ x: direction === 1 ? 50 : -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: direction === 1 ? -50 : 50, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            style={{
-              display: "flex",
-              gap: 12,
-              justifyContent: "start",
-              alignItems: "center",
-              height: "100%",
-            }}
-          >
-            {visibleMonsters.map((m) => {
-              const isActive = selectedMonster?.id === m.id;
-              return (
-                <Box
-                  key={m.id}
-                  onClick={() => onSelectMonster(m)}
-                  sx={{
-                    width: 50,
-                    height: 50,
-                    // Active: ขอบทอง+มีแสง, Inactive: ขอบเข้ม
-                    border: `2px solid ${isActive ? THEME.accent : THEME.border}`,
-                    backgroundColor: isActive ? THEME.bgMain : THEME.bgPanel,
-                    borderRadius: "4px",
-                    boxShadow: isActive ? `0 0 15px ${THEME.accent}` : "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s",
-                    "&:hover": {
-                      transform: "scale(1.1)",
-                      borderColor: THEME.accent,
-                    },
-                  }}
-                >
-                  <img
-                    src={LoadImage(name, m.id, 1)}
-                    alt={m.name}
-                    style={{ height: "40px", imageRendering: "pixelated" }}
-                    onError={(e) => {
-                      e.currentTarget.src = "/fallback/unknown-monster.png";
-                    }}
-                  />
-                </Box>
-              );
-            })}
-          </motion.div>
-        </AnimatePresence>
+      <Box
+        ref={scrollRef}
+        sx={{
+          flex: 1,
+          display: "flex",
+          gap: "12px",
+          alignItems: "center",
+          overflowX: "auto",
+          overflowY: "hidden",
+          height: 65,
+          px: 1,
+          // พระเอกของงานนี้: บังคับให้กว้างสุดแค่ 918px (โชว์ 15 ตัวพอดีเป๊ะ)
+          maxWidth: "918px",
+          margin: "0 auto", // จัดกล่องให้อยู่กึ่งกลาง
+          scrollBehavior: "smooth",
+          // ซ่อน Scrollbar
+          "&::-webkit-scrollbar": { display: "none" },
+          msOverflowStyle: "none",
+          scrollbarWidth: "none",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {listMonster.map((m) => {
+          const isActive = selectedMonster?.id === m.id;
+          const isBoss = m.isBoss;
+
+          // จัดการสีของกล่องย่อย
+          const activeBorderColor = isBoss ? "#ff3333" : THEME.accent;
+          const inactiveBorderColor = isBoss ? "#800000" : THEME.border; // บอสจะเป็นสีกรอบแดงเข้มตอนยังไม่ได้เลือก
+          const activeShadow = isBoss ? `0 0 15px #ff3333` : `0 0 15px ${THEME.accent}`;
+          const boxBgColor = isActive ? THEME.bgMain : (isBoss ? "#2a0a0a" : THEME.bgPanel);
+
+          return (
+            <Box
+              key={m.id}
+              onClick={() => onSelectMonster(m)}
+              sx={{
+                flexShrink: 0, // ป้องกันกล่องโดนบีบเบี้ยวเวลา Responsive
+                width: { xs: 45, sm: 50 },
+                height: { xs: 45, sm: 50 },
+                border: `2px solid ${isActive ? activeBorderColor : inactiveBorderColor}`,
+                backgroundColor: boxBgColor,
+                borderRadius: "4px",
+                boxShadow: isActive ? activeShadow : "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s",
+                "&:hover": {
+                  transform: "scale(1.1)",
+                  zIndex: 1,
+                  borderColor: activeBorderColor,
+                },
+              }}
+            >
+              <img
+                src={LoadImage("img_monster", m.id, 1)} 
+                alt={m.name}
+                style={{
+                  height: "40px", // ยึด height คงที่
+                  imageRendering: "pixelated",
+                }}
+                onError={(e) => {
+                  e.currentTarget.src = "/fallback/unknown-monster.png";
+                }}
+              />
+            </Box>
+          );
+        })}
       </Box>
 
       <Button
-        disabled={!hasPagination || page === maxPage}
-        onClick={() => {
-          setDirection(1);
-          setPage((p) => Math.min(p + 1, maxPage));
+        onClick={() => scroll("right")}
+        sx={{
+          ...arrowBtnStyle,
         }}
-        sx={arrowBtnStyle}
       >
         ▶
       </Button>
     </Box>
   );
 };
-
 // --- MAIN PAGE ---
 
 const MonsterLibrary = () => {
-  const { monsters, getMonsters, monsterState } = useData();
-  const navigate = useNavigate();
+  const { monsters, getMonsters } = useMonsterStore();
+
   const [selectedMonster, setSelectedMonster] = useState(null);
 
   const [isMinLoading, setIsMinLoading] = useState(true);
   const [isLoadingAssets, setIsLoadingAssets] = useState(true);
+
+  const sortedMonsters = useMemo(() => {
+    if (!monsters) return [];
+    // ใช้ [...monsters] เพื่อ copy array ป้องกันการ mutate ค่าดั้งเดิมใน store
+    return [...monsters].sort((a, b) => a.no - b.no);
+  }, [monsters]);
 
   useEffect(() => {
     getMonsters();
   }, [getMonsters]);
 
   useEffect(() => {
-    if (monsters?.length && !selectedMonster) {
-      setSelectedMonster(monsters[0]);
+    // เปลี่ยนมาใช้ sortedMonsters แทน เพื่อให้ตัวแรกสุดคือตัวที่ no น้อยที่สุด
+    if (sortedMonsters?.length && !selectedMonster) {
+      setSelectedMonster(sortedMonsters[0]);
     }
-  }, [monsters, selectedMonster]);
+  }, [sortedMonsters, selectedMonster]);
 
   // preload image monster
   useEffect(() => {
-    if (!monsters || monsters.length === 0) return;
+    if (!sortedMonsters || sortedMonsters.length === 0) return;
 
     const preloadAssets = async () => {
       setIsLoadingAssets(true);
 
-      const tasks = monsters.map((m) =>
+      const tasks = sortedMonsters.map((m) =>
         preloadImageAsync(LoadImage("img_monster", m.id, 1)),
       );
 
       await Promise.all(tasks);
       setIsLoadingAssets(false);
+      setIsMinLoading(false);
     };
 
     preloadAssets();
-  }, [monsters]);
+  }, [sortedMonsters]);
 
-  // if (monsterState === "LOADING" || isLoadingAssets ) {
-  //   return <LoadingScreen open={true} />;
-  // }
-
+  console.log("Monsters in store:", monsters);
   return (
     <Box sx={{ m: 2 }}>
-      {/* <StarBackground /> */}
-
       <MotionBox
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-        transition={{ duration: 0.5, type: "spring" }}
+        transition={{
+          duration: 0.6,
+          ease: "easeOut",
+        }}
         sx={{
           position: "fixed",
           top: "55%",
@@ -613,7 +655,7 @@ const MonsterLibrary = () => {
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
           width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
-          height: "550px",
+          height: "565px",
           p: 1,
           display: "flex",
           flexDirection: "column",
@@ -659,7 +701,7 @@ const MonsterLibrary = () => {
           {/* Footer List */}
           <Box sx={{ height: "80px", px: 2, mb: 1 }}>
             <ListMonster
-              listMonster={monsters}
+              listMonster={sortedMonsters}
               selectedMonster={selectedMonster}
               onSelectMonster={setSelectedMonster}
             />
