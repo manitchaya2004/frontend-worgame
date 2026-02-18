@@ -33,23 +33,6 @@ const [isReady, setIsReady] = useState(false);
     }, 300);
     return () => clearTimeout(timer);
   }, []);
-  // useEffect(() => {
-  //   // เรียก API ตามปกติ
-  //   getAllHeros();
-
-  //   // ตั้งเวลา Delay (เช่น 1500 ms = 1.5 วินาที)
-  //   const timer = setTimeout(() => {
-  //     setIsMinLoading(false);
-  //   }, 1000);
-
-  //   // Cleanup timer ถ้า user เปลี่ยนหน้าก่อน
-  //   return () => clearTimeout(timer);
-  // }, [getAllHeros]);
-
-  // 2. ปรับเงื่อนไข: แสดง Loading ถ้า (API กำลังโหลด) หรือ (เวลายังไม่ครบ)
-  // if (heroState === "LOADING" || isMinLoading) {
-  //   return <LoadingScreen open={true} />;
-  // }
 
   const scroll = (dir) => {
     if (!scrollRef.current) return;
@@ -59,10 +42,6 @@ const [isReady, setIsReady] = useState(false);
     });
   };
 
-  const handleBack = () => {
-    navigate(location.state?.from || "/home");
-    // console.log(location.state?.from)
-  };
 
 
   return (
