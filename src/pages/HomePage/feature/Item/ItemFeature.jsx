@@ -22,6 +22,7 @@ const MotionBox = motion(Box);
 const ItemFeature = () => {
   const { currentUser, updateResources, resourceStatus } = useAuthStore();
 
+  console.log("Current User in ItemFeature:", currentUser);
   // const isLoading = resourceStatus === "LOADING";
   const [isLoading, setIsLoading] = useState(false);
   const potions = currentUser?.potion || {};
@@ -66,7 +67,7 @@ const ItemFeature = () => {
 
       // คำนวณค่าใหม่
       if (type === "heal") newData.health += changeAmount;
-      if (type === "cure") newData.cure += changeAmount;
+      if (type === "clean") newData.cure += changeAmount;
       if (type === "reroll") newData.reroll += changeAmount;
 
       // Validate
