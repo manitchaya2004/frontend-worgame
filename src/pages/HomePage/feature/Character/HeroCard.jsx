@@ -1,7 +1,7 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
 import React, { useState } from "react";
 import { Box, Typography, Tooltip, Divider, IconButton } from "@mui/material";
-import { usePreloadFrames } from "../../hook/usePreloadFrams";
+import { usePreloadFrames ,LoadImage} from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
 import UpgradeDialog from "./UpgradeLevel";
@@ -34,6 +34,8 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
   const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
+
+  const imgSrc = frames.length > 0 ? frames[frame - 1]?.src : LoadImage("img_hero", hero.id, 1);
 
   // ตรวจสอบสถานะการเป็นเจ้าของ
   const playerHero = playerHeroes?.find((h) => h.hero_id === hero.id);
@@ -157,19 +159,21 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             mb: 1,
           }}
         >
-          {frames.length > 0 && (
-            <img
-              src={frames[frame - 1].src}
-              alt={hero.name}
-              style={{
-                width: "150px",
-                height: "140px",
-                objectFit: "contain",
-                imageRendering: "pixelated",
-                filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
-              }}
-            />
-          )}
+          <img
+            key={hero.id}
+            src={imgSrc}
+            alt={hero.name}
+            style={{
+              width: "150px",
+              height: "140px",
+              objectFit: "contain",
+              imageRendering: "pixelated",
+              filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
+            }}
+            onError={(e) => {
+               e.currentTarget.src = "/fallback/unknown-hero.png";
+            }}
+          />
         </Box>
 
         {/* === SECTION 3: CONTENT BOX (Flex Grow) === */}
