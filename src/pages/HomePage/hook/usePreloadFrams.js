@@ -7,13 +7,13 @@ export const usePreloadFrames = (
   heroId,
   actionOrCount,
   actionName = "idle",
-   enabled = true // เพิ่ม แต่ default = true (ของเดิมไม่พัง)
+   
 ) => {
   const [frames, setFrames] = useState([]);
 
   useEffect(() => {
+    setFrames([]); // เคลียร์เฟรมเก่าเวลามีการเปลี่ยนแปลงพารามิเตอร์
     if (!heroId || !actionOrCount) return;
-    if (!enabled) return;
     
     // เช็คว่าเป็น Single Frame (มีขีด เช่น "walk-1") หรือ Multi Frames (เป็นตัวเลข)
     const isSingleFrame =

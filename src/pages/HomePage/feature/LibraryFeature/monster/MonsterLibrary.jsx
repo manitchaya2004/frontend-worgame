@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -14,8 +13,10 @@ import {
   useTheme as useMuiTheme,
 } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+
 import { THEME } from "../../../hook/const";
+import { useAuthStore } from "../../../../../store/useAuthStore";
 import { useMonsterStore } from "../../../../../store/useMonsterStore";
 import { useIdleFrame } from "../../../hook/useIdleFrame";
 import {
@@ -23,22 +24,29 @@ import {
   LoadImage,
   preloadImageAsync,
 } from "../../../hook/usePreloadFrams";
+
 // --- Icons ที่เพิ่มเข้ามา ---
 import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
 import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh"; // MANA
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn"; // COIN
+import LockIcon from "@mui/icons-material/Lock";
 const MotionBox = motion(Box);
 
 // ฟังก์ชันสำหรับเลือก Icon และสีตาม Label อัตโนมัติ
 const getStatIcon = (label) => {
   const lowerLabel = label.toLowerCase();
-  if (lowerLabel.includes("hp")) return <FavoriteIcon sx={{ color: "#ff4d4d", fontSize: 16 }} />;
-  if (lowerLabel.includes("power")) return <FlashOnIcon sx={{ color: "#ffb84d", fontSize: 16 }} />;
-  if (lowerLabel.includes("speed")) return <SpeedIcon sx={{ color: "#00e5ff", fontSize: 16 }} />;
-  if (lowerLabel.includes("mana")) return <AutoFixHighIcon sx={{ color: "#9933ff", fontSize: 16 }} />;
-  if (lowerLabel.includes("coin")) return <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 16 }} />;
+  if (lowerLabel.includes("hp"))
+    return <FavoriteIcon sx={{ color: "#ff4d4d", fontSize: 16 }} />;
+  if (lowerLabel.includes("power"))
+    return <FlashOnIcon sx={{ color: "#ffb84d", fontSize: 16 }} />;
+  if (lowerLabel.includes("speed"))
+    return <SpeedIcon sx={{ color: "#00e5ff", fontSize: 16 }} />;
+  if (lowerLabel.includes("mana"))
+    return <AutoFixHighIcon sx={{ color: "#9933ff", fontSize: 16 }} />;
+  if (lowerLabel.includes("coin"))
+    return <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 16 }} />;
   return null;
 };
 
@@ -52,26 +60,26 @@ const StatTextBox = ({
   value,
   showTooltip = false,
   tooltipText = "",
+  isUnlocked = true, // เพิ่ม prop เพื่อเช็คปลดล็อค
 }) => (
   <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
     {/* LABEL + INFO ICON */}
     <Box
       sx={{
-        width: "140px", // ขยับความกว้างเพิ่มนิดหน่อยเผื่อพื้นที่ให้ Icon 
+        width: "140px", 
         display: "flex",
         alignItems: "center",
-        gap: 0.8, // เพิ่มระยะห่างระหว่าง Icon กับ Text ให้อ่านง่ายขึ้น
+        gap: 0.8, 
         flexShrink: 0,
       }}
     >
-      {/* วาง Icon ตรงนี้ */}
       {getStatIcon(label)}
 
       <Typography
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: {xs: 8, md: 10}, // ปรับขนาดตัวอักษรให้เล็กลงหน่อยเพื่อความพอดี
-          color: THEME.accent,
+          fontSize: {xs: 8, md: 10}, 
+          color: isUnlocked ? THEME.accent : "#777", // สีเทาถ้ายังล็อค
           textShadow: `1px 1px 0 ${THEME.shadow}`,
           letterSpacing: "1px",
         }}
@@ -79,7 +87,7 @@ const StatTextBox = ({
         {label}
       </Typography>
 
-      {showTooltip && (
+      {showTooltip && isUnlocked && (
         <Tooltip title={tooltipText} arrow placement="top">
           <IconButton
             size="small"
@@ -87,7 +95,7 @@ const StatTextBox = ({
               p: 0,
               color: THEME.accent,
               "&:hover": {
-                color: "#ffd966", // hover glow
+                color: "#ffd966", 
               },
             }}
           >
@@ -100,29 +108,29 @@ const StatTextBox = ({
     {/* VALUE BOX */}
     <Box
       sx={{
-        ml: { xs: 0, md: 3 }, // เพิ่มระยะห่างระหว่าง Label กับ Value
+        ml: { xs: 0, md: 3 }, 
         flex: 1,
         backgroundColor: "#1a120b",
-        color: THEME.accent,
-        border: `2px solid ${THEME.border}`,
+        color: isUnlocked ? THEME.accent : "#555",
+        border: `2px solid ${isUnlocked ? THEME.border : "#333"}`,
         borderRadius: "4px",
         py: 0.5,
         px: 2,
         textAlign: "center",
         boxShadow: "inset 0 2px 5px rgba(0,0,0,0.8)",
         fontFamily: "'Verdana', sans-serif",
-          fontWeight: "bold",
+        fontWeight: "bold",
         fontSize: 13,
       }}
     >
-      {value}
+      {isUnlocked ? value : "???"}
     </Box>
   </Box>
 );
 
 // 3. Info Tab Content
 const InfoTab = ({ monster }) => {
-  // between coin drop
+  const isUnlocked = monster?.isUnlocked ?? true;
   const minCoin = monster?.exp - 1;
   const maxCoin = monster?.exp + 1;
 
@@ -140,43 +148,32 @@ const InfoTab = ({ monster }) => {
           sx={{
             fontFamily: "'Press Start 2P'",
             fontSize: 16,
-            color: THEME.accent, // ชื่อสีทอง
+            color: isUnlocked ? THEME.accent : "#777",
             mb: 0.5,
             textTransform: "uppercase",
             textShadow: `2px 2px 0 ${THEME.shadow}`,
           }}
         >
-          {monster?.name || "Unknown"}
+          {isUnlocked ? (monster?.name || "Unknown") : "???"}
         </Typography>
-        {/* <Typography
-          sx={{
-            fontFamily: "'Press Start 2P'",
-            fontSize: 10,
-            color: THEME.textMain, // คำอธิบายสีครีม
-            lineHeight: 1.6,
-          }}
-        >
-          {monster?.description ||
-            "No description available for this creature."}
-        </Typography> */}
       </Box>
 
       <Box sx={{ mt: 3 }}>
-        <StatTextBox label="HP" value={monster?.hp || 0} />
-        <StatTextBox label="POWER" value={monster?.power || 0} />
-        <StatTextBox label="SPEED" value={monster?.speed || 0} />
+        <StatTextBox label="HP" value={monster?.hp || 0} isUnlocked={isUnlocked} />
+        <StatTextBox label="POWER" value={monster?.power || 0} isUnlocked={isUnlocked} />
+        <StatTextBox label="SPEED" value={monster?.speed || 0} isUnlocked={isUnlocked} />
         <Divider sx={{ my: 2, borderColor: THEME.border, opacity: 0.9 }} />
-        {/* <StatBarBox label="EXP" value={monster?.exp || 0} max={100} /> */}
-        {/* <StatBarBox label="SPEED" value={monster?.speed || 0} max={20} /> */}
         <StatTextBox
           label="MANA COST"
           value={monster?.quiz_move_cost || 0}
           showTooltip
           tooltipText="Mana required to use this monster’s skill"
+          isUnlocked={isUnlocked}
         />
         <StatTextBox
           label="COIN DROP"
           value={`${minCoin || 0} - ${maxCoin || 0}`}
+          isUnlocked={isUnlocked}
         />
       </Box>
     </Box>
@@ -184,7 +181,29 @@ const InfoTab = ({ monster }) => {
 };
 
 // 4. Moves Tab Content
-const MovesTab = ({ moves }) => {
+const MovesTab = ({ monster }) => {
+  const isUnlocked = monster?.isUnlocked ?? true;
+  const moves = monster?.monster_moves;
+
+  // ดักกรณีมอนสเตอร์ยังไม่ปลดล็อค
+  if (!isUnlocked) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+        <LockIcon sx={{ fontSize: 40, color: "#555" }} />
+        <Typography
+          sx={{
+            fontFamily: "'Press Start 2P'",
+            fontSize: 10,
+            color: "#777",
+            lineHeight: 1.5,
+          }}
+        >
+          Explore the adventure and clear stages to unlock this monster's details!
+        </Typography>
+      </Box>
+    );
+  }
+
   if (!moves || moves.length === 0) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
@@ -209,7 +228,7 @@ const MovesTab = ({ moves }) => {
             sx={{
               fontFamily: "'Press Start 2P'",
               fontSize: 10,
-              color: THEME.magic, // หัวข้อ Pattern สีฟ้า
+              color: THEME.magic, 
               mb: 1,
               borderBottom: `2px solid ${THEME.border}`,
               display: "inline-block",
@@ -237,7 +256,7 @@ const MovesTab = ({ moves }) => {
                       fontFamily: "'Press Start 2P'",
                       fontSize: 10,
                       height: 24,
-                      backgroundColor: THEME.bgMain, // Chip สีเข้ม
+                      backgroundColor: THEME.bgMain, 
                       color: THEME.textMain,
                       borderRadius: "4px",
                       border: `1px solid ${THEME.border}`,
@@ -263,17 +282,26 @@ const MovesTab = ({ moves }) => {
 // --- MAIN COMPONENTS ---
 
 const DetailMonster = ({ monster }) => {
+  console.log("Rendering DetailMonster for:", monster);
   const [tab, setTab] = useState("info");
 
-  // สมมติว่า name ถูกส่งมาหรือมีอยู่ใน scope (อิงตามโค้ดเดิม)
   const frames = usePreloadFrames("img_monster", monster?.id, 2); 
   const frame = useIdleFrame(frames.length, 450);
 
-  // เช็คว่าเป็น Boss ไหม เพื่อกำหนดสี Effect
+  const isUnlocked = monster?.isUnlocked ?? true;
   const isBoss = monster?.isBoss;
-  const glowColor = isBoss ? "rgba(255, 50, 50, 0.4)" : "rgba(0,188,212,0.2)";
-  const bgGradient = isBoss ? "rgba(255,50,50,0.15)" : "rgba(0,188,212,0.1)";
-  const borderColor = isBoss ? "#ff3333" : THEME.border;
+
+  // สีปรับตามสถานะ (Lock / Boss / Normal)
+  const glowColor = !isUnlocked ? "transparent" : (isBoss ? "rgba(255, 50, 50, 0.4)" : "rgba(0,188,212,0.2)");
+  const bgGradient = !isUnlocked ? "rgba(255,255,255,0.05)" : (isBoss ? "rgba(255,50,50,0.15)" : "rgba(0,188,212,0.1)");
+  const borderColor = !isUnlocked ? "#333" : (isBoss ? "#ff3333" : THEME.border);
+
+  // 💡 ตัวกำหนด Source ของรูปภาพ: 
+  // ถ้า frames กำลังโหลดอยู่ (length == 0) ให้ดึงภาพนิ่งจาก LoadImage ไปโชว์พลางๆ ก่อน
+  // พอโหลดเสร็จ ค่อยเช็คต่อว่าปลดล็อคหรือยัง (ถ้าปลดล็อคให้ขยับ ถ้าล็อคให้หยุดนิ่งเฟรมแรก)
+  const imgSrc = frames.length > 0 
+    ? (isUnlocked ? frames[frame - 1]?.src : frames[0]?.src) 
+    : LoadImage("img_monster", monster?.id, 1);
 
   return (
     <Grid container spacing={0} sx={{ height: "100%" }}>
@@ -289,18 +317,16 @@ const DetailMonster = ({ monster }) => {
       >
         <Box
           sx={{
-            // กรอบรูปสีเข้ม มีแสงเรือง (เปลี่ยนสีตาม isBoss)
-            backgroundColor: isBoss ? "#2a0a0a" : "#1a120b",
+            backgroundColor: !isUnlocked ? "#111" : (isBoss ? "#2a0a0a" : "#1a120b"),
             border: `4px solid ${borderColor}`,
             borderRadius: "8px",
-            boxShadow: `6px 6px 0 ${THEME.shadow}, 0 0 20px ${glowColor}`,
+            boxShadow: !isUnlocked ? "none" : `6px 6px 0 ${THEME.shadow}, 0 0 20px ${glowColor}`,
             width: "100%",
             height: "100%",
             maxHeight: "350px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            // พื้นหลังแสงเวทมนตร์หลังมอนสเตอร์
             backgroundImage: `radial-gradient(circle, ${bgGradient} 0%, rgba(0,0,0,0) 70%)`,
             position: "relative",
           }}
@@ -309,21 +335,20 @@ const DetailMonster = ({ monster }) => {
           <Box sx={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 1 }}>
             <Box
               sx={{
-                bgcolor: THEME.bgMain,
-                color: THEME.accent,
+                bgcolor: !isUnlocked ? "#333" : THEME.bgMain,
+                color: !isUnlocked ? "#777" : THEME.accent,
                 px: 1,
                 py: 0.5,
                 borderRadius: 1,
                 fontFamily: "'Press Start 2P'",
                 fontSize: 10,
-                border: `2px solid ${THEME.border}`,
+                border: `2px solid ${!isUnlocked ? "#222" : THEME.border}`,
               }}
             >
-              #{monster?.id}
+              #{monster?.no ?? "???"}
             </Box>
 
-            {/* หากเป็น Boss ให้โชว์ Badge สีแดง */}
-            {isBoss && (
+            {isBoss && isUnlocked && (
               <Box
                 sx={{
                   bgcolor: "#ff3333",
@@ -335,7 +360,7 @@ const DetailMonster = ({ monster }) => {
                   fontSize: 10,
                   border: `2px solid #800000`,
                   boxShadow: "0 0 5px rgba(255,0,0,0.8)",
-                  animation: "pulse 1.5s infinite", // ถ้ามี keyframe pulse ก็จะกระพริบได้
+                  animation: "pulse 1.5s infinite", 
                 }}
               >
                 BOSS
@@ -343,16 +368,21 @@ const DetailMonster = ({ monster }) => {
             )}
           </Box>
 
-          {frames.length > 0 ? (
+          {/* รูปมอนสเตอร์: เปลี่ยนมาใช้ imgSrc ที่คำนวณไว้ด้านบนแทน */}
+          {monster?.id ? (
             <img
-              src={frames[frame - 1].src}
+              key={monster?.id}
+              src={imgSrc}
               alt={monster?.name}
               style={{
                 width: "80%",
                 height: "80%",
                 objectFit: "contain",
                 imageRendering: "pixelated",
-                filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.5))",
+                filter: !isUnlocked 
+                  ? "brightness(0) drop-shadow(0 0 5px rgba(255,255,255,0.2))" 
+                  : "drop-shadow(0 4px 4px rgba(0,0,0,0.5))",
+                // เอา transition ออกเพื่อให้ดำสนิททันที
               }}
               onError={(e) => {
                 e.currentTarget.src = "/fallback/unknown-monster.png";
@@ -368,6 +398,11 @@ const DetailMonster = ({ monster }) => {
             >
               No Image
             </Typography>
+          )}
+
+          {/* แสดงไอคอนแม่กุญแจทับรูปหากล็อค */}
+          {!isUnlocked && (
+             <LockIcon sx={{ position: "absolute", color: "rgba(255,255,255,0.3)", fontSize: 60 }} />
           )}
         </Box>
       </Grid>
@@ -387,7 +422,7 @@ const DetailMonster = ({ monster }) => {
           <Box
             sx={{
               flex: 1,
-              backgroundColor: THEME.bgPanel, // พื้นหลัง Panel สีน้ำตาลเข้ม
+              backgroundColor: THEME.bgPanel, 
               border: `3px solid ${THEME.border}`,
               borderRadius: "8px",
               boxShadow: `inset 0 0 20px rgba(0,0,0,0.5)`,
@@ -395,7 +430,7 @@ const DetailMonster = ({ monster }) => {
               flexDirection: "column",
               overflow: "hidden",
               width: "100%",
-              height: "100%", // เต็มพื้นที่
+              height: "100%", 
               maxHeight: "350px",
             }}
           >
@@ -417,7 +452,6 @@ const DetailMonster = ({ monster }) => {
                     fontSize: 10,
                     borderRadius: 0,
                     py: 1.5,
-                    // Active Tab สีทอง, Inactive สีเข้ม
                     backgroundColor: tab === t ? THEME.border : "transparent",
                     color: tab === t ? THEME.accent : THEME.textMain,
                     "&:hover": {
@@ -433,7 +467,7 @@ const DetailMonster = ({ monster }) => {
 
             <Box sx={{ flex: 1, overflow: "hidden"}}>
               {tab === "info" && <InfoTab monster={monster} />}
-              {tab === "moves" && <MovesTab moves={monster?.monster_moves} />}
+              {tab === "moves" && <MovesTab monster={monster} />}
             </Box>
           </Box>
         </Box>
@@ -463,14 +497,9 @@ const arrowBtnStyle = {
 const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
   const scrollRef = useRef(null);
 
-  // ฟังก์ชันเลื่อนซ้าย-ขวา
   const scroll = (dir) => {
     if (!scrollRef.current) return;
-
-    // 1 item = 50px + gap 12px = 62px
-    // เลื่อนทีละ 5 ตัว = 62 * 5 = 310px เพื่อความลื่นไหล
     const scrollAmount = dir === "left" ? -310 : 310;
-
     scrollRef.current.scrollBy({
       left: scrollAmount,
       behavior: "smooth",
@@ -483,7 +512,7 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
         width: "100%",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center", // จัดให้อยู่ตรงกลางเมื่อจอใหญ่
+        justifyContent: "center", 
         py: 1,
         px: 0.5,
         gap: { xs: 1, sm: 2 },
@@ -512,11 +541,9 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
           overflowY: "hidden",
           height: 65,
           px: 1,
-          // พระเอกของงานนี้: บังคับให้กว้างสุดแค่ 918px (โชว์ 15 ตัวพอดีเป๊ะ)
           maxWidth: "918px",
-          margin: "0 auto", // จัดกล่องให้อยู่กึ่งกลาง
+          margin: "0 auto", 
           scrollBehavior: "smooth",
-          // ซ่อน Scrollbar
           "&::-webkit-scrollbar": { display: "none" },
           msOverflowStyle: "none",
           scrollbarWidth: "none",
@@ -525,20 +552,21 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
       >
         {listMonster.map((m) => {
           const isActive = selectedMonster?.id === m.id;
+          const isUnlocked = m.isUnlocked;
           const isBoss = m.isBoss;
 
-          // จัดการสีของกล่องย่อย
-          const activeBorderColor = isBoss ? "#ff3333" : THEME.accent;
-          const inactiveBorderColor = isBoss ? "#800000" : THEME.border; // บอสจะเป็นสีกรอบแดงเข้มตอนยังไม่ได้เลือก
-          const activeShadow = isBoss ? `0 0 15px #ff3333` : `0 0 15px ${THEME.accent}`;
-          const boxBgColor = isActive ? THEME.bgMain : (isBoss ? "#2a0a0a" : THEME.bgPanel);
+          // จัดการสีกรอบ หากยังไม่ปลดล็อคให้เป็นสีเทาหม่น
+          const activeBorderColor = !isUnlocked ? "#888" : (isBoss ? "#ff3333" : THEME.accent);
+          const inactiveBorderColor = !isUnlocked ? "#333" : (isBoss ? "#800000" : THEME.border); 
+          const activeShadow = !isUnlocked ? "0 0 10px rgba(255,255,255,0.2)" : (isBoss ? `0 0 15px #ff3333` : `0 0 15px ${THEME.accent}`);
+          const boxBgColor = isActive ? (!isUnlocked ? "#222" : THEME.bgMain) : (!isUnlocked ? "#111" : (isBoss ? "#2a0a0a" : THEME.bgPanel));
 
           return (
             <Box
               key={m.id}
               onClick={() => onSelectMonster(m)}
               sx={{
-                flexShrink: 0, // ป้องกันกล่องโดนบีบเบี้ยวเวลา Responsive
+                flexShrink: 0, 
                 width: { xs: 45, sm: 50 },
                 height: { xs: 45, sm: 50 },
                 border: `2px solid ${isActive ? activeBorderColor : inactiveBorderColor}`,
@@ -550,6 +578,7 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "all 0.2s",
+                position: "relative",
                 "&:hover": {
                   transform: "scale(1.1)",
                   zIndex: 1,
@@ -561,13 +590,18 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
                 src={LoadImage("img_monster", m.id, 1)} 
                 alt={m.name}
                 style={{
-                  height: "40px", // ยึด height คงที่
+                  height: "40px", 
                   imageRendering: "pixelated",
+                  // ใส่ Effect เงาดำใน List หากยังไม่ปลดล็อค
+                  filter: !isUnlocked ? "brightness(0) drop-shadow(0 0 2px rgba(255,255,255,0.2))" : "none",
                 }}
                 onError={(e) => {
                   e.currentTarget.src = "/fallback/unknown-monster.png";
                 }}
               />
+              {!isUnlocked && (
+                 <LockIcon sx={{ position: "absolute", color: "rgba(255,255,255,0.4)", fontSize: 16 }} />
+              )}
             </Box>
           );
         })}
@@ -584,32 +618,52 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
     </Box>
   );
 };
+
 // --- MAIN PAGE ---
 
 const MonsterLibrary = () => {
-  const { monsters, getMonsters } = useMonsterStore();
+  const { currentUser } = useAuthStore();
+  const { monsters, unlockedMonsterIds, fetchUnlockedMonsters } =
+    useMonsterStore();
 
   const [selectedMonster, setSelectedMonster] = useState(null);
 
   const [isMinLoading, setIsMinLoading] = useState(true);
   const [isLoadingAssets, setIsLoadingAssets] = useState(true);
 
+  useEffect(() => {
+    if (currentUser?.stages) {
+      fetchUnlockedMonsters(currentUser.stages);
+    }
+  }, [currentUser, fetchUnlockedMonsters]);
+
+  // LOGIC การคำนวณการ Lock / Unlock จาก unlockedMonsterIds
   const sortedMonsters = useMemo(() => {
     if (!monsters) return [];
-    // ใช้ [...monsters] เพื่อ copy array ป้องกันการ mutate ค่าดั้งเดิมใน store
-    return [...monsters].sort((a, b) => a.no - b.no);
-  }, [monsters]);
 
-  // useEffect(() => {
-  //   getMonsters();
-  // }, [getMonsters]);
+    return [...monsters]
+      .sort((a, b) => a.no - b.no)
+      .map((m) => {
+        // ถ้า ID มอนสเตอร์ตัวนี้ ไปอยู่ในกอง ID ที่เราไล่ดึงมาจาก API (unlockedMonsterIds) แสดงว่าปลดล็อคแล้ว!
+        const isUnlocked = unlockedMonsterIds.includes(m.id);
+
+        return { ...m, isUnlocked };
+      });
+  }, [monsters, unlockedMonsterIds]);
 
   useEffect(() => {
-    // เปลี่ยนมาใช้ sortedMonsters แทน เพื่อให้ตัวแรกสุดคือตัวที่ no น้อยที่สุด
     if (sortedMonsters?.length && !selectedMonster) {
       setSelectedMonster(sortedMonsters[0]);
     }
   }, [sortedMonsters, selectedMonster]);
+
+  // 💡 THE FIX: สร้างตัวแปรนี้ขึ้นมาเพื่อ "ดึงข้อมูลล่าสุด" เสมอ
+  // แทนที่จะใช้ selectedMonster ตรงๆ ที่อาจจะข้อมูลเก่า เราเอา ID ของมันไปค้นหาใน sortedMonsters ที่มีค่า Lock/Unlock ล่าสุด
+  const currentActiveMonster = useMemo(() => {
+    if (!selectedMonster || !sortedMonsters.length) return selectedMonster;
+    return sortedMonsters.find((m) => m.id === selectedMonster.id) || selectedMonster;
+  }, [selectedMonster, sortedMonsters]);
+
 
   // preload image monster
   useEffect(() => {
@@ -630,7 +684,6 @@ const MonsterLibrary = () => {
     preloadAssets();
   }, [sortedMonsters]);
 
-  console.log("Monsters in store:", monsters);
   return (
     <Box sx={{ m: 2 }}>
       <MotionBox
@@ -695,14 +748,16 @@ const MonsterLibrary = () => {
           }}
         >
           <Box sx={{ flex: 1, mb: 1 }}>
-            <DetailMonster monster={selectedMonster} />
+            {/* 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster */}
+            <DetailMonster monster={currentActiveMonster} />
           </Box>
 
           {/* Footer List */}
           <Box sx={{ height: "80px", px: 2, mb: 1 }}>
             <ListMonster
               listMonster={sortedMonsters}
-              selectedMonster={selectedMonster}
+              // 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster
+              selectedMonster={currentActiveMonster} 
               onSelectMonster={setSelectedMonster}
             />
           </Box>
