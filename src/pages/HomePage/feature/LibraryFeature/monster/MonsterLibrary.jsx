@@ -36,7 +36,7 @@ const getStatIcon = (label) => {
   const lowerLabel = label.toLowerCase();
   if (lowerLabel.includes("hp")) return <FavoriteIcon sx={{ color: "#ff4d4d", fontSize: 16 }} />;
   if (lowerLabel.includes("power")) return <FlashOnIcon sx={{ color: "#ffb84d", fontSize: 16 }} />;
-  if (lowerLabel.includes("speed")) return <SpeedIcon sx={{ color: "#33cc33", fontSize: 16 }} />;
+  if (lowerLabel.includes("speed")) return <SpeedIcon sx={{ color: "#00e5ff", fontSize: 16 }} />;
   if (lowerLabel.includes("mana")) return <AutoFixHighIcon sx={{ color: "#9933ff", fontSize: 16 }} />;
   if (lowerLabel.includes("coin")) return <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 16 }} />;
   return null;
@@ -600,9 +600,9 @@ const MonsterLibrary = () => {
     return [...monsters].sort((a, b) => a.no - b.no);
   }, [monsters]);
 
-  useEffect(() => {
-    getMonsters();
-  }, [getMonsters]);
+  // useEffect(() => {
+  //   getMonsters();
+  // }, [getMonsters]);
 
   useEffect(() => {
     // เปลี่ยนมาใช้ sortedMonsters แทน เพื่อให้ตัวแรกสุดคือตัวที่ no น้อยที่สุด

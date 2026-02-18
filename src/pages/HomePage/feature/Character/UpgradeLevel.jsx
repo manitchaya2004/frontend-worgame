@@ -18,10 +18,7 @@ import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 //icon stat
 import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked"; // Common (วงกลมโปร่ง หรือจะใช้ Circle ก็ได้)
-import ChangeHistoryIcon from "@mui/icons-material/ChangeHistory"; // Uncommon (สามเหลี่ยม สื่อถึงความคม/พิเศษขึ้น)
-import DiamondIcon from "@mui/icons-material/Diamond";
-import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
+import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 
 // Import Store & Constants
 import { useAuthStore } from "../../../../store/useAuthStore";
@@ -29,14 +26,8 @@ import { LOADING, LOADED, FAILED } from "../../../../store/const";
 
 const STAT_CONFIG = {
   HP: { icon: <FavoriteIcon fontSize="inherit" />, color: "#ff5252" },
-  SPD: { icon: <SpeedIcon fontSize="inherit" />, color: "#00e5ff" },
-  SLOT: { icon: <BackpackIcon fontSize="inherit" />, color: "#d1c4e9" },
-  COM: {
-    icon: <RadioButtonUncheckedIcon fontSize="inherit" />,
-    color: "#cd7f32",
-  },
-  UNC: { icon: <ChangeHistoryIcon fontSize="inherit" />, color: "#b0bec5" },
-  RARE: { icon: <DiamondIcon fontSize="inherit" />, color: "#ffd700" },
+  POWER: { icon: <FlashOnIcon fontSize="inherit" />, color: "#ffeb3b" },
+  SPEED: { icon: <SpeedIcon fontSize="inherit" />, color: "#00e5ff" },
 };
 
 // 2. ปรับ StatLine ให้โชว์ Icon
@@ -115,7 +106,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
 
   const handleConfirmUpgrade = async () => {
     if (!canUpgrade) return;
-     await upgradeHero(heroId);
+    await upgradeHero(heroId);
   };
 
   return (
@@ -294,9 +285,8 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                 <Divider sx={{ borderColor: "#3e2723", mb: 1.5 }} />
 
                 <StatLine label="HP" value={previewData.hp.current} />
-                <StatLine label="SPEED" value={previewData.speed.current} />
                 <StatLine label="POWER" value={previewData.power.current} />
-               
+                <StatLine label="SPEED" value={previewData.speed.current} />
               </Box>
 
               {/* Arrow Icon */}
@@ -344,8 +334,6 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   value={previewData.power.next}
                   isImproved
                 />
-                
-                
               </Box>
             </Box>
           </Box>
@@ -354,45 +342,44 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
 
       {/* === FOOTER ACTION === */}
       {isPreviewReady && (
-        <Box sx={{ p: 2, display: "flex", justifyContent: "center", pb: 3 , }}>
+        <Box sx={{ p: 2, display: "flex", justifyContent: "center", pb: 3 }}>
           <Button
             onClick={handleConfirmUpgrade}
             disabled={!canUpgrade}
             sx={{
               // 🟡 ใช้ Gradient ตามที่คุณขอ
-              background: canUpgrade 
-                ? "linear-gradient(180deg, #f2dfb6, #d9b97a)" 
+              background: canUpgrade
+                ? "linear-gradient(180deg, #f2dfb6, #d9b97a)"
                 : "#3e2723",
-                
+
               // 🟤 ตัวหนังสือสีน้ำตาลเข้ม (เพราะพื้นหลังสว่าง)
               color: canUpgrade ? "#2b1d14" : "#795548",
-              
+
               fontFamily: "'Press Start 2P'",
               fontSize: 14,
               py: 1.5,
               px: 4,
               gap: 2,
               width: "100%",
-              
+
               // 🧱 ปรับสีเงาด้านล่าง (Border Bottom) ให้เข้ากับ Gradient
               // ใช้สีน้ำตาลทองเข้มๆ (#af8f52) ตัดกับสี #d9b97a
               borderBottom: canUpgrade
-                ? "6px solid #886d3a" 
+                ? "6px solid #886d3a"
                 : "6px solid #271c19",
-                
+
               borderRadius: "16px",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              
+
               // ✨ Hover: ปรับให้สว่างขึ้นนิดหน่อย
               "&:hover": {
-                background: canUpgrade 
-                  ? "linear-gradient(180deg, #ebd29b, #ba9d61)" 
+                background: canUpgrade
+                  ? "linear-gradient(180deg, #ebd29b, #ba9d61)"
                   : "#3e2723",
-               
               },
-              
+
               // 👇 Active: กดแล้วยุบ
               "&:active": {
                 borderBottom: "0px solid transparent",
@@ -400,7 +387,13 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               },
             }}
           >
-            <Typography sx={{ fontFamily: "inherit", fontSize: "inherit" ,color: canUpgrade ? "#2b1d14" : "#7b7677"}}>
+            <Typography
+              sx={{
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                color: canUpgrade ? "#2b1d14" : "#7b7677",
+              }}
+            >
               UPGRADE
             </Typography>
 
@@ -409,22 +402,29 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                 display: "flex",
                 alignItems: "center",
                 borderRadius: "8px",
-                px: 1, 
-                py: 0.5
+                px: 1,
+                py: 0.5,
               }}
             >
               <MonetizationOnIcon
                 sx={{
                   mr: 1,
                   fontSize: 16,
-                  color: "#FFD700", 
+                  color: "#FFD700",
                   filter: "drop-shadow(1px 1px 0px #B8860B)",
                   borderRadius: "50%",
                   backgroundColor: "#fff",
                   border: "1px solid #B8860B",
                 }}
               />
-              <Typography sx={{ fontFamily: "inherit", fontSize: 14, lineHeight: 1 ,color: canUpgrade ? "#2b1d14" : "#ff1744"}}>
+              <Typography
+                sx={{
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  lineHeight: 1,
+                  color: canUpgrade ? "#2b1d14" : "#ff1744",
+                }}
+              >
                 {upgradeCost}
               </Typography>
             </Box>

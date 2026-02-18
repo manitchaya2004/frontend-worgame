@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Box, Typography, Divider, Tooltip } from "@mui/material";
+import { Box, Typography, Divider, Tooltip , CircularProgress } from "@mui/material";
 import { motion } from "framer-motion";
 import arrowRight from "../../../../assets/icons/arrowRight.png";
 import arrowLeft from "../../../../assets/icons/arrowLeft.png";
@@ -18,24 +18,33 @@ const ShopHeroFeature = () => {
   const location = useLocation();
   const { currentUser } = useLoginPlayer();
   const { heros, getAllHeros, heroState } = useData();
-
+  
   const scrollRef = useRef(null);
 
   const [isMinLoading, setIsMinLoading] = useState(true);
   
+const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // เรียก API ตามปกติ
-    getAllHeros();
-
-    // ตั้งเวลา Delay (เช่น 1500 ms = 1.5 วินาที)
+    // ปล่อยให้ React วาดโครงสร้างกล่องและเล่นแอนิเมชันไปก่อน 300ms
+    // จากนั้นค่อยสับสวิตช์เริ่ม Render การ์ดฮีโร่ทั้งหมด
     const timer = setTimeout(() => {
-      setIsMinLoading(false);
-    }, 1000);
-
-    // Cleanup timer ถ้า user เปลี่ยนหน้าก่อน
+      setIsReady(true);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [getAllHeros]);
+  }, []);
+  // useEffect(() => {
+  //   // เรียก API ตามปกติ
+  //   getAllHeros();
+
+  //   // ตั้งเวลา Delay (เช่น 1500 ms = 1.5 วินาที)
+  //   const timer = setTimeout(() => {
+  //     setIsMinLoading(false);
+  //   }, 1000);
+
+  //   // Cleanup timer ถ้า user เปลี่ยนหน้าก่อน
+  //   return () => clearTimeout(timer);
+  // }, [getAllHeros]);
 
   // 2. ปรับเงื่อนไข: แสดง Loading ถ้า (API กำลังโหลด) หรือ (เวลายังไม่ครบ)
   // if (heroState === "LOADING" || isMinLoading) {
@@ -57,8 +66,7 @@ const ShopHeroFeature = () => {
 
 
   return (
-    <>
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ display: "flex" }}>
         <MotionBox
           initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
           animate={{
@@ -100,7 +108,7 @@ const ShopHeroFeature = () => {
               background: "#1a120b",
               mx: -1,
               mt: -1,
-             
+              
               borderBottom: `4px solid ${THEMES.border}`,
             }}
           >
@@ -159,18 +167,25 @@ const ShopHeroFeature = () => {
                 "&::-webkit-scrollbar": { display: "none" },
               }}
             >
-              {heros?.map((hero) => (
-                <Box
-                  key={hero.id || hero.name}
-                  sx={{ scrollSnapAlign: "start" }}
-                >
-                  <HeroCard
-                    hero={hero}
-                    playerHeroes={currentUser?.heroes}
-                    money={currentUser?.money}
-                  />
+              {/* ตรวจสอบ isReady ก่อนค่อยเรนเดอร์การ์ดจริงๆ */}
+              {!isReady ? (
+                <Box sx={{ width: "100%", height: "480px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <CircularProgress sx={{ color: THEMES.accent }} />
                 </Box>
-              ))}
+              ) : (
+                heros?.map((hero) => (
+                  <Box
+                    key={hero.id || hero.name}
+                    sx={{ scrollSnapAlign: "start" }}
+                  >
+                    <HeroCard
+                      hero={hero}
+                      playerHeroes={currentUser?.heroes}
+                      money={currentUser?.money}
+                    />
+                  </Box>
+                ))
+              )}
             </Box>
 
             {/* RIGHT */}
@@ -193,7 +208,6 @@ const ShopHeroFeature = () => {
           </Box>
         </MotionBox>
       </Box>
-    </>
   );
 };
 export default ShopHeroFeature;

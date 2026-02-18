@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect , useState} from "react";
 import { Box, Typography } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import GameAppBar from "../../components/AppBar";
@@ -9,24 +9,46 @@ import { motion } from "framer-motion";
 import background2 from "../../assets/icons/background2.png";
 import { useLoginPlayer } from "../AuthPage/LoginPage/hook/useLoginPlayer";
 import { useAuthStore } from "../../store/useAuthStore";
-import AdvantureFeature from "./feature/AdvantureFeature/AdvantureFeature";
-import ItemFeature from "./feature/Item/ItemFeature";
-import ShopHeroFeature from "./feature/Character/ShopHeroFeature";
-import MonsterLibrary from "./feature/LibraryFeature/monster/MonsterLibrary";
-import DictionaryLibrary from "./feature/LibraryFeature/dictionary/DictionaryLibrary";
+import { useStageStore } from "../../store/useStageStore";
+import { useMonsterStore } from "../../store/useMonsterStore";
+import { useHeroStore } from "../../store/useHeroStroe";
+import LoadingScreen from "../../components/Loading/LoadingPage";
 const HomePage = () => {
-  const location = useLocation();
-
-  const pathname = location.pathname;
-  
   const { currentUser } = useLoginPlayer();
-  const {refreshUser} = useAuthStore();
+  const { refreshUser } = useAuthStore();
+  const { getMonsters } = useMonsterStore();
+  const { getAllHeros } = useHeroStore();
+  const { getAllStage } = useStageStore();
+
+
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    refreshUser(); 
+    const loadAllGameData = async () => {
+      try {
+        setIsInitializing(true);
+        // ใช้ Promise.all เพื่อดึงข้อมูลทุก Store พร้อมกัน
+        await Promise.all([
+          refreshUser(),
+          getAllStage(),
+          getMonsters(),
+          getAllHeros(),
+        ]);
+      } catch (error) {
+        console.error("Error loading game data:", error);
+      } finally {
+        // ไม่ว่าจะโหลดสำเร็จหรือพัง ก็ให้ปิดหน้า Loading (อาจจะเพิ่มการดัก Error ไปโชว์ทีหลังได้)
+        setIsInitializing(false);
+      }
+    };
+
+    loadAllGameData();
   }, []);
 
-  console.log("Current User in HomePage:", currentUser);
+  if (isInitializing) {
+    return <LoadingScreen open={true}/>;
+  }
+
   return (
     <>
       <MagicCursor />

@@ -17,12 +17,12 @@ const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
             sx={{
               fontFamily: "'Press Start 2P'",
               fontSize: 10,
-              color: "#ffd54f",
+              color: isMax ? "#ffca28" : "#ffd54f",
               textShadow: "1px 1px 0 #000",
               lineHeight: 1,
             }}
           >
-            LV. {level}
+             LV. {level}
           </Typography>
         </Box>
 
@@ -78,50 +78,78 @@ const LevelBar = ({ level = 1, canUpgrade, onUpgrade, isOwned }) => {
           })}
         </Box>
 
-        {/* 3. UPGRADE BUTTON */}
+        {/* 3. UPGRADE BUTTON (ดักเงื่อนไข MAX) */}
         {isOwned ? (
-          <Box
-            onClick={onUpgrade}
-            sx={{
-              width: 50,
-              height: 25,
-              backgroundColor: "#66bb6a",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "4px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              cursor: "pointer",
-              boxShadow: "0 2px 0 #1b5e20",
-              opacity: 1,
-              transition: "all 0.1s",
-              "&:hover": {
-                backgroundColor: "#81c784",
-                transform: "translateY(-1px)",
-              },
-              "&:active": {
-                transform: "translateY(1px)",
-                boxShadow: "none",
-              },
-            }}
-          >
-            <ArrowBigUp
-              size={20}
-              fill={canUpgrade ? "#FFD54F" : "#4a3b31"}
-              stroke={canUpgrade ? "#997c26" : "#2d1b10"} // ขอบน้ำตาลเข้มให้ดูมีมิติ
-              strokeWidth={1}
-              style={{
-                filter: canUpgrade
-                  ? "drop-shadow(0px 1px 0px rgba(0,0,0,0.4))"
-                  : "none",
-                zIndex: 1,
+          isMax ? (
+            // ถ้า MAX แล้ว โชว์กล่องข้อความเท่ๆ แทนปุ่มอัปเกรด
+            <Box
+              sx={{
+                width: 50,
+                height: 25,
+                backgroundColor: "#3e2723", // สีพื้นหลังทึบๆ
+                border: "1px solid #5a3e2b",
+                borderRadius: "4px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                boxShadow: "inset 0 0 5px rgba(0,0,0,0.5)",
               }}
-            />
-          </Box>
+            >
+              <Typography
+                sx={{
+                  fontFamily: "'Press Start 2P'",
+                  fontSize: 8,
+                  color: "#ffca28",
+                  textShadow: "1px 1px 0px #000",
+                }}
+              >
+                MAX
+              </Typography>
+            </Box>
+          ) : (
+            // ปุ่มอัปเกรดแบบเดิม
+            <Box
+              onClick={onUpgrade}
+              sx={{
+                width: 50,
+                height: 25,
+                backgroundColor: "#66bb6a",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "4px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                cursor: "pointer",
+                boxShadow: "0 2px 0 #1b5e20",
+                opacity: 1,
+                transition: "all 0.1s",
+                "&:hover": {
+                  backgroundColor: "#81c784",
+                  transform: "translateY(-1px)",
+                },
+                "&:active": {
+                  transform: "translateY(1px)",
+                  boxShadow: "none",
+                },
+              }}
+            >
+              <ArrowBigUp
+                size={20}
+                fill={canUpgrade ? "#FFD54F" : "#4a3b31"}
+                stroke={canUpgrade ? "#997c26" : "#2d1b10"} // ขอบน้ำตาลเข้มให้ดูมีมิติ
+                strokeWidth={1}
+                style={{
+                  filter: canUpgrade
+                    ? "drop-shadow(0px 1px 0px rgba(0,0,0,0.4))"
+                    : "none",
+                  zIndex: 1,
+                }}
+              />
+            </Box>
+          )
         ) : null}
       </Box>
     </Box>
   );
 };
-
 export default LevelBar;

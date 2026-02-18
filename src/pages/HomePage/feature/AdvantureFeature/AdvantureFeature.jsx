@@ -117,9 +117,9 @@ const AdvantureFeature = () => {
   }, [playableStages, currentUser, completedStageId]);
 
   // โหลดข้อมูลตอนเปิดหน้า
-  useEffect(() => {
-    fetchAllStage();
-  }, [fetchAllStage]);
+  // useEffect(() => {
+  //   fetchAllStage();
+  // }, [fetchAllStage]);
 
   // preload background ของ stage
   useEffect(() => {
