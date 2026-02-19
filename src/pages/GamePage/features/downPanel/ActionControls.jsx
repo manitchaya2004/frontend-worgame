@@ -193,7 +193,7 @@ export const ActionControls = ({
         <FantasyListButton
           label="STRIKE"
           icon={<GiBroadsword />}
-          subLabel="Deal damage equal to score"
+          subLabel="Deal damage to enemy"
           color="#e63946"
           disabled={!isPlayerTurn || !hasWord}
           highlight={isPlayerTurn && hasWord}
@@ -203,7 +203,7 @@ export const ActionControls = ({
         <FantasyListButton
           label="GUARD"
           icon={<GiShield />}
-          subLabel="Gain shield equal to score"
+          subLabel="Gain shield to yourself"
           color="#4361ee"
           disabled={!isPlayerTurn || !hasWord}
           highlight={isPlayerTurn && hasWord}

@@ -1,17 +1,51 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-/**
- * MeaningPopup Component
- * แสดงความหมายของคำศัพท์ที่ผู้เล่นประกอบร่างได้สำเร็จ
- * @param {string} meaning - ความหมายของคำศัพท์ที่ต้องการแสดง
- */
-export const MeaningPopup = ({ meaning }) => {
+export const MeaningPopup = ({ entries }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const types = entries ? Object.keys(entries) : [];
+  const currentTypeName = types[currentIndex] || "";
+  const currentMeanings = entries && currentTypeName ? entries[currentTypeName] : [];
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [JSON.stringify(entries)]);
+
+  if (types.length === 0) return null;
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % types.length);
+  };
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + types.length) % types.length);
+  };
+
+  const customScrollbar = `
+    .retro-scroll::-webkit-scrollbar {
+      width: 3px; /* ✅ บีบ Scrollbar ให้เล็กที่สุด */
+    }
+    .retro-scroll::-webkit-scrollbar-track {
+      background: rgba(92, 64, 51, 0.05);
+      border-radius: 4px;
+    }
+    .retro-scroll::-webkit-scrollbar-thumb {
+      background: #b89768;
+      border-radius: 4px;
+    }
+    .retro-scroll::-webkit-scrollbar-thumb:hover {
+      background: #5c4033;
+    }
+  `;
+
   return (
     <div
       style={{
         position: "absolute",
-        top: "30%",
+        bottom: "100px", // ✅ ย้ายมาอยู่ด้านล่าง (เหนือหลอดเลือดบอสพอดี)
         left: 0,
         width: "100%",
         display: "flex",
@@ -19,46 +53,135 @@ export const MeaningPopup = ({ meaning }) => {
         alignItems: "center",
         justifyContent: "center",
         zIndex: 999,
-        pointerEvents: "none", // ป้องกันไม่ให้บังการคลิกศัตรู
+        pointerEvents: "none",
       }}
     >
-      {/* ส่วนเว้นระยะเผื่อความสวยงาม */}
-      <div style={{ height: "65px" }} />
+      <style>{customScrollbar}</style>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 0.85, y: 0 }}
-        exit={{ opacity: 0 }}
-        style={{
-          background: "rgba(244, 228, 188)",
-          border: "2px solid #5c4033",
-          padding: "10px 25px",
-          borderRadius: "4px",
-          textAlign: "center",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.2)",
-        }}
-      >
-        <span
+      {/* เอา div เว้นระยะข้างบนออกไปแล้ว เพราะเราอิงตำแหน่งจากด้านล่างแทน */}
+
+      <div style={{ position: "relative", pointerEvents: "auto", display: "flex", alignItems: "center" }}>
+        
+        {types.length > 1 && (
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handlePrev} 
+            style={{ ...outerArrowStyle, left: "-30px" }} // ✅ ขยับปุ่มให้ชิดกล่องมากขึ้น
+          >
+            {"<"}
+          </motion.button>
+        )}
+
+        <motion.div
+          key={currentTypeName}
+          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+          animate={{ opacity: 0.95, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 25 }}
           style={{
-            fontSize: "11px",
-            color: "#8d6e63",
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            display: "block", // ปรับเป็น block เพื่อให้ <br /> ทำงานได้ดีขึ้น
+            background: "rgba(244, 228, 188, 0.95)", 
+            border: "2px solid #5c4033", // ✅ ลดความหนาขอบลง
+            padding: "5px 12px 8px 12px", // ✅ บีบ Padding ให้เล็กลง
+            borderRadius: "4px", 
+            textAlign: "center",
+            boxShadow: "0 3px 0 rgba(92, 64, 51, 0.3)", 
+            width: "fit-content", 
+            minWidth: "200px",
+            maxWidth: "400px", // ✅ ให้ขยายออกข้างได้นิดหน่อย จะได้ไม่ต้อง Scroll บ่อย
+            minHeight: "40px", // ✅ ลดความสูงขั้นต่ำลง
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            position: "relative",
           }}
         >
-          — Meaning —
-        </span>
-        <span
-          style={{
-            fontSize: "16px",
-            color: "#3e2723",
-            fontWeight: "bold",
-          }}
-        >
-          {meaning}
-        </span>
-      </motion.div>
+          <span style={{ 
+            fontSize: "9px", // ✅ ลดขนาดตัวอักษรหัวข้อ
+            color: "#8d6e63", 
+            fontWeight: "900", 
+            textTransform: "uppercase", 
+            marginBottom: "3px",
+            letterSpacing: "1px",
+            borderBottom: "1px dashed rgba(92, 64, 51, 0.3)", // ✅ ลดความหนาเส้นประ
+            paddingBottom: "2px",
+            width: "80%",
+            flexShrink: 0 
+          }}>
+            — {currentTypeName} —
+          </span>
+
+          <div 
+            className="retro-scroll"
+            style={{ 
+              display: "flex", 
+              flexWrap: "wrap", 
+              gap: "4px", // ✅ ลดช่องว่างระหว่างป้ายคำแปล
+              justifyContent: "center", 
+              alignItems: "center",     
+              width: "100%",
+              maxHeight: "26px", // ✅ บีบพื้นที่ Scroll ให้เตี้ยลง (โชว์ได้ทีละบรรทัดแบบมินิมอล)
+              overflowY: "auto",
+              margin: "0 auto",        
+              padding: "0 2px"
+            }}
+          >
+            {currentMeanings.map((m, idx) => (
+              <span 
+                key={idx}
+                style={{
+                  background: "#e8d5b5", 
+                  border: "1px solid #b89768", // ✅ ลดขอบของป้ายคำแปล
+                  padding: "2px 6px", // ✅ บีบตัวป้ายให้เล็กลง
+                  borderRadius: "2px", 
+                  fontSize: "12px", // ✅ ลดขนาดฟอนต์คำแปลลงให้อ่านง่ายแต่ไม่เกะกะ
+                  color: "#4a2c11", 
+                  fontWeight: "bold",
+                  boxShadow: "0 1px 0 rgba(92, 64, 51, 0.2)", 
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {m}
+              </span>
+            ))}
+          </div>
+
+          {types.length > 1 && (
+            <div style={{ position: "absolute", bottom: "1px", right: "4px", fontSize: "7px", color: "#8d6e63", fontWeight: "bold" }}>
+              {currentIndex + 1}/{types.length}
+            </div>
+          )}
+        </motion.div>
+
+        {types.length > 1 && (
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleNext} 
+            style={{ ...outerArrowStyle, right: "-30px" }} // ✅ ขยับปุ่มให้ชิดกล่องมากขึ้น
+          >
+            {">"}
+          </motion.button>
+        )}
+      </div>
     </div>
   );
+};
+
+// ✅ ปรับปุ่มลูกศรให้เล็กลงตามสัดส่วนกล่อง
+const outerArrowStyle = {
+  position: "absolute",
+  background: "#5c4033",
+  color: "#f4e4bc",
+  border: "2px solid #3a251c", 
+  borderRadius: "3px",
+  width: "24px", // เล็กลง
+  height: "28px", // เล็กลง
+  cursor: "pointer",
+  fontWeight: "bold",
+  fontSize: "14px", // ไอคอนลูกศรเล็กลง
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 2px 0 rgba(92, 64, 51, 0.4)", 
+  zIndex: 10
 };

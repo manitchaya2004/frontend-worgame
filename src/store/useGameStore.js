@@ -127,6 +127,7 @@ export const useGameStore = create((set, get) => ({
   damagePopups: [],
   hoveredEnemyId: null,
   validWordInfo: null,
+  wordScore: { raw: 0, min: 0, max: 0 }, 
   enemies: [],
   turnQueue: [],
   activeCombatant: null,
@@ -196,6 +197,7 @@ export const useGameStore = create((set, get) => ({
     set({
       selectedLetters: new Array(playerData.unlockedSlots).fill(null), 
       validWordInfo: null,
+      wordScore: { raw: 0, min: 0, max: 0 }, 
     });
   },
 
@@ -266,17 +268,65 @@ export const useGameStore = create((set, get) => ({
 
   checkCurrentWord: (currentSelected) => {
     const { dictionary } = get();
-    const word = currentSelected
-      .filter((i) => i !== null)
-      .map((i) => i.char)
-      .join("")
-      .toLowerCase();
+    if (!currentSelected) return;
+
+    const validLetters = currentSelected.filter((i) => i !== null);
+    const word = validLetters.map((i) => i.char).join("").toLowerCase();
+
+    let rawScore = 0;
+    validLetters.forEach((l) => {
+      rawScore += getLetterDamage(l.char);
+    });
+
+    set({
+      wordScore: {
+        raw: rawScore,
+        min: Math.floor(rawScore),
+        max: Math.ceil(rawScore),
+      }
+    });
+
     if (!word) {
       set({ validWordInfo: null });
       return;
     }
-    const found = dictionary.find((d) => d.word.toLowerCase() === word);
-    set({ validWordInfo: found || null });
+
+    const matches = dictionary.filter((d) => d.word.toLowerCase() === word);
+
+    if (matches.length > 0) {
+      const grouped = {};
+      matches.forEach(item => {
+        const type = item.category || item.type || "Word";
+        
+        // ✅ แก้ตรงนี้: ใช้ Regex หั่นลูกน้ำเฉพาะที่อยู่ "นอกวงเล็บ" เท่านั้น
+        const meaningPart = typeof item.meaning === "string" 
+          ? item.meaning.split(/,(?![^()]*\))/).map(m => m.trim())
+          : [item.meaning];
+        
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type] = [...new Set([...grouped[type], ...meaningPart])];
+      });
+
+      Object.keys(grouped).forEach(key => {
+        if (grouped[key].length === 0) {
+          delete grouped[key];
+        }
+      });
+
+      if (Object.keys(grouped).length === 0) {
+        set({ validWordInfo: null });
+        return;
+      }
+
+      set({ 
+        validWordInfo: { 
+          word: word, 
+          entries: grouped 
+        } 
+      });
+    } else {
+      set({ validWordInfo: null });
+    }
   },
 
   setupGame: async (userData, stageId) => {
@@ -404,6 +454,7 @@ export const useGameStore = create((set, get) => ({
       receivedCoin: 0,
       selectedLetters: [],
       validWordInfo: null,
+      wordScore: { raw: 0, min: 0, max: 0 }, 
       playerData: {
         ...get().playerData,
         hp: get().playerData.max_hp,
@@ -523,11 +574,9 @@ export const useGameStore = create((set, get) => ({
       const totalBleedStacks = currentInv.filter((s) => s?.status === "bleed").length;
       const isBleedExploding = totalBleedStacks >= 3;
       
-      // ✅ LOGIC พิษ: เช็คว่าในมือมีพิษหรือไม่ (ไม่สนจำนวน)
       const hasPoison = currentInv.some((s) => s?.status === "poison");
       let totalPoisonDmg = 0;
       if (hasPoison) {
-        // ลดเลือด 15% ของ Max HP เสมอ
         const dmg = Math.floor(store.playerData.max_hp * 0.15);
         totalPoisonDmg = Math.max(1, dmg);
       }
@@ -536,7 +585,6 @@ export const useGameStore = create((set, get) => ({
 
       const updatedInv = currentInv.map((slot) => {
         if (!slot) return slot;
-        // ลด Duration ของทุกสถานะ
         if (slot.status === "poison" || slot.status === "stun" || slot.status === "blind") {
           hasInventoryUpdate = true;
           const newDuration = slot.statusDuration - 1;
@@ -560,7 +608,7 @@ export const useGameStore = create((set, get) => ({
           get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: "POISON!", color: "#33ff00" });
           if (store.isSfxOn) sfx.playPoison();
           await delay(1000);
-          get().damagePlayer(totalPoisonDmg, true); // ignoreShield = true
+          get().damagePlayer(totalPoisonDmg, true); 
           await delay(500);
         }
 
@@ -612,7 +660,6 @@ export const useGameStore = create((set, get) => ({
       const isFirstClear = !stageRecord || !stageRecord.is_completed;
       const stageReward = isFirstClear ? (Number(store.stageData.money_reward) || 0) : 0;
       
-      // ✅ คำนวณจากยอดเงินปัจจุบันใน Store
       const totalMoney = Number(store.currentCoin) + monsterMoney + stageReward;
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -622,7 +669,6 @@ export const useGameStore = create((set, get) => ({
         body: JSON.stringify({ money: totalMoney }),
       });
 
-      // ✅ อัปเดตเงินใน Store ทันทีหลัง Save
       set({ currentCoin: totalMoney });
 
       const unlockRes = await fetch(`${ipAddress}/complete-stage`, {
@@ -643,7 +689,6 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     try {
       const token = localStorage.getItem("token");
-      // ✅ ป้องกันตังเป็น 0 โดยการเช็คค่าเดิมใน Store ก่อน
       const currentMoney = Number(store.currentCoin) || 0;
       const totalMoney = currentMoney + Number(earnedAmount);
       
@@ -654,7 +699,6 @@ export const useGameStore = create((set, get) => ({
         body: JSON.stringify({ money: totalMoney }),
       });
       
-      // ✅ อัปเดตเงินใน Store ทันทีหลัง Save
       set({ currentCoin: totalMoney });
       console.log("Money Saved:", totalMoney);
     } catch (error) { 
@@ -682,15 +726,44 @@ export const useGameStore = create((set, get) => ({
 
     const { dictionary, wordLog } = store;
     const lowerWord = word.toLowerCase();
-    const vocabData = dictionary.find((v) => v.word.toLowerCase() === lowerWord);
-    if (vocabData) {
-      const existingEntry = wordLog[lowerWord] || { word: vocabData.word, meaning: vocabData.meaning, type: vocabData.category || vocabData.type || "-", count: 0, totalDamage: 0 };
-      set({ wordLog: { ...wordLog, [lowerWord]: { ...existingEntry, count: existingEntry.count + 1, totalDamage: existingEntry.totalDamage + totalDmg } } });
+    
+    const matches = dictionary.filter((v) => v.word.toLowerCase() === lowerWord);
+
+    if (matches.length > 0) {
+      const existingEntry = wordLog[lowerWord] || { 
+        word: matches[0].word, 
+        entries: matches, 
+        count: 0, 
+        totalDamage: 0 
+      };
+
+      set({ 
+        wordLog: { 
+          ...wordLog, 
+          [lowerWord]: { 
+            ...existingEntry, 
+            count: existingEntry.count + 1, 
+            totalDamage: existingEntry.totalDamage + totalDmg 
+          } 
+        } 
+      });
     }
 
     let currentInv = [...store.playerData.inventory];
+    
+    const savedStatuses = currentInv.map(item => 
+      item && item.status ? { status: item.status, statusDuration: item.statusDuration } : null
+    );
+
     usedIndices.forEach((idx) => { currentInv[idx] = null; });
     currentInv = DeckManager.fillEmptySlots(currentInv, [], store.playerData.unlockedSlots);
+
+    currentInv = currentInv.map((item, index) => {
+      if (savedStatuses[index] && item && !item.status) {
+          return { ...item, status: savedStatuses[index].status, statusDuration: savedStatuses[index].statusDuration };
+      }
+      return item;
+    });
 
     set((s) => ({
       playerShoutText: actionType,
@@ -768,7 +841,6 @@ export const useGameStore = create((set, get) => ({
         store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: "CLEANSED 2 STATUS!", color: "#3498db" });
         set({ playerData: { ...playerData, inventory: newInv, potions: { ...potions, cure: potions.cure - 1 } } });
       } else {
-
         store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: "NO STATUS TO CURE", color: "#95a5a6" });
       }
 
@@ -917,9 +989,21 @@ export const useGameStore = create((set, get) => ({
         if (targetId) get().damageEnemy(targetId, totalDmg);
     }
 
-    const currentInv = [...store.playerData.inventory];
+    let currentInv = [...store.playerData.inventory];
+    
+    const savedStatuses = currentInv.map(item => 
+      item && item.status ? { status: item.status, statusDuration: item.statusDuration } : null
+    );
+
     activeLetters.forEach((item) => { if (item && item.originalIndex !== undefined) currentInv[item.originalIndex] = null; });
-    const filledInv = DeckManager.fillEmptySlots(currentInv, [], store.playerData.unlockedSlots);
+    let filledInv = DeckManager.fillEmptySlots(currentInv, [], store.playerData.unlockedSlots);
+
+    filledInv = filledInv.map((item, index) => {
+      if (savedStatuses[index] && item && !item.status) {
+          return { ...item, status: savedStatuses[index].status, statusDuration: savedStatuses[index].statusDuration };
+      }
+      return item;
+    });
 
     set((s) => ({
       playerData: { ...s.playerData, inventory: filledInv },
@@ -984,7 +1068,6 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     const currentInv = [...store.playerData.inventory];
     
-    // เลือกเฉพาะช่องที่มีไอเทม (มี char) และยังไม่มีสถานะติดอยู่
     const availableSlots = currentInv
       .map((s, i) => (s && s.char && !s.status ? i : null))
       .filter((i) => i !== null);
@@ -999,7 +1082,6 @@ export const useGameStore = create((set, get) => ({
       
       targets.forEach((idx) => {
         if (currentInv[idx]) {
-          // ✅ อัปเดตสถานะโดยคงข้อมูลเดิมไว้
           currentInv[idx] = { 
             ...currentInv[idx], 
             status: code.toLowerCase(), 
@@ -1039,7 +1121,6 @@ export const useGameStore = create((set, get) => ({
     if (!en || en.hp <= 0) { get().endTurn(); return; }
     get().updateEnemy(en.id, { shield: 0 });
 
-    // 1. ตรวจสอบและใช้งานสกิลพิเศษ (Ultimate) หาก Mana เต็ม
     if (en.mana >= en.quiz_move_cost && en.quiz_move_info) {
         await get().performEnemySkill(en.id);
         en = get().enemies.find((e) => e.id === enemyId);
@@ -1048,15 +1129,11 @@ export const useGameStore = create((set, get) => ({
 
     const actionObj = en.pattern_list?.find((p) => p.pattern_no === en.selectedPattern && p.order === en.currentStep);
     
-    // ===================================================================
-    // 2. ✅ กรณีสกิล WAIT: ไม่ใช้ตัวอักษร แต่ต้องขยับ Step/Pattern ต่อไป
-    // ===================================================================
     if (!actionObj || !actionObj.move || actionObj.move.type === "WAIT") {
       const displayMoveName = actionObj?.move?.move_name || "...";
       get().updateEnemy(en.id, { shoutText: displayMoveName });
       await delay(800);
 
-      // คำนวณลำดับท่าถัดไป
       let nextStep = en.currentStep + 1;
       let nextPattern = en.selectedPattern;
 
@@ -1077,24 +1154,27 @@ export const useGameStore = create((set, get) => ({
       get().endTurn();
       return;
     }
-    // ===================================================================
 
     const moveData = actionObj.move;
     let wordDamageRaw = 0; 
-    let finalInv = [...store.playerData.inventory];
+    let finalInv = [...get().playerData.inventory];
 
-    // 3. กรณีสกิลโจมตี/บัฟ (ไม่ใช่ Quiz): ค้นหาและดึงตัวอักษรจาก Brain Slot
     if (!moveData.is_quiz) {
-      const currentInv = [...store.playerData.inventory];
+      const currentInv = [...get().playerData.inventory];
       const availableItems = currentInv.filter(item => item !== null && item.char);
-      const { bestWord, usedItems } = findBestWordFromLetters(availableItems, store.dictionary, en.power);
+      
+      // ✅ กรองเอาเฉพาะคำที่เป็น Oxford สำหรับให้มอนสเตอร์หยิบมาใช้
+      const oxfordDictionary = store.dictionary.filter(d => d.is_oxford === true);
+      const targetDict = oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
+
+      const { bestWord, usedItems } = findBestWordFromLetters(availableItems, targetDict, en.power);
 
       if (bestWord) {
         get().updateEnemy(en.id, { shoutText: moveData.name || "ACTION!" });
         await delay(600);
         get().updateEnemy(en.id, { shoutText: "" });
         
-        let enemySelectedArea = new Array(store.playerData.unlockedSlots).fill(null);
+        let enemySelectedArea = new Array(get().playerData.unlockedSlots).fill(null);
 
         for (let i = 0; i < usedItems.length; i++) {
           const targetItem = usedItems[i];
@@ -1103,36 +1183,27 @@ export const useGameStore = create((set, get) => ({
           if (invIdx !== -1) {
             wordDamageRaw += getLetterDamage(targetItem.char);
             enemySelectedArea[i] = { ...finalInv[invIdx], originalIndex: invIdx };
-            
-            const oldItem = finalInv[invIdx];
-            // คงตัวอักษรที่มีสถานะไว้ เคลียร์เฉพาะตัวปกติ
-            if (oldItem.status) {
-              finalInv[invIdx] = { ...oldItem }; 
-            } else {
-              finalInv[invIdx] = null; 
-            }
+            finalInv[invIdx] = null; 
 
             set({ 
               selectedLetters: [...enemySelectedArea], 
-              playerData: { ...store.playerData, inventory: [...finalInv] } 
+              playerData: { ...get().playerData, inventory: [...finalInv] } 
             });
             if (store.isSfxOn) sfx.playWalk();
             await delay(400); 
           }
         }
 
-        const wordData = store.dictionary.find(d => d.word.toLowerCase() === bestWord.toLowerCase());
-        set({ validWordInfo: wordData || { word: bestWord, meaning: "???" } });
-        await delay(1000); 
+        get().checkCurrentWord(enemySelectedArea);
+        await delay(1500); 
+        
         set({ validWordInfo: null });
-        store.initSelectedLetters();
+        get().initSelectedLetters();
         get().updateEnemy(en.id, { shoutText: bestWord.toUpperCase() });
         await delay(800); 
       } else {
-        // กรณีหาคำศัพท์ไม่ได้
         get().updateEnemy(en.id, { shoutText: "PASS..." });
         await delay(1000);
-        // ขยับ Step ก่อนจบเทิร์น
         let nextStep = en.currentStep + 1;
         if (!en.pattern_list?.some(p => p.pattern_no === en.selectedPattern && p.order === nextStep)) nextStep = 1;
         get().updateEnemy(en.id, { currentStep: nextStep });
@@ -1144,7 +1215,6 @@ export const useGameStore = create((set, get) => ({
       await delay(1000);
     }
 
-    // 4. ขั้นตอนการแสดงผลอนิเมชั่นการโจมตี
     const originalX = en.x;
     if (moveData.is_dash) {
       const atkX = en.isBoss ? PLAYER_X_POS + 15 : PLAYER_X_POS + 10;
@@ -1190,14 +1260,25 @@ export const useGameStore = create((set, get) => ({
       await delay(500);
     }
 
-    // 5. ✅ จั่วตัวอักษรใหม่เติมช่องว่างทีเดียวหลังจากโจมตีเสร็จ
-    const refilledInv = DeckManager.fillEmptySlots(finalInv, [], store.playerData.unlockedSlots);
-    set({ playerData: { ...store.playerData, inventory: refilledInv } });
+    const inventoryAfterAttack = get().playerData.inventory;
+    const currentSavedStatuses = inventoryAfterAttack.map(item => 
+      item && item.status ? { status: item.status, statusDuration: item.statusDuration } : null
+    );
+
+    let refilledInv = DeckManager.fillEmptySlots(inventoryAfterAttack, [], get().playerData.unlockedSlots);
+    
+    refilledInv = refilledInv.map((item, index) => {
+        if (currentSavedStatuses[index] && item && !item.status) {
+            return { ...item, status: currentSavedStatuses[index].status, statusDuration: currentSavedStatuses[index].statusDuration };
+        }
+        return item;
+    });
+
+    set({ playerData: { ...get().playerData, inventory: refilledInv } });
 
     if (moveData.is_dash) get().updateEnemy(en.id, { x: originalX, atkFrame: 0 });
     else get().updateEnemy(en.id, { atkFrame: 0 });
 
-    // 6. อัปเดต Step และ Pattern สำหรับเทิร์นถัดไป
     en = get().enemies.find((e) => e.id === enemyId);
     let nextStep = en.currentStep + 1;
     let nextPattern = en.selectedPattern;
@@ -1214,15 +1295,28 @@ export const useGameStore = create((set, get) => ({
 
   handleQuizMove: async (en, penaltyDmg, moveData) => {
     const store = get();
-    const vocabList = store.dictionary;
+    
+    const oxfordDictionary = store.dictionary.filter(d => d.is_oxford === true);
+    const vocabList = oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
+    
     const correctEntry = vocabList[Math.floor(Math.random() * vocabList.length)];
+
+    // ✅ ใช้ Regex เดียวกัน เพื่อดึงความหมายแรกสุดมาถาม โดยไม่ทำให้ข้อความในวงเล็บแหว่ง
+    const singleMeaning = typeof correctEntry.meaning === "string"
+      ? correctEntry.meaning.split(/,(?![^()]*\))/)[0].trim()
+      : correctEntry.meaning;
+
     const choices = vocabList.filter((v) => v.word !== correctEntry.word).map((v) => ({ ...v, score: WordSystem.getLevenshteinDistance(correctEntry.word, v.word) })).sort((a, b) => a.score - b.score).slice(0, 3).map((w) => w.word);
     const finalChoices = [correctEntry.word, ...choices].sort(() => 0.5 - Math.random());
-    get().updateEnemy(en.id, { shoutText: correctEntry.meaning });
+    
+    get().updateEnemy(en.id, { shoutText: singleMeaning });
     await delay(600);
-    set({ gameState: "QUIZ_MODE", currentQuiz: { question: correctEntry.meaning, correctAnswer: correctEntry.word, choices: finalChoices, enemyId: en.id, timeLimit: 10000 } });
+    
+    set({ gameState: "QUIZ_MODE", currentQuiz: { question: singleMeaning, correctAnswer: correctEntry.word, choices: finalChoices, enemyId: en.id, timeLimit: 10000 } });
+    
     const isCorrect = await new Promise((resolve) => set({ quizResolver: resolve }));
     set({ gameState: "ENEMYTURN" });
+    
     if (isCorrect) {
       get().updateEnemy(en.id, { atkFrame: 2, shoutText: "MISSED!" });
       set({ playerX: PLAYER_X_POS - 5, playerVisual: "walk" });
@@ -1233,6 +1327,7 @@ export const useGameStore = create((set, get) => ({
       get().damagePlayer(penaltyDmg);
       if (moveData.debuff_code) get().applyStatusToPlayer(moveData.debuff_code, moveData.debuff_chance, moveData.debuff_count, moveData.debuff_turn);
     }
+    
     await delay(800);
     set({ playerX: PLAYER_X_POS, playerVisual: "idle" });
   },

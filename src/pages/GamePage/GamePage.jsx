@@ -35,7 +35,7 @@ import { PlayerStatusCard } from "./features/downPanel/PlayerStatusCard";
 import { TurnQueueBar } from "./features/TopPanel/TurnQueueBar";
 import { DamagePopup } from "./features/TopPanel/DamagePopup";
 import { TargetPickerOverlay } from "./features/downPanel/TargetPickerOverlay";
-import {GameDialog} from "../../components/GameDialog";
+import { GameDialog } from "../../components/GameDialog";
 
 // --- Components: System Views ---
 import LoadingView from "../../components/LoadingView";
@@ -112,7 +112,7 @@ export default function GameApp() {
   // --------------------------------------------------------------------------
   useEffect(() => {
     // กรณีแพ้ (LOSE)
-  if (store.gameState === "OVER") {
+    if (store.gameState === "OVER") {
       if (store.isBgmOn) store.toggleBgm();
 
       const halfCoins = Math.floor(store.receivedCoin / 2);
@@ -160,9 +160,9 @@ export default function GameApp() {
 
   const handleExit = async () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    if (store.isBgmOn) store.toggleBgm();
+    if (store.isBgmOn && store.toggleBgm) store.toggleBgm();
 
-    const halfCoins = Math.floor(store.receivedCoin / 2);
+    const halfCoins = Math.floor((store.receivedCoin || 0) / 2);
     await store.saveQuitGame(halfCoins);
 
     navigate("/summary", {
@@ -214,10 +214,12 @@ export default function GameApp() {
       return;
     }
 
-    if (lastTimeRef.current !== undefined) {
-      const dt = time - lastTimeRef.current;
-      if (dt < 100) store.update(dt);
+    const dt = time - lastTimeRef.current;
+    
+    if (dt > 0 && dt < 100) {
+      store.update(dt);
     }
+    
     lastTimeRef.current = time;
     requestRef.current = requestAnimationFrame(animate);
   };
@@ -346,7 +348,6 @@ export default function GameApp() {
     transition: "all 0.1s",
   };
 
-  // Style ปุ่มกด
   const hudButtonStyle = {
     ...commonHudStyle,
     width: "52px",
@@ -354,7 +355,6 @@ export default function GameApp() {
     color: "#e6c88b",
   };
 
-  // Animation กดปุ่ม
   const handleHudButtonDown = (e) => {
     e.currentTarget.style.transform = "translateY(2px)";
     e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.6)";
@@ -368,6 +368,12 @@ export default function GameApp() {
   };
 
   // --------------------------------------------------------------------------
+  // 🧮 คำนวณความกว้างอัตโนมัติ (Flex Center Offset)
+  // --------------------------------------------------------------------------
+  const letterWidth = 65; 
+  const centerOffset = (activeSelectedItems.length * letterWidth) / 2 + 25;
+
+  // --------------------------------------------------------------------------
   // 🔵 RENDER
   // --------------------------------------------------------------------------
 
@@ -375,7 +381,7 @@ export default function GameApp() {
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
-return (
+  return (
     <>
       <div
         style={{
@@ -407,7 +413,6 @@ return (
             🆕 UI: HUD (HEADS-UP DISPLAY)
             =================================================================== */}
 
-          {/* 1. ปุ่มควบคุมมุมซ้ายบน */}
           <div
             style={{
               position: "absolute",
@@ -418,7 +423,6 @@ return (
               gap: "12px",
             }}
           >
-            {/* ปุ่มออก */}
             <div
               onClick={handleOpenDialog}
               style={hudButtonStyle}
@@ -429,7 +433,6 @@ return (
               <MdFlag size={26} color="#e74c3c" />
             </div>
 
-            {/* ปุ่ม SFX */}
             <div
               onClick={store.toggleSfx}
               style={hudButtonStyle}
@@ -444,7 +447,6 @@ return (
               )}
             </div>
 
-            {/* ปุ่ม BGM */}
             <div
               onClick={store.toggleBgm}
               style={hudButtonStyle}
@@ -460,7 +462,6 @@ return (
             </div>
           </div>
 
-          {/* ⭐ Wrapper ขวาบน: รวม Coin และ Distance เพื่อจัดชิดกัน ⭐ */}
           <div
             style={{
               position: "absolute",
@@ -472,7 +473,6 @@ return (
               gap: "10px",
             }}
           >
-            {/* 2. แสดงเงิน (Coin) */}
             <div
               style={{
                 ...commonHudStyle,
@@ -499,7 +499,6 @@ return (
               </span>
             </div>
 
-            {/* 3. ระยะทาง (Distance) */}
             <div
               style={{
                 ...commonHudStyle,
@@ -572,7 +571,12 @@ return (
               popups={store.damagePopups}
               removePopup={store.removePopup}
             />
-            <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
+            
+            {/* กล่องบล็อคการคลิกตัวอักษรระหว่างเลือกศัตรู หรือไม่ใช่เทิร์นตัวเอง */}
+            <div style={{ pointerEvents: (showTargetPicker || store.gameState !== "PLAYERTURN") ? "none" : "auto" }}>
+              <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
+            </div>
+            
             <BossHpBar boss={boss} />
 
             {/* Entities */}
@@ -594,12 +598,99 @@ return (
                 ))}
             </AnimatePresence>
 
-            {/* Info Popups */}
             {store.validWordInfo && (
-              <MeaningPopup meaning={store.validWordInfo.meaning} />
+              <MeaningPopup 
+                entries={store.validWordInfo?.entries} 
+              />
             )}
-
             <Tooltip target={tooltipTarget} />
+
+            {/* ==========================================
+                💥 POWER PREDICTION UI (แยกซ้าย-ขวา ตัวอักษร)
+                ========================================== */}
+            
+            {/* 🛡️ 1. GUARD (ฝั่งซ้ายของตัวอักษร) */}
+            <AnimatePresence>
+              {/* ✅ เพิ่มเงื่อนไข store.validWordInfo เข้าไปตรงนี้ เพื่อให้โชว์เฉพาะคำที่มีความหมาย */}
+              {store.validWordInfo && store.wordScore?.raw > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  style={{
+                    position: "absolute",
+                    bottom: "175px", 
+                    right: `calc(50% + ${centerOffset}px)`, 
+                    zIndex: 900,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "rgba(26, 18, 11, 0.95)",
+                      border: "2px solid #5c4033",
+                      borderLeft: "4px solid #3498db", 
+                      borderRadius: "6px",
+                      padding: "6px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: "1.2" }}>
+                      <span style={{ color: "#bdc3c7", fontSize: "10px", fontWeight: "bold", letterSpacing: "1px" }}>GUARD</span>
+                      <span style={{ color: "#3498db", fontSize: "20px", fontWeight: "bold", textShadow: "0 2px 2px #000" }}>
+                        {store.wordScore.min === store.wordScore.max ? store.wordScore.min : `${store.wordScore.min}-${store.wordScore.max}`}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ⚔️ 2. DAMAGE (ฝั่งขวาของตัวอักษร) */}
+            <AnimatePresence>
+              {/* ✅ เพิ่มเงื่อนไข store.validWordInfo เข้าไปตรงนี้ด้วย */}
+              {store.validWordInfo && store.wordScore?.raw > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  style={{
+                    position: "absolute",
+                    bottom: "175px", 
+                    left: `calc(50% + ${centerOffset}px)`, 
+                    zIndex: 900,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "rgba(26, 18, 11, 0.95)",
+                      border: "2px solid #5c4033",
+                      borderRight: "4px solid #ff4d4d", 
+                      borderRadius: "6px",
+                      padding: "6px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: "1.2" }}>
+                      <span style={{ color: "#bdc3c7", fontSize: "10px", fontWeight: "bold", letterSpacing: "1px" }}>DAMAGE</span>
+                      <span style={{ color: "#ff4d4d", fontSize: "20px", fontWeight: "bold", textShadow: "0 2px 2px #000" }}>
+                        {store.wordScore.min === store.wordScore.max ? store.wordScore.min : `${store.wordScore.min}-${store.wordScore.max}`}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
           </div>
 
           {/* ===================================================================
@@ -614,7 +705,7 @@ return (
               padding: "15px 0px 15px 0px",
               boxSizing: "border-box",
               overflow: "hidden",
-              position: "relative" // เพิ่มเพื่อให้เนื้อหาข้างในอิงตำแหน่งได้แม่นยำ
+              position: "relative" 
             }}
           >
             {/* Main Content Wrapper: บังคับให้ขนาดคงที่เสมอ */}
