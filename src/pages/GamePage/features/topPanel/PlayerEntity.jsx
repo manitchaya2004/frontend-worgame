@@ -6,6 +6,7 @@ import {
 import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
+import { MpBar } from "./MpBar";
 
 export const PlayerEntity = ({ store }) => {
   // 1. ดึงค่าทั้งหมดจาก Store
@@ -77,12 +78,31 @@ export const PlayerEntity = ({ store }) => {
           <ShoutBubble text={playerShoutText} />
         </div>
         
-        <div style={{ position: "relative", width: "100px", height: "16px", marginBottom: "35px", zIndex: 15, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
-          <div style={{ position: "absolute", right: "10px", top: "-20px", color: playerData.shield > 0 ? "#00bcd4" : "#888", fontWeight: 'bold', fontSize: "12px", display: "flex", gap: "2px" }}>
-             🛡 <span style={{ color: "#fff", textShadow: "1px 1px 0 #000" }}>{playerData.shield}</span>
-          </div>
-        </div>
+{/* --- HUD ZONE (อยู่บนหัวผู้เล่น) --- */}
+<div 
+  style={{ 
+    position: "relative", 
+    width: "100px", 
+    marginBottom: "35px", 
+    zIndex: 15, 
+    display: "flex", 
+    flexDirection: "column", // เรียงหลอดจากบนลงล่าง
+    alignItems: "center",    // จัดหลอดให้อยู่ตรงกลางหัว
+    justifyContent: "center"
+  }}
+>
+  {/* หลอด HP */}
+  <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
+  
+  {/* หลอด Mana (วางต่อท้ายทันทีเพื่อให้ติดกันและอยู่บนหัวเหมือนกัน) */}
+  <MpBar mp={playerData.mana} max={playerData.max_mana} color="#3b82f6" />
+
+  {/* UI โล่ */}
+  <div style={{ position: "absolute", right: "10px", top: "-20px", color: playerData.shield > 0 ? "#00bcd4" : "#888", fontWeight: 'bold', fontSize: "12px", display: "flex", gap: "2px" }}>
+      🛡 <span style={{ color: "#fff", textShadow: "1px 1px 0 #000" }}>{playerData.shield}</span>
+  </div>
+</div>
+
 
         {/* CHARACTER SPRITE */}
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>

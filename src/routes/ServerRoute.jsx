@@ -2,7 +2,6 @@ import { Outlet, useNavigate, useLocation,Navigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import { useServerStore } from "../store/useServerStore";
 import LoadingScreen from "../components/Loading/LoadingPage";
-import ServerCloseModal from "../components/GameDialog/ServerCloseModel";
 
 export default function ServerRoute() {
   const location = useLocation();

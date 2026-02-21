@@ -74,20 +74,20 @@ export const DeckManager = {
       // --- 🚦 กฎการคัดกรอง (Filtering Rules) ---
 
       // 1. ถ้าสระเต็มโควต้าแล้ว ห้ามหยิบสระเพิ่ม
-      // if (vowelCount >= vowelCeiling && isVowel) continue;
+      if (vowelCount >= vowelCeiling && isVowel) continue;
 
       // 2. ถ้าสระขาดแคลน (< 2) และใบนี้ไม่ใช่สระ ให้ข้ามไปก่อน (พยายามหาสระ)
       // (แต่ถ้าไพ่เหลือน้อยกว่า 10 ใบ ยอมหยิบอะไรก็ได้ กันเกมค้าง)
-      // if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
+      if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
 
       // 3. ห้ามตัวซ้ำเกิน 2 ใบ และห้ามตัวยากซ้ำกัน
-      // const isTooManyIdentical = countInHand >= 2;
-      // const isTooManyHard = hasHardInHand && hardChars.includes(candidate);
+      const isTooManyIdentical = countInHand >= 2;
+      const isTooManyHard = hasHardInHand && hardChars.includes(candidate);
 
-      // if (!isTooManyIdentical && !isTooManyHard) {
-      //   foundIdx = i; // เจอใบที่ผ่านทุกเงื่อนไข
-      //   break;
-      // }
+      if (!isTooManyIdentical && !isTooManyHard) {
+        foundIdx = i; // เจอใบที่ผ่านทุกเงื่อนไข
+        break;
+      }
     }
 
     // --- 🏁 การหยิบจริง ---

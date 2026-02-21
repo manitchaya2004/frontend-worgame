@@ -2,7 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
 import { INVENTORY_COUNT } from "../../../../const/index";
-import { useGameStore } from "../../../../store/useGameStore";
+import { useGameStore, getLetterDamage } from "../../../../store/useGameStore"; // ✅ Import ฟังก์ชันตรงๆ
 import { GiBrain } from "react-icons/gi";
 
 /* =========================
@@ -13,21 +13,19 @@ const SingleSlot = ({ index }) => {
 
   const inventory = store.playerData.inventory;
   const playerSlots = store.playerData.unlockedSlots;
-  
-  const power = store.playerData.power; 
   const isPlayerTurn = store.gameState === "PLAYERTURN";
 
   const item = inventory[index] ?? null;
   const isLocked = index >= playerSlots;
   const isDisabled = !isPlayerTurn;
 
+  // ✅ เรียกใช้ getLetterDamage จากที่ import มา เพื่อแสดงค่าพลังคงที่
   let displayDamage = 0;
-  if (item && power) {
-      const charUpper = item.char.toUpperCase();
-      displayDamage = power[charUpper] !== undefined ? Number(power[charUpper]) : 0;
+  if (item) {
+    displayDamage = getLetterDamage(item.char);
   }
 
-  // เช็คสถานะต่างๆ
+  // เช็คสถานะสถานะผิดปกติ
   const isStunned = item?.status === "stun";
   const isPoisoned = item?.status === "poison";
   const isBlind = item?.status === "blind";
@@ -35,7 +33,7 @@ const SingleSlot = ({ index }) => {
   const duration = item?.statusDuration || 0;
 
   const onSelect = () => {
-    // Blind และ Bleed ไม่ห้ามกด (กดได้ปกติ)
+    // Blind และ Bleed ไม่ห้ามกดเลือก
     if (isDisabled || isStunned || isLocked || !item) return;
     store.selectLetter(item, index);
   };
@@ -73,9 +71,7 @@ const SingleSlot = ({ index }) => {
               animate={{
                 opacity: 1,
                 scale: 1,
-                filter: isStunned
-                  ? "brightness(0.7) grayscale(0.3)"
-                  : "none",
+                filter: isStunned ? "brightness(0.7) grayscale(0.3)" : "none",
               }}
               exit={{ opacity: 0, scale: 0.2 }}
               whileHover={!isDisabled && !isStunned ? { scale: 1.05 } : {}}
@@ -83,7 +79,6 @@ const SingleSlot = ({ index }) => {
               style={{
                 width: "92%",
                 height: "94%",
-                // จัดการสีพื้นหลัง (Priority: Stun > Blind > Poison > Bleed > Normal)
                 background: isStunned
                   ? "linear-gradient(145deg,#bdc3c7,#95a5a6)"
                   : isBlind
@@ -109,7 +104,6 @@ const SingleSlot = ({ index }) => {
                 fontWeight: 900,
                 fontSize: "25px",
                 fontFamily: "'Palatino', serif",
-
                 color: isBlind
                   ? "#dcdde1"
                   : isPoisoned
@@ -119,13 +113,12 @@ const SingleSlot = ({ index }) => {
                   : isStunned
                   ? "#2c3e50"
                   : "#3e2723",
-
                 cursor: isDisabled || isStunned ? "not-allowed" : "pointer",
                 position: "relative",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.4)",
               }}
             >
-              {/* Logic การแสดงตัวอักษร: ถ้า Blind ให้โชว์ ? */}
+              {/* ถ้า Blind ให้โชว์เครื่องหมายคำถาม */}
               {isBlind ? "?" : item.char === "QU" ? "Qu" : item.char}
 
               {/* Status Duration Bubble */}
@@ -137,13 +130,7 @@ const SingleSlot = ({ index }) => {
                     left: "-2px",
                     width: "16px",
                     height: "16px",
-                    background: isBlind
-                      ? "#8e44ad"
-                      : isPoisoned
-                      ? "#2ecc71"
-                      : isBleed
-                      ? "#c0392b"
-                      : "#7f8c8d",
+                    background: isBlind ? "#8e44ad" : isPoisoned ? "#2ecc71" : isBleed ? "#c0392b" : "#7f8c8d",
                     borderRadius: "50%",
                     fontSize: "9px",
                     color: "#fff",
@@ -158,15 +145,8 @@ const SingleSlot = ({ index }) => {
                 </div>
               )}
 
-              {/* Status Icon */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "4px",
-                  right: "4px",
-                }}
-              >
-                {/* 1. Poison Icon */}
+              {/* Status Icons */}
+              <div style={{ position: "absolute", top: "4px", right: "4px" }}>
                 {isPoisoned && !isBlind && !isBleed && (
                   <motion.div
                     animate={{ y: [0, -2, 0] }}
@@ -176,22 +156,8 @@ const SingleSlot = ({ index }) => {
                     <FaSkullCrossbones />
                   </motion.div>
                 )}
-                
-                {/* 2. Stun Icon */}
-                {isStunned && (
-                  <div style={{ color: "#34495e", fontSize: "12px" }}>
-                    <FaLock />
-                  </div>
-                )}
-                
-                {/* 3. Blind Icon */}
-                {isBlind && (
-                  <div style={{ color: "#bdc3c7", fontSize: "12px" }}>
-                    <FaEyeSlash />
-                  </div>
-                )}
-
-                {/* 4. Bleed Icon */}
+                {isStunned && <div style={{ color: "#34495e", fontSize: "12px" }}><FaLock /></div>}
+                {isBlind && <div style={{ color: "#bdc3c7", fontSize: "12px" }}><FaEyeSlash /></div>}
                 {isBleed && (
                   <motion.div
                     animate={{ scale: [1, 1.25, 1] }} 
@@ -202,6 +168,8 @@ const SingleSlot = ({ index }) => {
                   </motion.div>
                 )}
               </div>
+
+              {/* ✅ แสดงพลังโจมตีที่ดึงมาจาก Store Utility */}
               <div
                 style={{
                   position: "absolute",
@@ -212,7 +180,6 @@ const SingleSlot = ({ index }) => {
                   opacity: 0.8,
                 }}
               >
-                {/* แสดง Damage ที่คำนวณใหม่ */}
                 {isBlind ? "?" : displayDamage}
               </div>
             </motion.div>
@@ -230,7 +197,7 @@ const SingleSlot = ({ index }) => {
 };
 
 /* =========================
-   INVENTORY SLOT 
+   INVENTORY SLOT CONTAINER
 ========================= */
 export const InventorySlot = () => {
   const store = useGameStore();
@@ -251,7 +218,6 @@ export const InventorySlot = () => {
         transition: "all 0.3s ease",
       }}
     >
-      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -276,9 +242,7 @@ export const InventorySlot = () => {
         >
           BRAIN SLOT
         </div>
-        <GiBrain
-          style={{ color: "#d4af37", fontSize: "18px", transform: "scaleX(-1)" }}
-        />
+        <GiBrain style={{ color: "#d4af37", fontSize: "18px", transform: "scaleX(-1)" }} />
       </div>
 
       <div
