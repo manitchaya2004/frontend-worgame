@@ -22,6 +22,7 @@ const MotionBox = motion(Box);
 const ItemFeature = () => {
   const { currentUser, updateResources, resourceStatus } = useAuthStore();
 
+  console.log("Current User in ItemFeature:", currentUser);
   // const isLoading = resourceStatus === "LOADING";
   const [isLoading, setIsLoading] = useState(false);
   const potions = currentUser?.potion || {};

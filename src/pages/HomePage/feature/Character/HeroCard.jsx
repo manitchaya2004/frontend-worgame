@@ -1,27 +1,14 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
-import { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  Tooltip,
-  Divider,
-  Grid,
-  IconButton,
-} from "@mui/material";
-import { usePreloadFrames } from "../../hook/usePreloadFrams";
+import React, { useState } from "react";
+import { Box, Typography, Tooltip, Divider, IconButton } from "@mui/material";
+import { usePreloadFrames ,LoadImage} from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
 import UpgradeDialog from "./UpgradeLevel";
 
-import {
-  StatNumericBox,
-  StatVisualBar,
-  StatLine,
-} from "../../components/StatDisplay";
+import { StatVisualBar, StatLine } from "../../components/StatDisplay";
 import LevelBar from "../../components/LevelBar";
-import iconic from "../../../../assets/icons/iconic.png";
 import correct from "../../../../assets/icons/correct.png";
-import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 
 // Icons
 import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
@@ -29,10 +16,6 @@ import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
 import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked"; // Common (วงกลมโปร่ง หรือจะใช้ Circle ก็ได้)
-import ChangeHistoryIcon from "@mui/icons-material/ChangeHistory"; // Uncommon (สามเหลี่ยม สื่อถึงความคม/พิเศษขึ้น)
-import DiamondIcon from "@mui/icons-material/Diamond";
 
 // Icons สำหรับปุ่ม Switch
 import ViewListIcon from "@mui/icons-material/ViewList"; // ดูแบบหลอด (List)
@@ -51,6 +34,8 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
 
   const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
+
+  const imgSrc = frames.length > 0 ? frames[frame - 1]?.src : LoadImage("img_hero", hero.id, 1);
 
   // ตรวจสอบสถานะการเป็นเจ้าของ
   const playerHero = playerHeroes?.find((h) => h.hero_id === hero.id);
@@ -98,6 +83,8 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   };
 
   const handleOpenUpgrade = () => {
+    // ถ้าเวลตันแล้วไม่ให้กดเปิด (ป้องกันกรณีเผื่อกดได้)
+    if (currentLevel >= 10) return;
     setOpenUpgrade(true);
     fetchPreviewData(hero.id); // ยิง API ขอ Preview ทันที
   };
@@ -172,19 +159,21 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             mb: 1,
           }}
         >
-          {frames.length > 0 && (
-            <img
-              src={frames[frame - 1].src}
-              alt={hero.name}
-              style={{
-                width: "150px",
-                height: "140px",
-                objectFit: "contain",
-                imageRendering: "pixelated",
-                filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
-              }}
-            />
-          )}
+          <img
+            key={hero.id}
+            src={imgSrc}
+            alt={hero.name}
+            style={{
+              width: "150px",
+              height: "140px",
+              objectFit: "contain",
+              imageRendering: "pixelated",
+              filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
+            }}
+            onError={(e) => {
+               e.currentTarget.src = "/fallback/unknown-hero.png";
+            }}
+          />
         </Box>
 
         {/* === SECTION 3: CONTENT BOX (Flex Grow) === */}
@@ -209,7 +198,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             currentExp={currentExp}
             nextExp={nextExp}
             isOwned={isOwned}
-            canUpgrade={isOwned}
+            canUpgrade={isOwned} // ตรงนี้เดี๋ยวไปเช็คด้านใน LevelBar
             onUpgrade={handleOpenUpgrade}
           />
 
@@ -297,19 +286,20 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   description="Max Health. 0 = Game Over."
                 />
                 <StatLine
-                  label="SPEED"
-                  value={game_stats.speed}
-                  icon={<SpeedIcon />}
-                  color="#00e5ff"
-                  description="Turn Speed. Faster acts first."
-                />
-                <StatLine
                   label="POWER"
                   value={game_stats.power}
                   icon={<BackpackIcon />}
                   color="#d1c4e9"
                   description="Bag Size. Max letters you can hold in hand."
                 />
+                <StatLine
+                  label="SPEED"
+                  value={game_stats.speed}
+                  icon={<SpeedIcon />}
+                  color="#00e5ff"
+                  description="Turn Speed. Faster acts first."
+                />
+                
               </Box>
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -321,18 +311,18 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   color="#ff5252"
                 />
                 <StatVisualBar
-                  label="SPEED"
-                  value={base_stats.speed}
-                  max={MAX_STATS_REF.speed}
-                  icon={<SpeedIcon />}
-                  color="#00e5ff"
-                />
-                <StatVisualBar
                   label="POWER"
                   value={base_stats.power}
                   max={MAX_STATS_REF.power}
                   icon={<FlashOnIcon />}
                   color="#ffca28"
+                />
+                <StatVisualBar
+                  label="SPEED"
+                  value={base_stats.speed}
+                  max={MAX_STATS_REF.speed}
+                  icon={<SpeedIcon />}
+                  color="#00e5ff"
                 />
               </Box>
             )}
@@ -439,4 +429,4 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   );
 };
 
-export default HeroCard;
+export default React.memo(HeroCard);
