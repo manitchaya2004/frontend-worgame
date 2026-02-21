@@ -9,5 +9,5 @@ export const DISPLAY_WIDE = 32 * 3.5;    // ขนาด Sprite ตอนโจ�
 export const INVENTORY_COUNT = 20;  // จำนวนช่องในกระเป๋าทั้งหมด (รวมที่ล็อคอยู่)
 
 // --- การเชื่อมต่อ (Networking) ---
-export const ipAddress = "http://25.16.201.205:3000";
+export const ipAddress = "https://a521-1-47-152-63.ngrok-free.app";
 export const mapID = "green-grass-1";

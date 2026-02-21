@@ -45,13 +45,9 @@ export const MeaningPopup = ({ entries }) => {
     <div
       style={{
         position: "absolute",
-        bottom: "100px", // ✅ ย้ายมาอยู่ด้านล่าง (เหนือหลอดเลือดบอสพอดี)
+        bottom: "150px", // ✅ ล็อกจุดยึด (Anchor) ไว้ที่ขอบบนของกล่องเดิม (กะระยะ 100px + ความสูงกล่อง)
         left: 0,
         width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
         zIndex: 999,
         pointerEvents: "none",
       }}
@@ -60,7 +56,15 @@ export const MeaningPopup = ({ entries }) => {
 
       {/* เอา div เว้นระยะข้างบนออกไปแล้ว เพราะเราอิงตำแหน่งจากด้านล่างแทน */}
 
-      <div style={{ position: "relative", pointerEvents: "auto", display: "flex", alignItems: "center" }}>
+      <div style={{ 
+        position: "absolute", 
+        top: 0, // ✅ บังคับให้เนื้อหาขยายตัว "ลงด้านล่าง" จากจุดยึด
+        left: "50%", // ✅ จัดตำแหน่งให้อยู่กึ่งกลางหน้าจอ
+        transform: "translateX(-50%)", 
+        pointerEvents: "auto", 
+        display: "flex", 
+        alignItems: "center" 
+      }}>
         
         {types.length > 1 && (
           <motion.button 
@@ -81,7 +85,7 @@ export const MeaningPopup = ({ entries }) => {
           style={{
             background: "rgba(244, 228, 188, 0.95)", 
             border: "2px solid #5c4033", // ✅ ลดความหนาขอบลง
-            padding: "5px 12px 8px 12px", // ✅ บีบ Padding ให้เล็กลง
+            padding: "5px 12px 14px 12px", // ✅ ปรับ Padding ด้านล่างเพิ่มนิดหน่อยเพื่อไม่ให้ตัวเลขหน้าทับคำแปลเมื่อมีหลายบรรทัด
             borderRadius: "4px", 
             textAlign: "center",
             boxShadow: "0 3px 0 rgba(92, 64, 51, 0.3)", 
@@ -119,7 +123,7 @@ export const MeaningPopup = ({ entries }) => {
               justifyContent: "center", 
               alignItems: "center",     
               width: "100%",
-              maxHeight: "26px", // ✅ บีบพื้นที่ Scroll ให้เตี้ยลง (โชว์ได้ทีละบรรทัดแบบมินิมอล)
+              maxHeight: "75px", // ✅ ปรับให้แสดงได้สูงสุดประมาณ 3 แถว ถ้าเกินนี้จะเกิด Scroll
               overflowY: "auto",
               margin: "0 auto",        
               padding: "0 2px"

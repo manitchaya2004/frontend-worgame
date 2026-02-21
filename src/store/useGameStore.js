@@ -4,7 +4,7 @@ import { sfx, bgm } from "../utils/sfx";
 import { DeckManager, WordSystem } from "../utils/gameSystem";
 
 // ==========================================
-// 📊 GLOBAL POWER SETTINGS (ใช้ทั้งผู้เล่นและศัตรู)
+// 📊 GLOBAL POWER SETTINGS
 // ==========================================
 export const POWER_GROUPS = {
   G1: ["A", "E", "I", "O", "U"],
@@ -86,6 +86,18 @@ export const findBestWordFromLetters = (letters, dictionary, maxLetters) => {
   });
 
   return { bestWord, usedItems };
+};
+
+export const applyRandomBuffs = (inventory) => {
+  return inventory.map(item => {
+    if (!item) return item;
+    const roll = Math.random();
+    let newItem = { ...item, buff: null };
+    if (roll < 0.1) newItem.buff = "STRIKE_x2";
+    else if (roll < 0.2) newItem.buff = "GUARD_x2";
+    else if (roll < 0.3) newItem.buff = "MANA_PLUS";
+    return newItem;
+  });
 };
 
 // ============================================================================
@@ -298,7 +310,6 @@ export const useGameStore = create((set, get) => ({
       matches.forEach(item => {
         const type = item.category || item.type || "Word";
         
-        // ✅ แก้ตรงนี้: ใช้ Regex หั่นลูกน้ำเฉพาะที่อยู่ "นอกวงเล็บ" เท่านั้น
         const meaningPart = typeof item.meaning === "string" 
           ? item.meaning.split(/,(?![^()]*\))/).map(m => m.trim())
           : [item.meaning];
@@ -433,7 +444,7 @@ export const useGameStore = create((set, get) => ({
               const store = get();
               if (store.gameState === "PREPARING_COMBAT") {
                 const activeSlots = store.playerData.unlockedSlots || 8;
-                const initialLoot = DeckManager.generateList(activeSlots);
+                const initialLoot = applyRandomBuffs(DeckManager.generateList(activeSlots));
                 store.spawnEnemies(initialLoot, true);
               }
             }, 50);
@@ -458,9 +469,9 @@ export const useGameStore = create((set, get) => ({
       playerData: {
         ...get().playerData,
         hp: get().playerData.max_hp,
-        mana: 0,
+        mana: 0, 
         shield: 0,
-        inventory: [],
+        inventory: [], 
       },
       enemies: [],
       damagePopups: [],
@@ -510,6 +521,9 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     const { playerData } = store;
 
+    const currentInv = [...playerData.inventory];
+    const filledInv = applyRandomBuffs(DeckManager.fillEmptySlots(currentInv, [], playerData.unlockedSlots));
+
     const newPlayerMana = Math.min(playerData.max_mana, playerData.mana + 5);
     const updatedEnemies = store.enemies.map(e => {
       if (e.hp <= 0) return e;
@@ -518,7 +532,7 @@ export const useGameStore = create((set, get) => ({
 
     set({ 
       enemies: updatedEnemies, 
-      playerData: { ...playerData, mana: newPlayerMana, shield: 0 } 
+      playerData: { ...playerData, mana: newPlayerMana, shield: 0, inventory: filledInv } 
     });
 
     get().addPopup({
@@ -635,15 +649,24 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     set({ gameState: "WAVE_CLEARED", playerShoutText: "Victory!" });
     await delay(2000);
+
+    get().initSelectedLetters(); 
     const nextEventIdx = store.currentEventIndex + 1;
-    set({
+    set((s) => ({
       gameState: "ADVANTURE",
       playerShoutText: "",
       currentEventIndex: nextEventIdx,
       turnQueue: [],
       activeCombatant: null,
       hasSpawnedEnemies: false,
-    });
+      playerData: { 
+        ...s.playerData, 
+        inventory: [], 
+        mana: 0,       
+        shield: 0      
+      }
+    }));
+    
     if (store.isBgmOn) { bgm.stop(); bgm.playGreenGrass(); }
   },
 
@@ -707,26 +730,34 @@ export const useGameStore = create((set, get) => ({
   },
 
   startPlayerTurn: () => {
-    const store = get();
-    const currentInv = [...store.playerData.inventory];
-    const filledInv = DeckManager.fillEmptySlots(currentInv, [], store.playerData.unlockedSlots);
-    set((s) => ({
+    set(() => ({
       gameState: "PLAYERTURN",
       playerVisual: "idle",
-      playerData: { ...s.playerData, inventory: filledInv },
     }));
   },
 
   performPlayerAction: async (actionType, word, targetId, usedIndices) => {
     const store = get();
+    const itemsUsedInAction = store.selectedLetters.filter(l => l !== null);
 
     let totalDmgRaw = 0;
-    for (let char of word) totalDmgRaw += getLetterDamage(char);
-    const totalDmg = chanceRound(totalDmgRaw);
+    let bonusMana = 0;
 
+    itemsUsedInAction.forEach((item) => {
+      let letterDmg = getLetterDamage(item.char);
+      if (item.buff === "STRIKE_x2" && actionType === "Strike") {
+        letterDmg *= 2;
+      } else if (item.buff === "GUARD_x2" && actionType === "Guard") {
+        letterDmg *= 2;
+      } else if (item.buff === "MANA_PLUS") {
+        bonusMana += 5;
+      }
+      totalDmgRaw += letterDmg;
+    });
+
+    const totalDmg = chanceRound(totalDmgRaw);
     const { dictionary, wordLog } = store;
     const lowerWord = word.toLowerCase();
-    
     const matches = dictionary.filter((v) => v.word.toLowerCase() === lowerWord);
 
     if (matches.length > 0) {
@@ -736,7 +767,6 @@ export const useGameStore = create((set, get) => ({
         count: 0, 
         totalDamage: 0 
       };
-
       set({ 
         wordLog: { 
           ...wordLog, 
@@ -748,22 +778,9 @@ export const useGameStore = create((set, get) => ({
         } 
       });
     }
-
-    let currentInv = [...store.playerData.inventory];
     
-    const savedStatuses = currentInv.map(item => 
-      item && item.status ? { status: item.status, statusDuration: item.statusDuration } : null
-    );
-
+    let currentInv = [...store.playerData.inventory];
     usedIndices.forEach((idx) => { currentInv[idx] = null; });
-    currentInv = DeckManager.fillEmptySlots(currentInv, [], store.playerData.unlockedSlots);
-
-    currentInv = currentInv.map((item, index) => {
-      if (savedStatuses[index] && item && !item.status) {
-          return { ...item, status: savedStatuses[index].status, statusDuration: savedStatuses[index].statusDuration };
-      }
-      return item;
-    });
 
     set((s) => ({
       playerShoutText: actionType,
@@ -774,10 +791,19 @@ export const useGameStore = create((set, get) => ({
 
     await delay(300);
 
+    if (bonusMana > 0) {
+      get().gainMana(bonusMana);
+      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 90, value: `+${bonusMana} MANA`, color: "#9b59b6" });
+    }
+
     if (actionType === "Guard") {
-      set({ playerVisual: "guard-1", playerData: { ...store.playerData, shield: store.playerData.shield + totalDmg } });
+      const currentShield = get().playerData.shield;
+      set({ 
+        playerVisual: "guard-1", 
+        playerData: { ...get().playerData, shield: currentShield + totalDmg } 
+      });
       await delay(200);
-      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: `+${totalDmg} SHEILD`, color: "#2e75cc" });
+      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: `+${totalDmg} SHIELD`, color: "#2e75cc" });
       get().gainMana(5);
       await delay(500);
     } else if (actionType === "Strike") {
@@ -796,6 +822,8 @@ export const useGameStore = create((set, get) => ({
       set({ playerX: PLAYER_X_POS, playerVisual: "walk" });
       await delay(500);
     }
+
+    get().initSelectedLetters(); 
     set({ playerVisual: "idle", playerShoutText: "" });
     get().endTurn();
   },
@@ -809,14 +837,11 @@ export const useGameStore = create((set, get) => ({
       if (potions.health <= 0) return;
       const healAmount = 5;
       const newHp = Math.min(playerData.max_hp, playerData.hp + healAmount);
-      
       if (isSfxOn) sfx.playHeal && sfx.playHeal();
       store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: `+${healAmount} HP`, color: "#2ecc71" });
       set({ playerData: { ...playerData, hp: newHp, potions: { ...potions, health: potions.health - 1 } } });
-
     } else if (type === "cure") {
       if (potions.cure <= 0) return;
-      
       const currentInv = [...playerData.inventory];
       const slotsWithStatus = currentInv
         .map((item, index) => (item && item.status ? index : null))
@@ -825,28 +850,55 @@ export const useGameStore = create((set, get) => ({
       if (slotsWithStatus.length > 0) {
         const targetsToClear = [];
         const numToClear = Math.min(slotsWithStatus.length, 2);
-        
         for (let i = 0; i < numToClear; i++) {
           const randomIndex = Math.floor(Math.random() * slotsWithStatus.length);
           targetsToClear.push(slotsWithStatus.splice(randomIndex, 1)[0]);
         }
-
         const newInv = currentInv.map((item, index) => {
           if (targetsToClear.includes(index)) {
             return { ...item, status: null, statusDuration: 0 };
           }
           return item;
         });
-
         store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: "CLEANSED 2 STATUS!", color: "#3498db" });
         set({ playerData: { ...playerData, inventory: newInv, potions: { ...potions, cure: potions.cure - 1 } } });
       } else {
         store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: "NO STATUS TO CURE", color: "#95a5a6" });
       }
-
     } else if (type === "reroll") {
       if (potions.reroll <= 0) return;
-      set({ playerData: { ...playerData, potions: { ...potions, reroll: potions.reroll - 1 } } });
+      
+      store.resetSelection();
+
+      const slots = store.playerData.unlockedSlots;
+      const currentInventory = get().playerData.inventory; 
+      
+      let newInventory = DeckManager.generateList(slots);
+
+      newInventory = newInventory.map((newItem, index) => {
+        const oldItem = currentInventory[index];
+        let restoredItem = { ...newItem };
+
+        if (oldItem) {
+          if (oldItem.buff) restoredItem.buff = oldItem.buff;
+          if (oldItem.status) {
+            restoredItem.status = oldItem.status;
+            restoredItem.statusDuration = oldItem.statusDuration;
+          }
+        }
+        return restoredItem;
+      });
+
+      if (isSfxOn) sfx.playWalk && sfx.playWalk();
+      store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: "REROLL!", color: "#f1c40f" });
+      
+      set({ 
+        playerData: { 
+          ...get().playerData, 
+          inventory: newInventory, 
+          potions: { ...potions, reroll: potions.reroll - 1 } 
+        } 
+      });
     }
   },
 
@@ -856,22 +908,17 @@ export const useGameStore = create((set, get) => ({
     set({ playerShoutText: "", gameState: "PLAYERTURN" });
   },
 
-  passTurn: async () => {
+  // ✅ แก้ไข: เอาการสุ่มอักษรใหม่ออกตอนกด Pass
+  passTurn: async (isManual = false) => {
     const store = get(); 
+    // ดึงตัวอักษรที่เลือกไว้กลับลงกระเป๋าก่อน
     store.resetSelection();
-    const slots = store.playerData.unlockedSlots;
-    const currentInventory = store.playerData.inventory; 
-    let newInventory = DeckManager.generateList(slots);
-
-    newInventory = newInventory.map((newItem, index) => {
-      const oldItem = currentInventory[index];
-      if (oldItem && oldItem.status) return { ...newItem, status: oldItem.status, statusDuration: oldItem.statusDuration };
-      return newItem;
-    });
 
     set({ playerShoutText: "PASS!", gameState: "ACTION" });
     await delay(500);
-    set((s) => ({ playerData: { ...s.playerData, inventory: newInventory }, playerShoutText: "" }));
+    
+    // ไม่เซ็ต newInventory ใดๆ ใช้ของเดิมในกระเป๋าต่อไป
+    set({ playerShoutText: "" });
     get().endTurn();
   },
 
@@ -896,8 +943,17 @@ export const useGameStore = create((set, get) => ({
     set({ playerData: { ...playerData, mana: newMana } });
 
     let rawDmg = 0;
-    activeLetters.forEach((l) => { rawDmg += getLetterDamage(l.char); });
+    let bonusMana = 0;
+    activeLetters.forEach((l) => { 
+      rawDmg += getLetterDamage(l.char);
+      if (l.buff === "MANA_PLUS") bonusMana += 5;
+    });
     let totalDmg = chanceRound(rawDmg);
+
+    if (bonusMana > 0) {
+      get().gainMana(bonusMana);
+      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 90, value: `+${bonusMana} MANA`, color: "#9b59b6" });
+    }
 
     let targetId = manualTargetId || store.hoveredEnemyId;
     if (!targetId && ability.code !== "Expolsion") {
@@ -990,27 +1046,15 @@ export const useGameStore = create((set, get) => ({
     }
 
     let currentInv = [...store.playerData.inventory];
-    
-    const savedStatuses = currentInv.map(item => 
-      item && item.status ? { status: item.status, statusDuration: item.statusDuration } : null
-    );
-
     activeLetters.forEach((item) => { if (item && item.originalIndex !== undefined) currentInv[item.originalIndex] = null; });
-    let filledInv = DeckManager.fillEmptySlots(currentInv, [], store.playerData.unlockedSlots);
-
-    filledInv = filledInv.map((item, index) => {
-      if (savedStatuses[index] && item && !item.status) {
-          return { ...item, status: savedStatuses[index].status, statusDuration: savedStatuses[index].statusDuration };
-      }
-      return item;
-    });
 
     set((s) => ({
-      playerData: { ...s.playerData, inventory: filledInv },
+      playerData: { ...s.playerData, inventory: currentInv },
       selectedLetters: new Array(s.playerData.unlockedSlots).fill(null),
       validWordInfo: null,
     }));
 
+    get().initSelectedLetters(); 
     await delay(300);
     set({ playerVisual: "idle", playerShoutText: "" });
     get().endTurn();
@@ -1067,7 +1111,6 @@ export const useGameStore = create((set, get) => ({
 
     const store = get();
     const currentInv = [...store.playerData.inventory];
-    
     const availableSlots = currentInv
       .map((s, i) => (s && s.char && !s.status ? i : null))
       .filter((i) => i !== null);
@@ -1079,7 +1122,6 @@ export const useGameStore = create((set, get) => ({
         const randIndex = Math.floor(Math.random() * availableSlots.length);
         targets.push(availableSlots.splice(randIndex, 1)[0]);
       }
-      
       targets.forEach((idx) => {
         if (currentInv[idx]) {
           currentInv[idx] = { 
@@ -1089,7 +1131,6 @@ export const useGameStore = create((set, get) => ({
           };
         }
       });
-
       const debuffColors = { POISON: "#2ecc71", BLEED: "#e74c3c", BLIND: "#8e44ad", STUN: "#f1c40f" };
       set({ playerData: { ...store.playerData, inventory: currentInv } });
       get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: `${code}!`, color: debuffColors[code] || "#8e44ad" });
@@ -1133,24 +1174,14 @@ export const useGameStore = create((set, get) => ({
       const displayMoveName = actionObj?.move?.move_name || "...";
       get().updateEnemy(en.id, { shoutText: displayMoveName });
       await delay(800);
-
       let nextStep = en.currentStep + 1;
       let nextPattern = en.selectedPattern;
-
       if (!en.pattern_list?.some(p => p.pattern_no === en.selectedPattern && p.order === nextStep)) {
           nextStep = 1;
           const uniquePatterns = [...new Set(en.pattern_list?.map(p => p.pattern_no) || [])];
-          if (uniquePatterns.length > 1) {
-            nextPattern = uniquePatterns[Math.floor(Math.random() * uniquePatterns.length)];
-          }
+          if (uniquePatterns.length > 1) nextPattern = uniquePatterns[Math.floor(Math.random() * uniquePatterns.length)];
       }
-
-      get().updateEnemy(en.id, { 
-        shoutText: "", 
-        currentStep: nextStep, 
-        selectedPattern: nextPattern 
-      });
-
+      get().updateEnemy(en.id, { shoutText: "", currentStep: nextStep, selectedPattern: nextPattern });
       get().endTurn();
       return;
     }
@@ -1162,29 +1193,22 @@ export const useGameStore = create((set, get) => ({
     if (!moveData.is_quiz) {
       const currentInv = [...get().playerData.inventory];
       const availableItems = currentInv.filter(item => item !== null && item.char);
-      
-      // ✅ กรองเอาเฉพาะคำที่เป็น Oxford สำหรับให้มอนสเตอร์หยิบมาใช้
       const oxfordDictionary = store.dictionary.filter(d => d.is_oxford === true);
       const targetDict = oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
-
       const { bestWord, usedItems } = findBestWordFromLetters(availableItems, targetDict, en.power);
 
       if (bestWord) {
         get().updateEnemy(en.id, { shoutText: moveData.name || "ACTION!" });
         await delay(600);
         get().updateEnemy(en.id, { shoutText: "" });
-        
         let enemySelectedArea = new Array(get().playerData.unlockedSlots).fill(null);
-
         for (let i = 0; i < usedItems.length; i++) {
           const targetItem = usedItems[i];
           const invIdx = finalInv.findIndex(item => item?.id === targetItem.id);
-          
           if (invIdx !== -1) {
             wordDamageRaw += getLetterDamage(targetItem.char);
             enemySelectedArea[i] = { ...finalInv[invIdx], originalIndex: invIdx };
             finalInv[invIdx] = null; 
-
             set({ 
               selectedLetters: [...enemySelectedArea], 
               playerData: { ...get().playerData, inventory: [...finalInv] } 
@@ -1193,10 +1217,8 @@ export const useGameStore = create((set, get) => ({
             await delay(400); 
           }
         }
-
         get().checkCurrentWord(enemySelectedArea);
         await delay(1500); 
-        
         set({ validWordInfo: null });
         get().initSelectedLetters();
         get().updateEnemy(en.id, { shoutText: bestWord.toUpperCase() });
@@ -1231,7 +1253,6 @@ export const useGameStore = create((set, get) => ({
       await get().handleQuizMove(en, finalValue, moveData); 
     } else {
       get().updateEnemy(en.id, { atkFrame: 2 });
-      
       if (moveData.type === "ATTACK") {
         if (finalValue > 0) {
           get().damagePlayer(finalValue);
@@ -1260,22 +1281,6 @@ export const useGameStore = create((set, get) => ({
       await delay(500);
     }
 
-    const inventoryAfterAttack = get().playerData.inventory;
-    const currentSavedStatuses = inventoryAfterAttack.map(item => 
-      item && item.status ? { status: item.status, statusDuration: item.statusDuration } : null
-    );
-
-    let refilledInv = DeckManager.fillEmptySlots(inventoryAfterAttack, [], get().playerData.unlockedSlots);
-    
-    refilledInv = refilledInv.map((item, index) => {
-        if (currentSavedStatuses[index] && item && !item.status) {
-            return { ...item, status: currentSavedStatuses[index].status, statusDuration: currentSavedStatuses[index].statusDuration };
-        }
-        return item;
-    });
-
-    set({ playerData: { ...get().playerData, inventory: refilledInv } });
-
     if (moveData.is_dash) get().updateEnemy(en.id, { x: originalX, atkFrame: 0 });
     else get().updateEnemy(en.id, { atkFrame: 0 });
 
@@ -1295,28 +1300,19 @@ export const useGameStore = create((set, get) => ({
 
   handleQuizMove: async (en, penaltyDmg, moveData) => {
     const store = get();
-    
     const oxfordDictionary = store.dictionary.filter(d => d.is_oxford === true);
     const vocabList = oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
-    
     const correctEntry = vocabList[Math.floor(Math.random() * vocabList.length)];
-
-    // ✅ ใช้ Regex เดียวกัน เพื่อดึงความหมายแรกสุดมาถาม โดยไม่ทำให้ข้อความในวงเล็บแหว่ง
     const singleMeaning = typeof correctEntry.meaning === "string"
       ? correctEntry.meaning.split(/,(?![^()]*\))/)[0].trim()
       : correctEntry.meaning;
-
     const choices = vocabList.filter((v) => v.word !== correctEntry.word).map((v) => ({ ...v, score: WordSystem.getLevenshteinDistance(correctEntry.word, v.word) })).sort((a, b) => a.score - b.score).slice(0, 3).map((w) => w.word);
     const finalChoices = [correctEntry.word, ...choices].sort(() => 0.5 - Math.random());
-    
     get().updateEnemy(en.id, { shoutText: singleMeaning });
     await delay(600);
-    
     set({ gameState: "QUIZ_MODE", currentQuiz: { question: singleMeaning, correctAnswer: correctEntry.word, choices: finalChoices, enemyId: en.id, timeLimit: 10000 } });
-    
     const isCorrect = await new Promise((resolve) => set({ quizResolver: resolve }));
     set({ gameState: "ENEMYTURN" });
-    
     if (isCorrect) {
       get().updateEnemy(en.id, { atkFrame: 2, shoutText: "MISSED!" });
       set({ playerX: PLAYER_X_POS - 5, playerVisual: "walk" });
@@ -1327,7 +1323,6 @@ export const useGameStore = create((set, get) => ({
       get().damagePlayer(penaltyDmg);
       if (moveData.debuff_code) get().applyStatusToPlayer(moveData.debuff_code, moveData.debuff_chance, moveData.debuff_count, moveData.debuff_turn);
     }
-    
     await delay(800);
     set({ playerX: PLAYER_X_POS, playerVisual: "idle" });
   },

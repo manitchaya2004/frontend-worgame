@@ -16,7 +16,7 @@ import {
 import { MdMusicOff, MdFlag } from "react-icons/md";
 
 // --- Store & System ---
-import { useGameStore } from "../../store/useGameStore";
+import { useGameStore, getLetterDamage } from "../../store/useGameStore";
 import { DeckManager } from "../../utils/gameSystem";
 
 // --- Components: Panels & Entities ---
@@ -38,7 +38,6 @@ import { TargetPickerOverlay } from "./features/downPanel/TargetPickerOverlay";
 import { GameDialog } from "../../components/GameDialog";
 
 // --- Components: System Views ---
-import LoadingView from "../../components/LoadingView";
 import LoadingScreen from "../../components/Loading/LoadingPage";
 import ErrorView from "../../components/Loading/ErrorView";
 
@@ -65,8 +64,31 @@ export default function GameApp() {
   const currentWord = activeSelectedItems.map((i) => i.char).join("");
 
   // --------------------------------------------------------------------------
-  // 🛠️ TOOLTIP LOGIC
+  // 🧮 CALCULATION: POWER PREDICTION (With Buff Support)
   // --------------------------------------------------------------------------
+  const calculatePrediction = () => {
+    let strikeTotal = 0;
+    let guardTotal = 0;
+
+    activeSelectedItems.forEach((item) => {
+      const base = getLetterDamage(item.char);
+
+      // คำนวณฝั่ง Damage (STRIKE_x2)
+      strikeTotal += item.buff === "STRIKE_x2" ? base * 2 : base;
+
+      // คำนวณฝั่ง Shield (GUARD_x2)
+      guardTotal += item.buff === "GUARD_x2" ? base * 2 : base;
+    });
+
+    return {
+      strike: { min: Math.floor(strikeTotal), max: Math.ceil(strikeTotal) },
+      guard: { min: Math.floor(guardTotal), max: Math.ceil(guardTotal) },
+    };
+  };
+
+  const prediction = calculatePrediction();
+
+  // 🛠️ TOOLTIP LOGIC
   let tooltipTarget = null;
   if (store.hoveredEnemyId === "PLAYER") {
     tooltipTarget = {
@@ -82,16 +104,12 @@ export default function GameApp() {
   // --------------------------------------------------------------------------
   // 🛡️ PREVENT NAVIGATION & EXIT LOGIC
   // --------------------------------------------------------------------------
-
   useEffect(() => {
-    // 1. ป้องกัน Refresh / ปิด Tab
     const handleBeforeUnload = (e) => {
       e.preventDefault();
       e.returnValue = "";
       return "";
     };
-
-    // 2. ป้องกันปุ่ม Back
     const handlePopState = (e) => {
       e.preventDefault();
       window.history.pushState(null, document.title, window.location.href);
@@ -111,14 +129,10 @@ export default function GameApp() {
   // 🧭 GAME OVER / CLEAR NAVIGATION LOGIC
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // กรณีแพ้ (LOSE)
     if (store.gameState === "OVER") {
       if (store.isBgmOn) store.toggleBgm();
-
       const halfCoins = Math.floor(store.receivedCoin / 2);
-      
-      store.saveQuitGame(halfCoins); 
-
+      store.saveQuitGame(halfCoins);
       navigate("/summary", {
         state: {
           result: "LOSE",
@@ -129,10 +143,8 @@ export default function GameApp() {
       });
     }
 
-    // กรณีชนะ (WIN)
     if (store.gameState === "GAME_CLEARED") {
       if (store.isBgmOn) store.toggleBgm();
-
       const currentStageId = store.stageData?.id;
       const stageRecord = currentUser?.stages?.find(
         (s) => s.stage_id === currentStageId,
@@ -183,7 +195,6 @@ export default function GameApp() {
   // --------------------------------------------------------------------------
   // INITIALIZATION & GAME LOOP
   // --------------------------------------------------------------------------
-
   const initGameData = async () => {
     setAppStatus("LOADING");
     try {
@@ -202,24 +213,19 @@ export default function GameApp() {
       return;
     }
     initGameData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const animate = (time) => {
     if (appStatus !== "READY") return;
-
     if (store.isMenuOpen) {
       lastTimeRef.current = time;
       requestRef.current = requestAnimationFrame(animate);
       return;
     }
-
     const dt = time - lastTimeRef.current;
-    
     if (dt > 0 && dt < 100) {
       store.update(dt);
     }
-    
     lastTimeRef.current = time;
     requestRef.current = requestAnimationFrame(animate);
   };
@@ -234,12 +240,10 @@ export default function GameApp() {
   // --------------------------------------------------------------------------
   // ACTIONS & HANDLERS
   // --------------------------------------------------------------------------
-
   const executeAction = async (type, targetId) => {
     const usedIndices = activeSelectedItems.map((i) => i.originalIndex);
     setPendingAction(null);
     setShowTargetPicker(false);
-    store.initSelectedLetters();
     await store.performPlayerAction(type, currentWord, targetId, usedIndices);
   };
 
@@ -258,7 +262,6 @@ export default function GameApp() {
   const handleSelectTargetFromMenu = (enemyId) => {
     store.setHoveredEnemyId(null);
     setShowTargetPicker(false);
-
     if (pendingAction === "Strike") {
       executeAction("Strike", enemyId);
     } else if (pendingAction === "SKILL") {
@@ -270,12 +273,10 @@ export default function GameApp() {
   const handleSkillClick = async () => {
     const abilityCode = store.playerData.ability.code;
     if (!abilityCode) return;
-
     if (abilityCode === "Expolsion") {
       await store.performPlayerSkill(null);
       return;
     }
-
     const alive = store.enemies.filter((e) => e.hp > 0);
     if (alive.length === 1) {
       await store.performPlayerSkill(alive[0].id);
@@ -300,13 +301,10 @@ export default function GameApp() {
   const handlePotionRoll = () => {
     const { potions } = store.playerData;
     if (potions.reroll <= 0) return;
-
     store.usePotion("reroll");
-
     const currentInv = store.playerData.inventory;
     const unlockedSlots = store.playerData.unlockedSlots;
     let tempInvForLogic = [...currentInv];
-
     const nextInv = currentInv.map((item, index) => {
       if (!item) return null;
       const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
@@ -321,17 +319,11 @@ export default function GameApp() {
       tempInvForLogic[index] = newItem;
       return newItem;
     });
-
     store.actionSpin(nextInv);
   };
 
-  const handleOpenDialog = () => {
-    setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-  };
+  const handleOpenDialog = () => setIsDialogOpen(true);
+  const handleCloseDialog = () => setIsDialogOpen(false);
 
   // ⭐ STYLES
   const commonHudStyle = {
@@ -367,16 +359,10 @@ export default function GameApp() {
     e.currentTarget.style.borderBottomWidth = "4px";
   };
 
-  // --------------------------------------------------------------------------
-  // 🧮 คำนวณความกว้างอัตโนมัติ (Flex Center Offset)
-  // --------------------------------------------------------------------------
-  const letterWidth = 65; 
-  const centerOffset = (activeSelectedItems.length * letterWidth) / 2 + 25;
+  const letterWidth = 65;
+  const centerOffset = (activeSelectedItems.length * letterWidth) / 2 + 5;
 
-  // --------------------------------------------------------------------------
   // 🔵 RENDER
-  // --------------------------------------------------------------------------
-
   if (appStatus === "LOADING") return <LoadingScreen open={true} />;
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
@@ -409,10 +395,7 @@ export default function GameApp() {
             boxShadow: "0 0 20px rgba(0,0,0,0.8)",
           }}
         >
-          {/* ===================================================================
-            🆕 UI: HUD (HEADS-UP DISPLAY)
-            =================================================================== */}
-
+          {/* HUD Left */}
           <div
             style={{
               position: "absolute",
@@ -432,7 +415,6 @@ export default function GameApp() {
             >
               <MdFlag size={26} color="#e74c3c" />
             </div>
-
             <div
               onClick={store.toggleSfx}
               style={hudButtonStyle}
@@ -446,7 +428,6 @@ export default function GameApp() {
                 <GiSpeakerOff size={26} color="#9e9e9e" />
               )}
             </div>
-
             <div
               onClick={store.toggleBgm}
               style={hudButtonStyle}
@@ -462,6 +443,7 @@ export default function GameApp() {
             </div>
           </div>
 
+          {/* HUD Right */}
           <div
             style={{
               position: "absolute",
@@ -473,13 +455,7 @@ export default function GameApp() {
               gap: "10px",
             }}
           >
-            <div
-              style={{
-                ...commonHudStyle,
-                padding: "0 16px",
-                gap: "8px",
-              }}
-            >
+            <div style={{ ...commonHudStyle, padding: "0 16px", gap: "8px" }}>
               <GiTwoCoins
                 size={28}
                 color="#ffd700"
@@ -498,7 +474,6 @@ export default function GameApp() {
                 {store.receivedCoin}
               </span>
             </div>
-
             <div
               style={{
                 ...commonHudStyle,
@@ -512,7 +487,6 @@ export default function GameApp() {
                 color="#f1c40f"
                 style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
               />
-
               <div
                 style={{
                   display: "flex",
@@ -548,9 +522,7 @@ export default function GameApp() {
             </div>
           </div>
 
-          {/* ===================================================================
-            1. TOP PANEL (BATTLE AREA)
-            =================================================================== */}
+          {/* Battle Area */}
           <div
             style={{
               flex: 1,
@@ -565,23 +537,26 @@ export default function GameApp() {
               backgroundPositionX: `-${store.distance * 20}px`,
             }}
           >
-            {/* UI Elements */}
             <TurnQueueBar store={store} />
             <DamagePopup
               popups={store.damagePopups}
               removePopup={store.removePopup}
             />
-            
-            {/* กล่องบล็อคการคลิกตัวอักษรระหว่างเลือกศัตรู หรือไม่ใช่เทิร์นตัวเอง */}
-            <div style={{ pointerEvents: (showTargetPicker || store.gameState !== "PLAYERTURN") ? "none" : "auto" }}>
-              <SelectedLetterArea store={store} constraintsRef={constraintsRef} />
+            <div
+              style={{
+                pointerEvents:
+                  showTargetPicker || store.gameState !== "PLAYERTURN"
+                    ? "none"
+                    : "auto",
+              }}
+            >
+              <SelectedLetterArea
+                store={store}
+                constraintsRef={constraintsRef}
+              />
             </div>
-            
             <BossHpBar boss={boss} />
-
-            {/* Entities */}
             <PlayerEntity store={store} animFrame={store.animFrame} />
-
             <AnimatePresence>
               {store.enemies
                 .filter((en) => en.hp > 0)
@@ -597,22 +572,16 @@ export default function GameApp() {
                   />
                 ))}
             </AnimatePresence>
-
             {store.validWordInfo && (
-              <MeaningPopup 
-                entries={store.validWordInfo?.entries} 
-              />
+              <MeaningPopup entries={store.validWordInfo?.entries} />
             )}
             <Tooltip target={tooltipTarget} />
 
             {/* ==========================================
-                💥 POWER PREDICTION UI (แยกซ้าย-ขวา ตัวอักษร)
+                💥 POWER PREDICTION UI (New Buff Logic)
                 ========================================== */}
-            
-            {/* 🛡️ 1. GUARD (ฝั่งซ้ายของตัวอักษร) */}
             <AnimatePresence>
-              {/* ✅ เพิ่มเงื่อนไข store.validWordInfo เข้าไปตรงนี้ เพื่อให้โชว์เฉพาะคำที่มีความหมาย */}
-              {store.validWordInfo && store.wordScore?.raw > 0 && (
+              {store.validWordInfo && prediction.guard.max > 0 && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -620,8 +589,8 @@ export default function GameApp() {
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   style={{
                     position: "absolute",
-                    bottom: "175px", 
-                    right: `calc(50% + ${centerOffset}px)`, 
+                    bottom: "170px",
+                    right: `calc(50% + ${centerOffset}px)`,
                     zIndex: 900,
                     pointerEvents: "none",
                   }}
@@ -630,19 +599,45 @@ export default function GameApp() {
                     style={{
                       background: "rgba(26, 18, 11, 0.95)",
                       border: "2px solid #5c4033",
-                      borderLeft: "4px solid #3498db", 
+                      borderLeft: "4px solid #3498db",
                       borderRadius: "6px",
                       padding: "6px 16px",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
                       boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
                     }}
                   >
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: "1.2" }}>
-                      <span style={{ color: "#bdc3c7", fontSize: "10px", fontWeight: "bold", letterSpacing: "1px" }}>GUARD</span>
-                      <span style={{ color: "#3498db", fontSize: "20px", fontWeight: "bold", textShadow: "0 2px 2px #000" }}>
-                        {store.wordScore.min === store.wordScore.max ? store.wordScore.min : `${store.wordScore.min}-${store.wordScore.max}`}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        lineHeight: "1.2",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#3498db",
+                          fontSize: "20px",
+                          fontWeight: "bold",
+                          textShadow: "0 2px 2px #000",
+                        }}
+                      >
+                        {prediction.guard.min === prediction.guard.max
+                          ? prediction.guard.min
+                          : `${prediction.guard.min}-${prediction.guard.max}`}
+                      </span>
+                      <span
+                        style={{
+                          color: "#bdc3c7",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                          letterSpacing: "1px",
+                        }}
+                      >
+                        SHIELD
                       </span>
                     </div>
                   </div>
@@ -650,10 +645,8 @@ export default function GameApp() {
               )}
             </AnimatePresence>
 
-            {/* ⚔️ 2. DAMAGE (ฝั่งขวาของตัวอักษร) */}
             <AnimatePresence>
-              {/* ✅ เพิ่มเงื่อนไข store.validWordInfo เข้าไปตรงนี้ด้วย */}
-              {store.validWordInfo && store.wordScore?.raw > 0 && (
+              {store.validWordInfo && prediction.strike.max > 0 && (
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -661,8 +654,8 @@ export default function GameApp() {
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   style={{
                     position: "absolute",
-                    bottom: "175px", 
-                    left: `calc(50% + ${centerOffset}px)`, 
+                    bottom: "170px",
+                    left: `calc(50% + ${centerOffset}px)`,
                     zIndex: 900,
                     pointerEvents: "none",
                   }}
@@ -671,31 +664,54 @@ export default function GameApp() {
                     style={{
                       background: "rgba(26, 18, 11, 0.95)",
                       border: "2px solid #5c4033",
-                      borderRight: "4px solid #ff4d4d", 
+                      borderRight: "4px solid #ff4d4d",
                       borderRadius: "6px",
                       padding: "6px 16px",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
                       boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
                     }}
                   >
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: "1.2" }}>
-                      <span style={{ color: "#bdc3c7", fontSize: "10px", fontWeight: "bold", letterSpacing: "1px" }}>DAMAGE</span>
-                      <span style={{ color: "#ff4d4d", fontSize: "20px", fontWeight: "bold", textShadow: "0 2px 2px #000" }}>
-                        {store.wordScore.min === store.wordScore.max ? store.wordScore.min : `${store.wordScore.min}-${store.wordScore.max}`}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        lineHeight: "1.2",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#ff4d4d",
+                          fontSize: "20px",
+                          fontWeight: "bold",
+                          textShadow: "0 2px 2px #000",
+                        }}
+                      >
+                        {prediction.strike.min === prediction.strike.max
+                          ? prediction.strike.min
+                          : `${prediction.strike.min}-${prediction.strike.max}`}
+                      </span>
+                      <span
+                        style={{
+                          color: "#bdc3c7",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                          letterSpacing: "1px",
+                        }}
+                      >
+                        DAMAGE
                       </span>
                     </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-
           </div>
 
-          {/* ===================================================================
-            2. BOTTOM PANEL (CONTROLS & INVENTORY)
-            =================================================================== */}
+          {/* Bottom Panel */}
           <div
             style={{
               flex: 1,
@@ -705,21 +721,44 @@ export default function GameApp() {
               padding: "15px 0px 15px 0px",
               boxSizing: "border-box",
               overflow: "hidden",
-              position: "relative" 
+              position: "relative",
             }}
           >
-            {/* Main Content Wrapper: บังคับให้ขนาดคงที่เสมอ */}
-            <div style={{ flex: 1, display: "flex", width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}>
-              
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                width: "100%",
+                height: "100%",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
-                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
                   <QuizOverlay
                     data={store.currentQuiz}
                     onAnswer={store.resolveQuiz}
                   />
                 </div>
               ) : showTargetPicker ? (
-                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
                   <TargetPickerOverlay
                     store={store}
                     ipAddress={ipAddress}
@@ -727,9 +766,7 @@ export default function GameApp() {
                       setShowTargetPicker(false);
                       setPendingAction(null);
                     }}
-                    onSelectTarget={(enemyId) =>
-                      handleSelectTargetFromMenu(enemyId)
-                    }
+                    onSelectTarget={handleSelectTargetFromMenu}
                   />
                 </div>
               ) : (
@@ -740,7 +777,7 @@ export default function GameApp() {
                     alignItems: "center",
                     gap: "12px",
                     width: "100%",
-                    height: "100%"
+                    height: "100%",
                   }}
                 >
                   <PlayerStatusCard
@@ -748,17 +785,13 @@ export default function GameApp() {
                     onCure={handlePotionCure}
                     onReroll={handlePotionRoll}
                   />
-
                   <InventorySlot />
-
                   <ActionControls
                     store={store}
                     onAttackClick={() => handleActionClick("Strike")}
                     onShieldClick={() => handleActionClick("Guard")}
                     onSkillClick={handleSkillClick}
-                    onEndTurnClick={() => {
-                      store.passTurn();
-                    }}
+                    onEndTurnClick={store.passTurn}
                   />
                 </div>
               )}
