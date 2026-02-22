@@ -12,6 +12,13 @@ export default function PaperFrame({ title, children }) {
             0 0 0 4px #1a120b,
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
+        width: {
+          xs: "100%",
+          sm: 600,
+        },
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          width: 400,
+        },
       }}
     >
       <Box
@@ -20,16 +27,21 @@ export default function PaperFrame({ title, children }) {
           flexDirection: "column",
           background: `linear-gradient(${THEMES.bgMain}, #1a120b)`,
           borderRadius: "14px",
-          width: "560px",
+
           // minHeight: "280px",
-          p: 3,
+          px: { xs: 2, sm: 3 },
+          py: { xs: 3, sm: 4 },
           gap: 2,
+          // บีบ padding และ gap เฉพาะตอนตะแคงมือถือ
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            py: 1.5,
+            gap: 1.2,
+          },
         }}
       >
         {title && (
           <Box
             sx={{
-              
               textAlign: "center",
               borderBottom: `3px solid ${THEMES.border}`,
             }}
@@ -37,10 +49,17 @@ export default function PaperFrame({ title, children }) {
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: "50px",
-                color:  THEMES.accent,
+                fontSize: {
+                  xs: "35px",
+                  sm: "50px",
+                },
+                color: THEMES.accent,
                 letterSpacing: "2px",
                 textShadow: `2px 2px 0 ${THEMES.shadow}`,
+                // ลดขนาดคำว่า LOGIN ลงนิดนึงเฉพาะตอนตะแคง
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: "20px",
+                },
               }}
             >
               {title}

@@ -164,7 +164,19 @@ const RegisterPage = () => {
     <>
       <MagicCursor />
       <Box
-        sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: { xs: 2, sm: 0 },
+           "@media (orientation: landscape) and (max-height: 450px)": {
+            alignItems: "center", // ดันขึ้นบนสุดไม่ให้หัวล้น
+            py: 2, // เพิ่มขอบบนล่างกันตกขอบ
+            overflowY: "auto", // เผื่อจอมันเตี้ยมากๆ ให้ยังไถดูได้
+     
+          },
+        }}
       >
         <PaperFrame title="Register">
           <FormTextField
@@ -210,6 +222,7 @@ const RegisterPage = () => {
 
           <Button
             fullWidth
+            
             disabled={isLoading}
             onClick={handleSubmit}
             sx={{
@@ -218,7 +231,13 @@ const RegisterPage = () => {
               color: "#E8E9CD",
 
               borderRadius: "15px",
-              fontSize: "18px",
+              fontSize: {
+                xs: "14px",
+                sm: "16px",
+                md: "18px",
+                lg: "20px",
+              },
+              py: { xs: 1, sm: 1.2 },
               fontFamily: "'Press Start 2P'",
               "&:hover": { bgcolor: "#4f2e27ff" },
               "&.Mui-disabled": {
@@ -226,6 +245,11 @@ const RegisterPage = () => {
                 color: "#E8E9CD", // ฟอนต์ไม่ดำ
                 opacity: 0.8, // ลดนิดเดียวพอ
               },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: "10px",
+                mt: 0.5,
+                height: 32
+              }
             }}
             startIcon={
               isLoading ? <CircularProgress size={20} color="inherit" /> : null
@@ -238,12 +262,22 @@ const RegisterPage = () => {
             sx={{
               display: "flex",
               justifyContent: "space-evenly",
+              justifyContent: { xs: "center", sm: "space-evenly" },
+              alignItems: "center",
               width: "100%",
-              mt: 2,
+              mt: 1,
+              gap: 1
             }}
           >
             <Typography
-              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px",color: "white", }}
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: {
+                  xs: "7px",
+                  sm: "9px",
+                },
+                color: "rgb(207, 207, 207)",
+              }}
             >
               Don’t have an account ?
             </Typography>
@@ -252,12 +286,15 @@ const RegisterPage = () => {
               sx={{
                 color: "white",
                 fontFamily: "'Press Start 2P'",
-                fontSize: "10px",
+                fontSize: {
+                  xs: "8px",
+                  sm: "10px",
+                },
                 cursor: "pointer",
                 "&:hover": { textDecoration: "underline" },
               }}
               onClick={() => {
-                navigate("/auth/login"), clearBackendMessage();
+                (navigate("/auth/login"), clearBackendMessage());
               }}
             >
               Login

@@ -7,39 +7,59 @@ import {
   Button,
   Tooltip,
   IconButton,
+  useMediaQuery,
+  useTheme as useMuiTheme,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { motion, animate } from "framer-motion";
 
-// Icons (MUI Icons เพื่อความชัวร์ หรือใช้ SVG ที่คุณ import มา)
-import AutoStoriesIcon from "@mui/icons-material/AutoStories"; // Dictionary
-import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon"; // Monster
-import ShieldIcon from "@mui/icons-material/Shield"; // Adventure
-import PersonIcon from "@mui/icons-material/Person"; // Character
+// Icons
+import AutoStoriesIcon from "@mui/icons-material/AutoStories";
+import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
+import ShieldIcon from "@mui/icons-material/Shield";
+import PersonIcon from "@mui/icons-material/Person";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 
-
-// Assets เดิมของคุณ
+// Assets
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 import { GameDialog } from "../GameDialog";
 
-// --- THEME CONFIG (เพื่อให้แก้สีง่ายๆ) ---
 const THEME = {
-  bgMain: "#E8E9CD", // สีพื้นหลังแท่งบาร์
-  bgDark: "#2b1d14", // สีพื้นหลังปุ่ม
-  border: "#5A3A2E", // สีขอบ
-  text: "#3e2615", // สีตัวหนังสือเข้ม
-  accent: "#ffecb3", // สีทอง (Active)
-  activeBorder: "#FFD700", // สีขอบตอนเลือก
+  bgMain: "#E8E9CD",
+  bgDark: "#2b1d14",
+  border: "#5A3A2E",
+  text: "#3e2615",
+  accent: "#ffecb3",
+  activeBorder: "#FFD700",
 };
 
 const name = "img_hero";
 
-const AnimatedMoney = ({ value, fontSize = 13 }) => {
+// --- HELPER: ฟังก์ชันจัดการแสดงผลตัวเลขเงิน ---
+const formatGameMoney = (value) => {
+  if (value < 1000000000) {
+    return value.toLocaleString();
+  }
+  const suffixes = [
+    { value: 1e18, symbol: "Qi" },
+    { value: 1e15, symbol: "Qa" },
+    { value: 1e12, symbol: "T" },
+    { value: 1e9, symbol: "B" },
+  ];
+  const suffix = suffixes.find((s) => value >= s.value);
+  if (suffix) {
+    return (
+      (value / suffix.value).toFixed(2).replace(/\.00$/, "") + suffix.symbol
+    );
+  }
+  return value.toLocaleString();
+};
+
+const AnimatedMoney = ({ value, fontSize = 10 }) => {
   const [displayValue, setDisplayValue] = useState(value);
   const [status, setStatus] = useState("idle");
   const prevValue = useRef(value);
@@ -72,28 +92,29 @@ const AnimatedMoney = ({ value, fontSize = 13 }) => {
             ? "#4caf50"
             : status === "decrease"
               ? "#ff1744"
-              : "#3e2615", // ใช้สีน้ำตาลเข้มให้เข้ากับพื้นหลัง
-        // width: "60px", // เอา width fix ออกเพื่อให้ text ไหลตามความยาวเงิน
+              : "#3e2615",
         textAlign: "left",
         transition: "color 0.3s ease",
-        lineHeight: 0, // ตัดขอบบนล่างทิ้ง
-        
+        lineHeight: 1,
+        whiteSpace: "nowrap",
       }}
     >
-      {displayValue.toLocaleString()}
+      {formatGameMoney(displayValue)}
     </Typography>
   );
 };
 
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
   const currentLevel = activeHero?.level || 1;
 
   const navigate = useNavigate();
   const location = useLocation();
-
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleLogout = () => {
@@ -102,30 +123,13 @@ const GameAppBar = () => {
     setConfirmLogout(false);
   };
 
-  const handleConfirmLogout = () => {
-    setConfirmLogout(true);
-  };
-
-  const handleCancelLogout = () => {
-    setConfirmLogout(false);
-  };
-
-  // --- MENU CONFIGURATION ---
-  // แก้ไข Path ตรงนี้ให้ตรงกับ Route ของคุณ
-  // --- MENU CONFIGURATION ---
-  // 1. ปุ่มหลักตรงกลาง (Gameplay)
   const MAIN_NAV_ITEMS = [
-    {
-      id: "item",
-      label: "ITEM",
-      path: "/home/item",
-      icon: <InventoryIcon />,
-    },
+    { id: "item", label: "ITEM", path: "/home/item", icon: <InventoryIcon /> },
     {
       id: "adventure",
       label: "ADVENTURE",
       path: "/home",
-      icon: <ShieldIcon sx={{ fontSize: 24 }} />,
+      icon: <ShieldIcon />,
       isMain: true,
     },
     {
@@ -136,7 +140,6 @@ const GameAppBar = () => {
     },
   ];
 
-  // 2. ปุ่ม Library ย้ายไปไว้ด้านขวา (Reference)
   const LIBRARY_ITEMS = [
     {
       id: "monster",
@@ -146,7 +149,7 @@ const GameAppBar = () => {
     },
     {
       id: "dict",
-      label: "DICTIONARY",
+      label: "DICT",
       path: "/home/dictionary",
       icon: <AutoStoriesIcon />,
     },
@@ -157,83 +160,99 @@ const GameAppBar = () => {
       <AppBar
         position="static"
         sx={{
-          backgroundColor: "rgba(14, 14, 18, 0.74)",
+          backgroundColor: "rgba(14, 14, 18, 0.85)",
           boxShadow: "none",
-          borderBottom: `1px solid ${THEME.border}`,
+          borderBottom: `2px solid ${THEME.border}`,
+          zIndex: 1100,
         }}
       >
         <Toolbar
           sx={{
-            minHeight: "70px !important",
+            minHeight: { xs: "60px", md: "70px" },
+            px: { xs: 1, sm: 2 },
             display: "flex",
             justifyContent: "space-between",
-            gap: 2,
+            alignItems: "center",
+            gap: { xs: 0.5, sm: 2 },
           }}
         >
-          {/* 🔹 LEFT : PROFILE & MONEY SECTION */}
-          <Box sx={{ display: "flex", alignItems: "center", width: "280px" }}>
+          {/* 🔹 LEFT : PROFILE & MONEY */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              minWidth: { xs: "auto", sm: "180px", md: "240px" },
+            }}
+          >
             <Box
               sx={{
                 position: "relative",
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
               }}
             >
-              {/* Box หลัง: ชื่อ + เงิน */}
               <Box
                 sx={{
-                  pl: "60px", // เว้นที่ให้ Avatar
-                  pr: 3,
-                  py: 1,
+                  pl: { xs: "45px", sm: "55px" },
+                  pr: { xs: 1.5, sm: 2.5 },
+                  py: 0.5,
                   backgroundColor: "#E8E9CD",
-                  borderRadius: "20px",
-                  border: "4px solid #5A3A2E",
-                  boxShadow: "0 4px 0 #2b1a12",
+                  borderRadius: "15px",
+                  border: "3px solid #5A3A2E",
+                  boxShadow: "0 3px 0 #2b1a12",
                   display: "flex",
                   flexDirection: "column",
-                  justifyContent: "center",
-                  width: "140px",
+                  minWidth: { xs: "90px", sm: "120px", md: "140px" },
+                  width: "fit-content",
                 }}
               >
-                {/* ชื่อผู้เล่น */}
                 <Typography
+                  noWrap
                   sx={{
                     fontFamily: "'Press Start 2P'",
-                    fontSize: 10,
+                    fontSize: { xs: 6, sm: 8, md: 9 },
                     color: "#3e2615",
-                    mb: 0.5,
+                    mb: 0.2,
                   }}
                 >
                   {currentUser?.username}
                 </Typography>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    width: "100%",
+                  }}
+                >
                   <MonetizationOnIcon
                     sx={{
-                      fontSize: 14,
-                      color: "#FFD700", // สีทองอร่าม
-                      // ใส่เงา Drop Shadow สีน้ำตาลทองเข้มๆ ให้ดูนูนๆ แบบเกม
+                      fontSize: { xs: 10, sm: 12 },
+                      color: "#FFD700",
                       filter: "drop-shadow(1px 2px 0px #B8860B)",
                       borderRadius: "50%",
-                      backgroundColor: "#fff", // พื้นหลังขาวช่วยดันให้ทองเด่น
-                      border: "1px solid #B8860B", // ขอบตัด
+                      backgroundColor: "#fff",
+                      border: "1px solid #B8860B",
                     }}
                   />
-                  <AnimatedMoney value={currentUser?.money || 0} fontSize={10} />
+                  <AnimatedMoney
+                    value={currentUser?.money || 0}
+                    fontSize={isMobile ? 7 : 9}
+                  />
                 </Box>
               </Box>
 
-              {/* Avatar + Level Badge */}
+              {/* Avatar Container */}
               <Box
                 sx={{
                   position: "absolute",
                   left: "-5px",
-                  width: 52,
-                  height: 52,
+                  width: { xs: 40, sm: 48, md: 52 },
+                  height: { xs: 40, sm: 48, md: 52 },
                   borderRadius: "50%",
                   backgroundColor: "#E8E9CD",
-                  border: "4px solid #5A3A2E",
-                  boxShadow: "0 4px 0 #2b1a12",
+                  border: "3px solid #5A3A2E",
+                  boxShadow: "0 3px 0 #2b1a12",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -243,29 +262,27 @@ const GameAppBar = () => {
                 <Avatar
                   src={LoadImage(name, heroId, 1)}
                   sx={{
-                    width: 65,
-                    height: 65,
+                    width: "120%",
+                    height: "120%",
                     imageRendering: "pixelated",
                     mb: 1,
                   }}
                 />
-
-                {/* 📌 LEVEL BADGE: ย้าย Level มาแปะตรงนี้แทน */}
                 <Box
                   sx={{
                     position: "absolute",
-                    bottom: -5,
-                    right: -5,
+                    bottom: -4,
+                    right: -4,
                     backgroundColor: THEME.bgDark,
-                    border: `2px solid ${THEME.activeBorder}`,
-                    borderRadius: "8px",
-                    padding: "2px 4px",
+                    border: `1.5px solid ${THEME.activeBorder}`,
+                    borderRadius: "4px",
+                    px: 0.5,
                     zIndex: 3,
                   }}
                 >
                   <Typography
                     sx={{
-                      fontSize: 7,
+                      fontSize: { xs: 5, sm: 7 },
                       color: "#FFD700",
                       fontFamily: "'Press Start 2P'",
                     }}
@@ -277,13 +294,14 @@ const GameAppBar = () => {
             </Box>
           </Box>
 
-          {/* 🔹 CENTER : NAVIGATION TABS (เหลือแค่ 3 อันหลัก) */}
+          {/* 🔹 CENTER : NAVIGATION (Adventure ใหญ่สุดบนจอใหญ่) */}
           <Box
             sx={{
               flex: 1,
               display: "flex",
               justifyContent: "center",
-              gap: 1.5,
+              alignItems: "center",
+              gap: { xs: 0.5, sm: 1.5 },
             }}
           >
             {MAIN_NAV_ITEMS.map((item) => {
@@ -292,98 +310,78 @@ const GameAppBar = () => {
                   ? location.pathname === "/home"
                   : location.pathname.includes(item.path);
 
+              // Logic ขนาดปุ่ม: ถ้าเป็น Adventure และไม่ใช่ Mobile ให้ขยายใหญ่
+              const isMainAndNotMobile = item.isMain && !isMobile;
+
               return (
                 <Button
                   key={item.id}
                   onClick={() => navigate(item.path)}
-                  startIcon={item.icon}
                   sx={{
+                    // ปรับความกว้าง: Adventure (160px) vs อื่นๆ (120px)
+                    minWidth: isMobile
+                      ? "40px"
+                      : item.isMain
+                        ? "160px"
+                        : "120px",
+                    height: isMobile ? "40px" : item.isMain ? "52px" : "45px",
+                    flexDirection: { xs: "column", sm: "row" },
                     fontFamily: "'Press Start 2P'",
-                    fontSize: item.isMain ? 12 : 8,
-                    letterSpacing: 2,
+                    // ปรับ Font: Adventure (12px) vs อื่นๆ (8px)
+                    fontSize: isMobile ? 0 : item.isMain ? 12 : 8,
                     color: isActive ? THEME.bgDark : "#d7ccc8",
                     backgroundColor: isActive
                       ? THEME.accent
                       : "rgba(43, 29, 20, 0.6)",
-                    border: `2px solid ${
-                      isActive ? THEME.activeBorder : "#5a3e2b"
-                    }`,
+                    border: `2px solid ${isActive ? THEME.activeBorder : "#5a3e2b"}`,
                     borderRadius: "8px",
-                    px: 2,
-                    py: 1,
-                    minWidth: "120px",
                     boxShadow: isActive
-                      ? `0 0 10px ${THEME.accent}`
-                      : "0 4px 0 #1a120b",
-                    transform: isActive ? "translateY(2px)" : "translateY(0)",
+                      ? `0 0 12px ${THEME.accent}`
+                      : "0 3px 0 #1a120b",
+                    p: { xs: 0, sm: 1.5 },
                     transition: "all 0.1s",
+                    "& .MuiButton-startIcon": {
+                      margin: isMobile ? 0 : "0 8px 0 0",
+                      "& > *:nth-of-type(1)": {
+                        // Icon Adventure จะใหญ่กว่านิดหน่อยบน Desktop
+                        fontSize: isMobile ? 20 : item.isMain ? 26 : 22,
+                      },
+                    },
                     "&:hover": {
                       backgroundColor: isActive
                         ? THEME.accent
                         : "rgba(43, 29, 20, 0.9)",
-                      transform: "translateY(2px)",
-                      boxShadow: "none",
-                      borderColor: THEME.accent,
-                    },
-                    "& .MuiButton-startIcon": {
-                      mr: 1,
-                      mb: 0.5,
+                      transform: "translateY(1px)",
                     },
                   }}
+                  startIcon={item.icon}
                 >
-                  {item.label}
+                  {!isMobile && item.label}
                 </Button>
               );
             })}
           </Box>
 
-          {/* 🔹 RIGHT : LIBRARY ICONS, MONEY & SETTINGS */}
+          {/* 🔹 RIGHT : LIBRARY & SETTINGS */}
           <Box
             sx={{
               display: "flex",
               justifyContent: "flex-end",
               alignItems: "center",
-              width: "300px", // เพิ่มความกว้างเผื่อไอคอนใหม่
-              pr: 2,
-              gap: 1.5, // ระยะห่างระหว่าง elements ด้านขวา
+              minWidth: { xs: "auto", sm: "120px", md: "200px" },
+              gap: { xs: 0.2, sm: 1 },
             }}
           >
-            {/* กล่องเงิน
-            <Box
-              sx={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                pl: 4,
-                pr: 2,
-                py: 0.8,
-                backgroundColor: "#E8E9CD",
-                border: "4px solid #5A3A2E",
-                borderRadius: "15px",
-                boxShadow: "0 4px 0 #2b1a12",
-                mr: 1, // เว้นระยะห่างจากปุ่ม Library
-              }}
-            >
+            {!isMobile && (
               <Box
-                component="img"
-                src={coin}
-                sx={{ position: "absolute", left: -12, width: 32 }}
+                sx={{
+                  width: "1px",
+                  height: "24px",
+                  bgcolor: "rgba(255,255,255,0.2)",
+                  mx: 0.5,
+                }}
               />
-              <AnimatedMoney value={currentUser?.money || 0} />
-            </Box> */}
-
-            {/* --- SEPARATOR --- */}
-            {/* เส้นแบ่งจางๆ (Optional) */}
-            <Box
-              sx={{
-                width: "1px",
-                height: "30px",
-                bgcolor: "rgba(255,255,255,0.2)",
-                mx: 0.5,
-              }}
-            />
-
-            {/* LIBRARY ICONS (Monsters & Dictionary) */}
+            )}
             {LIBRARY_ITEMS.map((item) => {
               const isActive = location.pathname.includes(item.path);
               return (
@@ -395,17 +393,10 @@ const GameAppBar = () => {
                       backgroundColor: isActive
                         ? "rgba(255, 236, 179, 0.1)"
                         : "transparent",
-                      border: `2px solid ${
-                        isActive ? THEME.activeBorder : "transparent"
-                      }`,
-                      borderRadius: "8px", // เป็นสี่เหลี่ยมมนๆ ให้เข้ากับธีม
-                      padding: "8px",
-                      transition: "all 0.2s",
-                      "&:hover": {
-                        backgroundColor: "rgba(43, 29, 20, 0.6)",
-                        transform: "scale(1.1)",
-                        color: THEME.accent,
-                      },
+                      border: `2px solid ${isActive ? THEME.activeBorder : "transparent"}`,
+                      borderRadius: "8px",
+                      p: { xs: 0.5, sm: 1 },
+                      "& .MuiSvgIcon-root": { fontSize: { xs: 20, sm: 24 } },
                     }}
                   >
                     {item.icon}
@@ -413,20 +404,17 @@ const GameAppBar = () => {
                 </Tooltip>
               );
             })}
-
-            {/* SETTINGS LOGOUT */}
-            <Tooltip title="Logout" arrow>
-              <IconButton
-                onClick={handleConfirmLogout}
-                sx={{
-                  color: "#d7ccc8",
-                  "&:hover": { color: "#ff1744", transform: "rotate(90deg)" },
-                  transition: "all 0.3s",
-                }}
-              >
-                <SettingsIcon />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              onClick={() => setConfirmLogout(true)}
+              sx={{
+                color: "#d7ccc8",
+                p: { xs: 0.5, sm: 1 },
+                "&:hover": { color: "#ff1744", transform: "rotate(90deg)" },
+                transition: "all 0.3s",
+              }}
+            >
+              <SettingsIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
@@ -436,7 +424,7 @@ const GameAppBar = () => {
         title="Confirm Logout"
         description="Are you sure you want to logout?"
         onConfirm={handleLogout}
-        onCancel={handleCancelLogout}
+        onCancel={() => setConfirmLogout(false)}
         confirmText="Logout"
         cancelText="Cancel"
       />
