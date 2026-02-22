@@ -13,5 +13,9 @@ export default function RootRedirect() {
     return <Navigate to="/admin" replace />;
   }
 
+  if (currentUser.role === "adminBoss") {
+    return <Navigate to="/adminBoss" replace />;
+  }
+
   return <Navigate to="/home" replace />;
 }

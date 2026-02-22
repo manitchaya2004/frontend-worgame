@@ -9,7 +9,7 @@ const MovePanel = () => {
   const emptyForm = {
     id: "",
     move_name: "",
-    type: "ATTACK",     // ATTACK | GUARD | HEAL | WAIT
+    type: "ATTACK",     // ATTACK | GUARD | HEAL | WAIT (ตามของทิวใน DB)
     is_quiz: false,
     is_dash: true,
     power: 0,

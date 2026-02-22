@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { AdminRoute } from "../routes/AdminRoute";
+import { AdminBossRoute } from "../routes/AdminBossRoute";
 import PrivateRoute from "../routes/PrivateRoute";
 import RootRedirect from "../routes/RootRedirect";
 import AuthLayout from "../components/AuthLayout/AuthLayout";
@@ -17,7 +18,15 @@ import AuthPage from "./AuthPage";
 import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";
 import LibraryFeature from "./HomePage/feature/LibraryFeature";
 import AdminPage from "./AdminPage/AdminPage";
+import AdminBoss from "./AdminBoss/AdminBoss";
 // import NotFoundPage from "./NotFoundPage";
+const Forbidden = () => (
+  <div style={{ padding: 40, color: "white" }}>
+    <h1>403 Forbidden</h1>
+    <p>ไม่มีสิทธิ์เข้าหน้านี้</p>
+  </div>
+);
+
 export default function App() {
   const authLoading = useAuthStore((state) => state.authLoading);
   const checkAuth = useAuthStore((state)=>state.checkAuth);
@@ -61,6 +70,13 @@ export default function App() {
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminPage />} />
       </Route>
+
+      <Route element={<AdminBossRoute />}>
+        <Route path="/adminBoss" element={<AdminBoss />} />
+      </Route>
+
+      <Route path="/403" element={<Forbidden />} />
+      <Route path="*" element={<Forbidden />} />
     </Routes>
   );
 }

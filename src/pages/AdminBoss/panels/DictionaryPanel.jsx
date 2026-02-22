@@ -5,21 +5,15 @@ const DictionaryPanel = () => {
   const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Filters
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
   const [filterLength, setFilterLength] = useState("");
-  const [onlyOxford, setOnlyOxford] = useState(false);
 
-  const [formData, setFormData] = useState({
-    id: "",
-    word: "",
-    type: "",
-    meaning: "",
-    level: "", // ✅ "" = No Level ใน UI
-    is_oxford: false,
-  });
+  // Form
+  const [formData, setFormData] = useState({ word: "", type: "", meaning: "", level: "" });
   const [isEditing, setIsEditing] = useState(false);
 
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -30,116 +24,82 @@ const DictionaryPanel = () => {
       const payload = { limit: 100 };
       if (searchText) payload.startsWith = searchText;
       else if (selectedLetter) payload.startsWith = selectedLetter;
-
       if (filterLevel) payload.level = filterLevel;
       if (filterLength) payload.length = Number(filterLength);
-      if (onlyOxford) payload.onlyOxford = true;
 
       const res = await fetch(`${API_URL}/dict/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const responseData = await res.json();
-      const resultData = Array.isArray(responseData) ? responseData : responseData.data || [];
+      let resultData = Array.isArray(responseData) ? responseData : (responseData.data || []);
       setWords(resultData);
     } catch (error) {
       console.error("Error fetching words:", error);
     } finally {
       setLoading(false);
     }
-  }, [selectedLetter, searchText, filterLevel, filterLength, onlyOxford]);
+  }, [selectedLetter, searchText, filterLevel, filterLength]);
 
   useEffect(() => {
     fetchWordsQuery();
   }, [fetchWordsQuery]);
 
   const handleLetterClick = (letter) => {
-    if (selectedLetter === letter) setSelectedLetter("");
-    else {
+    if (selectedLetter === letter) {
+      setSelectedLetter("");
+    } else {
       setSelectedLetter(letter);
       setSearchText("");
     }
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
-  };
-
-  const resetForm = () => {
-    setFormData({ id: "", word: "", type: "", meaning: "", level: "", is_oxford: false });
-    setIsEditing(false);
-  };
-
-  const normalizeLevelForApi = (lv) => {
-    if (lv === "" || lv === undefined) return null; // ✅ "" => null
-    return lv;
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const method = isEditing ? "PUT" : "POST";
-      const url = isEditing ? `${API_URL}/dict/${formData.id}` : `${API_URL}/dict`;
-
-      const payload = {
-        word: formData.word,
-        type: formData.type,
-        meaning: formData.meaning,
-        level: normalizeLevelForApi(formData.level),
-        is_oxford: Boolean(formData.is_oxford),
-      };
+      const url = isEditing ? `${API_URL}/dict/${formData.word}` : `${API_URL}/dict`;
 
       const res = await fetch(url, {
-        method,
+        method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
 
       if (!res.ok) throw new Error("Operation failed");
 
-      resetForm();
+      setFormData({ word: "", type: "", meaning: "", level: "" });
+      setIsEditing(false);
       fetchWordsQuery();
       alert(isEditing ? "แก้ไขสำเร็จ!" : "เพิ่มคำศัพท์สำเร็จ!");
     } catch (error) {
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-      console.error(error);
     }
   };
 
-  const handleEditClick = (row) => {
-    setFormData({
-      id: row.id || "",
-      word: row.word || "",
-      type: row.type || "",
-      meaning: row.meaning || "",
-      level: row.level ?? "",
-      is_oxford: Boolean(row.is_oxford),
-    });
+  const handleEditClick = (wordObj) => {
+    setFormData({ ...wordObj });
     setIsEditing(true);
     document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleDelete = async (row) => {
-    const label = `${row.word} (${row.type})`;
-    if (!window.confirm(`แน่ใจนะว่าจะลบ "${label}" ?`)) return;
-
+  const handleDelete = async (wordToDelete) => {
+    if (!window.confirm(`คุณแน่ใจหรือไม่ที่จะลบคำว่า "${wordToDelete}"?`)) return;
     try {
-      const res = await fetch(`${API_URL}/dict/${row.id}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/dict/${wordToDelete}`, { method: "DELETE" });
       if (res.ok) fetchWordsQuery();
       else alert("ลบไม่สำเร็จ");
     } catch (error) {
       alert("เกิดข้อผิดพลาด");
-      console.error(error);
     }
   };
 
-  const filteredWords = words.filter((w) => !filterType || w.type === filterType);
+  const filteredWords = words.filter((word) => !filterType || word.type === filterType);
 
   return (
     <div>
@@ -152,21 +112,17 @@ const DictionaryPanel = () => {
           value={formData.word}
           onChange={handleChange}
           required
+          disabled={isEditing}
         />
-
         <select className="input-field" name="type" value={formData.type} onChange={handleChange} required>
           <option value="" disabled>
             Select Type...
           </option>
-          <option value="noun">noun</option>
-          <option value="verb">verb</option>
-          <option value="adjective">adjective</option>
-          <option value="adverb">adverb</option>
-          <option value="preposition">preposition</option>
-          <option value="conjunction">conjunction</option>
-          <option value="pronoun">pronoun</option>
+          <option value="noun">Noun</option>
+          <option value="verb">Verb</option>
+          <option value="adjective">Adjective</option>
+          <option value="adverb">Adverb</option>
         </select>
-
         <input
           className="input-field"
           type="text"
@@ -176,33 +132,28 @@ const DictionaryPanel = () => {
           onChange={handleChange}
           required
         />
-
-        {/* ✅ No Level */}
-        <select className="input-field" name="level" value={formData.level ?? ""} onChange={handleChange}>
-          <option value="">No Level</option>
+        <select className="input-field" name="level" value={formData.level} onChange={handleChange} required>
+          <option value="" disabled>
+            Select Level...
+          </option>
           <option value="A1">A1</option>
           <option value="A2">A2</option>
           <option value="B1">B1</option>
           <option value="B2">B2</option>
         </select>
-
-        {/* ✅ Oxford checkbox */}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }}>
-          <input
-            type="checkbox"
-            name="is_oxford"
-            checked={Boolean(formData.is_oxford)}
-            onChange={handleChange}
-          />
-          Oxford
-        </label>
-
         <button type="submit" className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}>
           {isEditing ? "Update Word" : "Add Word"}
         </button>
-
         {isEditing && (
-          <button type="button" className="btn" onClick={resetForm} style={{ backgroundColor: "#666" }}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setIsEditing(false);
+              setFormData({ word: "", type: "", meaning: "", level: "" });
+            }}
+            style={{ backgroundColor: "#666" }}
+          >
             Cancel
           </button>
         )}
@@ -215,7 +166,6 @@ const DictionaryPanel = () => {
               key={letter}
               className={`letter-btn ${selectedLetter === letter ? "active" : ""}`}
               onClick={() => handleLetterClick(letter)}
-              type="button"
             >
               {letter}
             </button>
@@ -224,12 +174,10 @@ const DictionaryPanel = () => {
             className={`letter-btn ${selectedLetter === "" ? "active" : ""}`}
             onClick={() => setSelectedLetter("")}
             style={{ gridColumn: "span 2" }}
-            type="button"
           >
             ALL
           </button>
         </div>
-
         <div className="search-controls">
           <span className="search-icon">🔍</span>
           <input
@@ -239,18 +187,13 @@ const DictionaryPanel = () => {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
           />
-
           <select className="filter-select" onChange={(e) => setFilterType(e.target.value)} value={filterType}>
             <option value="">All Types</option>
-            <option value="noun">noun</option>
-            <option value="verb">verb</option>
-            <option value="adjective">adjective</option>
-            <option value="adverb">adverb</option>
-            <option value="preposition">preposition</option>
-            <option value="conjunction">conjunction</option>
-            <option value="pronoun">pronoun</option>
+            <option value="noun">Noun</option>
+            <option value="verb">Verb</option>
+            <option value="adjective">Adjective</option>
+            <option value="adverb">Adverb</option>
           </select>
-
           <select className="filter-select" onChange={(e) => setFilterLevel(e.target.value)} value={filterLevel}>
             <option value="">All Levels</option>
             <option value="A1">Level A1</option>
@@ -258,7 +201,6 @@ const DictionaryPanel = () => {
             <option value="B1">Level B1</option>
             <option value="B2">Level B2</option>
           </select>
-
           <select className="filter-select" onChange={(e) => setFilterLength(e.target.value)} value={filterLength}>
             <option value="">Any Length</option>
             <option value="3">3 Chars</option>
@@ -267,16 +209,6 @@ const DictionaryPanel = () => {
             <option value="6">6 Chars</option>
             <option value="7">7+ Chars</option>
           </select>
-
-          {/* ✅ Filter Oxford only */}
-          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }}>
-            <input
-              type="checkbox"
-              checked={onlyOxford}
-              onChange={(e) => setOnlyOxford(e.target.checked)}
-            />
-            Oxford only
-          </label>
         </div>
       </div>
 
@@ -291,33 +223,33 @@ const DictionaryPanel = () => {
                 <th>Type</th>
                 <th>Meaning</th>
                 <th>Level</th>
-                <th>Oxford</th>
                 <th>Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {filteredWords.map((item) => (
-                <tr key={item.id}>
-                  <td><strong>{item.word}</strong></td>
-                  <td><span style={{ color: "#aaa" }}>{item.type}</span></td>
+                <tr key={item.word}>
+                  <td>
+                    <strong>{item.word}</strong>
+                  </td>
+                  <td>
+                    <span style={{ color: "#aaa" }}>{item.type}</span>
+                  </td>
                   <td>{item.meaning}</td>
-                  <td>{item.level && String(item.level).trim() !== "" ? item.level : "-"}</td>
-                  <td style={{ textAlign: "center" }}>{item.is_oxford ? "✅" : "-"}</td>
+                  <td>LV. {item.level}</td>
                   <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEditClick(item)} type="button">
+                    <button className="btn btn-edit" onClick={() => handleEditClick(item)}>
                       Edit
                     </button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(item)} type="button">
+                    <button className="btn btn-delete" onClick={() => handleDelete(item.word)}>
                       Delete
                     </button>
                   </td>
                 </tr>
               ))}
-
               {filteredWords.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "20px" }}>
                     No words found.
                   </td>
                 </tr>
