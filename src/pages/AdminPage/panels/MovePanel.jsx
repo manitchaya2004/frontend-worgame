@@ -26,7 +26,7 @@ const MovePanel = () => {
   const fetchMoves = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/moves`);
+      const res = await fetch(`/api/moves`);
       if (!res.ok) throw new Error("Failed to fetch moves");
       const data = await res.json();
       // id เป็น string (acid, blind, ...) ให้ sort แบบ string
@@ -62,7 +62,7 @@ const MovePanel = () => {
 
     try {
       const method = isEditing ? "PUT" : "POST";
-      const url = isEditing ? `${API_URL}/moves/${formData.id}` : `${API_URL}/moves`;
+      const url = isEditing ? `/api/moves/${formData.id}` : `/api/moves`;
 
       // ทำ payload ให้ number เป็น number, ช่องว่าง -> null
       const payload = {
@@ -118,7 +118,7 @@ const MovePanel = () => {
   const handleDelete = async (id) => {
     if (!window.confirm(`แน่ใจหรือไม่ที่จะลบ Move ID: ${id}?`)) return;
     try {
-      const res = await fetch(`${API_URL}/moves/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/moves/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to delete");

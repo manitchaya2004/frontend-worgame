@@ -27,7 +27,7 @@ const StagePanel = () => {
   const fetchStages = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/getAllStage`);
+      const res = await fetch(`/api/getAllStage`);
       if (!res.ok) throw new Error("Failed to fetch stages");
       const data = await res.json();
       setStages(data);
@@ -66,7 +66,7 @@ const StagePanel = () => {
     const fd = new FormData();
     fd.append("map", mapFile);
 
-    const up = await fetch(`${API_URL}/stage/${stageId}/map`, {
+    const up = await fetch(`/api/stage/${stageId}/map`, {
       method: "POST",
       body: fd,
     });
@@ -94,10 +94,10 @@ const StagePanel = () => {
     };
 
     try {
-      let url = `${API_URL}/stage`;
+      let url = `/api/stage`;
       let method = "POST";
       if (isEditing) {
-        url = `${API_URL}/stage/${formData.id}`;
+        url = `/api/stage/${formData.id}`;
         method = "PUT";
       }
 
@@ -145,7 +145,7 @@ const StagePanel = () => {
       return;
 
     try {
-      const res = await fetch(`${API_URL}/stage/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/stage/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete stage failed");
@@ -176,7 +176,7 @@ const StagePanel = () => {
 
   // Thumbnail map image: /img_map/{id}.png
   const MapThumb = ({ id }) => {
-    const url = `${API_URL}/img_map/${id}.png`;
+    const url = `/api/img_map/${id}.png`;
     const [hide, setHide] = useState(false);
 
     if (hide) return <span className="no-sprite">No Map</span>;
@@ -394,7 +394,7 @@ const SpawnPanel = ({ stageId }) => {
 
   const fetchMonsters = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/monster`);
+      const res = await fetch(`/api/monster`);
       if (!res.ok) throw new Error("Failed to fetch monsters");
       const data = await res.json();
       setMonsters(data);
@@ -410,7 +410,7 @@ const SpawnPanel = ({ stageId }) => {
   const fetchSpawns = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/spawn?stage_id=${encodeURIComponent(stageId)}`);
+      const res = await fetch(`/api/spawn?stage_id=${encodeURIComponent(stageId)}`);
       if (!res.ok) throw new Error("Failed to fetch spawns");
       const data = await res.json();
       setSpawns(data);
@@ -453,10 +453,10 @@ const SpawnPanel = ({ stageId }) => {
     };
 
     try {
-      let url = `${API_URL}/spawn`;
+      let url = `/api/spawn`;
       let method = "POST";
       if (isEditing) {
-        url = `${API_URL}/spawn/${formData.id}`;
+        url = `/api/spawn/${formData.id}`;
         method = "PUT";
       }
 
@@ -494,7 +494,7 @@ const SpawnPanel = ({ stageId }) => {
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Spawn ID: ${id}?`)) return;
     try {
-      const res = await fetch(`${API_URL}/spawn/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/spawn/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete spawn failed");

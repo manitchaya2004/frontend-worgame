@@ -27,7 +27,7 @@ const DictionaryPanel = () => {
       if (filterLevel) payload.level = filterLevel;
       if (filterLength) payload.length = Number(filterLength);
 
-      const res = await fetch(`${API_URL}/dict/query`, {
+      const res = await fetch(`/api/dict/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -63,7 +63,7 @@ const DictionaryPanel = () => {
     e.preventDefault();
     try {
       const method = isEditing ? "PUT" : "POST";
-      const url = isEditing ? `${API_URL}/dict/${formData.word}` : `${API_URL}/dict`;
+      const url = isEditing ? `/api/dict/${formData.word}` : `/api/dict`;
 
       const res = await fetch(url, {
         method: method,
@@ -91,7 +91,7 @@ const DictionaryPanel = () => {
   const handleDelete = async (wordToDelete) => {
     if (!window.confirm(`คุณแน่ใจหรือไม่ที่จะลบคำว่า "${wordToDelete}"?`)) return;
     try {
-      const res = await fetch(`${API_URL}/dict/${wordToDelete}`, { method: "DELETE" });
+      const res = await fetch(`/api/dict/${wordToDelete}`, { method: "DELETE" });
       if (res.ok) fetchWordsQuery();
       else alert("ลบไม่สำเร็จ");
     } catch (error) {

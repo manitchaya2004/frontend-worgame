@@ -30,10 +30,10 @@ export const usePreloadFrames = (
 
       if (isSingleFrame) {
         // สำหรับ DetailItem เดิมที่อาจส่ง "walk-1" มา
-        src = `${API_URL}/${name}/${heroId}-${actionOrCount}.png`;
+        src = `/api/${name}/${heroId}-${actionOrCount}.png`;
       } else {
         // สำหรับ Player/Enemy ที่ส่ง Action หลักเข้ามา
-        src = `${API_URL}/${name}/${heroId}-${actionName}-${i}.png`;
+        src = `/api/${name}/${heroId}-${actionName}-${i}.png`;
       }
 
       img.src = src;
@@ -56,15 +56,15 @@ export const usePreloadFrames = (
 };
 
 export const LoadImage = (name = "img_monster", Id, i) => {
-  return `${API_URL}/${name}/${Id}-idle-${i}.png`;
+  return `/api/${name}/${Id}-idle-${i}.png`;
 };
 
 // export const LoadImage = (name = "img_hero", id, frame = 1, action = "idle") => {
 //     // ถ้าตัวแปร action มีเลขเฟรมติดมาแล้ว (เช่น "walk-1") ให้ใช้ได้เลย
 //     if (typeof action === "string" && action.includes("-")) {
-//         return `${API_URL}/${name}/${id}-${action}.png`;
+//         return `/api/${name}/${id}-${action}.png`;
 //     }
-//     return `${API_URL}/${name}/${id}-${action}-${frame}.png`;
+//     return `/api/${name}/${id}-${action}-${frame}.png`;
 // }
 
 export const preloadImage = (src) => {

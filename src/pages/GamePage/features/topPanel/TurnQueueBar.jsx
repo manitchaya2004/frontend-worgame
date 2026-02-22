@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ipAddress } from "../../../../const/index";
 
@@ -9,6 +10,9 @@ export const TurnQueueBar = ({ store }) => {
     playerData,
     setHoveredEnemyId,
   } = store;
+
+  // State สำหรับคุม Tooltip ของกล่องลำดับเทิร์น
+  const [isHovered, setIsHovered] = useState(false);
 
   // ถ้าไม่มีคิว หรือไม่ใช่หน้าต่อสู้ ไม่ต้องแสดง
   if (!turnQueue || turnQueue.length === 0 || gameState === "ADVANTURE")
@@ -24,8 +28,12 @@ export const TurnQueueBar = ({ store }) => {
   return (
     <div
       style={styles.queueContainer}
-      // เมื่อเมาส์ออกจากแถบทั้งหมด ให้เคลียร์ค่า Hover
-      onPointerLeave={() => setHoveredEnemyId(null)}
+      // เมื่อเมาส์เข้า/ออก ให้จัดการ Tooltip และ Hover State
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => {
+        setIsHovered(false);
+        setHoveredEnemyId(null);
+      }}
     >
       <div style={styles.queueList}>
         <AnimatePresence mode="popLayout">
@@ -35,16 +43,15 @@ export const TurnQueueBar = ({ store }) => {
 
             // 1. จัดการรูปภาพตามประเภท (Player vs Enemy)
             if (unit.type === "player") {
-              imgSrc = `${ipAddress}/img_hero/${playerData.img_path}-idle-1.png`;
+              imgSrc = `/api/img_hero/${playerData.img_path}-idle-1.png`;
             } else {
               const enemyData = enemies.find((e) => e.id === unit.id);
               imgSrc = enemyData
-                ? `${ipAddress}/img_monster/${enemyData.monster_id}-idle-1.png`
+                ? `/api/img_monster/${enemyData.monster_id}-idle-1.png`
                 : "https://via.placeholder.com/40";
             }
 
             // 2. จัดการตัวเลข Speed (Initiative)
-            // ใช้ Fallback หลายชั้นเพื่อกันค่าเป็น null/undefined
             const speedValue =
               unit.originalInitiative ??
               unit.initiative ??
@@ -66,7 +73,7 @@ export const TurnQueueBar = ({ store }) => {
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 style={styles.queueCard}
                 
-                // 3. LOGIC สำคัญสำหรับการชี้เมาส์
+                // 3. LOGIC สำคัญสำหรับการชี้เมาส์บอกเป้าหมาย
                 onPointerEnter={() => {
                   if (unit.type === "player") {
                     setHoveredEnemyId("PLAYER");
@@ -97,6 +104,60 @@ export const TurnQueueBar = ({ store }) => {
           })}
         </AnimatePresence>
       </div>
+
+      {/* =========================
+          CUSTOM FANTASY TOOLTIP (ชี้ลงมาด้านล่าง)
+      ========================= */}
+      <AnimatePresence>
+        {isHovered && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: -10, scale: 0.95, x: "-50%" }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "absolute",
+              top: "calc(100% + 16px)", // ลอยอยู่ด้านล่างกรอบคิว
+              left: "50%",
+              background: "rgba(15, 11, 8, 0.95)", 
+              border: "1px solid #d4af37", 
+              borderRadius: "6px",
+              padding: "8px 10px",
+              minWidth: "140px",
+              zIndex: 999, 
+              pointerEvents: "none", 
+              boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {/* ลูกศรชี้ขึ้นด้านบน */}
+            <div style={{
+              position: "absolute",
+              top: "-6px",
+              left: "50%",
+              marginLeft: "-5px", 
+              width: "10px",
+              height: "10px",
+              background: "rgba(15, 11, 8, 0.95)",
+              borderLeft: "1px solid #d4af37",
+              borderTop: "1px solid #d4af37",
+              transform: "rotate(45deg)",
+            }} />
+
+            {/* หัวข้อ */}
+            <span style={{ color: "#ffd700", fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif", textAlign: "center" }}>
+              Turn Order
+            </span>
+            {/* คำอธิบาย */}
+            <span style={{ color: "#bdc3c7", fontSize: "11px", textAlign: "center" }}>
+              Shows the attack sequence.
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

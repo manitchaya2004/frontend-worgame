@@ -1,14 +1,14 @@
-import React from "react";
+import React, { useMemo, memo } from "react";
 import { motion } from "framer-motion";
 import {
-  DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS, ipAddress
+  DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS
 } from "../../../../const/index";
 import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
 
-export const PlayerEntity = ({ store }) => {
+export const PlayerEntity = memo(({ store }) => {
   // 1. ดึงค่าทั้งหมดจาก Store
   const { 
     gameState, playerX, playerData, playerVisual, 
@@ -16,47 +16,45 @@ export const PlayerEntity = ({ store }) => {
   } = store;
 
   // =========================================================
-  // 🧠 LOGIC: แปลงคำสั่งจาก Store เป็น Action และ Frame
+  // 🧠 LOGIC: แปลงคำสั่งจาก Store เป็น Action และ URL (ใช้ useMemo ป้องกันรูปวาป)
   // =========================================================
   
-  let currentAction = "idle";
-  let targetFrame = 1;
+  const currentSrc = useMemo(() => {
+    let currentAction = "idle";
+    let targetFrame = 1;
 
-  // กรณี 1: เดินในฉากแผนที่ (Adventure) -> บังคับ walk + ใช้ animFrame
-  if (gameState === "ADVANTURE") {
-    currentAction = "walk";
-    targetFrame = animFrame; 
-  } 
-  // กรณี 2: ฉากต่อสู้ -> ดูค่า playerVisual จาก Store เป็นหลัก
-  else {
-    // playerVisual อาจเป็น "idle", "walk", "attack-1", "guard-1", "hurt"
-    const split = (playerVisual || "idle").split("-");
-    
-    currentAction = split[0]; // ได้คำว่า "attack", "guard", "idle"
-
-    // เช็คว่า Store สั่งเลขเฟรมมาด้วยไหม? (เช่น -1, -2)
-    if (split[1]) {
-      // ถ้ามีเลข: Store สั่งล็อคเฟรมนี้ (เช่น attack-1 ก็ต้องโชว์เฟรม 1)
-      targetFrame = parseInt(split[1]);
-    } else {
-      // ถ้าไม่มีเลข: ให้ขยับตามจังหวะชีพจรเกม (animFrame)
-      targetFrame = animFrame;
+    // กรณี 1: เดินในฉากแผนที่
+    if (gameState === "ADVANTURE") {
+      currentAction = "walk";
+      targetFrame = animFrame; 
+    } 
+    // กรณี 2: ฉากต่อสู้
+    else {
+      const split = (playerVisual || "idle").split("-");
+      currentAction = split[0];
+      targetFrame = split[1] ? parseInt(split[1]) : animFrame;
     }
-  }
+
+    // 🛑 แก้ไขปัญหา 404: ถ้าเป็นท่า guard ให้บังคับใช้เฟรม 1 เสมอ
+    if (currentAction === "guard") {
+      targetFrame = 1;
+    }
+
+    // สร้าง URL หรือดึงจาก Preload (ถ้ามี)
+    return `/api/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
+  }, [gameState, animFrame, playerVisual, playerData.img_path]);
+
+  // 🛑 แก้ไขปัญหาพรีโหลด: ถ้าเป็น guard ให้โหลดแค่ 1 ภาพ นอกนั้นโหลด 2 ภาพตามปกติ
+  const currentActionBase = (playerVisual || "idle").split("-")[0];
+  const preloadFrameCount = currentActionBase === "guard" ? 1 : 2;
+  
+  // ยังคงเรียก Hook เพื่อให้ Browser ทำการ Fetch ข้อมูลไว้ (ตามโครงสร้างเดิมของคุณ)
+  usePreloadFrames("img_hero", playerData.img_path, preloadFrameCount, gameState === "ADVANTURE" ? "walk" : currentActionBase);
 
   // =========================================================
 
-  // 2. โหลดรูป (ใช้แค่ชื่อ Action หลัก ไม่เอาเลข)
-  const frames = usePreloadFrames("img_hero", playerData.img_path, 2, currentAction);
-  
-  // 3. เลือกรูปที่จะโชว์ตาม targetFrame ที่คำนวณมา
-  const currentSrc = frames[targetFrame - 1] 
-    ? frames[targetFrame - 1].src 
-    : `${ipAddress}/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
-  
   return (
     <>
-    <pre>{}</pre>
     <motion.div
       animate={{ left: `${playerX ?? PLAYER_X_POS}%` }}
       transition={
@@ -78,35 +76,34 @@ export const PlayerEntity = ({ store }) => {
           <ShoutBubble text={playerShoutText} />
         </div>
         
-{/* --- HUD ZONE (อยู่บนหัวผู้เล่น) --- */}
-<div 
-  style={{ 
-    position: "relative", 
-    width: "100px", 
-    marginBottom: "35px", 
-    zIndex: 15, 
-    display: "flex", 
-    flexDirection: "column", // เรียงหลอดจากบนลงล่าง
-    alignItems: "center",    // จัดหลอดให้อยู่ตรงกลางหัว
-    justifyContent: "center"
-  }}
->
-  {/* หลอด HP */}
-  <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
-  
-  {/* หลอด Mana (วางต่อท้ายทันทีเพื่อให้ติดกันและอยู่บนหัวเหมือนกัน) */}
-  <MpBar mp={playerData.mana} max={playerData.max_mana} color="#3b82f6" />
+        {/* --- HUD ZONE (อยู่บนหัวผู้เล่น) --- */}
+        <div 
+          style={{ 
+            position: "relative", 
+            width: "100px", 
+            marginBottom: "35px", 
+            zIndex: 15, 
+            display: "flex", 
+            flexDirection: "column", 
+            alignItems: "center", 
+            justifyContent: "center"
+          }}
+        >
+          <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
+          <MpBar mp={playerData.mana} max={playerData.max_mana} color="#3b82f6" />
 
-  {/* UI โล่ */}
-  <div style={{ position: "absolute", right: "10px", top: "-20px", color: playerData.shield > 0 ? "#00bcd4" : "#888", fontWeight: 'bold', fontSize: "12px", display: "flex", gap: "2px" }}>
-      🛡 <span style={{ color: "#fff", textShadow: "1px 1px 0 #000" }}>{playerData.shield}</span>
-  </div>
-</div>
-
+          <div style={{ position: "absolute", right: "10px", top: "-20px", color: playerData.shield > 0 ? "#00bcd4" : "#888", fontWeight: 'bold', fontSize: "12px", display: "flex", gap: "2px" }}>
+              🛡 <span style={{ color: "#fff", textShadow: "1px 1px 0 #000" }}>{playerData.shield}</span>
+          </div>
+        </div>
 
         {/* CHARACTER SPRITE */}
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
            <motion.div
+             key={currentSrc} // ✅ ใช้ key เพื่อลดอาการภาพกะพริบตอนเปลี่ยนเฟรม/ท่าทาง
+             initial={{ opacity: 0.9 }}
+             animate={{ opacity: 1 }}
+             transition={{ duration: 0.05 }}
              style={{
                scale: 2.0,
                width: DISPLAY_NORMAL,
@@ -129,4 +126,4 @@ export const PlayerEntity = ({ store }) => {
     </motion.div>
     </>
   );
-};
+});

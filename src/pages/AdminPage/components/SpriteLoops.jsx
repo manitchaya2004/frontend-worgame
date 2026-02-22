@@ -3,10 +3,10 @@ import { API_URL } from "../config";
 
 export const MonsterSpriteLoop = ({ id }) => {
   const frames = [
-    `${API_URL}/img_monster/${id}-attack-1.png`,
-    `${API_URL}/img_monster/${id}-attack-2.png`,
-    `${API_URL}/img_monster/${id}-idle-1.png`,
-    `${API_URL}/img_monster/${id}-idle-2.png`,
+    `/api/img_monster/${id}-attack-1.png`,
+    `/api/img_monster/${id}-attack-2.png`,
+    `/api/img_monster/${id}-idle-1.png`,
+    `/api/img_monster/${id}-idle-2.png`,
   ];
 
   const [idx, setIdx] = useState(0);
@@ -36,13 +36,13 @@ export const MonsterSpriteLoop = ({ id }) => {
 
 export const HeroSpriteLoop = ({ id }) => {
   const frames = [
-    `${API_URL}/img_hero/${id}-attack-1.png`,
-    `${API_URL}/img_hero/${id}-attack-2.png`,
-    `${API_URL}/img_hero/${id}-idle-1.png`,
-    `${API_URL}/img_hero/${id}-idle-2.png`,
-    `${API_URL}/img_hero/${id}-walk-1.png`,
-    `${API_URL}/img_hero/${id}-walk-2.png`,
-    `${API_URL}/img_hero/${id}-guard-1.png`,
+    `/api/img_hero/${id}-attack-1.png`,
+    `/api/img_hero/${id}-attack-2.png`,
+    `/api/img_hero/${id}-idle-1.png`,
+    `/api/img_hero/${id}-idle-2.png`,
+    `/api/img_hero/${id}-walk-1.png`,
+    `/api/img_hero/${id}-walk-2.png`,
+    `/api/img_hero/${id}-guard-1.png`,
   ];
 
   const [idx, setIdx] = useState(0);

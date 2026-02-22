@@ -1,16 +1,15 @@
-import React from "react";
-import { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { motion } from "framer-motion";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
-import { MpBar } from "./MpBar"; // อย่าลืม Import MpBar นะครับ
-import { DISPLAY_NORMAL, FIXED_Y, ipAddress } from "../../../../const/index";
+import { MpBar } from "./MpBar";
+import { DISPLAY_NORMAL, FIXED_Y } from "../../../../const/index";
 import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 
-export const EnemyEntity = ({
+export const EnemyEntity = memo(({
   enemy,
   index,
-  animFrame, 
+  animFrame,
   isTargeted,
   gameState,
   onSelect,
@@ -19,26 +18,31 @@ export const EnemyEntity = ({
   selectionCount = 0,
 }) => {
   // -------------------------------------------------------------
-  // ✅ 1. Logic คำนวณชื่อรูปภาพ
+  // ✅ 1. Logic คำนวณชื่อรูปภาพ (ใช้ useMemo ป้องกันการวาร์ป)
   // -------------------------------------------------------------
   const isBoss = enemy.isBoss;
   const isAttack = enemy.atkFrame > 0;
   const actionName = isAttack ? "attack" : "idle";
-
-  const monsterFrames = usePreloadFrames("img_monster", enemy.monster_id, 2, actionName);
   const frameNum = isAttack ? enemy.atkFrame : (animFrame % 2) + 1;
 
-  const currentSpriteUrl = monsterFrames[frameNum - 1]
-    ? monsterFrames[frameNum - 1].src
-    : `${ipAddress}/img_monster/${enemy.monster_id}-${actionName}-${frameNum}.png`;
+  // โหลดเฟรมจาก Hook (ยังคงไว้ตามโครงสร้างเดิม)
+  const monsterFrames = usePreloadFrames("img_monster", enemy.monster_id, 2, actionName);
+
+  const currentSpriteUrl = useMemo(() => {
+    if (monsterFrames[frameNum - 1]?.src) {
+      return monsterFrames[frameNum - 1].src;
+    }
+    return `/api/img_monster/${enemy.monster_id}-${actionName}-${frameNum}.png`;
+  }, [enemy.monster_id, actionName, frameNum, monsterFrames]);
+
   // -------------------------------------------------------------
 
   const QUIZ_DURATION = 5;
 
   const movementTransition =
     gameState === "QUIZ_MODE"
-      ? { duration: QUIZ_DURATION, ease: "linear" } 
-      : { type: "spring", stiffness: 300, damping: 25 }; 
+      ? { duration: QUIZ_DURATION, ease: "linear" }
+      : { type: "spring", stiffness: 300, damping: 25 };
 
   return (
     <motion.div
@@ -154,7 +158,7 @@ export const EnemyEntity = ({
           {/* คำพูดมอนสเตอร์ */}
           <div
             style={{
-              marginBottom: isBoss ?"200px":"10px",
+              marginBottom: isBoss ? "200px" : "10px",
               height: "20px",
               display: "flex",
               alignItems: "center",
@@ -171,27 +175,24 @@ export const EnemyEntity = ({
               position: "relative",
               width: isBoss ? "1000px" : "100px",
               marginBottom: isBoss ? "-130px" : "35px",
-              marginRight:  isBoss ? "780px" : "0px",
+              marginRight: isBoss ? "780px" : "0px",
               zIndex: 15,
               display: "flex",
-              flexDirection: "column", // บังคับเรียงหลอดแนวตั้ง
-              alignItems: "center",    // จัดหลอดให้ตรงกลางหัว
+              flexDirection: "column",
+              alignItems: "center",
               justifyContent: "center",
             }}
           >
             {!isBoss && (
               <>
-                {/* หลอด HP ศัตรู */}
                 <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
-                
-                {/* หลอด MP ศัตรู (ติดกัน) */}
                 <MpBar mp={enemy.mana} max={enemy.quiz_move_cost} color="#3b82f6" />
 
                 {/* ตัวเลข Shield */}
                 <div
                   style={{
                     position: "absolute",
-                    right: isBoss ? "150px" :"10px",
+                    right: isBoss ? "150px" : "10px",
                     top: "-20px",
                     padding: "0 6px",
                     height: "20px",
@@ -225,6 +226,10 @@ export const EnemyEntity = ({
         }}
       >
         <motion.div
+          key={currentSpriteUrl} // ✅ ใช้ key เพื่อให้ React สลับรูปอย่างถูกต้องเมื่อ URL เปลี่ยน
+          initial={{ opacity: 0.9 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.05 }}
           style={{
             scale: isBoss ? 4.0 : 2.0,
             width: DISPLAY_NORMAL,
@@ -244,4 +249,4 @@ export const EnemyEntity = ({
       </div>
     </motion.div>
   );
-};
+});

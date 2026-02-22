@@ -38,15 +38,17 @@ export const useAuthStore = create(
             errorRegister: false,
           });
 
-          const res = await fetch(`${API_URL}/register`, {
+          const res = await fetch(`/api/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(userData),
             credentials: "include",
           });
 
-          if (!res.ok) {
-            throw new Error("Server error, please try again");
+          // Safety Check: ถ้าไม่ใช่ JSON หรือส่ง Error กลับมา
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("Server error (Not JSON), please check your Backend URL");
           }
 
           const data = await res.json();
@@ -85,15 +87,16 @@ export const useAuthStore = create(
             errorLogin: false,
           });
 
-          const res = await fetch(`${API_URL}/login`, {
+          const res = await fetch(`/api/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(credentials),
             credentials: "include",
           });
 
-          if (!res.ok) {
-            throw new Error("Server error, please try again");
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("Login failed: Server returned non-JSON response");
           }
 
           const data = await res.json();
@@ -128,14 +131,17 @@ export const useAuthStore = create(
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
 
-          const res = await fetch(`${API_URL}/checkAuth`, {
+          const res = await fetch(`/api/checkAuth`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
 
-          if (!res.ok) throw new Error("unauthorized");
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("unauthorized");
+          }
 
           const data = await res.json();
 
@@ -159,12 +165,17 @@ export const useAuthStore = create(
           const token = localStorage.getItem("token");
           if (!token) return; // ถ้าไม่มี token ก็ช่างมัน
 
-          const res = await fetch(`${API_URL}/checkAuth`, {
+          const res = await fetch(`/api/checkAuth`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          if (!res.ok) return;
+          // แก้จุดนี้: ตรวจสอบก่อนว่าเป็น JSON หรือไม่ ก่อนจะสั่ง parse
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            console.warn("Refresh failed: Server returned HTML or Error");
+            return;
+          }
 
           const data = await res.json();
 
@@ -184,7 +195,7 @@ export const useAuthStore = create(
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
 
-          const res = await fetch(`${API_URL}/checkFirstTime`, {
+          const res = await fetch(`/api/checkFirstTime`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -192,7 +203,10 @@ export const useAuthStore = create(
             credentials: "include",
           });
 
-          if (!res.ok) throw new Error("server error");
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("server error");
+          }
 
           const data = await res.json();
 
@@ -219,7 +233,7 @@ export const useAuthStore = create(
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
 
-          const res = await fetch(`${API_URL}/select-hero`, {
+          const res = await fetch(`/api/select-hero`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -228,7 +242,10 @@ export const useAuthStore = create(
             body: JSON.stringify({ heroId }),
           });
 
-          if (!res.ok) throw new Error("server error");
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("server error");
+          }
 
           const data = await res.json();
           if (!data.isSuccess) throw new Error(data.message);
@@ -261,7 +278,7 @@ export const useAuthStore = create(
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
 
-          const res = await fetch(`${API_URL}/buy-hero`, {
+          const res = await fetch(`/api/buy-hero`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -270,6 +287,11 @@ export const useAuthStore = create(
             credentials: "include",
             body: JSON.stringify({ heroId }), // ✅ สำคัญ
           });
+
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+             throw new Error("Server returned non-JSON. Possible 404 or Crash.");
+          }
 
           const data = await res.json(); // ✅ fetch ต้อง parse เอง
 
@@ -307,7 +329,7 @@ export const useAuthStore = create(
         try {
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
-          const res = await fetch(`${API_URL}/update-resources`, {
+          const res = await fetch(`/api/update-resources`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -316,7 +338,10 @@ export const useAuthStore = create(
             body: JSON.stringify(payload),
           });
 
-          if (!res.ok) throw new Error("server error");
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("server error");
+          }
 
           const data = await res.json();
           if (!data.isSuccess) throw new Error(data.message);
@@ -338,12 +363,11 @@ export const useAuthStore = create(
               },
             }));
 
-            // Reset status กลับเป็น INIT หลังจากผ่านไป 1 วิ (เพื่อให้ UI หยุดหมุนหรือหยุดโชว์สถานะสำเร็จ)
+            // Reset status กลับเป็น INIT หลังจากผ่านไป 1 วิ
             setTimeout(() => {
               set({ resourceStatus: INITIALIZED });
             }, 1000);
           } else {
-            // กรณีหลังบ้าน return 200 แต่ logic ไม่ผ่าน
             set({ resourceStatus: FAILED });
           }
         } catch (err) {
@@ -358,7 +382,7 @@ export const useAuthStore = create(
         try {
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
-          const res = await fetch(`${API_URL}/level-up`, {
+          const res = await fetch(`/api/level-up`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -366,6 +390,11 @@ export const useAuthStore = create(
             },
             body: JSON.stringify({ heroId }),
           });
+
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("Server returned non-JSON");
+          }
 
           const data = await res.json();
           if (!res.ok || !data.isSuccess) throw new Error(data.message);
@@ -397,7 +426,7 @@ export const useAuthStore = create(
         try {
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
-          const res = await fetch(`${API_URL}/preview-level-up`, {
+          const res = await fetch(`/api/preview-level-up`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -405,6 +434,11 @@ export const useAuthStore = create(
             },
             body: JSON.stringify({ heroId }),
           });
+
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+             throw new Error("Server error");
+          }
 
           const data = await res.json();
           if (!res.ok || !data.isSuccess) throw new Error(data.message);

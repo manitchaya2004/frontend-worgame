@@ -69,7 +69,7 @@ const HeroPanel = () => {
   const fetchHeroes = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/hero`);
+      const res = await fetch(`/api/hero`);
       if (!res.ok) throw new Error("Failed to fetch heroes");
       const data = await res.json();
       setHeroes(data);
@@ -108,7 +108,7 @@ const HeroPanel = () => {
     fd.append("walk2", spriteFiles.walk2);
     fd.append("guard1", spriteFiles.guard1);
 
-    const up = await fetch(`${API_URL}/hero/${heroId}/sprites`, {
+    const up = await fetch(`/api/hero/${heroId}/sprites`, {
       method: "POST",
       body: fd,
     });
@@ -143,11 +143,11 @@ const HeroPanel = () => {
     };
 
     try {
-      let url = `${API_URL}/hero`;
+      let url = `/api/hero`;
       let method = "POST";
 
       if (isEditing) {
-        url = `${API_URL}/hero/${formData.id}`;
+        url = `/api/hero/${formData.id}`;
         method = "PUT";
       }
 
@@ -242,7 +242,7 @@ const HeroPanel = () => {
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Hero ID: ${id}?`)) return;
     try {
-      const res = await fetch(`${API_URL}/hero/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/hero/${id}`, { method: "DELETE" });
       if (res.ok) fetchHeroes();
       else alert("Delete failed");
     } catch {
@@ -253,7 +253,7 @@ const HeroPanel = () => {
   const handleDeleteSprites = async (id) => {
     if (!window.confirm(`Delete ALL sprites of Hero ID: ${id}?`)) return;
     try {
-      const res = await fetch(`${API_URL}/hero/${id}/sprites`, { method: "DELETE" });
+      const res = await fetch(`/api/hero/${id}/sprites`, { method: "DELETE" });
       if (res.ok) {
         alert("Sprites deleted");
         fetchHeroes();

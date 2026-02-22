@@ -1,15 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint, FaInfoCircle } from "react-icons/fa";
 import { INVENTORY_COUNT } from "../../../../const/index";
 import { useGameStore, getLetterDamage } from "../../../../store/useGameStore"; 
-import { GiBrain, GiBroadsword, GiShield, GiStarShuriken } from "react-icons/gi";
+import { GiBrain, GiBroadsword, GiShield, GiStarShuriken, GiSparkles } from "react-icons/gi";
 
 /* =========================
    SINGLE SLOT 
 ========================= */
 const SingleSlot = ({ index }) => {
   const store = useGameStore();
+  const [isHovered, setIsHovered] = useState(false);
 
   const inventory = store.playerData.inventory;
   const playerSlots = store.playerData.unlockedSlots;
@@ -30,6 +31,10 @@ const SingleSlot = ({ index }) => {
   const isBleed = item?.status === "bleed";
   const duration = item?.statusDuration || 0;
   const buffType = item?.buff || null;
+
+  // เช็คว่าเป็นสระหรือพยัญชนะ
+  const isVowel = item ? ['A', 'E', 'I', 'O', 'U'].includes(item.char.toUpperCase()) : false;
+  const letterType = isBlind ? "Unknown" : (isVowel ? "Vowel" : "Consonant");
 
   // ฟังก์ชันดึงข้อมูลบัฟสำหรับ Badge นอกการ์ด
   const getBuffBadgeData = () => {
@@ -57,8 +62,40 @@ const SingleSlot = ({ index }) => {
     store.selectLetter(item, index);
   };
 
+  // --- ข้อมูลสำหรับ Tooltip (แบบย่อยง่ายๆ) ---
+  const getTooltipBuffInfo = () => {
+    switch (buffType) {
+      case "STRIKE_x2": return { desc: " Double score when strike", color: "#e74c3c", icon: <GiBroadsword /> };
+      case "GUARD_x2": return { desc: " Double score when guard", color: "#3498db", icon: <GiShield /> };
+      case "MANA_PLUS": return { desc: " Gain 5 mana", color: "#9b59b6", icon: <GiStarShuriken /> };
+      default: return null;
+    }
+  };
+
+  const getTooltipDebuffInfo = () => {
+    if (isStunned) return { desc: ` Stunned for ${duration} turn(s)`, color: "#7f8c8d", icon: <FaLock /> };
+    if (isPoisoned) return { desc: ` Takes damage (${duration} turns left)`, color: "#2ecc71", icon: <FaSkullCrossbones /> };
+    if (isBlind) return { desc: ` Blinded (${duration} turns left)`, color: "#8e44ad", icon: <FaEyeSlash /> };
+    if (isBleed) return { desc: ` Bleeding (${duration} turns left)`, color: "#e74c3c", icon: <FaTint /> };
+    return null;
+  };
+
+  const tooltipBuff = getTooltipBuffInfo();
+  const tooltipDebuff = getTooltipDebuffInfo();
+  const hasSpecialEffect = tooltipBuff || tooltipDebuff;
+
   return (
-    <div style={{ position: "relative", padding: "2px" }}>
+    <div 
+      style={{ 
+        position: "relative", 
+        padding: "2px",
+        width: "100%", 
+        height: "100%",
+        boxSizing: "border-box" 
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div
         style={{
           width: "100%",
@@ -70,14 +107,13 @@ const SingleSlot = ({ index }) => {
           justifyContent: "center",
           alignItems: "center",
           position: "relative",
-          // ✅ เอา overflow: hidden ออกเพื่อให้ไอคอนบัฟยื่นออกไปได้
           overflow: "visible", 
         }}
       >
         <AnimatePresence mode="popLayout">
           {item && !isLocked && (
             <motion.div
-              key={item.id}
+              key={`${item.id}-${item.char}-${item.buff || 'nobuff'}`}
               initial={{ opacity: 0, scale: 0.4 }}
               animate={{
                 opacity: 1,
@@ -97,6 +133,7 @@ const SingleSlot = ({ index }) => {
                 alignItems: "center",
                 position: "relative",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                cursor: (isDisabled || isStunned) ? "not-allowed" : "pointer"
               }}
             >
               {/* ตัวอักษรสีน้ำตาลมาตรฐาน */}
@@ -112,12 +149,12 @@ const SingleSlot = ({ index }) => {
                 {isBlind ? "?" : item.char}
               </span>
 
-              {/* ✅ Buff Badge (วงกลมสี แปะอยู่นอกขอบสล็อตล่างซ้าย) */}
+              {/* ✅ Buff Badge */}
               {buffBadge && (
                 <div style={{
                   position: "absolute",
-                  bottom: "-6px", // ยื่นลงข้างล่าง
-                  left: "-6px",   // ยื่นออกทางซ้าย
+                  bottom: "-6px", 
+                  left: "-6px",   
                   width: "18px",
                   height: "18px",
                   backgroundColor: buffBadge.bgColor,
@@ -125,17 +162,17 @@ const SingleSlot = ({ index }) => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#fff", // ไอคอนข้างในสีขาว
+                  color: "#fff", 
                   fontSize: "11px",
                   boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
-                  border: "1.5px solid #fff", // ขอบขาวให้ตัดกับพื้นหลังกระดาษ
-                  zIndex: 10, // ให้อยู่บนสุด
+                  border: "1.5px solid #fff", 
+                  zIndex: 10, 
                 }}>
                   {buffBadge.icon}
                 </div>
               )}
 
-              {/* Status Duration Bubble (มุมบนซ้าย) */}
+              {/* Status Duration Bubble */}
               {item.status && (
                 <div style={{
                   position: "absolute", top: "-2px", left: "-2px",
@@ -149,7 +186,7 @@ const SingleSlot = ({ index }) => {
                 </div>
               )}
 
-              {/* Debuff Icons (มุมบนขวา) */}
+              {/* Debuff Icons */}
               <div style={{ position: "absolute", top: "3px", right: "3px", zIndex: 2 }}>
                 {isPoisoned && !isBlind && !isBleed && <FaSkullCrossbones style={{ color: "#27ae60", fontSize: "11px" }} />}
                 {isStunned && <FaLock style={{ color: "#34495e", fontSize: "11px" }} />}
@@ -157,7 +194,7 @@ const SingleSlot = ({ index }) => {
                 {isBleed && <FaTint style={{ color: "#922b21", fontSize: "11px" }} />}
               </div>
 
-              {/* Damage Info (มุมล่างขวา) */}
+              {/* Damage Info */}
               {!isBlind && (
                 <div style={{
                   position: "absolute", bottom: "1px", right: "3px",
@@ -173,6 +210,97 @@ const SingleSlot = ({ index }) => {
 
         {isLocked && <div style={{ opacity: 0.3, color: "#555", fontSize: "12px" }}><FaLock /></div>}
       </div>
+
+      {/* =========================
+            CUSTOM FANTASY TOOLTIP (Minimalist)
+      ========================= */}
+      <AnimatePresence>
+        {isHovered && item && !isLocked && (
+          <motion.div
+            // แก้ไขตรงนี้: สั่งให้ x: "-50%" ในการ Animate ด้วย ป้องกัน Framer Motion ลบค่าจาก CSS ทิ้ง
+            initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "absolute",
+              bottom: "calc(100% + 8px)", // ขยับขึ้นมาจากกรอบนิดนึงกันทับ
+              left: "50%",
+              // ไม่ต้องใส่ transform: "translateX(-50%)" ตรงนี้แล้ว เพราะ Framer Motion คุมให้ด้านบนแล้ว
+              background: "rgba(15, 11, 8, 0.95)", 
+              border: "1px solid #d4af37", 
+              borderRadius: "6px",
+              padding: "8px 10px",
+              minWidth: "160px",
+              zIndex: 100, 
+              pointerEvents: "none", 
+              boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {/* ตัวลูกศรชี้ลง */}
+            <div style={{
+              position: "absolute",
+              bottom: "-5px",
+              left: "50%",
+              marginLeft: "-5px", 
+              width: "10px",
+              height: "10px",
+              background: "rgba(15, 11, 8, 0.95)",
+              borderRight: "1px solid #d4af37",
+              borderBottom: "1px solid #d4af37",
+              transform: "rotate(45deg)",
+            }} />
+
+            {/* Header */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              borderBottom: "1px solid rgba(212,175,55,0.3)",
+              paddingBottom: "4px"
+            }}>
+              <span style={{ color: "#fff", fontSize: "13px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>
+                {isBlind ? "?" : `${item.char} - ${letterType}`}
+              </span>
+              <span style={{ color: "#d4af37", fontSize: "12px", fontWeight: "900" }}>
+                Score: {isBlind ? "?" : displayDamage}
+              </span>
+            </div>
+
+            {/* Body: คำอธิบายบัฟ/ดีบัฟสั้นๆ */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              
+              {tooltipBuff && (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ color: tooltipBuff.color, fontSize: "12px" }}>{tooltipBuff.icon}</div>
+                  <span style={{ color: "#bdc3c7", fontSize: "11px", fontWeight: "bold" }}>{tooltipBuff.desc}</span>
+                </div>
+              )}
+
+              {tooltipDebuff && (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ color: tooltipDebuff.color, fontSize: "12px" }}>{tooltipDebuff.icon}</div>
+                  <span style={{ color: "#bdc3c7", fontSize: "11px", fontWeight: "bold" }}>{tooltipDebuff.desc}</span>
+                </div>
+              )}
+
+              {!hasSpecialEffect && (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ color: "#7f8c8d", fontSize: "12px" }}><FaInfoCircle /></div>
+                  <span style={{ color: "#bdc3c7", fontSize: "11px" }}>
+                     Standard letter
+                  </span>
+                </div>
+              )}
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

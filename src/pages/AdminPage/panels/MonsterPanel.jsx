@@ -65,7 +65,7 @@ const MonsterPanel = () => {
   const fetchMonsters = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/monster`);
+      const res = await fetch(`/api/monster`);
       if (!res.ok) throw new Error("Failed to fetch monster");
       const data = await res.json();
       setMonsters(Array.isArray(data) ? data : []);
@@ -80,7 +80,7 @@ const MonsterPanel = () => {
   const fetchMoves = useCallback(async () => {
     setMovesLoading(true);
     try {
-      const res = await fetch(`${API_URL}/moves`);
+      const res = await fetch(`/api/moves`);
       if (!res.ok) throw new Error("Failed to fetch moves");
       const data = await res.json();
       setMoves(Array.isArray(data) ? data : []);
@@ -318,7 +318,7 @@ const MonsterPanel = () => {
     fd.append("idle1", spriteFiles.idle1);
     fd.append("idle2", spriteFiles.idle2);
 
-    const up = await fetch(`${API_URL}/monster/${monsterId}/sprites`, {
+    const up = await fetch(`/api/monster/${monsterId}/sprites`, {
       method: "POST",
       body: fd,
     });
@@ -357,11 +357,11 @@ const MonsterPanel = () => {
     };
 
     try {
-      let url = `${API_URL}/monster`;
+      let url = `/api/monster`;
       let method = "POST";
 
       if (isEditing) {
-        url = `${API_URL}/monster/${formData.id}`;
+        url = `/api/monster/${formData.id}`;
         method = "PUT";
       }
 
@@ -431,7 +431,7 @@ const MonsterPanel = () => {
     if (!window.confirm(`Delete Monster ID: ${id}?`)) return;
 
     try {
-      const res = await fetch(`${API_URL}/monster/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/monster/${id}`, { method: "DELETE" });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -450,7 +450,7 @@ const MonsterPanel = () => {
   const handleDeleteSprites = async (id) => {
     if (!window.confirm(`Delete ALL sprites of Monster ID: ${id}?`)) return;
     try {
-      const res = await fetch(`${API_URL}/monster/${id}/sprites`, { method: "DELETE" });
+      const res = await fetch(`/api/monster/${id}/sprites`, { method: "DELETE" });
       if (res.ok) {
         alert("Sprites deleted");
         fetchMonsters();

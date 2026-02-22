@@ -8,7 +8,7 @@ const ServerControl = ({ serverId = "hell" }) => {
   const fetchServer = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/server/${serverId}`);
+      const res = await fetch(`/api/server/${serverId}`);
       if (!res.ok) throw new Error("Failed to fetch server");
       const json = await res.json();
       setData(json);
@@ -29,7 +29,7 @@ const ServerControl = ({ serverId = "hell" }) => {
   const toggleServer = async () => {
     if (!data) return;
     try {
-      const res = await fetch(`${API_URL}/server/${serverId}/toggle`, {
+      const res = await fetch(`/api/server/${serverId}/toggle`, {
         method: "PATCH",
       });
 

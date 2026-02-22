@@ -1,7 +1,6 @@
 // ============================================================================
-// 📊 DECK CONFIGURATION (การตั้งค่ากองการ์ด)
+// 📊 DECK CONFIGURATION
 // ============================================================================
-// กำหนด "อัตราส่วน" ของตัวอักษรที่จะปรากฏในเกม
 const DECK_COMPOSITION = {
   E: 8, A: 8, I: 8, O: 8, N: 6, R: 6, T: 6, 
   L: 4, S: 4, U: 4, D: 4, G: 3, B: 2, C: 2, 
@@ -9,30 +8,19 @@ const DECK_COMPOSITION = {
   K: 1, J: 1, X: 1, QU: 1, Z: 1 
 };
 
-// รายชื่อตัวอักษรที่เป็น "สระ" (ใช้สำหรับ Logic ควบคุมสมดุล)
 const VOWELS = ['A', 'E', 'I', 'O', 'U'];
 
 export const DeckManager = {
-  // 🎴 activeDeck: เก็บรายชื่อการ์ดทั้งหมดที่เหลืออยู่ในกองจั่วปัจจุบัน
   activeDeck: [],
 
-  // ============================================================================
-  // 1. Core Logic (ส่วนจัดการกองการ์ดและการสุ่ม)
-  // ============================================================================
-
-  // 🔹 init(): เตรียมกองไพ่ใหม่ และสับไพ่
   init() {
     let tempDeck = [];
-    
-    // 1. สร้างการ์ดตามจำนวนที่กำหนดใน Config
     Object.keys(DECK_COMPOSITION).forEach((char) => {
       for (let i = 0; i < DECK_COMPOSITION[char]; i++) {
         tempDeck.push(char);
       }
     });
 
-    // 2. สับไพ่ (Shuffle) ด้วย Fisher-Yates Algorithm
-    // (เป็นวิธีมาตรฐานที่ทำให้ไพ่กระจายตัวแบบสุ่มจริงๆ)
     for (let i = tempDeck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [tempDeck[i], tempDeck[j]] = [tempDeck[j], tempDeck[i]];
@@ -42,150 +30,101 @@ export const DeckManager = {
     console.log(`🎴 Deck Initialized: ${this.activeDeck.length} cards.`);
   },
 
-  // 🔹 draw(): จั่วไพ่ 1 ใบ โดยมี AI ช่วยเลือกไม่ให้ไพ่เน่าเกินไป
-  // - currentInventory: ลิสต์ของในมือปัจจุบัน (เอาไว้เช็คกันซ้ำ)
-  // - unlockedSlots: จำนวนช่องที่มี (เอาไว้คำนวณโควตาสระ)
   draw(currentInventory = [], unlockedSlots = 10) {
-    // ถ้ากองไพ่หมด ให้ล้างไพ่ใหม่ทันที
     if (this.activeDeck.length === 0) this.init();
 
-    // ดึงรายชื่อตัวอักษรที่มีอยู่ในมือตอนนี้มาเช็ค
+    // กรองเอาเฉพาะตัวอักษรที่มีค่าจริงๆ มาเช็คเงื่อนไข Vowel
     const existingChars = currentInventory
-      .filter((slot) => slot !== null)
+      .filter((slot) => slot && slot.char)
       .map((slot) => slot.char.toUpperCase());
 
-    // คำนวณสถิติในมือ
     const vowelCount = existingChars.filter((c) => VOWELS.includes(c)).length;
-    // เพดานสระ: ให้มีสระได้ไม่เกินครึ่งหนึ่งของช่อง
     const vowelCeiling = Math.max(2, Math.floor(unlockedSlots / 2));
     
-    // กลุ่มตัวอักษรยาก
-    const hardChars = ["K", "J", "X", "QU", "Z"];
-    const hasHardInHand = existingChars.some((c) => hardChars.includes(c));
-
     let foundIdx = -1;
 
-    // วนหาไพ่จากท้ายกอง (i--) เพื่อหาใบที่เหมาะสมที่สุด
     for (let i = this.activeDeck.length - 1; i >= 0; i--) {
-      const candidate = this.activeDeck[i].toUpperCase();
+      const candidate = this.activeDeck[i]?.toUpperCase();
+      if (!candidate) continue;
+
       const isVowel = VOWELS.includes(candidate);
-      const countInHand = existingChars.filter((c) => c === candidate).length;
+      // Desperate Mode: ถ้าวนหาเกิน 15 ใบแล้วยังไม่เจอที่ถูกใจ ให้หยิบใบนี้เลย
+      const isDesperate = i < this.activeDeck.length - 15;
 
-      // --- 🚦 กฎการคัดกรอง (Filtering Rules) ---
-
-      // 1. ถ้าสระเต็มโควต้าแล้ว ห้ามหยิบสระเพิ่ม
-      if (vowelCount >= vowelCeiling && isVowel) continue;
-
-      // 2. ถ้าสระขาดแคลน (< 2) และใบนี้ไม่ใช่สระ ให้ข้ามไปก่อน (พยายามหาสระ)
-      // (แต่ถ้าไพ่เหลือน้อยกว่า 10 ใบ ยอมหยิบอะไรก็ได้ กันเกมค้าง)
-      if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
-
-      // 3. ห้ามตัวซ้ำเกิน 2 ใบ และห้ามตัวยากซ้ำกัน
-      const isTooManyIdentical = countInHand >= 2;
-      const isTooManyHard = hasHardInHand && hardChars.includes(candidate);
-
-      if (!isTooManyIdentical && !isTooManyHard) {
-        foundIdx = i; // เจอใบที่ผ่านทุกเงื่อนไข
-        break;
+      if (!isDesperate) {
+        if (vowelCount >= vowelCeiling && isVowel) continue;
+        if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
       }
+
+      foundIdx = i;
+      break;
     }
 
-    // --- 🏁 การหยิบจริง ---
+    let pickedChar = "";
     if (foundIdx !== -1) {
-      return this.activeDeck.splice(foundIdx, 1)[0]; // หยิบใบที่เลือก
+      pickedChar = this.activeDeck.splice(foundIdx, 1)[0];
     } else {
-      return this.activeDeck.pop(); // ถ้าไม่เจอใบที่ถูกกฎเลย ให้หยิบใบสุดท้ายตามดวง
+      pickedChar = this.activeDeck.pop();
     }
+    
+    return pickedChar || "E"; // ป้องกันขั้นสุด ถ้าไม่ได้อะไรเลยให้คืน "E"
   },
 
-  // ============================================================================
-  // 2. Item Factory (โรงงานผลิตไอเท็ม - จุดเดียวที่กำหนดโครงสร้างข้อมูล)
-  // ============================================================================
-
-  // 🔹 createItem(): สร้าง Object ไอเท็ม 1 ชิ้นสมบูรณ์
-  // ฟังก์ชันอื่นจะเรียกใช้ตัวนี้แทนการสร้าง Object เอง
   createItem(index, currentInv = [], unlockedSlots = 10) {
-    // 1. ขอตัวอักษรจาก draw (ส่ง currentInv ไปให้ draw ช่วยเช็คตัวซ้ำ)
     const char = this.draw(currentInv, unlockedSlots);
-
-    // 2. คืนค่าเป็น Object โครงสร้างมาตรฐานของเกม
     return {
-      id: Math.random(),      // Unique Key สำหรับ React
-      char: char,             // ตัวอักษร
-      status: null,           // สถานะพิเศษ (poison, stun)
-      statusDuration: 0,      // ระยะเวลาสถานะ
-      visible: true,          // การแสดงผล
-      originalIndex: index,   // ตำแหน่งช่องเก็บของ (0, 1, 2...)
+      id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      char: String(char),
+      status: null,
+      statusDuration: 0,
+      visible: true,
+      originalIndex: index,
     };
   },
 
-  // ============================================================================
-  // 3. Inventory Tools (เครื่องมือจัดการกระเป๋า)
-  // ============================================================================
-
-  // 🔹 generateList(): สร้างกระเป๋าเริ่มต้น (เช่น เริ่มเกมใหม่)
   generateList(count) {
     let list = new Array(count).fill(null);
     for (let i = 0; i < count; i++) {
-      // เรียก createItem แทนการเขียนโค้ดซ้ำ
-      // ส่ง 'list' เข้าไปเพื่อให้ draw() รู้ว่าเราเพิ่งหยิบอะไรไปบ้างใน Loop นี้
       list[i] = this.createItem(i, list, count);
     }
     return list;
   },
 
-  // 🔹 fillEmptySlots(): เติมของใส่ช่องว่าง (ใช้หลังโจมตีเสร็จ)
   fillEmptySlots(currentInv, reservedIndices, limit) {
-    let nextInv = [...currentInv]; // Copy Array กันกระทบตัวแม่
-    
+    let nextInv = [...currentInv];
     for (let i = 0; i < limit; i++) {
-      // เช็คว่าช่องว่าง (null) และไม่ติดสถานะจอง (reserved)
       if (!reservedIndices.includes(i) && nextInv[i] === null) {
-        // เรียก createItem เพื่อเติมของ
         nextInv[i] = this.createItem(i, nextInv, limit);
       }
     }
     return nextInv;
   },
 
-  // 🔹 returnItems(): คืนของกลับเข้ากระเป๋า (ใช้ตอนกดยกเลิก หรือวางผิด)
   returnItems(currentInv, itemsToReturn, limit) {
     const nextInv = [...currentInv];
-    
     itemsToReturn.forEach((item) => {
-      // พยายามคืนที่ช่องเดิมก่อน
       let targetIdx = item.originalIndex;
-
-      // ถ้าช่องเดิมไม่ว่าง ให้หาช่องว่างช่องแรกที่เจอ
       if (nextInv[targetIdx] !== null) {
         const emptyIdx = nextInv.findIndex((x, i) => x === null && i < limit);
         if (emptyIdx !== -1) targetIdx = emptyIdx;
       }
-      
-      // วางของคืน
       nextInv[targetIdx] = item;
     });
-    
     return nextInv;
   },
 };
-// --- 🗣️ Word System ---
+
 export const WordSystem = {
-  // สุ่มคำศัพท์จาก Dictionary ตามความยาวที่ต้องการ (ใช้สำหรับคำพูดศัตรู)
   getRandomWordByLength: (dictionary, length) => {
     const candidates = dictionary.filter((d) => d.word.length === length);
     if (candidates.length > 0) {
       const randomIndex = Math.floor(Math.random() * candidates.length);
       return candidates[randomIndex].word.toUpperCase();
     }
-    
-    // Fallback กรณีหาคำใน Dictionary ไม่เจอ
     const fallbackChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     let result = "";
     for (let i = 0; i < length; i++) {
-      result += fallbackChars.charAt(
-        Math.floor(Math.random() * fallbackChars.length)
-      );
+      result += fallbackChars.charAt(Math.floor(Math.random() * fallbackChars.length));
     }
     return result;
   },
@@ -208,6 +147,4 @@ export const WordSystem = {
     }
     return matrix[b.length][a.length];
   },
-
-  
 };

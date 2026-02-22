@@ -150,7 +150,7 @@ export const useGameStore = create((set, get) => ({
   receivedCoin: 0,
   playerX: PLAYER_X_POS,
   playerShoutText: "",
-  playerVisual: "idle",
+  playerVisual: "idle-1",
   animFrame: 1,
   selectedLetters: [],
 
@@ -378,15 +378,15 @@ export const useGameStore = create((set, get) => ({
               reroll: userData.potion.reroll 
             },
             speed: stats?.speed || 3,
-            unlockedSlots: stats?.power || 5,
+            unlockedSlots: 20,
           },
         }));
       }
 
-      const dictRes = await fetch(`${ipAddress}/dict`);
+      const dictRes = await fetch(`/api/dict`);
       const dictData = await dictRes.json();
 
-      const stageRes = await fetch(`${ipAddress}/getStageById/${stageId}`);
+      const stageRes = await fetch(`/api/getStageById/${stageId}`);
       const stageData = await stageRes.json();
 
       DeckManager.init();
@@ -686,7 +686,7 @@ export const useGameStore = create((set, get) => ({
       const totalMoney = Number(store.currentCoin) + monsterMoney + stageReward;
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
-      await fetch(`${ipAddress}/update-money`, {
+      await fetch(`/api/update-money`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify({ money: totalMoney }),
@@ -694,7 +694,7 @@ export const useGameStore = create((set, get) => ({
 
       set({ currentCoin: totalMoney });
 
-      const unlockRes = await fetch(`${ipAddress}/complete-stage`, {
+      const unlockRes = await fetch(`/api/complete-stage`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify({ currentStageId: currentStageId }),
@@ -716,7 +716,7 @@ export const useGameStore = create((set, get) => ({
       const totalMoney = currentMoney + Number(earnedAmount);
       
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-      await fetch(`${ipAddress}/update-money`, {
+      await fetch(`/api/update-money`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify({ money: totalMoney }),
@@ -732,7 +732,7 @@ export const useGameStore = create((set, get) => ({
   startPlayerTurn: () => {
     set(() => ({
       gameState: "PLAYERTURN",
-      playerVisual: "idle",
+      playerVisual: "idle-1",
     }));
   },
 
@@ -779,14 +779,19 @@ export const useGameStore = create((set, get) => ({
       });
     }
     
+    // เตรียม Inventory ใหม่ที่เอาตัวอักษรที่ใช้ไปแล้วออก (เป็น null)
     let currentInv = [...store.playerData.inventory];
-    usedIndices.forEach((idx) => { currentInv[idx] = null; });
+    usedIndices.forEach((idx) => { if(idx !== undefined) currentInv[idx] = null; });
 
+    // ✅ เคลียร์คำศัพท์และอัปเดต Inventory ทันที
     set((s) => ({
       playerShoutText: actionType,
       gameState: "ACTION",
-      playerVisual: "idle",
+      playerVisual: "idle-1",
       playerData: { ...s.playerData, inventory: currentInv },
+      selectedLetters: new Array(s.playerData.unlockedSlots).fill(null), // เคลียร์ช่องเลือก
+      validWordInfo: null, // เคลียร์คำแปล
+      wordScore: { raw: 0, min: 0, max: 0 } // เคลียร์คะแนน
     }));
 
     await delay(300);
@@ -823,14 +828,13 @@ export const useGameStore = create((set, get) => ({
       await delay(500);
     }
 
-    get().initSelectedLetters(); 
-    set({ playerVisual: "idle", playerShoutText: "" });
+    set({ playerVisual: "idle-1", playerShoutText: "" });
     get().endTurn();
   },
 
   usePotion: (type, value = 5) => { 
     const store = get();
-    const { playerData, isSfxOn } = store;
+    const { playerData, isSfxOn, selectedLetters } = store;
     const { potions } = playerData;
 
     if (type === "health") {
@@ -868,37 +872,65 @@ export const useGameStore = create((set, get) => ({
     } else if (type === "reroll") {
       if (potions.reroll <= 0) return;
       
-      store.resetSelection();
-
-      const slots = store.playerData.unlockedSlots;
-      const currentInventory = get().playerData.inventory; 
+      const currentInv = [...playerData.inventory];
+      console.log("=== [REROLL DEBUG START] ===");
+      console.log("1. Current Inventory before Reroll:", JSON.parse(JSON.stringify(currentInv)));
       
-      let newInventory = DeckManager.generateList(slots);
-
-      newInventory = newInventory.map((newItem, index) => {
-        const oldItem = currentInventory[index];
-        let restoredItem = { ...newItem };
-
-        if (oldItem) {
-          if (oldItem.buff) restoredItem.buff = oldItem.buff;
-          if (oldItem.status) {
-            restoredItem.status = oldItem.status;
-            restoredItem.statusDuration = oldItem.statusDuration;
+      const itemsToRerollCount = currentInv.filter(item => item !== null).length;
+      console.log("2. Items to reroll count:", itemsToRerollCount);
+      
+      if (itemsToRerollCount > 0) {
+        // 1. สร้างไอเทมใหม่เอี่ยมจาก DeckManager (ได้ ID ใหม่หมด)
+        const rawItems = DeckManager.generateList(itemsToRerollCount);
+        
+        // 2. แจกบัฟใหม่ให้ไอเทมที่เพิ่งสร้าง
+        const freshItemsWithBuffs = applyRandomBuffs(rawItems);
+        console.log("3. Fresh Items (With New IDs & Buffs):", JSON.parse(JSON.stringify(freshItemsWithBuffs)));
+        
+        let generatedIndex = 0;
+        
+        const newInv = currentInv.map((oldItem, index) => {
+          if (!oldItem) {
+            console.log(`   -> Slot [${index}] is null, skipping.`);
+            return null; // ข้ามช่องที่ว่าง
           }
-        }
-        return restoredItem;
-      });
+          
+          // ดึงไอเทมใหม่เอี่ยมที่มี บัฟใหม่, ตัวอักษรใหม่ และ "ID ใหม่"
+          const freshItem = freshItemsWithBuffs[generatedIndex++];
+          
+          // ⚠️ ทริคแก้ UI ไม่ยอมอัปเดต: เอาของใหม่เป็นตัวตั้ง แล้วดูดแค่ดีบัฟเก่ามาใส่!
+          const finalItem = {
+            ...freshItem,                          // ใช้ของใหม่ทั้งหมด (จะได้ ID ใหม่ บังคับ UI วาดภาพใหม่ 100%)
+            status: oldItem.status || null,        // ถ่ายโอนดีบัฟเดิมมาใส่
+            statusDuration: oldItem.statusDuration || 0
+          };
 
-      if (isSfxOn) sfx.playWalk && sfx.playWalk();
-      store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: "REROLL!", color: "#f1c40f" });
-      
-      set({ 
-        playerData: { 
-          ...get().playerData, 
-          inventory: newInventory, 
-          potions: { ...potions, reroll: potions.reroll - 1 } 
-        } 
-      });
+          // ปริ้นเช็คข้อมูลก่อนและหลังการประกอบร่าง
+          console.log(`4. Mapping Slot [${index}]:`, {
+            old_Item: JSON.parse(JSON.stringify(oldItem)),
+            fresh_Item: JSON.parse(JSON.stringify(freshItem)),
+            final_Item: JSON.parse(JSON.stringify(finalItem))
+          });
+
+          return finalItem;
+        });
+
+        console.log("5. Final New Inventory to be saved:", JSON.parse(JSON.stringify(newInv)));
+        console.log("=== [REROLL DEBUG END] ===");
+
+        store.addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 80, value: "REROLL!", color: "#f39c12" });
+        if (isSfxOn && sfx.playHeal) sfx.playHeal();
+        
+        set({ 
+          playerData: { 
+            ...playerData, 
+            inventory: newInv, 
+            potions: { ...potions, reroll: potions.reroll - 1 } 
+          } 
+        });
+
+        console.log("Updated Inventory:", get().playerData.inventory);
+      }
     }
   },
 
@@ -908,20 +940,18 @@ export const useGameStore = create((set, get) => ({
     set({ playerShoutText: "", gameState: "PLAYERTURN" });
   },
 
-  // ✅ แก้ไข: เอาการสุ่มอักษรใหม่ออกตอนกด Pass
   passTurn: async (isManual = false) => {
     const store = get(); 
-    // ดึงตัวอักษรที่เลือกไว้กลับลงกระเป๋าก่อน
     store.resetSelection();
 
     set({ playerShoutText: "PASS!", gameState: "ACTION" });
     await delay(500);
     
-    // ไม่เซ็ต newInventory ใดๆ ใช้ของเดิมในกระเป๋าต่อไป
     set({ playerShoutText: "" });
     get().endTurn();
   },
 
+  // ⚠️ ปรับแก้ performPlayerSkill ตรงนี้
   performPlayerSkill: async (manualTargetId = null) => {
     const store = get();
     const { playerData, isSfxOn, selectedLetters } = store;
@@ -939,124 +969,78 @@ export const useGameStore = create((set, get) => ({
       return;
     }
 
+    // หักมานา
     const newMana = mana - ability.cost;
     set({ playerData: { ...playerData, mana: newMana } });
 
+    // คำนวณดาเมจแบบคูณ 2 ทุกตัวอักษร
     let rawDmg = 0;
     let bonusMana = 0;
-    activeLetters.forEach((l) => { 
-      rawDmg += getLetterDamage(l.char);
-      if (l.buff === "MANA_PLUS") bonusMana += 5;
+    
+    activeLetters.forEach((item) => { 
+      let letterDmg = getLetterDamage(item.char) * 2; // สกิลคูณ 2 พื้นฐานให้ทุกตัวอักษร
+      
+      // ถ้ามีบัฟ STRIKE_x2 ก็คูณเพิ่มไปอีก (Stack กันได้)
+      if (item.buff === "STRIKE_x2") {
+        letterDmg *= 2;
+      }
+      
+      if (item.buff === "MANA_PLUS") {
+        bonusMana += 5;
+      }
+      
+      rawDmg += letterDmg;
     });
-    let totalDmg = chanceRound(rawDmg);
+
+    const totalDmg = chanceRound(rawDmg);
 
     if (bonusMana > 0) {
       get().gainMana(bonusMana);
       get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 90, value: `+${bonusMana} MANA`, color: "#9b59b6" });
     }
 
+    // หาเป้าหมายเดี่ยว (เหมือน Strike ปกติ)
     let targetId = manualTargetId || store.hoveredEnemyId;
-    if (!targetId && ability.code !== "Expolsion") {
+    if (!targetId) {
       const firstEnemy = store.enemies.find((e) => e.hp > 0);
       targetId = firstEnemy ? firstEnemy.id : null;
     }
 
-    set({ playerShoutText: ability.code, playerVisual: "guard-1" });
-    if (isSfxOn) sfx.playBlock();
-    await delay(500);
-
-    switch (ability.code) {
-      case "Holy Shield":
-        if (targetId) {
-          const target = store.enemies.find((e) => e.id === targetId);
-          if (target) {
-            set({ playerX: target.x - 12, playerVisual: "walk" });
-            await delay(400);
-            set({ playerVisual: "attack-1" });
-            await delay(200);
-            if (isSfxOn) sfx.playHit();
-            get().damageEnemy(targetId, totalDmg);
-          }
-        }
-        set({ playerVisual: "guard-1" });
-        await delay(200);
-        if (isSfxOn) sfx.playBlock();
-        set((s) => ({ playerData: { ...s.playerData, shield: s.playerData.shield + totalDmg } }));
-        get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: `+${totalDmg} SHIELD`, color: "#2e75cc" });
-        await delay(500);
-        set({ playerX: PLAYER_X_POS, playerVisual: "walk" });
-        await delay(400);
-        break;
-
-      case "Shadow Slash":
-        if (targetId) {
-          const target = store.enemies.find((e) => e.id === targetId);
-          if (target) {
-            if (activeLetters.length > 0) {
-              const bonus = getLetterDamage(activeLetters[0].char);
-              totalDmg = chanceRound(rawDmg + bonus);
-            }
-            set({ playerX: target.x - 5, playerVisual: "attack-2" });
-            if (isSfxOn) sfx.playHit();
-            get().damageEnemy(targetId, totalDmg);
-            get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 90, value: "CRIT!", color: "#e67e22", fontSize: "24px" });
-            await delay(400);
-            set({ playerX: PLAYER_X_POS, playerVisual: "idle" });
-          }
-        }
-        break;
-
-      case "Bat Ambush":
-        if (targetId) {
-          const target = store.enemies.find((e) => e.id === targetId);
-          if (target) {
-            set({ playerX: target.x - 12, playerVisual: "walk" });
-            await delay(400);
-            set({ playerVisual: "attack-1" });
-            await delay(200);
-            set({ playerVisual: "attack-2" });
-            if (isSfxOn) sfx.playHit();
-            get().damageEnemy(targetId, totalDmg);
-            const healAmount = Math.floor(totalDmg * 0.5);
-            if (healAmount > 0) {
-                set((s) => {
-                    const currentHp = Number(s.playerData.hp) || 0;
-                    const maxHpVal = Number(s.playerData.max_hp) || 20;
-                    return { playerData: { ...s.playerData, hp: Math.min(maxHpVal, currentHp + healAmount) } };
-                });
-                get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: `+${healAmount} HP`, color: "#2ecc71" });
-            }
-            await delay(500);
-            set({ playerX: PLAYER_X_POS, playerVisual: "walk" });
-            await delay(400);
-          }
-        }
-        break;
-
-      case "Expolsion":
-        set({ playerVisual: "attack-2" });
-        await delay(300);
-        if (isSfxOn) sfx.playHit();
-        store.enemies.forEach((e) => { if (e.hp > 0) get().damageEnemy(e.id, totalDmg); });
-        await delay(300);
-        break;
-
-      default:
-        if (targetId) get().damageEnemy(targetId, totalDmg);
-    }
-
+    // เคลียร์ UI คำศัพท์และ Inventory
     let currentInv = [...store.playerData.inventory];
-    activeLetters.forEach((item) => { if (item && item.originalIndex !== undefined) currentInv[item.originalIndex] = null; });
+    activeLetters.forEach((item) => { 
+      if (item && item.originalIndex !== undefined) currentInv[item.originalIndex] = null; 
+    });
 
     set((s) => ({
+      playerShoutText: ability.code,
+      playerVisual: "idle-1",
       playerData: { ...s.playerData, inventory: currentInv },
       selectedLetters: new Array(s.playerData.unlockedSlots).fill(null),
       validWordInfo: null,
+      wordScore: { raw: 0, min: 0, max: 0 }
     }));
 
-    get().initSelectedLetters(); 
     await delay(300);
-    set({ playerVisual: "idle", playerShoutText: "" });
+
+    // ทำแอนิเมชันเดินไปโจมตีเป้าหมาย (เหมือน Strike)
+    if (targetId) {
+      const target = store.enemies.find((e) => e.id === targetId);
+      if (target) {
+        set({ playerX: target.x - 10, playerVisual: "walk" });
+        await delay(200);
+        set({ playerVisual: "attack-1" });
+        await delay(400);
+        if (store.isSfxOn) sfx.playHit();
+        set({ playerVisual: "attack-2" });
+        get().damageEnemy(targetId, totalDmg);
+        await delay(400);
+      }
+      set({ playerX: PLAYER_X_POS, playerVisual: "walk" });
+      await delay(500);
+    }
+
+    set({ playerVisual: "idle-1", playerShoutText: "" });
     get().endTurn();
   },
 
@@ -1092,7 +1076,7 @@ export const useGameStore = create((set, get) => ({
       if (remainingDmg === 0) {
         if (isSfxOn) sfx.playBlock();
         set({ playerVisual: "guard-1" });
-        setTimeout(() => set({ playerVisual: "idle" }), 600);
+        setTimeout(() => set({ playerVisual: "idle-1" }), 600);
       }
     }
     const newHp = Math.max(0, stat.hp - remainingDmg);
@@ -1219,7 +1203,7 @@ export const useGameStore = create((set, get) => ({
         }
         get().checkCurrentWord(enemySelectedArea);
         await delay(1500); 
-        set({ validWordInfo: null });
+        set({ validWordInfo: null, wordScore: { raw: 0, min: 0, max: 0 } });
         get().initSelectedLetters();
         get().updateEnemy(en.id, { shoutText: bestWord.toUpperCase() });
         await delay(800); 
@@ -1315,7 +1299,7 @@ export const useGameStore = create((set, get) => ({
     set({ gameState: "ENEMYTURN" });
     if (isCorrect) {
       get().updateEnemy(en.id, { atkFrame: 2, shoutText: "MISSED!" });
-      set({ playerX: PLAYER_X_POS - 5, playerVisual: "walk" });
+      set({ playerX: PLAYER_X_POS - 5, playerVisual: "walk-1" });
       if (store.isSfxOn) sfx.playMiss();
     } else {
       get().updateEnemy(en.id, { atkFrame: 2 });
@@ -1324,7 +1308,7 @@ export const useGameStore = create((set, get) => ({
       if (moveData.debuff_code) get().applyStatusToPlayer(moveData.debuff_code, moveData.debuff_chance, moveData.debuff_count, moveData.debuff_turn);
     }
     await delay(800);
-    set({ playerX: PLAYER_X_POS, playerVisual: "idle" });
+    set({ playerX: PLAYER_X_POS, playerVisual: "idle-1" });
   },
 
   resolveQuiz: (answer) => {

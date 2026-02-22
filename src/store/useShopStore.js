@@ -12,7 +12,7 @@ export const useShopStore = create((set, get) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`${API_URL}/shop`);
+      const res = await fetch(`/api/shop`);
       if (!res.ok) throw new Error("Failed to fetch shop");
 
       const data = await res.json();
@@ -27,7 +27,7 @@ export const useShopStore = create((set, get) => ({
       set({ loading: LOADING });
 
       const res = await fetch(
-        `${API_URL}/searchShop/${encodeURIComponent(keyword)}`
+        `/api/searchShop/${encodeURIComponent(keyword)}`
       );
       if (!res.ok) throw new Error("Search failed");
 
