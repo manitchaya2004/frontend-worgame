@@ -98,7 +98,7 @@ const GameAppBar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/auth");
     setConfirmLogout(false);
   };
 

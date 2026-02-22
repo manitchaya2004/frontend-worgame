@@ -3,11 +3,13 @@ import { FormTextField } from "../../../components/FormTextField";
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLoginPlayer } from "./hook/useLoginPlayer";
+import { useAuthStore } from "../../../store/useAuthStore";
 import GameSnackbar from "../../../components/Snackbar";
 import PaperFrame from "../../../components/PaparFrame/PaperFrame";
 import { THEMES } from "../../HomePage/hook/const";
 import MagicCursor from "../../../components/Cursor";
 const LoginPage = () => {
+  const { currentUser } = useAuthStore();
   const {
     message,
     isLoading,
@@ -19,6 +21,12 @@ const LoginPage = () => {
     clearBackendMessage,
   } = useLoginPlayer();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/"); // หรือ /home
+    }
+  }, [currentUser, navigate]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -35,7 +43,7 @@ const LoginPage = () => {
     clearBackendMessage();
   };
   const goToHomePage = useCallback(() => {
-    navigate("/");
+    navigate("/home");
   }, [navigate]);
 
   // state
@@ -106,8 +114,6 @@ const LoginPage = () => {
       username: formLogin.username,
       password: formLogin.password,
     });
-
-    goToHomePage();
   };
 
   // //error network reject

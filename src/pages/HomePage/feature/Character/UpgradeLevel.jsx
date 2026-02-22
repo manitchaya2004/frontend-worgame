@@ -107,16 +107,12 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
 
   const handleConfirmUpgrade = async () => {
     if (!canUpgrade) return;
-<<<<<<< HEAD
-    await upgradeHero(heroId);
-=======
     
     // รอให้อัปเกรดเสร็จ
     await upgradeHero(heroId);
     
     // อัปเดตข้อมูลพรีวิวสำหรับเลเวลถัดไปทันที (ไม่ต้องมี if result มากั้นแล้ว)
     await fetchPreviewData(heroId);
->>>>>>> e9d43db56fd3dcb0cb4891504aec30424b1c4c73
   };
 
   // ดึงข้อมูล Preview ใหม่เมื่อ Dialog เปิดขึ้นมา
