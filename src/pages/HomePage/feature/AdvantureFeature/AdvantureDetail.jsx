@@ -8,11 +8,11 @@ import {
 } from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { backgroundStage, name } from "../../hook/const";
-import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew"; // ไอคอนสำหรับเปลี่ยนตัว
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import "./style.css"
 // import SwitchAccountIcon from "@mui/icons-material/SwitchAccount";
 import SwitchAccountIcon from "../../../../assets/icons/changeHero.png";
 import { THEMES } from "../../hook/const";
+import { width } from "@mui/system";
 // 🪵 สไตล์ป้ายชื่อด่าน (ปรับใหม่ตามธีม)
 // 🪵 สไตล์ป้ายชื่อด่านแบบใหม่ (Big Center Sign)
 const stageNameStyle = {
@@ -28,7 +28,8 @@ const stageNameStyle = {
   borderRadius: "12px", // มุมมนขึ้นหน่อยให้ดูเป็นป้าย
 
   padding: "12px 40px", // เพิ่มพื้นที่รอบตัวอักษรให้ดูโปร่งและใหญ่
-  minWidth: "200px", // กำหนดความกว้างขั้นต่ำ ป้ายจะได้ไม่หดเล็กเกินไป
+  width: "fit-content", // ให้ความกว้างพอดีกับข้อความ
+  minWidth: "150px", // กำหนดความกว้างขั้นต่ำ ป้ายจะได้ไม่หดเล็กเกินไป
   textAlign: "center",
 
   // Shadow: เงาหนาๆ ให้ดูลอยออกมาจากพื้นหลัง
@@ -41,6 +42,14 @@ const stageNameStyle = {
   flexDirection: "column", // เผื่อใส่ sub-text ในอนาคต
   alignItems: "center",
   justifyContent: "center",
+
+  // mobile landscape
+  "@media (orientation: landscape) and (max-height: 450px)": {
+    top: 12,
+    padding: "8px 20px",
+    border: `2px solid ${THEMES.accent}`,
+    boxShadow: `0 3px 0 #271c19, 0 8px 10px rgba(0,0,0,0.5)`,
+  },
 };
 
 // เพิ่มสไตล์สำหรับ "โซ่" หรือ "เชือก" ที่แขวนป้าย (Optional: เพื่อความสวยงาม)
@@ -211,12 +220,18 @@ const DetailItem = ({
                   <Typography
                     sx={{
                       fontFamily: "'Press Start 2P'",
-                      fontSize: { xs: 14, md: 18 }, // ใหญ่ขึ้น!
+                      fontSize: { xs: 12, sm: 16, md: 18, xl: 20 }, // ใหญ่ขึ้น!
                       color: "#fffbe6", // สีขาวครีม อ่านง่าย
                       textShadow: `2px 2px 0 #000`,
                       textTransform: "uppercase",
                       letterSpacing: "2px",
                       lineHeight: 1.5,
+
+                      // mobile landscape
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 8,
+                        },
                     }}
                   >
                     {stage?.name || "UNKNOWN STAGE"}
@@ -231,6 +246,12 @@ const DetailItem = ({
                       opacity: 0.8,
                       mt: 0.5,
                       letterSpacing: 1,
+
+                      // mobile landscape
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 6,
+                        },
                     }}
                   >
                     Stage {stage?.orderNo || 1}
@@ -287,18 +308,35 @@ const DetailItem = ({
                   transform: "scale(1.05)",
                   borderColor: "#fff",
                 },
+
+                //mobile landscape
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  width: 25,
+                  height: 25,
+                  right: 10,
+                  bottom: 8,
+                  border: `1px solid ${THEMES.accent}`,
+                  borderRadius: "6px",
+                },
               }}
             >
               {/* <SwitchAccountIcon sx={{ fontSize: 20 }} /> */}
               <img
+                className="switch-icon"
                 src={SwitchAccountIcon}
-                style={{ height: 40, width: 40, imageRendering: "pixelated" }}
+                style={{ 
+                  height: 40, 
+                  width: 40, 
+                  imageRendering: "pixelated" 
+                  
+                 }}
               />
             </IconButton>
           )}
 
           {/* Character Animation */}
           <motion.img
+            className="character-anim"
             key="character-anim"
             src={
               isEntering && isLanded
@@ -355,6 +393,7 @@ const DetailItem = ({
       {/* ⭐ STAMP COMPLETED (อยู่นอก Box ที่เป็น Grayscale เพื่อให้สีสดใส) */}
       {isCompleted && !isEntering && (
         <motion.div
+          className="stamp-completed"
           variants={stampVariants}
           initial={{ opacity: 0, scale: 2, rotate: -30 }}
           animate={{ opacity: 1, scale: 1, rotate: -5 }} // หมุน -15 องศา
@@ -367,6 +406,7 @@ const DetailItem = ({
           style={stampStyle}
         >
           <Typography
+            className="stamp-text"
             sx={{
               fontFamily: "'Press Start 2P'",
               fontSize: { xs: "22px", md: "36px" },
@@ -385,6 +425,13 @@ const DetailItem = ({
               borderTop: "2px dashed rgba(0,230,118,0.6)",
               borderBottom: "2px dashed rgba(0,230,118,0.6)",
               padding: "6px 0",
+
+              // mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 14,
+                padding: "4px 0",
+
+              },
             }}
           >
             COMPLETED

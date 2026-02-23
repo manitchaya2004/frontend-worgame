@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useEffect , useState} from "react";
+import { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import GameAppBar from "../../components/AppBar";
@@ -19,7 +19,6 @@ const HomePage = () => {
   const { getMonsters } = useMonsterStore();
   const { getAllHeros } = useHeroStore();
   const { getAllStage } = useStageStore();
-
 
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -46,7 +45,7 @@ const HomePage = () => {
   }, []);
 
   if (isInitializing) {
-    return <LoadingScreen open={true}/>;
+    return <LoadingScreen open={true} />;
   }
 
   return (
@@ -63,6 +62,11 @@ const HomePage = () => {
             height: "calc(100% - 65px)", // หัก AppBar
             backgroundColor: "#16141A",
             overflow: "hidden",
+
+            //mobile lanscape
+            "@media (max-width: 600px) and (orientation: landscape)": {
+              height: "calc(100% - 50px)", // ปรับหัก AppBar สำหรับมือถือแนวนอน
+            },
           }}
         >
           {/* ⭐ Stars (ลอยอย่างเดียว) */}

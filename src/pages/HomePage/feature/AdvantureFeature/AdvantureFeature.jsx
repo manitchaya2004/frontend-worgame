@@ -16,8 +16,9 @@ const MotionBox = motion(Box);
 
 const AdvantureFeature = () => {
   const { currentUser } = useLoginPlayer();
+  console.log("🚀 ~ file: AdvantureFeature.jsx:17 ~ AdvantureFeature ~ currentUser:", currentUser)
   const { stages, loadingStage } = useData();
-  const store  = useGameStore();
+  const store = useGameStore();
   const { fetchAllStage } = useLoadData();
   const navigate = useNavigate();
   const location = useLocation();
@@ -116,7 +117,6 @@ const AdvantureFeature = () => {
     return 0;
   }, [playableStages, currentUser, completedStageId]);
 
-
   // preload background ของ stage
   useEffect(() => {
     if (!stages || stages.length === 0) return;
@@ -152,9 +152,8 @@ const AdvantureFeature = () => {
     );
   }
 
-
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{height: "100vh" }}>
       <MotionBox
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{
@@ -181,14 +180,22 @@ const AdvantureFeature = () => {
             0 0 0 4px #1a120b,
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
-          width: { xs: "90%", sm: "80%", md: "80%", lg: "65%" },
-          height: "570px",
+          width: { xs: "85%", sm: "80%", md: "80%", lg: "65%" },
+          height: { xs: "80%", sm: "80%", md: "80%", lg: "90%", xl: "80%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
+
+          //mobile landscape
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            top: "58%",
+            transform: "translate(-50%, -50%)",
+            height: "70%",
+            border: `4px solid ${THEMES.border}`,
+            borderRadius: "6px",
+          },
         }}
       >
-        {/* <Title title="ADVENTURE" /> */}
         {/* Header Title */}
         <Box
           sx={{
@@ -199,6 +206,13 @@ const AdvantureFeature = () => {
             mt: -1,
             mb: 2,
             borderBottom: `4px solid ${THEMES.border}`,
+
+            //mobile landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1,
+              mb: 1,
+              borderBottom: `2px solid ${THEMES.border}`,
+            },
           }}
         >
           {/* Title กลางจริง */}
@@ -210,6 +224,12 @@ const AdvantureFeature = () => {
               letterSpacing: "2px",
               textTransform: "uppercase",
               textShadow: `3px 3px 0 #000, 0 0 10px ${THEMES.accent}`,
+
+              //mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 12,
+                textShadow: `2px 2px 0 #000, 0 0 6px ${THEMES.accent}`,
+              },
             }}
           >
             ADVANTURE

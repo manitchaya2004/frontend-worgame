@@ -145,10 +145,10 @@ const ListSection = memo(
             src={arrowLeft}
             onClick={canGoPrev ? () => paginate(-1) : undefined}
             sx={{
-              width: 44,
+              width: { xs: 36, sm: 44 },
               position: "absolute",
-              left: 10,
-              zIndex: 20,
+              left: { xs: -3, sm: 10 },
+              zIndex: 100,
               imageRendering: "pixelated",
 
               opacity: canGoPrev ? 1 : 0.25,
@@ -157,13 +157,18 @@ const ListSection = memo(
 
               transition: "all 0.15s ease",
               "&:active": canGoPrev ? { transform: "scale(0.9)" } : {},
+
+              //mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                width: 30,
+              },
             }}
           />
 
           <Box
             sx={{
               position: "relative",
-              height: 380,
+              height: "90%",
               width: { xs: "80%", md: "85%", lg: "85%" },
               borderRadius: 2,
               overflow: "hidden",
@@ -217,10 +222,10 @@ const ListSection = memo(
             src={arrowRight}
             onClick={canGoNext ? () => paginate(1) : undefined}
             sx={{
-              width: 44,
+              width: { xs: 36, sm: 44 },
               position: "absolute",
-              right: 10,
-              zIndex: 20,
+              right: { xs: -3, sm: 10 },
+              zIndex: 100,
               imageRendering: "pixelated",
 
               opacity: canGoNext ? 1 : 0.25,
@@ -229,6 +234,11 @@ const ListSection = memo(
 
               transition: "all 0.15s ease",
               "&:active": canGoNext ? { transform: "scale(0.9)" } : {},
+
+              //mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                width: 30,
+              },
             }}
           />
         </Box>
@@ -239,9 +249,15 @@ const ListSection = memo(
           sx={{
             width: "100%",
             height: "80px", // 👈 กำหนดความสูงตายตัวไปเลย (ปรับเลขตามขนาดปุ่มจริง)
+            flexShrink: 0,
             display: "flex",
             alignItems: "center", // จัดให้อยู่กลางแนวตั้งของพื้นที่นี้
             justifyContent: "center",
+
+            //mobile landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              height: "35px",
+            },
           }}
         >
           {!isEntering && (
@@ -263,7 +279,7 @@ const ListSection = memo(
                 startIcon={isCompleted ? <ReplayIcon /> : <PlayArrowIcon />}
                 sx={{
                   fontFamily: "'Press Start 2P'",
-                  fontSize: "16px",
+                  fontSize: { xs: 12, sm: 16 }, // ปรับขนาดฟอนต์ตามขนาดหน้าจอ
                   color: "#fff",
                   backgroundColor: isCompleted ? "#26a69a" : "#43a047", // ยังคงสีเขียวไว้ เพื่อให้เด่นสุด (Call to Action)
                   border: isCompleted
@@ -292,6 +308,15 @@ const ListSection = memo(
                         boxShadow: "none",
                       }
                     : { transform: "translateY(6px)", boxShadow: "none" },
+                  //mobile landscape
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 10,
+                    px: 3,
+                    py: 1,
+                    border: isCompleted
+                      ? "2px solid #00695c"
+                      : "2px solid #1b5e20",
+                  },
                 }}
               >
                 {isCompleted ? "PLAY AGAIN" : "START"}

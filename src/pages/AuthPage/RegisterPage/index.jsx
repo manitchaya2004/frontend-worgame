@@ -261,7 +261,6 @@ const RegisterPage = () => {
           <Box
             sx={{
               display: "flex",
-              justifyContent: "space-evenly",
               justifyContent: { xs: "center", sm: "space-evenly" },
               alignItems: "center",
               width: "100%",
