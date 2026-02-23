@@ -28,7 +28,7 @@ const ItemCard = ({
   return (
     <Box
       sx={{
-        width: 250,
+        width: { xs: 200, sm: 250 },
         height: 250,
         backgroundColor: "#2b1d14",
         border: `3px solid ${color}`,
@@ -68,11 +68,11 @@ const ItemCard = ({
           flexDirection: "column",
         }}
       >
-        <Box sx={{display: "flex", alignItems: "center", gap: 1}}>
+        <Box sx={{display: "flex", alignItems: "center", gap: 1, flexDirection: { xs: "column", sm: "row" }}}>
           <Typography
             sx={{
               fontFamily: "'Press Start 2P'",
-              fontSize: 16,
+              fontSize: { xs: 10, sm: 16 },
               color: color,
               textTransform: "uppercase",
             }}
@@ -93,8 +93,8 @@ const ItemCard = ({
         </Box>
         <Box
           sx={{
-            width: 140,
-            height: 140,
+            width: { xs: 120, sm: 140 },
+            height:  { xs: 120, sm: 140 },
             backgroundColor: "rgba(0,0,0,0.3)",
             borderRadius: "8px",
             // border: "2px solid #5a3e2b",
@@ -102,7 +102,7 @@ const ItemCard = ({
             justifyContent: "center",
             alignItems: "center",
             color: color,
-            "& svg": { fontSize: 100 },
+            "& svg": { fontSize: { xs: 50, sm: 100 } },
           }}
         >
           {icon}
@@ -165,10 +165,12 @@ const ItemCard = ({
           mt: "auto",
           pt: 1,
           borderTop: "2px dashed #3e2723",
+          flexDirection: { xs: "column", sm: "row" },
+          gap: { xs: 1, sm: 0 },
         }}
       >
         <Typography
-          sx={{ fontFamily: "'Press Start 2P'", fontSize: 10, color: "#fff" }}
+          sx={{ fontFamily: "'Press Start 2P'", fontSize: { xs: 8, sm: 10}, color: "#fff" }}
         >
           CARRY:
         </Typography>
