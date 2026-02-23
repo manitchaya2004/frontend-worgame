@@ -22,6 +22,8 @@ const shortType = (type) => {
       return "adj.";
     case "adverb":
       return "adv.";
+    case "preposition":
+      return "prep.";
     default:
       return type;
   }
@@ -31,6 +33,7 @@ const Type = [
   { value: "verb", label: "Verb" },
   { value: "adjective", label: "Adjective" },
   { value: "adverb", label: "Adverb" },
+  { value: "preposition", label: "Preposition" },
 ];
 
 const Level = [
@@ -192,6 +195,7 @@ const WordList = ({
   );
 };
 
+// WordDetail รับค่าคำศัพท์และวนลูปแสดงรายละเอียดตาม Type ที่มี
 const WordDetail = ({ dictionary }) => {
   if (!dictionary) {
     return (
@@ -222,119 +226,120 @@ const WordDetail = ({ dictionary }) => {
         backgroundColor: "#fdf8ef",
         border: "3px solid #2b1d14",
         boxShadow: "4px 4px 0 #2b1d14",
-        p: 3,
+        px: 3,
+        py:2,
         overflowY: "auto",
       }}
     >
-      {/* ===== HEADER ===== */}
-      <Box sx={{ mb: 3 }}>
-        {/* word + type */}
-        <Box
+      {/* 1. MASTER WORD TITLE (แสดงแค่ครั้งเดียว) */}
+      <Box sx={{ mb: 2 }}>
+        <Typography
           sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            mb: 1.5,
+            fontFamily: `"Press Start 2P"`,
+            fontSize: 24,
+            color: "#2b1d14",
+            textShadow: "2px 2px 0px #d6b46a", 
           }}
         >
-          <Typography
-            sx={{
-              fontFamily: `"Press Start 2P"`,
-              fontSize: 20,
-              color: "#2b1d14",
-            }}
-          >
-            {dictionary.word}
-          </Typography>
+          {dictionary.word}
+        </Typography>
+      </Box>
 
-          {dictionary.type && (
-            <Box
-              sx={{
-                px: 1,
-                py: 0.3,
-                fontSize: 10,
-                backgroundColor: "#d6b46a",
-                border: "2px solid #2b1d14",
-                fontFamily: `"Press Start 2P"`,
-              }}
-            >
-              {shortType(dictionary.type)}
-            </Box>
-          )}
-        </Box>
+      {/* เส้นคั่นหลัก ใต้ชื่อคำศัพท์ */}
+      <Divider sx={{ borderColor: "#2b1d14", borderWidth: 1.5, mb: 2 }} />
 
-        {/* level */}
-        {dictionary.level && (
+      {/* 2. LOOP ENTRIES (แสดง Type + Meaning ย่อยๆ) */}
+      {dictionary.entries.map((entry, index) => (
+        <Box key={index} sx={{ mb: index !== dictionary.entries.length - 1 ? 3 : 0 }}>
+          
+          {/* แถวแสดง Type และ Level */}
           <Box
             sx={{
-              display: "inline-block",
-              px: 1,
-              py: 0.4,
-              fontSize: 9,
-              backgroundColor: "#e7dcc8",
-              border: "2px solid #2b1d14",
-              fontFamily: `"Press Start 2P"`,
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              mb: 1.5,
             }}
           >
-            Level {dictionary.level}
+            {entry.type && (
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.4,
+                  fontSize: 10,
+                  backgroundColor: "#d6b46a",
+                  border: "2px solid #2b1d14",
+                  fontFamily: `"Press Start 2P"`,
+                  color: "#1b1b1b"
+                }}
+              >
+                {shortType(entry.type)}
+              </Box>
+            )}
+
+            {entry.level && (
+              <Box
+                sx={{
+                  display: "inline-block",
+                  px: 1,
+                  py: 0.4,
+                  fontSize: 9,
+                  backgroundColor: "#e7dcc8",
+                  border: "2px solid #2b1d14",
+                  fontFamily: `"Press Start 2P"`,
+                  color: "#1b1b1b"
+                }}
+              >
+                Level {entry.level}
+              </Box>
+            )}
           </Box>
-        )}
 
-        {/* divider */}
-        <Box
-          sx={{
-            mt: 2,
+          {/* ===== MEANING ===== */}
+          <Box
+            sx={{
+              backgroundColor: "#fffaf0",
+              border: "2px solid #d6b46a",
+              boxShadow: "inset 2px 2px 0 #fff",
+              p: 2,
+              position: "relative",
+            }}
+          >
+            {/* label */}
+            <Typography
+              sx={{
+                position: "absolute",
+                top: -10,
+                left: 12,
+                backgroundColor: "#fdf8ef",
+                px: 1,
+                fontSize: 9,
+                fontFamily: `"Press Start 2P"`,
+                color: "#7b4a3b",
+              }}
+            >
+              Meaning
+            </Typography>
 
-            borderBottom: "2px dashed #d6b46a",
-          }}
-        />
-      </Box>
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "#1b1b1b",
+                lineHeight: 1.8,
+                mt: 1,
+              }}
+            >
+              {entry.meaning}
+            </Typography>
+          </Box>
 
-      {/* ===== MEANING ===== */}
-      <Box
-        sx={{
-          backgroundColor: "#fffaf0",
-          border: "2px solid #d6b46a",
-          boxShadow: "inset 2px 2px 0 #fff",
-          p: 2,
-          position: "relative",
-        }}
-      >
-        {/* label */}
-        <Typography
-          sx={{
-            position: "absolute",
-            top: -10,
-            left: 12,
-            backgroundColor: "#fdf8ef",
-            px: 1,
-            fontSize: 9,
-            fontFamily: `"Press Start 2P"`,
-            color: "#7b4a3b",
-          }}
-        >
-          Meaning
-        </Typography>
-
-        <Typography
-          sx={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "#1b1b1b",
-            lineHeight: 1.8,
-            mt: 1,
-          }}
-        >
-          {dictionary.meaning}
-        </Typography>
-      </Box>
-
-      {/* ===== EXTRA (เผื่ออนาคต) ===== */}
-      {/* 
-      <Box sx={{ mt: 2, fontSize: 11, color: "#555" }}>
-        Example: ...
-      </Box> 
-      */}
+          {/* ถ้ามีคำศัพท์ประเภทถัดไป ให้คั่นด้วยเส้นประ */}
+          {index !== dictionary.entries.length - 1 && (
+            <Divider sx={{ borderStyle: "dashed", borderColor: "#d6b46a", mt: 2 }} />
+          )}
+        </Box>
+      ))}
     </Box>
   );
 };
@@ -360,6 +365,7 @@ const DictionaryLibrary = () => {
     if (searchInput === searchText) return;
     setSearchText(searchInput);
   };
+
   // load when select alphabet and search
   useEffect(() => {
     clearDictionary();
@@ -380,22 +386,20 @@ const DictionaryLibrary = () => {
     selectLength,
   ]);
 
-  /* ===============================
-   load when clear search input
-================================ */
+  // load when clear search input
   useEffect(() => {
     if (searchInput.trim() === "") {
       setSearchText("");
     }
   }, [searchInput]);
 
+  // 💡 THE FIX 1: เอา selectType ออกจากวงเล็บนี้! 
+  // เพื่อให้เวลาเปลี่ยน Filter Type คำศัพท์ที่กำลังเปิดดูอยู่ไม่หายไป
   useEffect(() => {
     setSelectedWord(null);
-  }, [selectLength, selectLevel, selectType]);
+  }, [selectLength, selectLevel]);
 
-  /* ===============================
-   load more
-================================ */
+  // load more
   const loadMore = () => {
     if (!hasNext || DictionaryState === "LOADING") return;
 
@@ -416,6 +420,24 @@ const DictionaryLibrary = () => {
       return true;
     });
   }, [dictionary, selectType]);
+
+  // นำข้อมูลที่ถูกฟิลเตอร์แล้ว มาจัดกลุ่ม (Group) ด้วยตัวคำศัพท์ (word)
+  const groupedDictionary = useMemo(() => {
+    const map = new Map();
+    filteredDictionary.forEach((item) => {
+      if (!map.has(item.word)) {
+        map.set(item.word, { word: item.word, entries: [] });
+      }
+      map.get(item.word).entries.push(item);
+    });
+    return Array.from(map.values());
+  }, [filteredDictionary]);
+
+  // 💡 THE FIX 2: ดึงข้อมูลคำศัพท์ที่อัปเดตล่าสุด (หลังโดน Filter) ออกมาเสมอ
+  const currentActiveWord = useMemo(() => {
+    if (!selectedWord) return null;
+    return groupedDictionary.find((w) => w.word === selectedWord.word) || null;
+  }, [selectedWord, groupedDictionary]);
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -470,9 +492,6 @@ const DictionaryLibrary = () => {
           </Typography>
         </Box>{" "}
         <Box sx={{ display: "flex", flexDirection: "column", height: "480px" }}>
-          {/* Search 
-          <SearchDictionary/> */}
-
           {/* Alphabet Selector */}
           <Box
             sx={{
@@ -519,7 +538,7 @@ const DictionaryLibrary = () => {
 
           <Divider sx={{ borderColor: "#d6b46a", mb: 1 }} />
 
-          {/*  content */}
+          {/* content */}
           <Box
             sx={{
               display: "flex",
@@ -567,16 +586,17 @@ const DictionaryLibrary = () => {
               height: "500px",
             }}
           >
+            {/* 💡 ส่งค่า currentActiveWord ไปทำงานแทน selectedWord เสมอ */}
             <WordList
-              dictionary={filteredDictionary}
+              dictionary={groupedDictionary}
               hasNext={hasNext}
               loading={DictionaryState === "LOADING"}
               onLoadMore={loadMore}
               onSelect={setSelectedWord}
-              selectedWord={selectedWord}
+              selectedWord={currentActiveWord}
             />
 
-            <WordDetail dictionary={selectedWord} />
+            <WordDetail dictionary={currentActiveWord} />
           </Box>
         </Box>
       </MotionBox>
