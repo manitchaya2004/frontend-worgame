@@ -1,0 +1,37 @@
+/* img-scroll-left */
+@media (orientation: landscape) and (max-height: 450px) {
+    .character-feature {
+        top: 57% !important;
+        transform: translate(-50%, -50%) !important;
+        height: 75% !important;
+        border: 4px solid #5a3e2b !important;
+        border-radius: 6px !important;
+    }
+
+    .img-scroll {
+        width: 30px !important;
+    }
+}
+
+ /* mobile iphone 12 +++ */
+@media (max-width: 430px) and (orientation: portrait) {
+    .character-feature {
+        height: 54% !important;
+    }
+}
+
+@media (max-width: 430px) and (orientation: landscape) {
+    .character-feature {
+         top: 57% !important;
+       height: 70% !important;
+
+    }
+}
+
+/* ipad */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  /* iPad mini → iPad Pro 12.9 */
+  .character-feature {
+    height: 50% !important;
+  }
+}

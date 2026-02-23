@@ -1,7 +1,7 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
 import React, { useState } from "react";
 import { Box, Typography, Tooltip, Divider, IconButton } from "@mui/material";
-import { usePreloadFrames ,LoadImage} from "../../hook/usePreloadFrams";
+import { usePreloadFrames, LoadImage } from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
 import UpgradeDialog from "./UpgradeLevel";
@@ -35,7 +35,10 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
 
-  const imgSrc = frames.length > 0 ? frames[frame - 1]?.src : LoadImage("img_hero", hero.id, 1);
+  const imgSrc =
+    frames.length > 0
+      ? frames[frame - 1]?.src
+      : LoadImage("img_hero", hero.id, 1);
 
   // ตรวจสอบสถานะการเป็นเจ้าของ
   const playerHero = playerHeroes?.find((h) => h.hero_id === hero.id);
@@ -93,8 +96,9 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
     <>
       <Box
         sx={{
-          width: 360,
-          height: 480,
+          // ⭐ THE FIX: ทำให้กว้าง/สูง ยืดหยุ่นตามหน้าจอ
+          width: { xs: 250, sm: 320, md: 360 },
+          height: "100%",
           background: isOwned
             ? "#eaddcf"
             : "linear-gradient(180deg, #f2dfb6, #d9b97a)",
@@ -106,12 +110,20 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           overflow: "hidden", // ตัดส่วนเกินทิ้ง ป้องกันการหลุดกรอบ
           transform: "translateZ(0)",
           willChange: "transform",
+
+          // ⭐ บีบอัดขนาดสำหรับ Mobile Landscape
+          
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            width: 200,
+
+            borderRadius: 2,
+          },
         }}
       >
         {/* === SECTION 1: HEADER (Static Flow) === */}
         <Box
           sx={{
-            height: "48px",
+            height: { xs: "40px", md: "48px" },
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -121,57 +133,60 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
             zIndex: 100,
             mx: 0, // ชิดขอบซ้ายขวา
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              height: "20px",
+            },
           }}
         >
           <Typography
             sx={{
               fontFamily: `"Press Start 2P", monospace`,
-              fontSize: "14px",
+              fontSize: { xs: "12px", md: "14px" },
               color: "#ffecb3",
               textShadow: "2px 2px 0 #000",
               textTransform: "uppercase",
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: "7px",
+              },
             }}
           >
             {hero.name}
           </Typography>
-          {/* <Tooltip title="Rare Hero">
-            <Box
-              component="img"
-              src={iconic}
-              sx={{
-                width: "20px",
-                height: "20px",
-                imageRendering: "pixelated",
-              }}
-            />
-          </Tooltip> */}
         </Box>
 
         {/* === SECTION 2: IMAGE (Static Flow) === */}
-
         <Box
           sx={{
-            height: "180px", // กำหนดพื้นที่ให้รูป
+            height: { xs: "120px", md: "180px" }, // กำหนดพื้นที่ให้รูป
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             zIndex: 1,
             mb: 1,
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              height: "80px",
+            },
           }}
         >
-          <img
+          {/* ⭐ เปลี่ยนจาก <img> ธรรมดาเป็น Box component="img" เพื่อให้คุม sx ได้ */}
+          <Box
+            component="img"
             key={hero.id}
             src={imgSrc}
             alt={hero.name}
-            style={{
-              width: "150px",
-              height: "140px",
+            sx={{
+              width: { xs: "110px", md: "150px" },
+              height: { xs: "110px", md: "140px" },
               objectFit: "contain",
               imageRendering: "pixelated",
               filter: "drop-shadow(0 5px 5px rgba(0,0,0,0.4))",
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                width: "80px",
+                height: "80px",
+              },
             }}
             onError={(e) => {
-               e.currentTarget.src = "/fallback/unknown-hero.png";
+              e.currentTarget.src = "/fallback/unknown-hero.png";
             }}
           />
         </Box>
@@ -185,12 +200,18 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             border: isOwned ? "none" : "2px solid #2a160f",
             boxShadow: "inset 0 0 10px rgba(0,0,0,0.5)",
 
-            mx: 1.5, // ระยะห่างซ้ายขวา
-            p: 1.5, // Padding ภายใน
+            mx: { xs: 1, md: 1.5 }, // ระยะห่างซ้ายขวา
+            p: { xs: 1, md: 1.5 }, // Padding ภายใน
             display: "flex",
             flexDirection: "column",
-            marginTop: "-38px", // ดึงขึ้นไปเกยรูปนิดหน่อย
+            marginTop: { xs: "-20px", md: "-38px" }, // ดึงขึ้นไปเกยรูปนิดหน่อย
             zIndex: 10, // อยู่ต่ำกว่ารูป (รูป z-index 5)
+
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              marginTop: "-20px",
+              p: 0.8,
+              borderRadius: "10px",
+            },
           }}
         >
           <LevelBar
@@ -212,21 +233,29 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               border: "1px solid #5a3e2b",
               borderRadius: "4px",
               padding: "4px 8px",
-              // my: 1,
               minHeight: "28px",
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                minHeight: "10px",
+                padding: "2px 4px",
+              },
             }}
           >
-            <InfoOutlinedIcon sx={{ fontSize: 14, color: "#8d6e63" }} />
+            <InfoOutlinedIcon
+              sx={{ fontSize: { xs: 12, md: 14 }, color: "#8d6e63" }}
+            />
             <Typography
               sx={{
                 fontFamily: "'Verdana', sans-serif",
-                fontSize: 11,
+                fontSize: { xs: 9, md: 11 },
                 color: "#d7ccc8",
                 lineHeight: 1.2,
                 textAlign: "center",
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 7,
+                },
               }}
             >
-              {hero.ability_description}
+              {hero.ability_description || "No ability description"}
             </Typography>
           </Box>
 
@@ -236,9 +265,13 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              mt: 1,
+              mt: { xs: 0.5, md: 1 },
               mb: 0.5,
-              minHeight: "30px",
+              minHeight: { xs: "24px", md: "30px" },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                minHeight: "18px",
+                mt: 0.1,
+              },
             }}
           >
             {/* เส้นประ (จะยืดเต็มถ้าไม่มีปุ่ม หรือหดเองถ้ามีปุ่ม) */}
@@ -260,24 +293,45 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                     border: "1px solid #5a3e2b",
                     borderRadius: "4px",
                     backgroundColor: "rgba(0,0,0,0.2)",
-                    // เพิ่มความสูง/กว้างที่แน่นอนให้ปุ่ม (Optional แต่ช่วยให้เป๊ะขึ้น)
-                    width: "25px",
-                    height: "25px",
+                    // เพิ่มความสูง/กว้างที่แน่นอนให้ปุ่ม
+                    width: { xs: "22px", md: "25px" },
+                    height: { xs: "22px", md: "25px" },
+                    "& .MuiSvgIcon-root": {
+                      fontSize: { xs: "14px", md: "18px" },
+                    },
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      width: "18px",
+                      height: "18px",
+                      "& .MuiSvgIcon-root": { fontSize: "12px" },
+                    },
                   }}
                 >
-                  {showDetail ? (
-                    <ViewListIcon sx={{ fontSize: "18px" }} />
-                  ) : (
-                    <ViewModuleIcon sx={{ fontSize: "18px" }} />
-                  )}
+                  {showDetail ? <ViewListIcon /> : <ViewModuleIcon />}
                 </IconButton>
               </Tooltip>
             )}
           </Box>
 
-          <>
+          <Box
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
+              "&::-webkit-scrollbar": { display: "none" },
+            }}
+          >
             {showDetail ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.7 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.7,
+                  // mobile landscape อาจจะดูแน่นๆ หน่อย แต่ยังพอไหว
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    gap: 0,
+                  },
+                }}
+              >
                 <StatLine
                   label="HP"
                   value={game_stats.hp}
@@ -299,10 +353,18 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   color="#00e5ff"
                   description="Turn Speed. Faster acts first."
                 />
-                
               </Box>
             ) : (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: { xs: 0.5, md: 1 },
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    gap: 0.25,
+                  },
+                }}
+              >
                 <StatVisualBar
                   label="HP"
                   value={base_stats.hp}
@@ -326,18 +388,17 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 />
               </Box>
             )}
-          </>
+          </Box>
         </Box>
 
         {/* === 4. BUTTON (แยกออกมาอยู่ข้างนอก Stats Box แล้ว) === */}
         {/* ตรงนี้ Background จะเป็นของ Card หลัก ไม่ใช่สีน้ำตาลเข้ม */}
         <Box
           sx={{
-            mx: 1.5, // ให้กว้างเท่ากับ Box ข้างบน
-            mb: 1.5, // ระยะห่างจากขอบล่าง
-            mt: 1, // ระยะห่างจาก Stats Box
-
-            py: 1,
+            mx: { xs: 1, md: 1.5 }, // ให้กว้างเท่ากับ Box ข้างบน
+            mb: { xs: 1, md: 1.5 }, // ระยะห่างจากขอบล่าง
+            mt: { xs: 0.5, md: 1 }, // ระยะห่างจาก Stats Box
+            py: { xs: 0.5, md: 1 },
             textAlign: "center",
 
             // สีปุ่ม (Background) ของตัวเอง
@@ -357,6 +418,11 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             color: "#2a160a",
             boxShadow: "0 4px 0 #3a1f0b",
             zIndex: 20,
+
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 0.45,
+              mb: 0.9,
+            },
           }}
           onClick={() => {
             if (isSelected) return;
@@ -373,6 +439,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                position: "relative",
               }}
             >
               <Box
@@ -380,16 +447,30 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                 src={correct}
                 sx={{
                   position: "absolute",
-                  left: 80,
-                  bottom: 20,
-                  width: "42px",
-                  height: "42px",
+                  left: { xs: 45, sm: 60, md: 80 },
+                  bottom: 0,
+                  width: { xs: "32px", md: "42px" },
+                  height: { xs: "32px", md: "42px" },
                   zIndex: 30,
                   transform: "rotate(5deg)",
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    width: "24px",
+                    height: "24px",
+                    left: 35,
+                    bottom: 0,
+                  },
                 }}
               />
               <Typography
-                sx={{ fontFamily: "'Press Start 2P'", fontSize: 12, ml: 3 }}
+                sx={{
+                  fontFamily: "'Press Start 2P'",
+                  fontSize: { xs: 10, md: 12 },
+                  ml: 3,
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 7,
+                    ml: 2,
+                  },
+                }}
               >
                 SELECTED
               </Typography>
@@ -398,8 +479,11 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: 12,
+                fontSize: { xs: 10, md: 12 },
                 color: !isOwned && !canBuy ? "#ff1744" : "#2a160a",
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 7,
+                },
               }}
             >
               {isOwned ? "SELECT" : `💰 ${hero.price}`}

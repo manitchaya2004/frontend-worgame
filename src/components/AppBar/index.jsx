@@ -17,12 +17,12 @@ import { motion, animate } from "framer-motion";
 // Icons
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
-import ShieldIcon from "@mui/icons-material/Shield";
-import PersonIcon from "@mui/icons-material/Person";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 
+import { GiBroadsword, GiBackpack } from "react-icons/gi";
+import { FaCrown } from "react-icons/fa";
 // Assets
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
@@ -106,8 +106,16 @@ const AnimatedMoney = ({ value, fontSize = 10 }) => {
 
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
+  console.log("Current User in AppBar:", currentUser);
   const muiTheme = useMuiTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+
+  // 💡 THE FIX: จับทั้งหน้าจอเล็ก (xs) และ หน้าจอมือถือแนวนอน (landscape)
+  const isMobileWidth = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const isMdWidth = useMediaQuery(muiTheme.breakpoints.down("md"));
+  const isLandscapeMobile = useMediaQuery(
+    "(orientation: landscape) and (max-height: 450px)",
+  );
+  const isCompact = isMobileWidth || isLandscapeMobile ; // ถ้าย่อจอ หรือตะแคงมือถือ จะยุบปุ่มเหลือแค่ไอคอน
 
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
@@ -129,14 +137,14 @@ const GameAppBar = () => {
       id: "adventure",
       label: "ADVENTURE",
       path: "/home",
-      icon: <ShieldIcon />,
+      icon: <GiBroadsword />,
       isMain: true,
     },
     {
       id: "character",
       label: "CHARACTER",
       path: "/home/character",
-      icon: <PersonIcon />,
+      icon: <FaCrown />,
     },
   ];
 
@@ -169,6 +177,10 @@ const GameAppBar = () => {
         <Toolbar
           sx={{
             minHeight: { xs: "60px", md: "70px" },
+            // ลดความสูงแถบบาร์เฉพาะตอนแนวนอน
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              minHeight: "48px",
+            },
             px: { xs: 1, sm: 2 },
             display: "flex",
             justifyContent: "space-between",
@@ -193,7 +205,7 @@ const GameAppBar = () => {
             >
               <Box
                 sx={{
-                  pl: { xs: "45px", sm: "55px" },
+                  pl: { xs: "45px", sm: "50px", md: "55px" },
                   pr: { xs: 1.5, sm: 2.5 },
                   py: 0.5,
                   backgroundColor: "#E8E9CD",
@@ -204,6 +216,11 @@ const GameAppBar = () => {
                   flexDirection: "column",
                   minWidth: { xs: "90px", sm: "120px", md: "140px" },
                   width: "fit-content",
+                  // หดป้ายโปรไฟล์ตอนแนวนอนไม่ให้กินพื้นที่มากไป
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    pl: "45px",
+                    minWidth: "90px",
+                  },
                 }}
               >
                 <Typography
@@ -235,9 +252,10 @@ const GameAppBar = () => {
                       border: "1px solid #B8860B",
                     }}
                   />
+                  {/* เปลี่ยนมาใช้ isCompact ในการเช็คขนาดฟอนต์ */}
                   <AnimatedMoney
                     value={currentUser?.money || 0}
-                    fontSize={isMobile ? 7 : 9}
+                    fontSize={isCompact ? 7 : 9}
                   />
                 </Box>
               </Box>
@@ -257,6 +275,10 @@ const GameAppBar = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   zIndex: 2,
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    width: 40,
+                    height: 40,
+                  },
                 }}
               >
                 <Avatar
@@ -301,7 +323,7 @@ const GameAppBar = () => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              gap: { xs: 0.5, sm: 1.5 },
+              gap: { xs: 0.5, sm: 1, md: 1.5 },
             }}
           >
             {MAIN_NAV_ITEMS.map((item) => {
@@ -310,25 +332,27 @@ const GameAppBar = () => {
                   ? location.pathname === "/home"
                   : location.pathname.includes(item.path);
 
-              // Logic ขนาดปุ่ม: ถ้าเป็น Adventure และไม่ใช่ Mobile ให้ขยายใหญ่
-              const isMainAndNotMobile = item.isMain && !isMobile;
-
               return (
                 <Button
                   key={item.id}
                   onClick={() => navigate(item.path)}
                   sx={{
-                    // ปรับความกว้าง: Adventure (160px) vs อื่นๆ (120px)
-                    minWidth: isMobile
+                    // 💡 เปลี่ยนมาใช้ isCompact ทั้งหมดในการเช็คเพื่อยุบปุ่ม
+                    minWidth: isCompact
                       ? "40px"
                       : item.isMain
                         ? "160px"
                         : "120px",
-                    height: isMobile ? "40px" : item.isMain ? "52px" : "45px",
+                    height: isCompact
+                      ? "36px"
+                      : item.isMain
+                        ? { xs: "40px", sm: "45px", md: "52px" }
+                        : { xs: "36px", md: "40px" },
                     flexDirection: { xs: "column", sm: "row" },
                     fontFamily: "'Press Start 2P'",
-                    // ปรับ Font: Adventure (12px) vs อื่นๆ (8px)
-                    fontSize: isMobile ? 0 : item.isMain ? 12 : 8,
+                    fontSize: item.isMain
+                      ? { xs: 8, sm: 10, md: 12 }
+                      : { xs: 6, sm: 8 },
                     color: isActive ? THEME.bgDark : "#d7ccc8",
                     backgroundColor: isActive
                       ? THEME.accent
@@ -338,13 +362,13 @@ const GameAppBar = () => {
                     boxShadow: isActive
                       ? `0 0 12px ${THEME.accent}`
                       : "0 3px 0 #1a120b",
-                    p: { xs: 0, sm: 1.5 },
+                    p: isCompact ? 0 : { xs: 0, sm: 1.5 },
                     transition: "all 0.1s",
                     "& .MuiButton-startIcon": {
-                      margin: isMobile ? 0 : "0 8px 0 0",
+                      margin: isCompact ? 0 : "0 8px 0 0",
+
                       "& > *:nth-of-type(1)": {
-                        // Icon Adventure จะใหญ่กว่านิดหน่อยบน Desktop
-                        fontSize: isMobile ? 20 : item.isMain ? 26 : 22,
+                        fontSize: isCompact ? 22 : item.isMain ? 26 : 22,
                       },
                     },
                     "&:hover": {
@@ -356,7 +380,8 @@ const GameAppBar = () => {
                   }}
                   startIcon={item.icon}
                 >
-                  {!isMobile && item.label}
+                  {/* แสดง Label เฉพาะตอนที่ไม่ถูกยุบ (ไม่กะทัดรัด) */}
+                  {!isCompact && item.label}
                 </Button>
               );
             })}
@@ -372,7 +397,8 @@ const GameAppBar = () => {
               gap: { xs: 0.2, sm: 1 },
             }}
           >
-            {!isMobile && (
+            {/* ซ่อนเส้นคั่นตอนยุบจอ */}
+            {!isCompact && (
               <Box
                 sx={{
                   width: "1px",

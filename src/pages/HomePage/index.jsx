@@ -64,7 +64,7 @@ const HomePage = () => {
             overflow: "hidden",
 
             //mobile lanscape
-            "@media (max-width: 600px) and (orientation: landscape)": {
+            "@media (orientation: landscape) and (max-height: 450px)": {
               height: "calc(100% - 50px)", // ปรับหัก AppBar สำหรับมือถือแนวนอน
             },
           }}
@@ -124,6 +124,7 @@ const HomePage = () => {
               filter: "brightness(0.9)",
               zIndex: 1,
               pointerEvents: "none",
+
             }}
           />
 
