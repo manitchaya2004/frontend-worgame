@@ -156,7 +156,7 @@ export const TargetPickerOverlay = ({
                 }}
               >
                 <img
-                  src={`${ipAddress}/img_monster/${en.monster_id}-idle-${store.animFrame}.png`}
+                  src={`/api/img_monster/${en.monster_id}-idle-${store.animFrame}.png`}
                   alt={en.name}
                   style={{
                     width: "110%",

@@ -11,7 +11,7 @@ export const useStageStore = create((set) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`${API_URL}/getAllStage`);
+      const res = await fetch(`/api/getAllStage`);
       if (!res.ok) throw new Error("Failed to fetch stages");
 
       const data = await res.json();

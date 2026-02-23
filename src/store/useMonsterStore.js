@@ -12,7 +12,7 @@ export const useMonsterStore = create((set) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`${API_URL}/monster`);
+      const res = await fetch(`/api/monster`);
       if (!res.ok) throw new Error("Failed to fetch monsters");
 
       const data = await res.json();
@@ -35,7 +35,7 @@ export const useMonsterStore = create((set) => ({
       // ยิง API getStageById ของทุกด่านพร้อมกัน
       const fetchPromises = userStages.map(async (stage) => {
         try {
-          const res = await fetch(`${API_URL}/getStageById/${stage.stage_id}`);
+          const res = await fetch(`/api/getStageById/${stage.stage_id}`);
           if (!res.ok) return; // ถ้าดึงด่านไหนไม่ผ่าน ก็ข้ามไป
           const stageData = await res.json();
 

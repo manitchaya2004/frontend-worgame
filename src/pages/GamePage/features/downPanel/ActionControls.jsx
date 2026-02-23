@@ -209,15 +209,15 @@ export const ActionControls = ({
           highlight={isPlayerTurn && hasWord}
           onClick={onShieldClick}
         />
-        
+
         <FantasyListButton
-          label={skillName} 
+          label={skillName}
           icon={<GiStarsStack />}
-          color="#9b59b6" 
-          disabled={!isPlayerTurn || !isManaEnough || !hasWord} 
-          highlight={isPlayerTurn && isManaEnough && hasWord}
-          onClick={onSkillClick}
           subLabel={skillDesc || "Use special ability"}
+          color="#9b59b6" // สีม่วง
+          disabled={!isPlayerTurn || !isManaEnough || !hasWord} // เพิ่ม !hasWord
+          highlight={isPlayerTurn && isManaEnough && hasWord} // เพิ่ม hasWord
+          onClick={onSkillClick}
         />
 
         <FantasyListButton

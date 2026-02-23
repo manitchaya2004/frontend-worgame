@@ -28,7 +28,7 @@ export const useServerStore = create((set) => ({
     }
 
     try {
-      const res = await fetch(`${API_URL}/server/${SERVER_ID}`);
+      const res = await fetch(`/api/server/${SERVER_ID}`);
       if (!res.ok) throw new Error();
 
       const data = await res.json();
@@ -62,7 +62,7 @@ export const useServerStore = create((set) => ({
     const start = Date.now();
 
     try {
-      const res = await fetch(`${API_URL}/server/${SERVER_ID}`);
+      const res = await fetch(`/api/server/${SERVER_ID}`);
       if (!res.ok) throw new Error();
 
       const data = await res.json();
@@ -128,7 +128,7 @@ export const useServerStore = create((set) => ({
 //     set({ serverStatus: LOADING });
 
 //     try {
-//       const res = await fetch(`${API_URL}/server/${serverId}`);
+//       const res = await fetch(`/api/server/${serverId}`);
 
 //       if (!res.ok) throw new Error("Server error");
 
@@ -158,7 +158,7 @@ export const useServerStore = create((set) => ({
 //     const { serverId, isServerClose } = get();
 
 //     try {
-//       const res = await fetch(`${API_URL}/server/${serverId}`);
+//       const res = await fetch(`/api/server/${serverId}`);
 
 //       if (!res.ok) throw new Error("Server error");
 

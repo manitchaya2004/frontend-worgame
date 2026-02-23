@@ -13,7 +13,7 @@ export const useHeroStore = create((set) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`${API_URL}/hero`);
+      const res = await fetch(`/api/hero`);
       if (!res.ok) throw new Error("Failed to fetch heros");
 
       const data = await res.json();
@@ -28,7 +28,7 @@ export const useHeroStore = create((set) => ({
     try {
       set({ upgradeLoading: LOADING, upgradeError: null });
 
-      const res = await fetch(`${API_URL}/upgrade-stat`, {
+      const res = await fetch(`/api/upgrade-stat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -13,7 +13,7 @@ export const useDictionaryStore = create((set, get) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`${API_URL}/dict/query`, {
+      const res = await fetch(`/api/dict/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
