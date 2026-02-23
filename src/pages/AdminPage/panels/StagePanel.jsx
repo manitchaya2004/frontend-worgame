@@ -289,9 +289,28 @@ const StagePanel = () => {
           </div>
         </div>
 
-        {/* ✅ Map Upload */}
+        {/* ✅ Map Upload พร้อม Preview */}
         <div className="form-field full mt-10" data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)">
           <label className="form-label">Map Image (PNG)</label>
+          
+          {/* ✅ แสดงภาพ Preview หากมีการเลือกไฟล์ */}
+          {mapFile && (
+            <div style={{ marginBottom: "10px" }}>
+              <img 
+                src={URL.createObjectURL(mapFile)} 
+                alt="Map Preview" 
+                style={{ 
+                  maxWidth: "200px", 
+                  maxHeight: "150px", 
+                  objectFit: "contain", 
+                  border: "1px solid #444", 
+                  borderRadius: "4px", 
+                  background: "rgba(0,0,0,0.5)" 
+                }} 
+              />
+            </div>
+          )}
+
           <input
             type="file"
             accept="image/png"

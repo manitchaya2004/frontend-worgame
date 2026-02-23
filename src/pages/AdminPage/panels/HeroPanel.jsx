@@ -380,14 +380,23 @@ const HeroPanel = () => {
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", marginTop: "10px" }}>
             {Object.keys(spriteFiles).map((k) => (
-              <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }} data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}>
-                <label style={{ fontSize: 12, color: "#888" }}>{k}</label>
+              <div key={k} style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start", padding: "10px", border: "1px dashed #555", borderRadius: "8px" }} data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}>
+                <label style={{ fontSize: 12, color: "#888", fontWeight: "bold", textTransform: "capitalize" }}>{k}</label>
+                
+                {spriteFiles[k] && (
+                  <img 
+                    src={URL.createObjectURL(spriteFiles[k])} 
+                    alt={`Preview ${k}`} 
+                    style={{ width: "80px", height: "80px", objectFit: "contain", border: "1px solid #444", borderRadius: "4px", background: "rgba(0,0,0,0.5)" }} 
+                  />
+                )}
+
                 <input
                   type="file"
                   accept="image/*"
                   required={!isEditing}
                   onChange={(e) => handleSpriteChange(k, e.target.files?.[0] || null)}
-                  style={{ width: "180px" }}
+                  style={{ fontSize: "12px", width: "180px" }}
                 />
               </div>
             ))}
