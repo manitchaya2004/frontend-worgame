@@ -55,9 +55,7 @@ const HeroPanel = () => {
     hp: "",
     power: "",
     speed: "",
-    ability_code: "",
     ability_cost: "",
-    ability_description: "",
     description: "",
     hero_deck: [],
   });
@@ -141,9 +139,7 @@ const HeroPanel = () => {
       hp: formData.hp === "" ? 0 : Number(formData.hp),
       power: formData.power === "" ? 0 : Number(formData.power),
       speed: formData.speed === "" ? 0 : Number(formData.speed),
-      ability_code: formData.ability_code || null,
       ability_cost: formData.ability_cost === "" ? null : Number(formData.ability_cost),
-      ability_description: formData.ability_description || null,
       description: formData.description || null,
       hero_deck: (formData.hero_deck || []).map(item => ({
         effect: item.effect,
@@ -194,9 +190,7 @@ const HeroPanel = () => {
         hp: "",
         power: "",
         speed: "",
-        ability_code: "",
         ability_cost: "",
-        ability_description: "",
         description: "",
         hero_deck: [],
       });
@@ -216,9 +210,7 @@ const HeroPanel = () => {
       hp: h.hp ?? "",
       power: h.power ?? "",
       speed: h.speed ?? "",
-      ability_code: h.ability_code ?? "",
       ability_cost: h.ability_cost ?? "",
-      ability_description: h.ability_description ?? "",
       description: h.description ?? "",
       hero_deck: h.hero_deck || [],
     });
@@ -264,9 +256,7 @@ const HeroPanel = () => {
       hp: "",
       power: "",
       speed: "",
-      ability_code: "",
       ability_cost: "",
-      ability_description: "",
       description: "",
       hero_deck: [],
     });
@@ -319,15 +309,6 @@ const HeroPanel = () => {
         </div>
 
         <div className="flex-row">
-          <div className="form-field flex-1" data-tooltip="รหัสสกิลติดตัวของฮีโร่">
-            <label className="form-label">ability_code</label>
-            <input
-              className="input-field"
-              value={formData.ability_code}
-              onChange={(e) => setField("ability_code", e.target.value)}
-              placeholder="เช่น heal-all, fire-slash"
-            />
-          </div>
           <div className="form-field flex-1" data-tooltip="ค่ามานาที่ใช้สำหรับสกิลนี้">
             <label className="form-label">ability_cost</label>
             <input
@@ -337,15 +318,6 @@ const HeroPanel = () => {
               onChange={(e) => setNumberField("ability_cost", e.target.value)}
             />
           </div>
-        </div>
-
-        <div className="form-field full" data-tooltip="คำอธิบายความสามารถของสกิล">
-          <label className="form-label">ability_description</label>
-          <input
-            className="input-field"
-            value={formData.ability_description}
-            onChange={(e) => setField("ability_description", e.target.value)}
-          />
         </div>
 
         <div className="form-field full" data-tooltip="คำอธิบายเพิ่มเติมเกี่ยวกับฮีโร่">
@@ -445,8 +417,8 @@ const HeroPanel = () => {
                 <th data-tooltip="ภาพตัวอย่างแอนิเมชัน">Sprite</th>
                 <th data-tooltip="รหัสอ้างอิงและชื่อฮีโร่">ID / Name</th>
                 <th data-tooltip="ค่าสถานะพื้นฐานของฮีโร่">Stats (HP, Pwr, Spd)</th>
-                <th data-tooltip="สกิลติดตัวและจำนวนการ์ดในกอง">Ability & Deck</th>
-                <th data-tooltip="คำอธิบายสกิลและฮีโร่">Descriptions</th>
+                <th data-tooltip="ค่าคอสและจำนวนการ์ดในกอง">Ability & Deck</th>
+                <th data-tooltip="คำอธิบายฮีโร่">Descriptions</th>
                 <th data-tooltip="ปุ่มจัดการข้อมูล">Actions</th>
               </tr>
             </thead>
@@ -464,15 +436,14 @@ const HeroPanel = () => {
                     HP: {h.hp} | Pwr: {h.power} | Spd: {h.speed}
                   </td>
                   <td className="mono" style={{ fontSize: 12, color: "#ddd" }}>
-                    <div><strong>{h.ability_code ?? "-"}</strong> (Cost: {h.ability_cost ?? "-"})</div>
+                    <div>Cost: {h.ability_cost ?? "-"}</div>
                     {/* ✅ แสดงจำนวนการ์ดในตาราง */}
                     <div style={{ color: "#48bb78", marginTop: "4px" }}>
                       Cards: {Array.isArray(h.hero_deck) ? h.hero_deck.length : 0}
                     </div>
                   </td>
                   <td style={{ fontSize: 12, color: "#ccc", maxWidth: 220 }}>
-                    {h.ability_description ?? "-"}
-                    <div style={{ marginTop: 6, color: "#aaa" }}>{h.description ?? "-"}</div>
+                    <div style={{ color: "#aaa" }}>{h.description ?? "-"}</div>
                   </td>
                   <td className="action-buttons">
                     <button className="btn btn-edit" onClick={() => handleEdit(h)} data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้">Edit</button>
