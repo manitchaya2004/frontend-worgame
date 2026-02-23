@@ -1,0 +1,25 @@
+/* mobile แนวตั้ง  */
+@media (orientation: portrait) and (max-width: 450px) {
+  .stamp-completed {
+    border: 3px solid #00e676 !important;
+    top: 40% !important;
+    left: 3% !important;
+  }
+  .stamp-text {
+    font-size: 16px !important;
+  }
+}
+
+/* //mobile landscape */
+@media (orientation: landscape) and (max-height: 450px) {
+.character-anim {
+    top: 20% !important;
+}
+  .switch-icon {
+    height: 20px !important;
+    width: 20px !important;
+  }
+  .stamp-completed {
+    border: 2px solid #00e676 !important;
+  }
+}
