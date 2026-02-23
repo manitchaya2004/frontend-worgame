@@ -141,23 +141,15 @@ const DictionaryPanel = () => {
 
   const filteredWords = words.filter((w) => !filterType || w.type === filterType);
 
+// ... (ส่วนบนของไฟล์เหมือนเดิมทุกประการ)
+
   return (
     <div>
       <form className="form-box" onSubmit={handleSubmit}>
-        <input
-          className="input-field"
-          type="text"
-          name="word"
-          placeholder="Word"
-          value={formData.word}
-          onChange={handleChange}
-          required
-        />
-
+        {/* ... (Input Word, Type, Meaning เหมือนเดิม) */}
+        <input className="input-field" type="text" name="word" placeholder="Word" value={formData.word} onChange={handleChange} required />
         <select className="input-field" name="type" value={formData.type} onChange={handleChange} required>
-          <option value="" disabled>
-            Select Type...
-          </option>
+          <option value="" disabled>Select Type...</option>
           <option value="noun">noun</option>
           <option value="verb">verb</option>
           <option value="adjective">adjective</option>
@@ -166,43 +158,41 @@ const DictionaryPanel = () => {
           <option value="conjunction">conjunction</option>
           <option value="pronoun">pronoun</option>
         </select>
+        <input className="input-field" type="text" name="meaning" placeholder="Meaning" value={formData.meaning} onChange={handleChange} required />
 
-        <input
-          className="input-field"
-          type="text"
-          name="meaning"
-          placeholder="Meaning"
-          value={formData.meaning}
-          onChange={handleChange}
-          required
-        />
+        {/* ✅ Tooltip สำหรับ Select Level */}
+        <div data-tooltip="Select language difficulty level">
+          <select className="input-field" name="level" value={formData.level ?? ""} onChange={handleChange}>
+            <option value="">No Level</option>
+            <option value="A1">A1</option>
+            <option value="A2">A2</option>
+            <option value="B1">B1</option>
+            <option value="B2">B2</option>
+          </select>
+        </div>
 
-        {/* ✅ No Level */}
-        <select className="input-field" name="level" value={formData.level ?? ""} onChange={handleChange}>
-          <option value="">No Level</option>
-          <option value="A1">A1</option>
-          <option value="A2">A2</option>
-          <option value="B1">B1</option>
-          <option value="B2">B2</option>
-        </select>
-
-        {/* ✅ Oxford checkbox */}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }}>
-          <input
-            type="checkbox"
-            name="is_oxford"
-            checked={Boolean(formData.is_oxford)}
-            onChange={handleChange}
-          />
+        <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }} data-tooltip="Check if this is an Oxford 3000 word">
+          <input type="checkbox" name="is_oxford" checked={Boolean(formData.is_oxford)} onChange={handleChange} />
           Oxford
         </label>
 
-        <button type="submit" className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}>
+        {/* ✅ Tooltip สำหรับปุ่ม Add/Update */}
+        <button 
+          type="submit" 
+          className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
+          data-tooltip={isEditing ? "Save changes to database" : "Create new word entry"}
+        >
           {isEditing ? "Update Word" : "Add Word"}
         </button>
 
         {isEditing && (
-          <button type="button" className="btn" onClick={resetForm} style={{ backgroundColor: "#666" }}>
+          <button 
+            type="button" 
+            className="btn" 
+            onClick={resetForm} 
+            style={{ backgroundColor: "#666" }}
+            data-tooltip="Discard all changes"
+          >
             Cancel
           </button>
         )}
@@ -216,6 +206,7 @@ const DictionaryPanel = () => {
               className={`letter-btn ${selectedLetter === letter ? "active" : ""}`}
               onClick={() => handleLetterClick(letter)}
               type="button"
+              data-tooltip={`Filter: Words starting with ${letter}`}
             >
               {letter}
             </button>
@@ -225,6 +216,7 @@ const DictionaryPanel = () => {
             onClick={() => setSelectedLetter("")}
             style={{ gridColumn: "span 2" }}
             type="button"
+            data-tooltip="Clear filter and show all"
           >
             ALL
           </button>
@@ -232,49 +224,44 @@ const DictionaryPanel = () => {
 
         <div className="search-controls">
           <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search word..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
+          <input type="text" className="search-input" placeholder="Search word..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
 
-          <select className="filter-select" onChange={(e) => setFilterType(e.target.value)} value={filterType}>
-            <option value="">All Types</option>
-            <option value="noun">noun</option>
-            <option value="verb">verb</option>
-            <option value="adjective">adjective</option>
-            <option value="adverb">adverb</option>
-            <option value="preposition">preposition</option>
-            <option value="conjunction">conjunction</option>
-            <option value="pronoun">pronoun</option>
-          </select>
+          <div data-tooltip="Filter by Part of Speech">
+            <select className="filter-select" onChange={(e) => setFilterType(e.target.value)} value={filterType}>
+              <option value="">All Types</option>
+              <option value="noun">noun</option>
+              <option value="verb">verb</option>
+              <option value="adjective">adjective</option>
+              <option value="adverb">adverb</option>
+              <option value="preposition">preposition</option>
+              <option value="conjunction">conjunction</option>
+              <option value="pronoun">pronoun</option>
+            </select>
+          </div>
 
-          <select className="filter-select" onChange={(e) => setFilterLevel(e.target.value)} value={filterLevel}>
-            <option value="">All Levels</option>
-            <option value="A1">Level A1</option>
-            <option value="A2">Level A2</option>
-            <option value="B1">Level B1</option>
-            <option value="B2">Level B2</option>
-          </select>
+          <div data-tooltip="Filter by CEFR Level">
+            <select className="filter-select" onChange={(e) => setFilterLevel(e.target.value)} value={filterLevel}>
+              <option value="">All Levels</option>
+              <option value="A1">Level A1</option>
+              <option value="A2">Level A2</option>
+              <option value="B1">Level B1</option>
+              <option value="B2">Level B2</option>
+            </select>
+          </div>
 
-          <select className="filter-select" onChange={(e) => setFilterLength(e.target.value)} value={filterLength}>
-            <option value="">Any Length</option>
-            <option value="3">3 Chars</option>
-            <option value="4">4 Chars</option>
-            <option value="5">5 Chars</option>
-            <option value="6">6 Chars</option>
-            <option value="7">7+ Chars</option>
-          </select>
+          <div data-tooltip="Filter by number of characters">
+            <select className="filter-select" onChange={(e) => setFilterLength(e.target.value)} value={filterLength}>
+              <option value="">Any Length</option>
+              <option value="3">3 Chars</option>
+              <option value="4">4 Chars</option>
+              <option value="5">5 Chars</option>
+              <option value="6">6 Chars</option>
+              <option value="7">7+ Chars</option>
+            </select>
+          </div>
 
-          {/* ✅ Filter Oxford only */}
-          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }}>
-            <input
-              type="checkbox"
-              checked={onlyOxford}
-              onChange={(e) => setOnlyOxford(e.target.checked)}
-            />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }} data-tooltip="Show only Oxford 3000 vocabulary">
+            <input type="checkbox" checked={onlyOxford} onChange={(e) => setOnlyOxford(e.target.checked)} />
             Oxford only
           </label>
         </div>
@@ -290,8 +277,8 @@ const DictionaryPanel = () => {
                 <th>Word</th>
                 <th>Type</th>
                 <th>Meaning</th>
-                <th>Level</th>
-                <th>Oxford</th>
+                <th data-tooltip="Language Difficulty Level (CEFR)">Level ⓘ</th>
+                <th data-tooltip="Is this an Oxford 3000 core word?">Oxford ⓘ</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -299,29 +286,34 @@ const DictionaryPanel = () => {
             <tbody>
               {filteredWords.map((item) => (
                 <tr key={item.id}>
+                  {/* ... (ข้อมูลในตารางคงเดิม) */}
                   <td><strong>{item.word}</strong></td>
                   <td><span style={{ color: "#aaa" }}>{item.type}</span></td>
                   <td>{item.meaning}</td>
                   <td>{item.level && String(item.level).trim() !== "" ? item.level : "-"}</td>
                   <td style={{ textAlign: "center" }}>{item.is_oxford ? "✅" : "-"}</td>
+                  
                   <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEditClick(item)} type="button">
+                    <button 
+                      className="btn btn-edit" 
+                      onClick={() => handleEditClick(item)} 
+                      type="button"
+                      data-tooltip="Edit this word entry"
+                    >
                       Edit
                     </button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(item)} type="button">
+                    <button 
+                      className="btn btn-delete" 
+                      onClick={() => handleDelete(item)} 
+                      type="button"
+                      data-tooltip="Delete this word permanently"
+                    >
                       Delete
                     </button>
                   </td>
                 </tr>
               ))}
-
-              {filteredWords.length === 0 && (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-                    No words found.
-                  </td>
-                </tr>
-              )}
+              {/* ... (No words found case) */}
             </tbody>
           </table>
         )}

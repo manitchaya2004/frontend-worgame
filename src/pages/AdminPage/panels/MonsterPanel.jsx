@@ -11,6 +11,14 @@ const toSlug = (text = "") =>
     .replace(/\s+/g, "-")         // เว้นวรรค → -
     .replace(/-+/g, "-");         // กัน -- ซ้อน
 
+// ✅ รายชื่อ Effect สำหรับ Deck
+const DECK_EFFECTS = [
+  "double-dmg",
+  "double-guard",
+  "double-shield",
+  "mana-plus",
+  "shield-plus"
+];
 
 const MonsterPanel = () => {
   const [monsters, setMonsters] = useState([]);
@@ -49,6 +57,7 @@ const MonsterPanel = () => {
       isBoss: false,
       quiz_move_code: "",
       quiz_move_cost: "",
+      monster_deck: [], // ✅ เพิ่มค่าเริ่มต้นของ Deck
 
       monster_moves: [
         {
@@ -172,12 +181,8 @@ const MonsterPanel = () => {
     return arr;
   }, [monsters, sortBy, sortDir]);
 
-  const sortIcon = (key) => {
-    if (sortBy !== key) return "";
-    return sortDir === "asc" ? "↑" : "↓";
-  };
-
-  const SortableTH = ({ colKey, children }) => {
+  // ✅ แก้ไข SortableTH ให้รองรับ data-tooltip
+  const SortableTH = ({ colKey, children, tooltip }) => {
     const active = sortBy === colKey;
 
     return (
@@ -189,7 +194,7 @@ const MonsterPanel = () => {
           whiteSpace: "nowrap",
           color: active ? "#ffd54f" : undefined, // เหลืองอ่อน
         }}
-        title="Click to sort"
+        data-tooltip={tooltip}
       >
         {children}
         {active && (
@@ -310,6 +315,32 @@ const MonsterPanel = () => {
     });
   };
 
+  // ✅ ฟังก์ชันจัดการ Monster Deck
+  const handleAddDeckItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      monster_deck: [...(prev.monster_deck || []), { effect: "double-dmg", size: 3 }],
+    }));
+  };
+
+  const handleRemoveDeckItem = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      monster_deck: prev.monster_deck.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleDeckChange = (index, field, value) => {
+    setFormData((prev) => {
+      const newDeck = [...(prev.monster_deck || [])];
+      newDeck[index] = { 
+        ...newDeck[index], 
+        [field]: field === "size" ? Number(value) : value 
+      };
+      return { ...prev, monster_deck: newDeck };
+    });
+  };
+
   // ===== Sprites upload =====
   const uploadSpritesStrict4 = async (monsterId) => {
     const fd = new FormData();
@@ -344,6 +375,12 @@ const MonsterPanel = () => {
       isBoss: Boolean(formData.isBoss),
       quiz_move_code: formData.quiz_move_code || null,
       quiz_move_cost: formData.quiz_move_cost === "" ? null : Number(formData.quiz_move_cost),
+
+      // ✅ แนบ monster_deck
+      monster_deck: (formData.monster_deck || []).map(item => ({
+        effect: item.effect,
+        size: Number(item.size) || 1
+      })),
 
       monster_moves: (formData.monster_moves || []).map((p) => ({
         pattern_no: Number(p.pattern_no) || 1,
@@ -418,6 +455,7 @@ const MonsterPanel = () => {
       isBoss: Boolean(m.isBoss),
       quiz_move_code: m.quiz_move_code ?? "",
       quiz_move_cost: m.quiz_move_cost ?? "",
+      monster_deck: m.monster_deck || [], // ✅ ดึงข้อมูล Deck ตอน Edit
       monster_moves: Array.isArray(m.monster_moves) && m.monster_moves.length
         ? m.monster_moves
         : emptyForm.monster_moves,
@@ -474,7 +512,7 @@ const MonsterPanel = () => {
         </h3>
 
         <div className="flex-row">
-          <div className="form-field flex-1">
+          <div className="form-field flex-1" data-tooltip="รหัสอ้างอิงมอนสเตอร์ (สร้างอัตโนมัติจากชื่อ)">
             <label className="form-label required">Monster ID</label>
             <input
               className="input-field"
@@ -488,7 +526,7 @@ const MonsterPanel = () => {
             <span className="form-hint">ใช้เป็น key หลัก</span>
           </div>
 
-          <div className="form-field flex-1">
+          <div className="form-field flex-1" data-tooltip="เลขลำดับมอนสเตอร์ในสมุดภาพ">
             <label className="form-label">no</label>
             <input
               className="input-field"
@@ -498,7 +536,7 @@ const MonsterPanel = () => {
             />
           </div>
 
-          <div className="form-field flex-2">
+          <div className="form-field flex-2" data-tooltip="ชื่อของมอนสเตอร์ที่จะแสดงในเกม">
             <label className="form-label required">name</label>
             <input
               className="input-field"
@@ -526,34 +564,42 @@ const MonsterPanel = () => {
         </div>
 
         <div className="flex-row flex-wrap">
-          <div className="form-field">
+          <div className="form-field" data-tooltip="พลังชีวิตเริ่มต้นของมอนสเตอร์">
             <label className="form-label required">hp</label>
             <input className="input-field" type="number" value={formData.hp} onChange={(e) => setNumberField("hp", e.target.value)} />
           </div>
-          <div className="form-field">
+          <div className="form-field" data-tooltip="พลังโจมตีพื้นฐาน (มีผลต่อความแรงสกิล)">
             <label className="form-label required">power</label>
             <input className="input-field" type="number" value={formData.power} onChange={(e) => setNumberField("power", e.target.value)} />
           </div>
-          <div className="form-field">
+          <div className="form-field" data-tooltip="ความเร็ว (กำหนดลำดับการโจมตีในแต่ละเทิร์น)">
             <label className="form-label required">speed</label>
             <input className="input-field" type="number" value={formData.speed} onChange={(e) => setNumberField("speed", e.target.value)} />
           </div>
-          <div className="form-field">
+          <div className="form-field" data-tooltip="ค่าประสบการณ์ที่จะมอบให้ผู้เล่นเมื่อชนะ">
             <label className="form-label required">exp</label>
             <input className="input-field" type="number" value={formData.exp} onChange={(e) => setNumberField("exp", e.target.value)} />
           </div>
 
-          <div className="form-field">
+          {/* ✅ เปลี่ยนปุ่มสลับค่าเป็น Checkbox */}
+          <div className="form-field" data-tooltip="สถานะบอส (ส่งผลต่อรางวัลและ UI พิเศษ)">
             <label className="form-label">isBoss</label>
-            <button type="button" className="btn btn-neutral" onClick={toggleBoss}>
-              {formData.isBoss ? "TRUE" : "FALSE"}
-            </button>
-            <span className="form-hint">กดสลับค่า</span>
+            <div style={{ display: "flex", alignItems: "center", height: "40px", gap: "10px" }}>
+              <input 
+                type="checkbox" 
+                id="isBoss"
+                checked={formData.isBoss} 
+                onChange={(e) => setField("isBoss", e.target.checked)} 
+                style={{ width: "20px", height: "20px", cursor: "pointer", accentColor: "#e53e3e" }}
+              />
+              <label htmlFor="isBoss" style={{ color: "#fff", cursor: "pointer", margin: 0, userSelect: "none" }}>Boss Monster</label>
+            </div>
+            <span className="form-hint">กดติ๊กเพื่อกำหนดเป็นบอส</span>
           </div>
         </div>
 
         <div className="flex-row">
-          <div className="form-field flex-1">
+          <div className="form-field flex-1" data-tooltip="สกิลที่มอนสเตอร์จะใช้เมื่อผู้เล่นตอบคำถามถูก">
             <label className="form-label">quiz_move_code</label>
 
             {/* ✅ dropdown: quiz:true เท่านั้น */}
@@ -596,7 +642,7 @@ const MonsterPanel = () => {
             {hasMoves && <span className="form-hint">เลือกได้เฉพาะ move ที่ is_quiz=true</span>}
           </div>
 
-          <div className="form-field flex-1">
+          <div className="form-field flex-1" data-tooltip="ค่ามานาที่บอสต้องใช้เพื่อปล่อยสกิล Quiz">
             <label className="form-label">quiz_move_cost</label>
             <input
               className="input-field"
@@ -607,7 +653,7 @@ const MonsterPanel = () => {
           </div>
         </div>
 
-        <div className="form-field full">
+        <div className="form-field full" data-tooltip="คำอธิบายเพิ่มเติมเกี่ยวกับมอนสเตอร์">
           <label className="form-label">description</label>
           <input
             className="input-field"
@@ -620,13 +666,13 @@ const MonsterPanel = () => {
 
         {/* ===== Monster Moves (pattern) ===== */}
         <div className="moves-container">
-          <div className="moves-label">Monster Moves (monster_moves)</div>
+          <div className="moves-label" data-tooltip="ชุดคำสั่งสกิลที่มอนสเตอร์จะใช้โจมตีตามลำดับปกติ">Monster Moves (monster_moves)</div>
 
           {(formData.monster_moves || []).map((p, pi) => (
             <div className="pattern-card" key={pi}>
               <div className="pattern-header">
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <div className="form-field">
+                  <div className="form-field" data-tooltip="ชุดลำดับที่ (ID ของกลุ่มสกิล)">
                     <label className="form-label required">pattern_no</label>
                     <input
                       className="input-field"
@@ -638,14 +684,14 @@ const MonsterPanel = () => {
                   </div>
                 </div>
 
-                <button type="button" className="btn-small btn-remove" onClick={() => removePattern(pi)}>
+                <button type="button" className="btn-small btn-remove" onClick={() => removePattern(pi)} data-tooltip="ลบชุดคำสั่งนี้ทั้งหมด">
                   Remove Pattern
                 </button>
               </div>
 
               {(p.moves || []).map((mv, mi) => (
                 <div className="move-row" key={mi}>
-                  <div className="form-field">
+                  <div className="form-field" data-tooltip="ลำดับการออกสกิลภายในชุดนี้">
                     <label className="form-label required">order</label>
                     <input
                       type="number"
@@ -655,7 +701,7 @@ const MonsterPanel = () => {
                     />
                   </div>
 
-                  <div className="form-field" style={{ flex: 1 }}>
+                  <div className="form-field" style={{ flex: 1 }} data-tooltip="เลือกสกิลที่จะใช้ในลำดับนี้">
                     <label className="form-label required">pattern_move</label>
 
                     {/* ✅ dropdown: quiz:false เท่านั้น */}
@@ -700,32 +746,74 @@ const MonsterPanel = () => {
                     )}
                   </div>
 
-                  <button type="button" className="btn-small btn-remove" onClick={() => removeMoveRow(pi, mi)}>
+                  <button type="button" className="btn-small btn-remove" onClick={() => removeMoveRow(pi, mi)} data-tooltip="ลบลำดับสกิลนี้">
                     Remove
                   </button>
                 </div>
               ))}
 
-              <button type="button" className="btn-small btn-add-move" onClick={() => addMoveRow(pi)}>
+              <button type="button" className="btn-small btn-add-move" onClick={() => addMoveRow(pi)} data-tooltip="เพิ่มสกิลลงในชุดคำสั่งนี้">
                 + Add Move
               </button>
             </div>
           ))}
 
-          <button type="button" className="btn-add-pattern" onClick={addPattern}>
+          <button type="button" className="btn-add-pattern" onClick={addPattern} data-tooltip="สร้างชุดคำสั่ง (Pattern) ใหม่">
             + Add Pattern
           </button>
         </div>
 
+        {/* ✅ เพิ่มส่วนจัดการ Monster Deck */}
+        <div style={{ width: "100%", marginTop: "15px", padding: "15px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px dashed #555" }}>
+          <h4 style={{ margin: "0 0 10px 0", color: "#e2e8f0" }} data-tooltip="การ์ดเอฟเฟกต์ที่มอนสเตอร์ตัวนี้มีในกอง">Monster Deck (Cards)</h4>
+          {(formData.monster_deck || []).map((item, index) => (
+            <div key={index} style={{ display: "flex", gap: "10px", marginBottom: "8px", alignItems: "center" }}>
+              <div className="form-field flex-2" style={{ marginBottom: 0 }} data-tooltip="เลือกเอฟเฟกต์ของการ์ด">
+                <select 
+                  className="input-field" 
+                  value={item.effect} 
+                  onChange={(e) => handleDeckChange(index, "effect", e.target.value)}
+                >
+                  {DECK_EFFECTS.map(ef => (
+                    <option key={ef} value={ef}>{ef}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-field flex-1" style={{ marginBottom: 0 }} data-tooltip="จำนวนใบของการ์ดชนิดนี้ในกอง">
+                <input 
+                  className="input-field" 
+                  type="number" 
+                  placeholder="Size (e.g. 3)" 
+                  value={item.size} 
+                  onChange={(e) => handleDeckChange(index, "size", e.target.value)}
+                  min="1"
+                />
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-delete" 
+                onClick={() => handleRemoveDeckItem(index)}
+                style={{ height: "36px", padding: "0 10px", marginTop: "20px" }}
+                data-tooltip="ลบการ์ดใบนี้ออกจากกอง"
+              >
+                X
+              </button>
+            </div>
+          ))}
+          <button type="button" className="btn" onClick={handleAddDeckItem} style={{ background: "#c53030", marginTop: "10px" }} data-tooltip="เพิ่มการ์ดชนิดใหม่ลงในกอง">
+            + Add Card
+          </button>
+        </div>
+
         {/* ===== Sprite Upload 4 ===== */}
-        <div className="sprite-upload">
-          <div className="hint">
+        <div className="sprite-upload" style={{ marginTop: 15 }}>
+          <div className="hint" data-tooltip="ต้องอัปโหลดให้ครบทั้ง 4 ท่าทางเพื่อให้แอนิเมชันทำงานสมบูรณ์">
             Monster Sprites (ต้องมี 4 รูป) — Attack x2, Idle x2
             {isEditing && <span className="subhint"> (แก้รูป: เลือกใหม่ให้ครบ 4 แล้วกด UPDATE)</span>}
           </div>
 
           {Object.keys(spriteFiles).map((k) => (
-            <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }} data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}>
               <label style={{ fontSize: 12, color: "#888" }}>{k}</label>
               <input
                 type="file"
@@ -738,12 +826,12 @@ const MonsterPanel = () => {
         </div>
 
         <div style={{ width: "100%", display: "flex", gap: 10, justifyContent: "center", marginTop: 20 }}>
-          <button type="submit" className={`btn ${isEditing ? "btn-edit" : "btn-add"}`} style={{ flex: 1 }}>
+          <button type="submit" className={`btn ${isEditing ? "btn-edit" : "btn-add"}`} style={{ flex: 1 }} data-tooltip={isEditing ? "บันทึกการแก้ไขข้อมูลมอนสเตอร์" : "สร้างมอนสเตอร์ตัวใหม่ลงในระบบ"}>
             {isEditing ? "UPDATE MONSTER" : "CREATE MONSTER"}
           </button>
 
           {isEditing && (
-            <button type="button" className="btn btn-cancel" onClick={handleCancel}>
+            <button type="button" className="btn btn-cancel" onClick={handleCancel} data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม">
               CANCEL
             </button>
           )}
@@ -758,23 +846,23 @@ const MonsterPanel = () => {
           <table className="dict-table monster-theme">
             <thead>
               <tr>
-                <th>Sprite</th>
-                <th>ID</th>
+                <th data-tooltip="ภาพตัวอย่างแอนิเมชัน">Sprite</th>
+                <th data-tooltip="รหัสอ้างอิงของมอนสเตอร์">ID</th>
 
-                <SortableTH colKey="no">No</SortableTH>
-                <SortableTH colKey="name">Name</SortableTH>
-                <SortableTH colKey="hp">HP</SortableTH>
-                <SortableTH colKey="power">Power</SortableTH>
-                <SortableTH colKey="speed">Speed</SortableTH>
-                <SortableTH colKey="exp">EXP</SortableTH>
-                <SortableTH colKey="isBoss">isBoss</SortableTH>
+                <SortableTH colKey="no" tooltip="เลขลำดับมอนสเตอร์">No</SortableTH>
+                <SortableTH colKey="name" tooltip="ชื่อมอนสเตอร์">Name</SortableTH>
+                <SortableTH colKey="hp" tooltip="พลังชีวิตสูงสุด">HP</SortableTH>
+                <SortableTH colKey="power" tooltip="พลังโจมตีพื้นฐาน">Power</SortableTH>
+                <SortableTH colKey="speed" tooltip="ความเร็ว (กำหนดลำดับการโจมตี)">Speed</SortableTH>
+                <SortableTH colKey="exp" tooltip="EXP ที่ได้รับเมื่อชนะ">EXP</SortableTH>
+                <SortableTH colKey="isBoss" tooltip="สถานะบอส (มีผลต่อเพลงและรางวัล)">isBoss</SortableTH>
 
-                <th>quiz</th>
-                <th>monster_moves</th>
+                <th data-tooltip="สกิลที่ใช้เมื่อตอบคำถามถูก / มานาที่ใช้">quiz</th>
+                <th data-tooltip="จำนวนประเภทการ์ดในกอง">Deck</th>
+                <th data-tooltip="ลำดับการออกสกิลปกติ">monster_moves</th>
                 <th>Actions</th>
               </tr>
             </thead>
-
 
             <tbody>
               {sortedMonsters.map((m) => (
@@ -787,10 +875,21 @@ const MonsterPanel = () => {
                   <td className="mono">{m.power ?? "-"}</td>
                   <td className="mono">{m.speed ?? "-"}</td>
                   <td className="mono">{m.exp ?? "-"}</td>
-                  <td className="mono">{String(Boolean(m.isBoss))}</td>
+                  
+                  {/* แสดงค่าจาก boolean */}
+                  <td className="mono">
+                    {m.isBoss ? <span style={{ color: "#e53e3e", fontWeight: "bold" }}>TRUE</span> : "false"}
+                  </td>
+                  
                   <td className="cell-ddd">
                     {m.quiz_move_code ?? "-"} / {m.quiz_move_cost ?? "-"}
                   </td>
+
+                  {/* ✅ คอลัมน์สำหรับ Cards */}
+                  <td style={{ fontSize: 12, color: "#48bb78", fontWeight: "bold" }}>
+                    Cards: {Array.isArray(m.monster_deck) ? m.monster_deck.length : 0}
+                  </td>
+
                   <td className="cell-dim">
                     {Array.isArray(m.monster_moves) && m.monster_moves.length
                       ? m.monster_moves
@@ -804,23 +903,39 @@ const MonsterPanel = () => {
                       : "—"}
                   </td>
 
+                  {/* ✅ แก้ไขการเรียงปุ่มและเพิ่ม Tooltip */}
                   <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEdit(m)}>Edit</button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(m.id)}>Del</button>
-                    <button
-                      className="btn"
-                      style={{ background: "#444", color: "#fff" }}
-                      onClick={() => handleDeleteSprites(m.id)}
-                    >
-                      Del Sprites
-                    </button>
+                    <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+                      <button 
+                        className="btn btn-edit" 
+                        onClick={() => handleEdit(m)}
+                        data-tooltip="แก้ไขข้อมูลมอนสเตอร์ตัวนี้"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="btn btn-delete" 
+                        onClick={() => handleDelete(m.id)}
+                        data-tooltip="ลบมอนสเตอร์ถาวร"
+                      >
+                        Del
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }}
+                        onClick={() => handleDeleteSprites(m.id)}
+                        data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites"
+                      >
+                        Del Sprites
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
 
               {monsters.length === 0 && (
                 <tr>
-                  <td colSpan="12" className="center-text" style={{ padding: 20 }}>
+                  <td colSpan="13" className="center-text" style={{ padding: 20 }}>
                     No Monsters Found.
                   </td>
                 </tr>
