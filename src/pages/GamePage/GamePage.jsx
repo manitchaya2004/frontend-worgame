@@ -43,17 +43,15 @@ import LoadingScreen from "../../components/Loading/LoadingPage";
 import ErrorView from "../../components/Loading/ErrorView";
 
 // --------------------------------------------------------------------------
-// 🔲 SUB-COMPONENT: Top HUD Tooltip Wrapper (อัปเดตระบบ Align ดันหลบขอบจอ)
+// 🔲 SUB-COMPONENT: Top HUD Tooltip Wrapper
 // --------------------------------------------------------------------------
 const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // คำนวณตำแหน่งอิงตาม prop 'align'
   const xTransform = align === "center" ? "-50%" : "0%";
   const leftPos = align === "center" ? "50%" : (align === "left" ? "0" : "auto");
   const rightPos = align === "right" ? "0" : "auto";
 
-  // ตำแหน่งติ่งลูกศรชี้
   const arrowLeft = align === "center" ? "50%" : (align === "left" ? "20px" : "auto");
   const arrowRight = align === "right" ? "20px" : "auto";
   const arrowMarginLeft = align === "center" ? "-5px" : "0";
@@ -74,7 +72,7 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
             transition={{ duration: 0.15 }}
             style={{
               position: "absolute",
-              top: "calc(100% + 14px)", // ให้อยู่ด้านล่างของกล่อง HUD
+              top: "calc(100% + 14px)",
               left: leftPos,
               right: rightPos,
               background: "rgba(15, 11, 8, 0.95)",
@@ -91,7 +89,6 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
               whiteSpace: "nowrap",
             }}
           >
-            {/* ลูกศรชี้ขึ้นด้านบน */}
             <div
               style={{
                 position: "absolute",
@@ -107,8 +104,6 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
                 transform: "rotate(45deg)",
               }}
             />
-
-            {/* หัวข้อ */}
             <span
               style={{
                 color: "#ffd700",
@@ -119,7 +114,6 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
             >
               {title}
             </span>
-            {/* คำอธิบาย */}
             <span style={{ color: "#bdc3c7", fontSize: "11px" }}>{desc}</span>
           </motion.div>
         )}
@@ -143,35 +137,25 @@ export default function GameApp() {
   const lastTimeRef = useRef(0);
   const constraintsRef = useRef(null);
 
-  // --- SCROLL LOCK SYSTEM (มือถือ) ---
   useEffect(() => {
-    // ล็อคไม่ให้ขยับจอได้เลยเวลาอยู่หน้านี้
     const originalStyle = window.getComputedStyle(document.body).overflow;
     const originalOverscroll = window.getComputedStyle(document.body).overscrollBehavior;
     
     document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none"; // กันเด้งตอนดึงสุดขอบ (Pull-to-refresh)
-    document.body.style.touchAction = "none"; // กันการ zoom/pan ของเบราว์เซอร์
+    document.body.style.overscrollBehavior = "none";
+    document.body.style.touchAction = "none";
 
-    // ดัก touchmove เพื่อกันการไถหน้าจอแบบเด็ดขาด
-    const preventTouchMove = (e) => {
-      e.preventDefault();
-    };
-    
-    // ใช้ passive: false เพื่อให้สามารถเรียก e.preventDefault() ได้
+    const preventTouchMove = (e) => e.preventDefault();
     document.addEventListener("touchmove", preventTouchMove, { passive: false });
 
     return () => {
-      // คืนค่าเดิมเมื่อออกจากหน้าเกม
       document.body.style.overflow = originalStyle;
       document.body.style.overscrollBehavior = originalOverscroll;
       document.body.style.touchAction = "auto";
       document.removeEventListener("touchmove", preventTouchMove);
     };
   }, []);
-  // ------------------------------------
 
-  // --- SCALING SYSTEM (ปรับปรุงให้รองรับมือถือแนวนอนขั้นสุด) ---
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 720;
   const [windowScale, setWindowScale] = useState(1);
@@ -182,13 +166,11 @@ export default function GameApp() {
 
   useEffect(() => {
     const handleResize = () => {
-      // ดึงขนาดจอแบบ Real-time จะแก้ปัญหาเวลา Safari เอาแถบ URL ขึ้นลง
       const currentWidth = window.innerWidth;
       const currentHeight = window.innerHeight;
       
       setViewportSize({ width: currentWidth, height: currentHeight });
 
-      // คำนวณ Scale แบบชิดขอบจอเลย ไม่เผื่อขอบดำแล้ว เพื่อให้ได้ขนาดใหญ่สุด
       const scaleX = currentWidth / BASE_WIDTH;
       const scaleY = currentHeight / BASE_HEIGHT;
       setWindowScale(Math.min(scaleX, scaleY));
@@ -196,7 +178,6 @@ export default function GameApp() {
 
     handleResize(); 
     window.addEventListener("resize", handleResize);
-    // iOS Safari บางทีตอบสนอง orientationchange ช้า การใส่ timeout ช่วยให้จับขนาดได้แม่นยำขึ้นหลังหมุนจอ
     window.addEventListener("orientationchange", () => setTimeout(handleResize, 100));
     
     return () => {
@@ -204,7 +185,6 @@ export default function GameApp() {
       window.removeEventListener("orientationchange", handleResize);
     };
   }, []);
-  // -----------------------
 
   const activeSelectedItems = useMemo(
     () => store.selectedLetters.filter((i) => i !== null),
@@ -216,24 +196,39 @@ export default function GameApp() {
     [activeSelectedItems],
   );
 
-  // --------------------------------------------------------------------------
-  // 🧮 MEMOIZED CALCULATIONS
-  // --------------------------------------------------------------------------
+  // 🌟 อัปเดต Prediction ให้คำนวณ Overload และ Heal ด้วย
   const prediction = useMemo(() => {
     let strikeTotal = 0;
     let guardTotal = 0;
+    let healTotal = 0;
+    let recoilDmg = 0;
+
+    // คำนวณ Recoil (Overload) 
+    const wordLength = activeSelectedItems.length;
+    const playerPower = store.playerData?.power || 3;
+    const excessLetters = wordLength - playerPower;
+    
+    if (excessLetters > 0) {
+        const recoilPercent = excessLetters * 0.10;
+        recoilDmg = Math.max(1, Math.floor((store.playerData?.max_hp || 0) * Math.min(recoilPercent, 1)));
+    }
 
     activeSelectedItems.forEach((item) => {
       const base = getLetterDamage(item.char);
-      strikeTotal += item.buff === "STRIKE_x2" ? base * 2 : base;
-      guardTotal += item.buff === "GUARD_x2" ? base * 2 : base;
+      strikeTotal += item.buff === "double-dmg" ? base * 2 : base;
+      guardTotal += (item.buff === "double-guard" || item.buff === "double-shield") ? base * 2 : base;
+      if (item.buff === "heal") {
+          healTotal += Math.ceil(base);
+      }
     });
 
     return {
       strike: { min: Math.floor(strikeTotal), max: Math.ceil(strikeTotal) },
       guard: { min: Math.floor(guardTotal), max: Math.ceil(guardTotal) },
+      recoil: recoilDmg,
+      heal: healTotal
     };
-  }, [activeSelectedItems]);
+  }, [activeSelectedItems, store.playerData]);
 
   const boss = useMemo(
     () => store.enemies.find((e) => e.isBoss),
@@ -259,9 +254,6 @@ export default function GameApp() {
     store.enemies,
   ]);
 
-  // --------------------------------------------------------------------------
-  // 🎮 ACTIONS (useCallback)
-  // --------------------------------------------------------------------------
   const executeAction = useCallback(
     async (type, targetId) => {
       const usedIndices = activeSelectedItems.map((i) => i.originalIndex);
@@ -341,19 +333,19 @@ export default function GameApp() {
     const unlockedSlots = store.playerData.unlockedSlots;
     let tempInvForLogic = [...currentInv];
     const nextInv = currentInv.map((item, index) => {
-    if (!item) return null;
-    const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
-    const newItem = {
-    id: Math.random(),
-    char,
-    buff: item.buff || null, 
-    status: item.status || null,
-    statusDuration: item.statusDuration || 0,
-    visible: true,
-    originalIndex: index,
-    };
-    tempInvForLogic[index] = newItem;
-    return newItem;
+      if (!item) return null;
+      const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
+      const newItem = {
+        id: Math.random(),
+        char,
+        buff: item.buff || null, 
+        status: item.status || null,
+        statusDuration: item.statusDuration || 0,
+        visible: true,
+        originalIndex: index,
+      };
+      tempInvForLogic[index] = newItem;
+      return newItem;
     });
     store.actionSpin(nextInv);
   }, [
@@ -364,9 +356,6 @@ export default function GameApp() {
     store.actionSpin,
   ]);
 
-  // --------------------------------------------------------------------------
-  // 🧭 LOGIC & EFFECTS
-  // --------------------------------------------------------------------------
   const initGameData = useCallback(async () => {
     setAppStatus("LOADING");
     try {
@@ -412,7 +401,6 @@ export default function GameApp() {
     }
   }, [appStatus, animate]);
 
-  // Navigation Lock
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       e.preventDefault();
@@ -432,7 +420,6 @@ export default function GameApp() {
     };
   }, []);
 
-  // Win/Loss Detection
   useEffect(() => {
     if (store.gameState === "OVER") {
       if (store.isBgmOn) store.toggleBgm();
@@ -506,9 +493,6 @@ export default function GameApp() {
   const handleOpenDialog = useCallback(() => setIsDialogOpen(true), []);
   const handleCloseDialog = useCallback(() => setIsDialogOpen(false), []);
 
-  // --------------------------------------------------------------------------
-  // ⭐ STYLES & RENDER HELPERS
-  // --------------------------------------------------------------------------
   const commonHudStyle = useMemo(
     () => ({
       background: "rgba(20, 14, 10, 0.9)",
@@ -634,7 +618,7 @@ export default function GameApp() {
             </div>
           </div>
 
-          {/* HUD Right (Coin & Distance with Tooltips) */}
+          {/* HUD Right */}
           <div
             style={{
               position: "absolute",
@@ -781,29 +765,35 @@ export default function GameApp() {
             )}
             <Tooltip target={tooltipTarget} />
 
-            {/* Prediction UI (Shield) */}
+            {/* 🌟 Prediction UI (Guard / Shield & Heal) */}
             <AnimatePresence>
-              {store.validWordInfo && prediction.guard.max > 0 && (
-                <PredictionBadge
-                  type="SHIELD"
-                  value={prediction.guard}
-                  color="#3498db"
-                  side="right"
-                  offset={centerOffset}
-                />
+              {store.validWordInfo && (prediction.guard.max > 0 || prediction.heal > 0) && (
+                <div style={{ position: "absolute", bottom: "170px", right: `calc(50% + ${centerOffset}px)`, zIndex: 900, pointerEvents: "none", display: "flex", gap: "8px" }}>
+                  {/* บล็อก Heal (ซ้อนต่อกันทางขวา) */}
+                  {prediction.heal > 0 && (
+                    <PredictionBadge type="HEAL" value={prediction.heal} color="#2ecc71" side="right" />
+                  )}
+                  {/* บล็อก Shield */}
+                  {prediction.guard.max > 0 && (
+                    <PredictionBadge type="SHIELD" value={prediction.guard} color="#3498db" side="right" />
+                  )}
+                </div>
               )}
             </AnimatePresence>
 
-            {/* Prediction UI (Damage) */}
+            {/* 🌟 Prediction UI (Strike / Damage & Overload Recoil) */}
             <AnimatePresence>
-              {store.validWordInfo && prediction.strike.max > 0 && (
-                <PredictionBadge
-                  type="DAMAGE"
-                  value={prediction.strike}
-                  color="#ff4d4d"
-                  side="left"
-                  offset={centerOffset}
-                />
+              {store.validWordInfo && (prediction.strike.max > 0 || prediction.recoil > 0) && (
+                <div style={{ position: "absolute", bottom: "170px", left: `calc(50% + ${centerOffset}px)`, zIndex: 900, pointerEvents: "none", display: "flex", gap: "8px", flexDirection: "row-reverse" }}>
+                  {/* บล็อก Recoil (ซ้อนต่อกันทางซ้าย) */}
+                  {prediction.recoil > 0 && (
+                    <PredictionBadge type="RECOIL" value={prediction.recoil} color="#8b0000" side="left" isWarning={true} />
+                  )}
+                  {/* บล็อก Damage */}
+                  {prediction.strike.max > 0 && (
+                    <PredictionBadge type="DAMAGE" value={prediction.strike} color="#ff4d4d" side="left" />
+                  )}
+                </div>
               )}
             </AnimatePresence>
           </div>
@@ -890,51 +880,48 @@ export default function GameApp() {
 }
 
 // --------------------------------------------------------------------------
-// 🔲 SUB-COMPONENT: PredictionBadge (Optimized with Memo)
+// 🔲 SUB-COMPONENT: PredictionBadge (ปรับให้รองรับการเรียงต่อกัน)
 // --------------------------------------------------------------------------
-const PredictionBadge = memo(({ type, value, color, side, offset }) => {
+const PredictionBadge = memo(({ type, value, color, side, isWarning = false }) => {
   const isRight = side === "right";
+  
+  // แปลง value เดี่ยว (สำหรับ Heal, Overload) ให้เป็น {min, max} เพื่อใช้ Logic เดิมในการเรนเดอร์
+  const displayValue = typeof value === "number" ? { min: value, max: value } : value;
+
   return (
     <motion.div
-      initial={{ opacity: 0, x: isRight ? 20 : -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: isRight ? 20 : -20 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      style={{
-        position: "absolute",
-        bottom: "170px",
-        [isRight ? "right" : "left"]: `calc(50% + ${offset}px)`,
-        zIndex: 900,
-        pointerEvents: "none",
-      }}
+      initial={{ opacity: 0, scale: 0.8, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.8, y: 10 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
     >
       <div
         style={{
-          background: "rgba(26, 18, 11, 0.95)",
-          border: "2px solid #5c4033",
+          background: isWarning ? "rgba(40, 10, 10, 0.95)" : "rgba(26, 18, 11, 0.95)",
+          border: `2px solid ${isWarning ? "#e74c3c" : "#5c4033"}`,
           [isRight ? "borderLeft" : `borderRight`]: `4px solid ${color}`,
           borderRadius: "6px",
-          padding: "6px 16px",
+          padding: "6px 12px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
+          boxShadow: isWarning ? "0 4px 12px rgba(231,76,60,0.4)" : "0 4px 8px rgba(0,0,0,0.6)",
         }}
       >
         <span
           style={{
             color,
-            fontSize: "20px",
+            fontSize: "18px",
             fontWeight: "bold",
             textShadow: "0 2px 2px #000",
           }}
         >
-          {value.min === value.max ? value.min : `${value.min}-${value.max}`}
+          {displayValue.min === displayValue.max ? displayValue.min : `${displayValue.min}-${displayValue.max}`}
         </span>
         <span
           style={{
-            color: "#bdc3c7",
-            fontSize: "10px",
+            color: isWarning ? "#ff9999" : "#bdc3c7",
+            fontSize: "9px",
             fontWeight: "bold",
             letterSpacing: "1px",
           }}

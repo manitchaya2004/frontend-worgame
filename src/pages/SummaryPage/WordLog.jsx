@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
 import { Box, Typography, Button, Paper, Chip } from "@mui/material";
 import { motion } from "framer-motion";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import BoltIcon from "@mui/icons-material/Bolt";
 import { THEMES } from "../HomePage/hook/const";
 
+// Variants สำหรับ Animation (เหมือนเดิม)
 const containerVariants = {
   hidden: { opacity: 0, x: 50 },
   visible: {
@@ -25,24 +25,25 @@ const listContainerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      // ไล่ลำดับตัวลูกทีละ 0.05 วิ (เร็วๆ เพื่อความลื่นไหล)
       staggerChildren: 0.05,
-      delayChildren: 0.2, // รอให้กล่องขยายเสร็จก่อนค่อยโผล่
+      delayChildren: 0.2,
     },
   },
 };
+
 const listItemVariants = {
-  hidden: { opacity: 0, x: -20 }, // เริ่มจากจางและเยื้องซ้าย
+  hidden: { opacity: 0, x: -20 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { type: "spring", stiffness: 150, damping: 12 }, // เด้งนิดๆ
+    transition: { type: "spring", stiffness: 150, damping: 12 },
   },
 };
 
 export default function WordLog({ wordLog, isWin, onBack, onExit }) {
   const wordList = useMemo(() => {
     if (!wordLog) return [];
+    // เรียงลำดับตามจำนวนครั้งที่ใช้ (count) จากมากไปน้อย
     return Object.values(wordLog).sort((a, b) => b.count - a.count);
   }, [wordLog]);
 
@@ -100,77 +101,93 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
             },
           }}
         >
-          {/* ✅ หุ้มด้วย motion.div เพื่อสั่ง Stagger */}
           <motion.div
-            variants={listContainerVariants} // สั่งให้ลูกๆ ไล่ลำดับ
+            variants={listContainerVariants}
             initial="hidden"
             animate="visible"
             style={{ display: "flex", flexDirection: "column", gap: 8 }}
           >
-            {wordList.map((entry, index) => (
-              // ✅ เปลี่ยนแต่ละ Item เป็น motion.div
-              <motion.div
-                key={index}
-                variants={listItemVariants} // รับคำสั่งจากตัวแม่
-                style={{ width: "100%" }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    backgroundColor: THEMES.bgMain,
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    border: `1px solid ${THEMES.border}`,
-                    transition: "transform 0.1s",
-                    "&:hover": {
-                      transform: "translateX(4px)",
-                      borderColor: THEMES.accent,
-                    },
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontFamily: '"Press Start 2P"',
-                        fontSize: "0.9rem",
-                        color: THEMES.accent,
-                      }}
-                    >
-                      {entry.word}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontFamily: "monospace",
-                        fontSize: "0.85rem",
-                        color: THEMES.textMain,
-                        mt: 0.5,
-                      }}
-                    >
-                      {entry.meaning}{" "}
-                      <span style={{ opacity: 0.5 }}>({entry.type})</span>
-                    </Typography>
-                  </Box>
+            {wordList.map((entry, index) => {
+              // ✅ ปรับการดึงคำแปล: โครงสร้างใหม่ meaning อยู่ข้างใน entries[0]
+              const displayMeaning = entry.entries && entry.entries[0] 
+                ? entry.entries[0].meaning 
+                : "No meaning available";
+              
+              const displayType = entry.type || (entry.entries && entry.entries[0]?.type) || "unknown";
 
-                  <Chip
-                    icon={<BoltIcon style={{ fontSize: 14, color: "#fff" }} />}
-                    label={`x${entry.count}`}
-                    size="small"
+              return (
+                <motion.div
+                  key={index}
+                  variants={listItemVariants}
+                  style={{ width: "100%" }}
+                >
+                  <Box
                     sx={{
-                      backgroundColor: "#5d4037",
-                      color: "#fff",
-                      fontFamily: "monospace",
-                      height: "24px",
-                      "& .MuiChip-label": { paddingLeft: 1, paddingRight: 1 },
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      backgroundColor: THEMES.bgMain,
+                      padding: "12px 16px",
+                      borderRadius: "8px",
+                      border: `1px solid ${THEMES.border}`,
+                      transition: "transform 0.1s",
+                      "&:hover": {
+                        transform: "translateX(4px)",
+                        borderColor: THEMES.accent,
+                      },
                     }}
-                  />
-                </Box>
-              </motion.div>
-            ))}
+                  >
+                    <Box sx={{ flex: 1, mr: 2 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"Press Start 2P"',
+                          fontSize: "0.9rem",
+                          color: THEMES.accent,
+                          textTransform: "uppercase"
+                        }}
+                      >
+                        {entry.word}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontFamily: "monospace",
+                          fontSize: "0.85rem",
+                          color: THEMES.textMain,
+                          mt: 0.5,
+                          // ป้องกันคำแปลยาวเกินไปจนเบียด Chip
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <span style={{ opacity: 0.7, marginRight: 6 }}>
+                          {displayType}. 
+                        </span>
+                        {displayMeaning}{" "}
+                      </Typography>
+                    </Box>
+
+                    <Chip
+                      icon={<BoltIcon style={{ fontSize: 14, color: "#fff" }} />}
+                      label={`x${entry.count}`}
+                      size="small"
+                      sx={{
+                        backgroundColor: "#5d4037",
+                        color: "#fff",
+                        fontFamily: "monospace",
+                        fontWeight: "bold",
+                        height: "24px",
+                        flexShrink: 0,
+                        "& .MuiChip-label": { paddingLeft: 1, paddingRight: 1 },
+                      }}
+                    />
+                  </Box>
+                </motion.div>
+              );
+            })}
           </motion.div>
 
-          {/* ถ้าไม่มีคำศัพท์ */}
           {wordList.length === 0 && (
             <Typography
               sx={{
@@ -205,19 +222,6 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
         >
           BACK
         </Button>
-
-        {/* <Button
-          onClick={onExit}
-          variant="contained"
-          endIcon={<ArrowForwardIcon />}
-          sx={{
-            ...commonButtonStyle,
-            flex: 2,
-            backgroundColor: isWin ? "#43a047" : "#c62828",
-          }}
-        >
-          FINISH
-        </Button> */}
       </motion.div>
     </motion.div>
   );
