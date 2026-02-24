@@ -1,32 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
+import { useGameStore } from "../../../../store/useGameStore";
 
 export const MeaningPopup = ({ entries }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // ✅ ดึงสถานะปัจจุบันจาก Store
+  const { validWordInfo, setWordDisplayIndex } = useGameStore();
 
-  const types = entries ? Object.keys(entries) : [];
+  if (!validWordInfo || !entries) return null;
+
+  const types = validWordInfo.displayTypes || [];
+  const currentIndex = validWordInfo.currentDisplayIndex || 0;
   const currentTypeName = types[currentIndex] || "";
-  const currentMeanings = entries && currentTypeName ? entries[currentTypeName] : [];
-
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [JSON.stringify(entries)]);
+  const currentMeanings = entries[currentTypeName] || [];
 
   if (types.length === 0) return null;
 
   const handleNext = (e) => {
     e.stopPropagation();
-    setCurrentIndex((prev) => (prev + 1) % types.length);
+    const nextIdx = (currentIndex + 1) % types.length;
+    setWordDisplayIndex(nextIdx);
   };
 
   const handlePrev = (e) => {
     e.stopPropagation();
-    setCurrentIndex((prev) => (prev - 1 + types.length) % types.length);
+    const prevIdx = (currentIndex - 1 + types.length) % types.length;
+    setWordDisplayIndex(prevIdx);
   };
 
   const customScrollbar = `
     .retro-scroll::-webkit-scrollbar {
-      width: 3px; /* ✅ บีบ Scrollbar ให้เล็กที่สุด */
+      width: 3px;
     }
     .retro-scroll::-webkit-scrollbar-track {
       background: rgba(92, 64, 51, 0.05);
@@ -45,7 +48,7 @@ export const MeaningPopup = ({ entries }) => {
     <div
       style={{
         position: "absolute",
-        bottom: "150px", // ✅ ล็อกจุดยึด (Anchor) ไว้ที่ขอบบนของกล่องเดิม (กะระยะ 100px + ความสูงกล่อง)
+        bottom: "150px",
         left: 0,
         width: "100%",
         zIndex: 999,
@@ -54,12 +57,10 @@ export const MeaningPopup = ({ entries }) => {
     >
       <style>{customScrollbar}</style>
 
-      {/* เอา div เว้นระยะข้างบนออกไปแล้ว เพราะเราอิงตำแหน่งจากด้านล่างแทน */}
-
       <div style={{ 
         position: "absolute", 
-        top: 0, // ✅ บังคับให้เนื้อหาขยายตัว "ลงด้านล่าง" จากจุดยึด
-        left: "50%", // ✅ จัดตำแหน่งให้อยู่กึ่งกลางหน้าจอ
+        top: 0, 
+        left: "50%", 
         transform: "translateX(-50%)", 
         pointerEvents: "auto", 
         display: "flex", 
@@ -71,7 +72,7 @@ export const MeaningPopup = ({ entries }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handlePrev} 
-            style={{ ...outerArrowStyle, left: "-30px" }} // ✅ ขยับปุ่มให้ชิดกล่องมากขึ้น
+            style={{ ...outerArrowStyle, left: "-30px" }}
           >
             {"<"}
           </motion.button>
@@ -84,15 +85,15 @@ export const MeaningPopup = ({ entries }) => {
           transition={{ type: "spring", stiffness: 200, damping: 25 }}
           style={{
             background: "rgba(244, 228, 188, 0.95)", 
-            border: "2px solid #5c4033", // ✅ ลดความหนาขอบลง
-            padding: "5px 12px 14px 12px", // ✅ ปรับ Padding ด้านล่างเพิ่มนิดหน่อยเพื่อไม่ให้ตัวเลขหน้าทับคำแปลเมื่อมีหลายบรรทัด
+            border: "2px solid #5c4033",
+            padding: "5px 12px 14px 12px",
             borderRadius: "4px", 
             textAlign: "center",
             boxShadow: "0 3px 0 rgba(92, 64, 51, 0.3)", 
             width: "fit-content", 
             minWidth: "200px",
-            maxWidth: "400px", // ✅ ให้ขยายออกข้างได้นิดหน่อย จะได้ไม่ต้อง Scroll บ่อย
-            minHeight: "40px", // ✅ ลดความสูงขั้นต่ำลง
+            maxWidth: "400px",
+            minHeight: "40px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -100,13 +101,13 @@ export const MeaningPopup = ({ entries }) => {
           }}
         >
           <span style={{ 
-            fontSize: "9px", // ✅ ลดขนาดตัวอักษรหัวข้อ
+            fontSize: "9px",
             color: "#8d6e63", 
             fontWeight: "900", 
             textTransform: "uppercase", 
             marginBottom: "3px",
             letterSpacing: "1px",
-            borderBottom: "1px dashed rgba(92, 64, 51, 0.3)", // ✅ ลดความหนาเส้นประ
+            borderBottom: "1px dashed rgba(92, 64, 51, 0.3)",
             paddingBottom: "2px",
             width: "80%",
             flexShrink: 0 
@@ -119,11 +120,11 @@ export const MeaningPopup = ({ entries }) => {
             style={{ 
               display: "flex", 
               flexWrap: "wrap", 
-              gap: "4px", // ✅ ลดช่องว่างระหว่างป้ายคำแปล
+              gap: "4px",
               justifyContent: "center", 
               alignItems: "center",     
               width: "100%",
-              maxHeight: "75px", // ✅ ปรับให้แสดงได้สูงสุดประมาณ 3 แถว ถ้าเกินนี้จะเกิด Scroll
+              maxHeight: "75px",
               overflowY: "auto",
               margin: "0 auto",        
               padding: "0 2px"
@@ -134,10 +135,10 @@ export const MeaningPopup = ({ entries }) => {
                 key={idx}
                 style={{
                   background: "#e8d5b5", 
-                  border: "1px solid #b89768", // ✅ ลดขอบของป้ายคำแปล
-                  padding: "2px 6px", // ✅ บีบตัวป้ายให้เล็กลง
+                  border: "1px solid #b89768",
+                  padding: "2px 6px",
                   borderRadius: "2px", 
-                  fontSize: "12px", // ✅ ลดขนาดฟอนต์คำแปลลงให้อ่านง่ายแต่ไม่เกะกะ
+                  fontSize: "12px",
                   color: "#4a2c11", 
                   fontWeight: "bold",
                   boxShadow: "0 1px 0 rgba(92, 64, 51, 0.2)", 
@@ -161,7 +162,7 @@ export const MeaningPopup = ({ entries }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleNext} 
-            style={{ ...outerArrowStyle, right: "-30px" }} // ✅ ขยับปุ่มให้ชิดกล่องมากขึ้น
+            style={{ ...outerArrowStyle, right: "-30px" }}
           >
             {">"}
           </motion.button>
@@ -171,18 +172,17 @@ export const MeaningPopup = ({ entries }) => {
   );
 };
 
-// ✅ ปรับปุ่มลูกศรให้เล็กลงตามสัดส่วนกล่อง
 const outerArrowStyle = {
   position: "absolute",
   background: "#5c4033",
   color: "#f4e4bc",
   border: "2px solid #3a251c", 
   borderRadius: "3px",
-  width: "24px", // เล็กลง
-  height: "28px", // เล็กลง
+  width: "24px",
+  height: "28px",
   cursor: "pointer",
   fontWeight: "bold",
-  fontSize: "14px", // ไอคอนลูกศรเล็กลง
+  fontSize: "14px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

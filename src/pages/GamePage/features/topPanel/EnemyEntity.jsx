@@ -1,10 +1,13 @@
 import React, { useMemo, memo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
 import { DISPLAY_NORMAL, FIXED_Y } from "../../../../const/index";
 import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
+
+// ✅ นำเข้าไอคอนสถานะและบัฟแบบเดียวกับผู้เล่น
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
 
 export const EnemyEntity = memo(({
   enemy,
@@ -36,6 +39,19 @@ export const EnemyEntity = memo(({
   }, [enemy.monster_id, actionName, frameNum, monsterFrames]);
 
   // -------------------------------------------------------------
+  // 🔮 LOGIC: จัดการไอคอนสถานะของศัตรู
+  // -------------------------------------------------------------
+  const statuses = enemy?.statuses || [];
+
+  const getEffectData = (type) => {
+    switch (type) {
+      case "stun": return { icon: <FaLock />, bgColor: "#34495e" };
+      case "poison": return { icon: <FaSkullCrossbones />, bgColor: "#2ecc71" };
+      case "blind": return { icon: <FaEyeSlash />, bgColor: "#8e44ad" };
+      case "bleed": return { icon: <FaTint />, bgColor: "#c0392b" };
+      default: return null;
+    }
+  };
 
   const QUIZ_DURATION = 5;
 
@@ -185,6 +201,43 @@ export const EnemyEntity = memo(({
           >
             {!isBoss && (
               <>
+                {/* ✅ จุดแสดงไอคอนสถานะของศัตรู (ลอยอยู่เหนือ HpBar เหมือนผู้เล่น) */}
+                <div style={{ position: "absolute", top: "-28px", display: "flex", gap: "6px", justifyContent: "center", width: "100%", zIndex: 20 }}>
+                  <AnimatePresence>
+                    {statuses.map((effect, idx) => {
+                      const data = getEffectData(effect.type);
+                      if (!data) return null;
+                      return (
+                        <motion.div
+                          key={`${effect.type}-${idx}`}
+                          initial={{ scale: 0, opacity: 0, y: 5 }}
+                          animate={{ scale: 1, opacity: 1, y: 0 }}
+                          exit={{ scale: 0, opacity: 0, y: 5 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                          style={{
+                            width: "20px", height: "20px", background: data.bgColor,
+                            borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center",
+                            border: "1.5px solid #fff", fontSize: "11px", color: "#fff", position: "relative",
+                            boxShadow: "0 2px 5px rgba(0,0,0,0.6)"
+                          }}
+                        >
+                          {data.icon}
+                          {/* ป้ายบอกจำนวนเทิร์นที่เหลือ */}
+                          {effect.duration > 0 && (
+                            <div style={{
+                              position: "absolute", bottom: "-6px", right: "-6px", background: "#000",
+                              fontSize: "9px", fontWeight: "900", padding: "1px 4px", borderRadius: "4px",
+                              border: "1px solid #fff", lineHeight: 1
+                            }}>
+                              {effect.duration}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+
                 <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
                 <MpBar mp={enemy.mana} max={enemy.quiz_move_cost} color="#3b82f6" />
 

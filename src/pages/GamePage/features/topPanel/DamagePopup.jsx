@@ -1,53 +1,98 @@
+import React, { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// 🌟 แยก Component ย่อยเพื่อจัดการ Animation รายตัว
+const SingleRORPopup = ({ popup, removePopup }) => {
+  const isNumber = typeof popup.value === "number";
+  const isHeal = popup.color === "#2ecc71" || (isNumber && popup.value > 0 && popup.isPlayer); // เช็คว่าเป็นฮีลหรือไม่ (จากสี หรือ logic)
+
+  // จัดการเครื่องหมาย + หรือ - ตามสไตล์ RO
+  let displayText = popup.value;
+  if (isNumber) {
+      if (isHeal) {
+          displayText = `+${popup.value}`; // ฮีลมี +
+      } else if (popup.value > 0) {
+          displayText = `${popup.value}`; // ดาเมจปกติใน RO มักไม่มีเครื่องหมายลบ (หรือถ้าอยากได้ก็ใส่ - ตรงนี้)
+      }
+  }
+
+  // สุ่มตำแหน่ง X เล็กน้อยเพื่อให้ตัวเลขไม่ทับกันเป๊ะๆ เวลาเด้งรัวๆ
+  const randomXOffset = useMemo(() => (Math.random() - 0.5) * 40, []);
+
+  // 🎨 กำหนดสีตามสไตล์ RO
+  let finalColor = popup.color;
+  if (!finalColor) {
+      if (popup.value === "MISSED!") finalColor = "#ff0000"; // Miss สีแดง
+      else if (isHeal) finalColor = "#00ff00"; // Heal สีเขียวสด
+      else if (isNumber) finalColor = "#ff0000"; // Damage ปกติสีแดงสด
+      else finalColor = "#ffffff"; // ข้อความอื่นๆ สีขาว
+  }
+
+  return (
+    <motion.div
+      layout // ช่วยจัดระเบียบถ้ามีหลายอัน
+      initial={{ 
+        opacity: 1, 
+        scale: 0.8, 
+        y: 20, // เริ่มต้นต่ำกว่าจุดจริงนิดหน่อย
+        x: `calc(-50% + ${randomXOffset}px)` 
+      }}
+      animate={{
+        opacity: [1, 1, 1, 0],
+        scale: [1.5, 1.0, 1.0, 0.8], // เด้งใหญ่สุด -> หดมาปกติ -> ค้างไว้ -> เล็กลงตอนหาย
+        // 🌟 หัวใจสำคัญของ RO Motion: เด้งขึ้นสูงเร็วๆ -> ตกลงมานิดนึงเหมือนมีแรงโน้มถ่วง -> ค่อยๆ ไหลลงต่อแล้วหายไป
+        y: [0, -90, -65, -80],  
+      }}
+      transition={{
+        // 🌟 ปรับเวลาให้อยู่นานขึ้นเป็น 2.0 วินาที (จากเดิม 1.0)
+        duration: 2.0, 
+        ease: "easeOut",
+        // 🌟 ปรับจังหวะให้ค้างนานขึ้น: 
+        // 0.08 แรกคือตอนเด้ง (ไวมาก), จาก 0.08 ถึง 0.85 คือช่วงที่ตัวเลขลอยค้างนิ่งๆ ให้อ่าน, 0.85-1 คือตอนจางหาย
+        times: [0, 0.08, 0.85, 1], 
+      }}
+      onAnimationComplete={() => removePopup(popup.id)}
+      style={{
+        position: "absolute",
+        left: `${popup.x}%`,
+        bottom: "35%", // จุดเริ่มเด้ง
+        color: finalColor,
+        // ฟอนต์หนาๆ ตันๆ แบบ Arial Black หรือ Impact
+        fontFamily: 'Impact, "Arial Black", sans-serif', 
+        fontSize: popup.fontSize ? popup.fontSize : (isNumber ? "36px" : "24px"),
+        fontWeight: "900",
+        textAlign: "center",
+        whiteSpace: "nowrap",
+        zIndex: 2000,
+        pointerEvents: "none",
+        letterSpacing: "0px",
+        
+        // 🌟 หัวใจสำคัญของ RO Style: ขอบดำคมกริบ (Hard Border)
+        // ใช้ text-shadow แบบไม่มีความเบลอ (0px blur) ซ้อนกัน 8 ทิศทาง
+        textShadow: `
+           1px  1px 0 #000,
+          -1px  1px 0 #000,
+           1px -1px 0 #000,
+          -1px -1px 0 #000,
+           0px  1px 0 #000,
+           0px -1px 0 #000,
+           1px  0px 0 #000,
+          -1px  0px 0 #000,
+           2px  2px 0 rgba(0,0,0,0.5) /* เงาตกกระทบเล็กน้อยด้านหลัง */
+        `,
+      }}
+    >
+      {displayText}
+    </motion.div>
+  );
+};
 
 export const DamagePopup = ({ popups, removePopup }) => {
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
-      <AnimatePresence>
+      <AnimatePresence mode="popLayout">
         {popups.map((p) => (
-          <motion.div
-            key={p.id}
-            // ตั้งค่า Animation ให้ "ชัดและนาน"
-            initial={{ opacity: 0, scale: 0.5, y: 0 }} 
-            animate={{ 
-              opacity: [0, 1, 1, 0], // จางเข้า -> สว่างค้างไว้ -> จางออก
-              scale: [0.5, 1.3, 1],  // เอฟเฟกต์เด้งตอนโผล่ (Punchy)
-              y: -150                // ลอยสูงขึ้นกว่าเดิมเพื่อให้เห็นชัด
-            }}
-            exit={{ opacity: 0 }}
-            // เพิ่ม duration เป็น 1.5 - 2.0 วินาทีตามต้องการ
-            transition={{ 
-              duration: 1.8, 
-              ease: "easeOut",
-              times: [0, 0.1, 0.8, 1] // ช่วงเวลาที่ให้ Opacity ค้างไว้ (0.1 ถึง 0.8 คือช่วงที่สว่างชัด)
-            }}
-            onAnimationComplete={() => removePopup(p.id)}
-            style={{
-              position: "absolute",
-              left: `${p.x}%`, 
-              bottom: "25%", 
-              // ใช้สีจาก p.color ถ้าไม่มีให้ใช้ Logic สีเดิม
-              color: p.color ? p.color : (p.value === "MISSED!" || p.value === "YOUR TURN" ? "#fff" : p.isPlayer ? "#ff4d4d" : "#f1c40f"),
-              fontSize: p.fontSize ? p.fontSize : (p.isPlayer ? "36px" : "32px"), // ขยายขนาดให้ใหญ่ขึ้น
-              fontWeight: "900",
-              // ใส่เงาหลายชั้นเพื่อให้ตัวหนังสือ "ชัด" ไม่ว่าจะอยู่บนพื้นหลังสีอะไร (Stroke Effect)
-              textShadow: `
-                3px 3px 0 #000, 
-                -3px -3px 0 #000, 
-                3px -3px 0 #000, 
-                -3px 3px 0 #000,
-                0px 4px 10px rgba(0,0,0,0.5)
-              `,
-              whiteSpace: "nowrap",
-              textAlign: "center",
-              transform: "translateX(-50%)",
-              fontFamily: "'Press Start 2P', cursive, sans-serif",
-              zIndex: 100,
-            }}
-          >
-            {/* ตรวจสอบประเภทข้อมูล ถ้าเป็นตัวเลขและ > 0 ให้ใส่เครื่องหมาย - หรือ + ตามความเหมาะสม */}
-            {typeof p.value === "number" && p.value > 0 ? `-${p.value}` : p.value}
-          </motion.div>
+          <SingleRORPopup key={p.id} popup={p} removePopup={removePopup} />
         ))}
       </AnimatePresence>
     </div>

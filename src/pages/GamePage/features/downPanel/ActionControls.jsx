@@ -211,9 +211,9 @@ export const ActionControls = ({
         />
 
         <FantasyListButton
-          label={skillName}
+          label={"SKILL"}
           icon={<GiStarsStack />}
-          subLabel={skillDesc || "Use special ability"}
+          subLabel={"Deal double damage to enemy"}
           color="#9b59b6" // สีม่วง
           disabled={!isPlayerTurn || !isManaEnough || !hasWord} // เพิ่ม !hasWord
           highlight={isPlayerTurn && isManaEnough && hasWord} // เพิ่ม hasWord

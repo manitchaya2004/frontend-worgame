@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS
 } from "../../../../const/index";
@@ -7,6 +7,10 @@ import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
+
+// ✅ นำเข้าไอคอนสถานะและบัฟตามแบบที่ใช้ใน SingleSlot
+import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
+import { GiBroadsword, GiShield, GiStarShuriken, GiTrident } from "react-icons/gi";
 
 export const PlayerEntity = memo(({ store }) => {
   // 1. ดึงค่าทั้งหมดจาก Store
@@ -52,6 +56,40 @@ export const PlayerEntity = memo(({ store }) => {
   usePreloadFrames("img_hero", playerData.img_path, preloadFrameCount, gameState === "ADVANTURE" ? "walk" : currentActionBase);
 
   // =========================================================
+  // 🔮 LOGIC: จัดการไอคอนสถานะ (Debuff / Buff)
+  // =========================================================
+  
+  // ดึงค่า status และ buff ออกมาจาก playerData (รองรับทั้งแบบ Array และ Object/String)
+  const statuses = playerData?.statuses || [];
+  const buffs = playerData?.buffs || [];
+  
+  // Fallback เผื่อใช้เก็บเป็น string เดี่ยวๆ เหมือนใน Item
+  if (statuses.length === 0 && playerData?.status) {
+    statuses.push({ type: playerData.status, duration: playerData.statusDuration || 0 });
+  }
+  if (buffs.length === 0 && playerData?.buff) {
+    buffs.push({ type: playerData.buff, duration: playerData.buffDuration || 0 });
+  }
+
+  const allEffects = [...statuses, ...buffs];
+
+  // ฟังก์ชันหา UI ของแต่ละสถานะ (สีพื้นหลัง + ไอคอน)
+  const getEffectData = (type) => {
+    switch (type) {
+      // 💀 Debuffs
+      case "stun": return { icon: <FaLock />, bgColor: "#34495e" };
+      case "poison": return { icon: <FaSkullCrossbones />, bgColor: "#2ecc71" };
+      case "blind": return { icon: <FaEyeSlash />, bgColor: "#8e44ad" };
+      case "bleed": return { icon: <FaTint />, bgColor: "#c0392b" };
+      // 🛡️ Buffs
+      case "double-dmg": return { icon: <GiBroadsword />, bgColor: "#c0392b" };
+      case "double-guard":
+      case "double-shield": return { icon: <GiShield />, bgColor: "#2980b9" };
+      case "mana-plus": return { icon: <GiStarShuriken />, bgColor: "#8e44ad" };
+      case "shield-plus": return { icon: <GiTrident />, bgColor: "#e67e22" };
+      default: return null;
+    }
+  };
 
   return (
     <>
@@ -89,6 +127,43 @@ export const PlayerEntity = memo(({ store }) => {
             justifyContent: "center"
           }}
         >
+          {/* ✅ จุดแสดงไอคอนสถานะ (ลอยอยู่เหนือ HpBar) */}
+          <div style={{ position: "absolute", top: "-28px", display: "flex", gap: "6px", justifyContent: "center", width: "100%", zIndex: 20 }}>
+            <AnimatePresence>
+              {allEffects.map((effect, idx) => {
+                const data = getEffectData(effect.type);
+                if (!data) return null;
+                return (
+                  <motion.div
+                    key={`${effect.type}-${idx}`}
+                    initial={{ scale: 0, opacity: 0, y: 5 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0, opacity: 0, y: 5 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                    style={{
+                      width: "20px", height: "20px", background: data.bgColor,
+                      borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center",
+                      border: "1.5px solid #fff", fontSize: "11px", color: "#fff", position: "relative",
+                      boxShadow: "0 2px 5px rgba(0,0,0,0.6)"
+                    }}
+                  >
+                    {data.icon}
+                    {/* ป้ายบอกจำนวนเทิร์นที่เหลือ (ถ้ามี) */}
+                    {effect.duration > 0 && (
+                      <div style={{
+                        position: "absolute", bottom: "-6px", right: "-6px", background: "#000",
+                        fontSize: "9px", fontWeight: "900", padding: "1px 4px", borderRadius: "4px",
+                        border: "1px solid #fff", lineHeight: 1
+                      }}>
+                        {effect.duration}
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+
           <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
           <MpBar mp={playerData.mana} max={playerData.max_mana} color="#3b82f6" />
 
