@@ -1,5 +1,5 @@
 // src/pages/AdminPage/panels/HeroPanel.jsx
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { API_URL } from "../config";
 import { HeroSpriteLoop } from "../components/SpriteLoops";
 
@@ -84,6 +84,94 @@ const HeroPanel = () => {
   useEffect(() => {
     fetchHeroes();
   }, [fetchHeroes]);
+
+  // ===== Table Sorting =====
+  const [sortBy, setSortBy] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
+
+  const toggleSort = (key) => {
+    if (sortBy === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedHeroes = useMemo(() => {
+    const arr = Array.isArray(heroes) ? [...heroes] : [];
+    if (!sortBy) return arr;
+
+    const dir = sortDir === "asc" ? 1 : -1;
+
+    const getVal = (h) => {
+      switch (sortBy) {
+        case "id":
+          return h?.id ?? "";
+        case "name":
+          return h?.name ?? "";
+        case "hp":
+          return h?.hp ?? null;
+        case "power":
+          return h?.power ?? null;
+        case "speed":
+          return h?.speed ?? null;
+        case "ability_cost":
+          return h?.ability_cost ?? null;
+        default:
+          return "";
+      }
+    };
+
+    const isNumberKey = ["hp", "power", "speed", "ability_cost"].includes(sortBy);
+
+    arr.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+
+      const aEmpty = av === null || av === undefined || av === "";
+      const bEmpty = bv === null || bv === undefined || bv === "";
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1;
+      if (bEmpty) return -1;
+
+      if (isNumberKey) {
+        return (Number(av) - Number(bv)) * dir;
+      }
+
+      return String(av).localeCompare(String(bv), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }) * dir;
+    });
+
+    return arr;
+  }, [heroes, sortBy, sortDir]);
+
+  // ✅ SortableTH component สำหรับ Header ของตาราง
+  const SortableTH = ({ colKey, children, tooltip }) => {
+    const active = sortBy === colKey;
+
+    return (
+      <th
+        onClick={() => toggleSort(colKey)}
+        style={{
+          cursor: "pointer",
+          userSelect: "none",
+          whiteSpace: "nowrap",
+          color: active ? "#ffd54f" : undefined,
+        }}
+        data-tooltip={tooltip}
+      >
+        {children}
+        {active && (
+          <span style={{ marginLeft: 6, fontSize: 12 }}>
+            {sortDir === "asc" ? "↑" : "↓"}
+          </span>
+        )}
+      </th>
+    );
+  };
 
   const handleAddDeckItem = () => {
     setFormData((prev) => ({
@@ -424,48 +512,51 @@ const HeroPanel = () => {
             <thead>
               <tr>
                 <th data-tooltip="ภาพตัวอย่างแอนิเมชัน">Sprite</th>
-                <th data-tooltip="รหัสอ้างอิงและชื่อฮีโร่">ID / Name</th>
-                <th data-tooltip="ค่าสถานะพื้นฐานของฮีโร่">Stats (HP, Pwr, Spd)</th>
-                <th data-tooltip="ค่าคอสและจำนวนการ์ดในกอง">Ability & Deck</th>
+                <SortableTH colKey="id" tooltip="รหัสอ้างอิงของฮีโร่">ID</SortableTH>
+                <SortableTH colKey="name" tooltip="ชื่อของฮีโร่">Name</SortableTH>
+                <SortableTH colKey="hp" tooltip="พลังชีวิตสูงสุด">HP</SortableTH>
+                <SortableTH colKey="power" tooltip="พลังโจมตีพื้นฐาน">Power</SortableTH>
+                <SortableTH colKey="speed" tooltip="ความเร็ว">Speed</SortableTH>
+                <SortableTH colKey="ability_cost" tooltip="ค่าคอสท์ (มานา) สำหรับกดใช้สกิล">Cost</SortableTH>
+                <th data-tooltip="จำนวนการ์ดเอฟเฟกต์ในกอง">Deck</th>
                 <th data-tooltip="คำอธิบายฮีโร่">Descriptions</th>
                 <th data-tooltip="ปุ่มจัดการข้อมูล">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {heroes.map((h) => (
+              {sortedHeroes.map((h) => (
                 <tr key={h.id}>
                   <td>
                     <HeroSpriteLoop id={h.id} />
                   </td>
+                  <td className="mono hero-id">{h.id}</td>
                   <td>
-                    <div className="mono" style={{ color: "#aaa", fontSize: 12 }}>{h.id}</div>
-                    <strong style={{ fontSize: 16 }}>{h.name ?? "-"}</strong>
+                    <strong>{h.name ?? "-"}</strong>
                   </td>
-                  <td className="mono" style={{ fontSize: 13, color: "#e2e8f0" }}>
-                    HP: {h.hp} | Pwr: {h.power} | Spd: {h.speed}
-                  </td>
-                  <td className="mono" style={{ fontSize: 12, color: "#ddd" }}>
-                    <div>Cost: {h.ability_cost ?? "-"}</div>
-                    {/* ✅ แสดงจำนวนการ์ดในตาราง */}
-                    <div style={{ color: "#48bb78", marginTop: "4px" }}>
-                      Cards: {Array.isArray(h.hero_deck) ? h.hero_deck.length : 0}
-                    </div>
+                  <td className="mono">{h.hp ?? "-"}</td>
+                  <td className="mono">{h.power ?? "-"}</td>
+                  <td className="mono">{h.speed ?? "-"}</td>
+                  <td className="mono">{h.ability_cost ?? "-"}</td>
+                  <td style={{ fontSize: 12, color: "#48bb78", fontWeight: "bold" }}>
+                    Cards: {Array.isArray(h.hero_deck) ? h.hero_deck.length : 0}
                   </td>
                   <td style={{ fontSize: 12, color: "#ccc", maxWidth: 220 }}>
-                    <div style={{ color: "#aaa" }}>{h.description ?? "-"}</div>
+                    {h.description ?? "-"}
                   </td>
                   <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEdit(h)} data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้">Edit</button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(h.id)} data-tooltip="ลบฮีโร่ถาวร">Del</button>
-                    <button className="btn" style={{ background: "#444", color: "#fff" }} onClick={() => handleDeleteSprites(h.id)} data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites">
-                      Del Sprites
-                    </button>
+                    <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+                      <button className="btn btn-edit" onClick={() => handleEdit(h)} data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้">Edit</button>
+                      <button className="btn btn-delete" onClick={() => handleDelete(h.id)} data-tooltip="ลบฮีโร่ถาวร">Del</button>
+                      <button className="btn" style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }} onClick={() => handleDeleteSprites(h.id)} data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites">
+                        Del Sprites
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {heroes.length === 0 && (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: "center", padding: 20 }}>No Heroes Found.</td>
+                  <td colSpan="10" style={{ textAlign: "center", padding: 20 }}>No Heroes Found.</td>
                 </tr>
               )}
             </tbody>

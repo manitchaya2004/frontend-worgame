@@ -648,3 +648,488 @@
   transform: translateX(-50%) translateY(0);
 }
 
+/* =========================================
+   RESPONSIVE STYLES (ADDED FOR MOBILE/TABLET)
+========================================= */
+
+@media (max-width: 1024px) {
+  .pokedex-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .header-right, .header-actions {
+    width: 100%;
+  }
+  .tab-group {
+    max-width: 100vw !important; /* Override 70vw เดิม */
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-area {
+    padding: 12px;
+  }
+  .pixel-title-small {
+    font-size: 16px;
+  }
+  .header-left {
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  /* Form Layout */
+  .form-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .form-box .input-field,
+  .form-box select,
+  .form-box button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Filter Section */
+  .search-controls {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .search-controls > div,
+  .search-controls > select,
+  .search-controls > input,
+  .search-controls > label {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .filter-select {
+    width: 100%;
+  }
+
+  /* Alphabet grid */
+  .alphabet-grid {
+    grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+  }
+
+  /* Table Styles */
+  .dict-table th,
+  .dict-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  .dict-table th {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  
+  /* Action Buttons in Table */
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .action-buttons .btn {
+    width: 100%;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  /* Tooltips fixes for mobile */
+  [data-tooltip]::after {
+    white-space: normal;
+    width: max-content;
+    max-width: 200px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .pixel-title-small {
+    font-size: 14px;
+  }
+  .server-tools {
+    flex-wrap: wrap;
+  }
+}
+
+/* =========================================
+   RESPONSIVE STYLES (iPad Mini: 768px - 1024px)
+========================================= */
+
+/* สำหรับ iPad Mini แนวนอน (1024px) และหน้าจอขนาดกลาง */
+@media (max-width: 1024px) {
+  .pokedex-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+  }
+  
+  .header-left {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .header-right, .header-actions {
+    width: 100%;
+  }
+
+  .tab-group {
+    max-width: 100% !important;
+    width: 100%;
+    overflow-x: auto;
+    justify-content: flex-start !important; /* จัดซ้ายให้เลื่อนง่าย */
+    padding-bottom: 8px; /* เว้นที่ให้ Scrollbar ไม่ทับปุ่ม */
+  }
+
+  .form-box {
+    gap: 12px;
+  }
+  
+  /* ให้ช่องกรอกข้อมูลยืดหยุ่นขึ้นในแนวนอน */
+  .input-field, .filter-select, .search-input {
+    flex: 1 1 auto;
+  }
+}
+
+/* สำหรับ iPad Mini แนวตั้ง (768px) และหน้าจอเล็ก */
+@media (max-width: 768px) {
+  .content-area {
+    padding: 14px;
+  }
+
+  .pixel-title-small {
+    font-size: 18px; /* ลดขนาดฟอนต์หัวข้อลงนิดหน่อย */
+  }
+
+  .header-left {
+    justify-content: space-between; /* กระจายปุ่ม Server และ AI ให้อยู่พอดี */
+  }
+  
+  /* ปรับ Form Box (เพิ่มคำศัพท์) ให้เป็นแนวตั้ง */
+  .form-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-box .input-field,
+  .form-box select,
+  .form-box button,
+  .form-box div[data-tooltip],
+  .form-box label {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* ปรับส่วนตัวกรองและค้นหา (Filter Section) ให้เป็นแนวตั้ง */
+  .search-controls {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .search-controls > *,
+  .search-controls > div[data-tooltip] {
+    width: 100%;
+  }
+
+  /* ปรับกริดปุ่มตัวอักษร A-Z */
+  .alphabet-grid {
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  }
+
+  /* ปรับตาราง (Table) ให้ตัวหนังสือและช่องว่างพอดีขึ้น */
+  .dict-table th,
+  .dict-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+  
+  .dict-table th {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  
+  /* ปรับปุ่ม Edit / Delete ในตารางให้เรียงแนวตั้งและเต็มช่อง */
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 11px;
+  }
+  
+  /* ปรับ Tooltip ไม่ให้ล้นจอ */
+  [data-tooltip]::after {
+    white-space: normal;
+    width: max-content;
+    max-width: 220px;
+    text-align: center;
+  }
+}
+
+/* =========================================
+   HERO PANEL & LAYOUT OVERFLOW FIXES
+========================================= */
+
+/* 1. ป้องกันหน้าเว็บกว้างทะลุจอ (Horizontal Scroll Bug) */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.admin-container {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* 2. บังคับ File Input ให้ไม่ดัน Layout จนพัง (สำคัญมากสำหรับหน้า Hero) */
+input[type="file"] {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 3. จัดการ Table Wrapper ให้เลื่อนซ้ายขวาได้สมูทบน iPad */
+.table-wrapper {
+  max-width: 100vw;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px) {
+  /* ปรับ Grid รูปแบบ 4 คอลัมน์ (เช่น Sprite Uploads ใน Hero) ให้เหลือ 2 คอลัมน์ */
+  div[style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* ปรับ Grid ให้เหลือคอลัมน์เดียวบนหน้าจอ iPad แนวตั้ง */
+  div[style*="grid-template-columns: repeat(4"],
+  div[style*="grid-template-columns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* การ์ด Deck Builder ของ Hero Panel ให้ปัดลงบรรทัดใหม่แทนที่จะยาวทะลุขอบ */
+  div[style*="overflow-x: auto"],
+  div[style*="overflowX: auto"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+    justify-content: center;
+  }
+
+  /* ช่องกรอก Textarea ของฮีโร่ ให้กว้างพอดีจอ */
+  textarea.input-field {
+    min-height: 80px;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
+/* =========================================
+   RESPONSIVE STYLES (MacBook & Large Screens)
+========================================= */
+
+/* สำหรับ MacBook รุ่นทั่วไป (หน้าจอ 13" - 15") ความละเอียด 1025px - 1440px */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .pokedex-header {
+    padding: 16px 32px;
+  }
+
+  .content-area {
+    padding: 24px 32px;
+  }
+
+  .pixel-title-small {
+    font-size: 20px;
+  }
+
+  /* ปรับขนาดปุ่มตัวอักษรให้พอดี ไม่ใหญ่เกินไป */
+  .alphabet-grid {
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  }
+
+  .form-box {
+    gap: 14px;
+    padding: 20px;
+  }
+}
+
+/* สำหรับ MacBook Pro 16", iMac หรือต่อจอมอนิเตอร์ใหญ่ (1441px ขึ้นไป) */
+@media (min-width: 1441px) {
+  /* ล็อคความกว้างสูงสุดของ Content ไม่ให้ยืดออกไปไม่มีที่สิ้นสุด */
+  .pokedex-header, 
+  .content-area {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ใส่พื้นหลังสีดำทึบด้านข้างถ้าจอกว้างกว่า 1600px */
+  .admin-container {
+    background-color: var(--bg0);
+  }
+
+  .pokedex-header {
+    padding: 18px 40px;
+  }
+
+  .content-area {
+    padding: 30px 40px;
+  }
+
+  .pixel-title-small {
+    font-size: 24px;
+  }
+
+  /* ขยายขนาดตารางและฟอนต์ให้สมส่วนกับจอใหญ่ */
+  .dict-table th, 
+  .dict-table td {
+    padding: 14px 18px;
+    font-size: 14px;
+  }
+
+  .dict-table th {
+    font-size: 12px;
+  }
+
+  .form-box {
+    padding: 24px;
+    gap: 16px;
+  }
+
+  /* ขยายช่องค้นหาและ Input ให้ใหญ่ขึ้นนิดหน่อย */
+  .input-field,
+  .search-input,
+  .filter-select {
+    font-size: 15px;
+    padding: 12px 16px;
+  }
+}
+
+/* =========================================
+   RESPONSIVE STYLES (iPhone / Mobile)
+   รองรับ iPhone ทุกรุ่น (320px - 430px)
+========================================= */
+
+@media (max-width: 430px) {
+  /* ปรับ Header ให้อยู่ในพื้นที่จำกัด */
+  .pokedex-header {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* หัวข้อให้อยู่ตรงกลางบนมือถือ */
+  .pixel-title-small {
+    font-size: 16px;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  /* จัดกลุ่มปุ่ม Server และ AI ให้เรียงพอดีจอ */
+  .server-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* ปรับ Tab Menu ให้เลื่อนแนวนอนง่ายขึ้นและขนาดเล็กลง */
+  .tab-btn {
+    padding: 8px 10px;
+    font-size: 10px;
+    height: 36px;
+  }
+
+  .tab-btn.logout-tab {
+    padding: 0 10px;
+    height: 36px;
+    font-size: 10px;
+  }
+
+  .content-area {
+    padding: 10px;
+  }
+
+  /* ลดขนาด Padding และความสูงในช่องกรอกข้อมูล */
+  .input-field,
+  .search-input,
+  .filter-select {
+    padding: 8px 10px;
+    font-size: 13px;
+    min-height: 40px; /* ความสูงมาตรฐานให้กดง่ายบน iOS */
+  }
+
+  .form-box {
+    padding: 14px;
+  }
+
+  /* ปรับ Grid ของปุ่มตัวอักษร A-Z ให้แน่นขึ้น */
+  .alphabet-grid {
+    grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+    gap: 6px;
+  }
+
+  .letter-btn {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+
+  /* ปรับตารางสำหรับหน้าจอ iPhone */
+  .dict-table th,
+  .dict-table td {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .dict-table th {
+    font-size: 9px;
+  }
+
+  /* ปุ่ม Action ในตาราง ลดขนาดไม่ให้กินพื้นที่ */
+  .action-buttons .btn {
+    padding: 6px 4px;
+    font-size: 10px;
+    min-height: 32px;
+  }
+}
+
+/* =========================================
+   สำหรับ iPhone รุ่นจอเล็กมาก (เช่น iPhone SE - 320px ถึง 375px)
+========================================= */
+@media (max-width: 375px) {
+  .pixel-title-small {
+    font-size: 14px;
+  }
+  
+  .tab-btn {
+    font-size: 9px;
+    padding: 8px;
+  }
+
+  /* ทำให้ปุ่มตัวอักษร A-Z เล็กลงไปอีกเพื่อไม่ให้ตกบรรทัดเยอะ */
+  .alphabet-grid {
+    grid-template-columns: repeat(auto-fill, minmax(24px, 1fr));
+  }
+}
