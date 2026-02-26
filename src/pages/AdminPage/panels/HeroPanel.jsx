@@ -1,7 +1,11 @@
 // src/pages/AdminPage/panels/HeroPanel.jsx
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { API_URL } from "../config";
 import { HeroSpriteLoop } from "../components/SpriteLoops";
+
+// ✅ UI แบบในไฟล์เกม (dropdown + animation + icon)
+import { AnimatePresence, motion } from "framer-motion";
+import { GiBroadsword, GiShield, GiWaterDrop, GiTrident } from "react-icons/gi";
 
 // รายชื่อ Effect อ้างอิงจากระบบเกม
 const DECK_EFFECTS = [
@@ -9,8 +13,182 @@ const DECK_EFFECTS = [
   "double-guard",
   "double-shield",
   "mana-plus",
-  "shield-plus"
+  "shield-plus",
 ];
+
+// ✅ meta สำหรับทำ UI ให้เหมือนในไฟล์เกม (icon + สี + label)
+const EFFECT_META = {
+  "double-dmg": {
+    label: "Double Damage",
+    icon: <GiBroadsword />,
+    color: "#c0392b",
+  },
+  "double-guard": {
+    label: "Double Guard",
+    icon: <GiShield />,
+    color: "#2980b9",
+  },
+  "double-shield": {
+    label: "Double Shield",
+    icon: <GiShield />,
+    color: "#2980b9",
+  },
+  "mana-plus": {
+    label: "Mana Plus",
+    icon: <GiWaterDrop />,
+    color: "#00bcd4",
+  },
+  "shield-plus": {
+    label: "Shield Plus",
+    icon: <GiTrident />,
+    color: "#e67e22",
+  },
+};
+
+// ✅ Effect dropdown แบบเดียวกับไฟล์เกม: badge + icon + popup list + motion
+const EffectSelect = ({ value, options, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  const current =
+    EFFECT_META[value] || ({ label: value, icon: null, color: "#666" });
+
+  // ปิดเมื่อคลิกนอกกรอบ
+  useEffect(() => {
+    const onDown = (e) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="input-field"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          cursor: "pointer",
+          paddingRight: 10,
+          userSelect: "none",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: "50%",
+              background: current.color,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 11,
+              border: "1px solid rgba(255,255,255,0.8)",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.35)",
+              flex: "0 0 auto",
+            }}
+            title={current.label}
+          >
+            {current.icon}
+          </span>
+
+          <span style={{ color: "#ddd", fontWeight: 800 }}>
+            {current.label}
+          </span>
+        </span>
+
+        <span style={{ color: "#999", fontWeight: 900 }}>
+          {open ? "▲" : "▼"}
+        </span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "absolute",
+              zIndex: 999,
+              top: "calc(100% + 6px)",
+              left: 0,
+              width: "100%",
+              maxHeight: 260,
+              overflowY: "auto",
+              background: "rgba(15, 11, 8, 0.96)",
+              border: "1px solid #d4af37",
+              borderRadius: 8,
+              boxShadow: "0 10px 24px rgba(0,0,0,0.65)",
+              padding: 6,
+            }}
+          >
+            {options.map((ef) => {
+              const meta = EFFECT_META[ef] || { label: ef, icon: null, color: "#666" };
+              const active = ef === value;
+
+              return (
+                <div
+                  key={ef}
+                  onClick={() => {
+                    onChange(ef);
+                    setOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 10px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    background: active ? "rgba(212,175,55,0.12)" : "transparent",
+                    border: active
+                      ? "1px solid rgba(212,175,55,0.35)"
+                      : "1px solid transparent",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: "50%",
+                      background: meta.color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: 11,
+                      border: "1px solid rgba(255,255,255,0.8)",
+                      flex: "0 0 auto",
+                    }}
+                  >
+                    {meta.icon}
+                  </span>
+
+                  <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+                    <span style={{ color: "#eee", fontWeight: 900, fontSize: 13 }}>
+                      {meta.label}
+                    </span>
+                    <span style={{ color: "#888", fontSize: 11 }}>{ef}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const HeroPanel = () => {
   const [heroes, setHeroes] = useState([]);
@@ -139,10 +317,12 @@ const HeroPanel = () => {
         return (Number(av) - Number(bv)) * dir;
       }
 
-      return String(av).localeCompare(String(bv), undefined, {
-        numeric: true,
-        sensitivity: "base",
-      }) * dir;
+      return (
+        String(av).localeCompare(String(bv), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }) * dir
+      );
     });
 
     return arr;
@@ -190,9 +370,9 @@ const HeroPanel = () => {
   const handleDeckChange = (index, field, value) => {
     setFormData((prev) => {
       const newDeck = [...(prev.hero_deck || [])];
-      newDeck[index] = { 
-        ...newDeck[index], 
-        [field]: field === "size" ? Number(value) : value 
+      newDeck[index] = {
+        ...newDeck[index],
+        [field]: field === "size" ? Number(value) : value,
       };
       return { ...prev, hero_deck: newDeck };
     });
@@ -227,11 +407,12 @@ const HeroPanel = () => {
       hp: formData.hp === "" ? 0 : Number(formData.hp),
       power: formData.power === "" ? 0 : Number(formData.power),
       speed: formData.speed === "" ? 0 : Number(formData.speed),
-      ability_cost: formData.ability_cost === "" ? null : Number(formData.ability_cost),
+      ability_cost:
+        formData.ability_cost === "" ? null : Number(formData.ability_cost),
       description: formData.description || null,
-      hero_deck: (formData.hero_deck || []).map(item => ({
+      hero_deck: (formData.hero_deck || []).map((item) => ({
         effect: item.effect,
-        size: Number(item.size) || 1
+        size: Number(item.size) || 1,
       })),
     };
 
@@ -248,7 +429,9 @@ const HeroPanel = () => {
           .filter(([, f]) => !f)
           .map(([k]) => k);
         if (missing.length > 0) {
-          alert(`ต้องอัปโหลดรูปครบ 7 รูปก่อนสร้าง Hero\nขาด: ${missing.join(", ")}`);
+          alert(
+            `ต้องอัปโหลดรูปครบ 7 รูปก่อนสร้าง Hero\nขาด: ${missing.join(", ")}`
+          );
           return;
         }
       }
@@ -326,7 +509,9 @@ const HeroPanel = () => {
   const handleDeleteSprites = async (id) => {
     if (!window.confirm(`Delete ALL sprites of Hero ID: ${id}?`)) return;
     try {
-      const res = await fetch(`${API_URL}/hero/${id}/sprites`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/hero/${id}/sprites`, {
+        method: "DELETE",
+      });
       if (res.ok) {
         alert("Sprites deleted");
         fetchHeroes();
@@ -359,13 +544,19 @@ const HeroPanel = () => {
         </h3>
 
         <div className="flex-row">
-          <div className="form-field flex-1" data-tooltip="รหัสอ้างอิงฮีโร่ (สร้างอัตโนมัติจากชื่อ)">
+          <div
+            className="form-field flex-1"
+            data-tooltip="รหัสอ้างอิงฮีโร่ (สร้างอัตโนมัติจากชื่อ)"
+          >
             <label className="form-label required">Hero ID</label>
             <input className="input-field" value={formData.id} disabled />
             <span className="form-hint">สร้างอัตโนมัติจาก Name</span>
           </div>
 
-          <div className="form-field flex-2" data-tooltip="ชื่อของฮีโร่ที่จะแสดงในเกม">
+          <div
+            className="form-field flex-2"
+            data-tooltip="ชื่อของฮีโร่ที่จะแสดงในเกม"
+          >
             <label className="form-label required">Name</label>
             <input
               className="input-field"
@@ -384,15 +575,30 @@ const HeroPanel = () => {
         <div className="flex-row flex-wrap">
           <div className="form-field" data-tooltip="พลังชีวิตเริ่มต้นของฮีโร่">
             <label className="form-label required">hp</label>
-            <input className="input-field" type="number" value={formData.hp} onChange={(e) => setNumberField("hp", e.target.value)} />
+            <input
+              className="input-field"
+              type="number"
+              value={formData.hp}
+              onChange={(e) => setNumberField("hp", e.target.value)}
+            />
           </div>
           <div className="form-field" data-tooltip="พลังโจมตีพื้นฐาน">
             <label className="form-label required">power</label>
-            <input className="input-field" type="number" value={formData.power} onChange={(e) => setNumberField("power", e.target.value)} />
+            <input
+              className="input-field"
+              type="number"
+              value={formData.power}
+              onChange={(e) => setNumberField("power", e.target.value)}
+            />
           </div>
           <div className="form-field" data-tooltip="ความเร็ว (กำหนดลำดับการโจมตี)">
             <label className="form-label required">speed</label>
-            <input className="input-field" type="number" value={formData.speed} onChange={(e) => setNumberField("speed", e.target.value)} />
+            <input
+              className="input-field"
+              type="number"
+              value={formData.speed}
+              onChange={(e) => setNumberField("speed", e.target.value)}
+            />
           </div>
         </div>
 
@@ -418,34 +624,64 @@ const HeroPanel = () => {
         </div>
 
         {/* จัดการ Hero Deck */}
-        <div style={{ width: "100%", marginTop: "15px", padding: "15px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px dashed #555" }}>
-          <h4 style={{ margin: "0 0 10px 0", color: "#e2e8f0" }} data-tooltip="การ์ดเอฟเฟกต์เริ่มต้นที่ฮีโร่มีในกอง">Hero Deck (Cards)</h4>
+        <div
+          style={{
+            width: "100%",
+            marginTop: "15px",
+            padding: "15px",
+            background: "rgba(0,0,0,0.2)",
+            borderRadius: "8px",
+            border: "1px dashed #555",
+          }}
+        >
+          <h4
+            style={{ margin: "0 0 10px 0", color: "#e2e8f0" }}
+            data-tooltip="การ์ดเอฟเฟกต์เริ่มต้นที่ฮีโร่มีในกอง"
+          >
+            Hero Deck (Cards)
+          </h4>
+
           {(formData.hero_deck || []).map((item, index) => (
-            <div key={index} style={{ display: "flex", gap: "10px", marginBottom: "8px", alignItems: "center" }}>
-              <div className="form-field flex-2" style={{ marginBottom: 0 }} data-tooltip="เลือกเอฟเฟกต์ของการ์ด">
-                <select 
-                  className="input-field" 
-                  value={item.effect} 
-                  onChange={(e) => handleDeckChange(index, "effect", e.target.value)}
-                >
-                  {DECK_EFFECTS.map(ef => (
-                    <option key={ef} value={ef}>{ef}</option>
-                  ))}
-                </select>
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginBottom: "8px",
+                alignItems: "center",
+              }}
+            >
+              <div
+                className="form-field flex-2"
+                style={{ marginBottom: 0 }}
+                data-tooltip="เลือกเอฟเฟกต์ของการ์ด"
+              >
+                {/* ✅ เปลี่ยน select เป็น UI แบบในไฟล์เกม */}
+                <EffectSelect
+                  value={item.effect}
+                  options={DECK_EFFECTS}
+                  onChange={(ef) => handleDeckChange(index, "effect", ef)}
+                />
               </div>
-              <div className="form-field flex-1" style={{ marginBottom: 0 }} data-tooltip="จำนวนใบของการ์ดชนิดนี้ในกอง">
-                <input 
-                  className="input-field" 
-                  type="number" 
-                  placeholder="Size (e.g. 3)" 
-                  value={item.size} 
+
+              <div
+                className="form-field flex-1"
+                style={{ marginBottom: 0 }}
+                data-tooltip="จำนวนใบของการ์ดชนิดนี้ในกอง"
+              >
+                <input
+                  className="input-field"
+                  type="number"
+                  placeholder="Size (e.g. 3)"
+                  value={item.size}
                   onChange={(e) => handleDeckChange(index, "size", e.target.value)}
                   min="1"
                 />
               </div>
-              <button 
-                type="button" 
-                className="btn btn-delete" 
+
+              <button
+                type="button"
+                className="btn btn-delete"
                 onClick={() => handleRemoveDeckItem(index)}
                 style={{ height: "36px", padding: "0 10px", marginTop: "20px" }}
                 data-tooltip="ลบการ์ดใบนี้ออกจากกอง"
@@ -454,7 +690,14 @@ const HeroPanel = () => {
               </button>
             </div>
           ))}
-          <button type="button" className="btn" onClick={handleAddDeckItem} style={{ background: "#2b6cb0", marginTop: "10px" }} data-tooltip="เพิ่มการ์ดชนิดใหม่ลงในกอง">
+
+          <button
+            type="button"
+            className="btn"
+            onClick={handleAddDeckItem}
+            style={{ background: "#2b6cb0", marginTop: "10px" }}
+            data-tooltip="เพิ่มการ์ดชนิดใหม่ลงในกอง"
+          >
             + Add Card
           </button>
         </div>
@@ -463,19 +706,52 @@ const HeroPanel = () => {
         <div className="sprite-upload" style={{ marginTop: 15 }}>
           <div className="hint" data-tooltip="อัปโหลดภาพแอนิเมชันให้ครบทั้ง 7 ท่าทาง">
             Hero Sprites (ต้องมี 7 รูป) — Attack x2, Idle x2, Walk x2, Guard x1
-            {isEditing && <span className="subhint"> (แก้รูป: เลือกใหม่ให้ครบ 7 แล้วกด UPDATE)</span>}
+            {isEditing && (
+              <span className="subhint">
+                {" "}
+                (แก้รูป: เลือกใหม่ให้ครบ 7 แล้วกด UPDATE)
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", marginTop: "10px" }}>
             {Object.keys(spriteFiles).map((k) => (
-              <div key={k} style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start", padding: "10px", border: "1px dashed #555", borderRadius: "8px" }} data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}>
-                <label style={{ fontSize: 12, color: "#888", fontWeight: "bold", textTransform: "capitalize" }}>{k}</label>
-                
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  alignItems: "flex-start",
+                  padding: "10px",
+                  border: "1px dashed #555",
+                  borderRadius: "8px",
+                }}
+                data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}
+              >
+                <label
+                  style={{
+                    fontSize: 12,
+                    color: "#888",
+                    fontWeight: "bold",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {k}
+                </label>
+
                 {spriteFiles[k] && (
-                  <img 
-                    src={URL.createObjectURL(spriteFiles[k])} 
-                    alt={`Preview ${k}`} 
-                    style={{ width: "80px", height: "80px", objectFit: "contain", border: "1px solid #444", borderRadius: "4px", background: "rgba(0,0,0,0.5)" }} 
+                  <img
+                    src={URL.createObjectURL(spriteFiles[k])}
+                    alt={`Preview ${k}`}
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      objectFit: "contain",
+                      border: "1px solid #444",
+                      borderRadius: "4px",
+                      background: "rgba(0,0,0,0.5)",
+                    }}
                   />
                 )}
 
@@ -492,11 +768,21 @@ const HeroPanel = () => {
         </div>
 
         <div style={{ width: "100%", display: "flex", gap: 10, justifyContent: "center", marginTop: 20 }}>
-          <button type="submit" className={`btn ${isEditing ? "btn-edit" : "btn-add"}`} style={{ flex: 1 }} data-tooltip={isEditing ? "บันทึกการแก้ไข" : "สร้างฮีโร่ตัวใหม่"}>
+          <button
+            type="submit"
+            className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
+            style={{ flex: 1 }}
+            data-tooltip={isEditing ? "บันทึกการแก้ไข" : "สร้างฮีโร่ตัวใหม่"}
+          >
             {isEditing ? "UPDATE HERO" : "CREATE HERO"}
           </button>
           {isEditing && (
-            <button type="button" className="btn btn-cancel" onClick={handleCancel} data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม">
+            <button
+              type="button"
+              className="btn btn-cancel"
+              onClick={handleCancel}
+              data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม"
+            >
               CANCEL
             </button>
           )}
@@ -512,12 +798,24 @@ const HeroPanel = () => {
             <thead>
               <tr>
                 <th data-tooltip="ภาพตัวอย่างแอนิเมชัน">Sprite</th>
-                <SortableTH colKey="id" tooltip="รหัสอ้างอิงของฮีโร่">ID</SortableTH>
-                <SortableTH colKey="name" tooltip="ชื่อของฮีโร่">Name</SortableTH>
-                <SortableTH colKey="hp" tooltip="พลังชีวิตสูงสุด">HP</SortableTH>
-                <SortableTH colKey="power" tooltip="พลังโจมตีพื้นฐาน">Power</SortableTH>
-                <SortableTH colKey="speed" tooltip="ความเร็ว">Speed</SortableTH>
-                <SortableTH colKey="ability_cost" tooltip="ค่าคอสท์ (มานา) สำหรับกดใช้สกิล">Cost</SortableTH>
+                <SortableTH colKey="id" tooltip="รหัสอ้างอิงของฮีโร่">
+                  ID
+                </SortableTH>
+                <SortableTH colKey="name" tooltip="ชื่อของฮีโร่">
+                  Name
+                </SortableTH>
+                <SortableTH colKey="hp" tooltip="พลังชีวิตสูงสุด">
+                  HP
+                </SortableTH>
+                <SortableTH colKey="power" tooltip="พลังโจมตีพื้นฐาน">
+                  Power
+                </SortableTH>
+                <SortableTH colKey="speed" tooltip="ความเร็ว">
+                  Speed
+                </SortableTH>
+                <SortableTH colKey="ability_cost" tooltip="ค่าคอสท์ (มานา) สำหรับกดใช้สกิล">
+                  Cost
+                </SortableTH>
                 <th data-tooltip="จำนวนการ์ดเอฟเฟกต์ในกอง">Deck</th>
                 <th data-tooltip="คำอธิบายฮีโร่">Descriptions</th>
                 <th data-tooltip="ปุ่มจัดการข้อมูล">Actions</th>
@@ -537,26 +835,92 @@ const HeroPanel = () => {
                   <td className="mono">{h.power ?? "-"}</td>
                   <td className="mono">{h.speed ?? "-"}</td>
                   <td className="mono">{h.ability_cost ?? "-"}</td>
-                  <td style={{ fontSize: 12, color: "#48bb78", fontWeight: "bold" }}>
-                    Cards: {Array.isArray(h.hero_deck) ? h.hero_deck.length : 0}
+
+                  {/* ✅ Deck ให้ใหญ่ขึ้น + แสดงรายการการ์ด */}
+                  <td
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 1.35,
+                      padding: "10px 12px",
+                      minWidth: 280,
+                      maxWidth: 360,
+                      verticalAlign: "top",
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#48bb78",
+                        fontWeight: "bold",
+                        fontSize: 15,
+                        marginBottom: 6,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <span>Cards:</span>
+                      <span>{Array.isArray(h.hero_deck) ? h.hero_deck.length : 0}</span>
+                    </div>
+
+                    {Array.isArray(h.hero_deck) && h.hero_deck.length > 0 && (
+                      <div style={{ maxHeight: 120, overflowY: "auto", paddingRight: 6 }}>
+                        {h.hero_deck.map((card, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              color: "#ddd",
+                              fontSize: 13,
+                              lineHeight: 1.3,
+                              padding: "3px 0",
+                              whiteSpace: "normal",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {card.effect} (x{card.size})
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </td>
+
                   <td style={{ fontSize: 12, color: "#ccc", maxWidth: 220 }}>
                     {h.description ?? "-"}
                   </td>
+
                   <td className="action-buttons">
-                    <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
-                      <button className="btn btn-edit" onClick={() => handleEdit(h)} data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้">Edit</button>
-                      <button className="btn btn-delete" onClick={() => handleDelete(h.id)} data-tooltip="ลบฮีโร่ถาวร">Del</button>
-                      <button className="btn" style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }} onClick={() => handleDeleteSprites(h.id)} data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites">
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "6px",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <button className="btn btn-edit" onClick={() => handleEdit(h)} data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้">
+                        Edit
+                      </button>
+                      <button className="btn btn-delete" onClick={() => handleDelete(h.id)} data-tooltip="ลบฮีโร่ถาวร">
+                        Del
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }}
+                        onClick={() => handleDeleteSprites(h.id)}
+                        data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites"
+                      >
                         Del Sprites
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+
               {heroes.length === 0 && (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: "center", padding: 20 }}>No Heroes Found.</td>
+                  <td colSpan="10" style={{ textAlign: "center", padding: 20 }}>
+                    No Heroes Found.
+                  </td>
                 </tr>
               )}
             </tbody>

@@ -191,7 +191,7 @@ const StagePanel = () => {
   };
 
   return (
-    <div>
+    <div className="admin-container"> {/* ✅ เพิ่ม admin-container เพื่อให้ Tooltip ทำงาน */}
       {/* ===== Stage Form ===== */}
       <form className="form-box stage-mode" onSubmit={handleSubmit}>
         <h3 className="form-title stage">
@@ -200,7 +200,7 @@ const StagePanel = () => {
 
         {/* ID + Order */}
         <div className="flex-row flex-wrap">
-          <div className="form-field flex-2 minw-220">
+          <div className="form-field flex-2 minw-220" data-tooltip="รหัสอ้างอิงของด่าน (ใช้เป็นชื่อไฟล์แผนที่ด้วย)">
             <label className="form-label required">Stage ID</label>
             <input
               className="input-field"
@@ -216,7 +216,7 @@ const StagePanel = () => {
             </span>
           </div>
 
-          <div className="form-field flex-1 minw-140">
+          <div className="form-field flex-1 minw-140" data-tooltip="ลำดับของด่านที่จะแสดงในเกม (ตัวเลข)">
             <label className="form-label required">OrderNo</label>
             <input
               className="input-field"
@@ -232,7 +232,7 @@ const StagePanel = () => {
         </div>
 
         {/* Name */}
-        <div className="form-field full">
+        <div className="form-field full" data-tooltip="ชื่อด่านที่จะแสดงให้ผู้เล่นเห็น">
           <label className="form-label required">Stage Name</label>
           <input
             className="input-field"
@@ -246,7 +246,7 @@ const StagePanel = () => {
         </div>
 
         {/* Description */}
-        <div className="form-field full">
+        <div className="form-field full" data-tooltip="คำอธิบายหรือเนื้อเรื่องย่อของด่าน">
           <label className="form-label">Description</label>
           <input
             className="input-field"
@@ -260,7 +260,7 @@ const StagePanel = () => {
 
         {/* Reward / Goal */}
         <div className="flex-row flex-wrap">
-          <div className="form-field flex-1 minw-200">
+          <div className="form-field flex-1 minw-200" data-tooltip="จำนวนเงินรางวัลที่จะได้รับเมื่อผ่านด่านนี้">
             <label className="form-label">money_reward</label>
             <input
               className="input-field"
@@ -273,7 +273,7 @@ const StagePanel = () => {
             <span className="form-hint">เงินรางวัลหลังผ่านด่าน</span>
           </div>
 
-          <div className="form-field flex-1 minw-200">
+          <div className="form-field flex-1 minw-200" data-tooltip="ระยะทางที่ผู้เล่นต้องไปให้ถึงเพื่อผ่านด่านนี้">
             <label className="form-label">distant_goal</label>
             <input
               className="input-field"
@@ -289,9 +289,28 @@ const StagePanel = () => {
           </div>
         </div>
 
-        {/* ✅ Map Upload */}
-        <div className="form-field full mt-10">
+        {/* ✅ Map Upload พร้อม Preview */}
+        <div className="form-field full mt-10" data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)">
           <label className="form-label">Map Image (PNG)</label>
+          
+          {/* ✅ แสดงภาพ Preview หากมีการเลือกไฟล์ */}
+          {mapFile && (
+            <div style={{ marginBottom: "10px" }}>
+              <img 
+                src={URL.createObjectURL(mapFile)} 
+                alt="Map Preview" 
+                style={{ 
+                  maxWidth: "200px", 
+                  maxHeight: "150px", 
+                  objectFit: "contain", 
+                  border: "1px solid #444", 
+                  borderRadius: "4px", 
+                  background: "rgba(0,0,0,0.5)" 
+                }} 
+              />
+            </div>
+          )}
+
           <input
             type="file"
             accept="image/png"
@@ -307,12 +326,13 @@ const StagePanel = () => {
             type="submit"
             className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
             style={{ flex: 1 }}
+            data-tooltip={isEditing ? "บันทึกการแก้ไขด่าน" : "สร้างด่านใหม่"}
           >
             {isEditing ? "UPDATE STAGE" : "CREATE STAGE"}
           </button>
 
           {isEditing && (
-            <button type="button" className="btn btn-cancel" onClick={resetForm}>
+            <button type="button" className="btn btn-cancel" onClick={resetForm} data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม">
               CANCEL
             </button>
           )}
@@ -327,13 +347,13 @@ const StagePanel = () => {
           <table className="dict-table">
             <thead>
               <tr>
-                <th>Map</th>
-                <th>ID</th>
-                <th>Order</th>
-                <th>Name</th>
-                <th>Reward/Goal</th>
-                <th>Description</th>
-                <th>Actions</th>
+                <th data-tooltip="ภาพตัวอย่างแผนที่ของด่าน">Map</th>
+                <th data-tooltip="รหัสอ้างอิงด่าน (ใช้ผูกข้อมูล)">ID</th>
+                <th data-tooltip="ลำดับของด่าน">Order</th>
+                <th data-tooltip="ชื่อด่าน">Name</th>
+                <th data-tooltip="เงินรางวัล / ระยะทางเป้าหมาย">Reward/Goal</th>
+                <th data-tooltip="คำอธิบายรายละเอียดด่าน">Description</th>
+                <th data-tooltip="ปุ่มจัดการข้อมูล">Actions</th>
               </tr>
             </thead>
 
@@ -349,9 +369,9 @@ const StagePanel = () => {
                   </td>
                   <td className="desc-cell w260">{s.description ?? "-"}</td>
                   <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEdit(s)}>Edit</button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(s.id)}>Del</button>
-                    <button className="btn btn-green" onClick={() => openSpawn(s.id)}>Spawns</button>
+                    <button className="btn btn-edit" onClick={() => handleEdit(s)} data-tooltip="แก้ไขข้อมูลด่านนี้">Edit</button>
+                    <button className="btn btn-delete" onClick={() => handleDelete(s.id)} data-tooltip="ลบด่านและมอนสเตอร์ที่เกิดในด่านนี้ทั้งหมด">Del</button>
+                    <button className="btn btn-green" onClick={() => openSpawn(s.id)} data-tooltip="จัดการจุดเกิดมอนสเตอร์ (Spawns) ในด่านนี้">Spawns</button>
                   </td>
                 </tr>
               ))}
@@ -524,7 +544,14 @@ const SpawnPanel = ({ stageId }) => {
         </div>
 
         <div style={{ display: "flex", gap: 10, width: "100%", flexWrap: "wrap" }}>
-          <select className="input-field" name="monster_id" value={formData.monster_id} onChange={handleChange} style={{ flex: 2, minWidth: 240 }}>
+          <select 
+            className="input-field" 
+            name="monster_id" 
+            value={formData.monster_id} 
+            onChange={handleChange} 
+            style={{ flex: 2, minWidth: 240 }}
+            data-tooltip="เลือกมอนสเตอร์ที่จะให้เกิดในด่านนี้"
+          >
             <option value="" disabled>-- select monster --</option>
             {monsters.map((m) => (
               <option key={m.id} value={m.id}>
@@ -533,7 +560,15 @@ const SpawnPanel = ({ stageId }) => {
             ))}
           </select>
 
-          <input className="input-field" name="level" placeholder="level (e.g. A1)" value={formData.level} onChange={handleChange} style={{ flex: 1, minWidth: 140 }} />
+          <input 
+            className="input-field" 
+            name="level" 
+            placeholder="level (e.g. A1)" 
+            value={formData.level} 
+            onChange={handleChange} 
+            style={{ flex: 1, minWidth: 140 }} 
+            data-tooltip="ระดับความยากหรือรูปแบบสเตตัสของมอนสเตอร์ (เช่น A1)"
+          />
 
           <input
             className="input-field"
@@ -543,15 +578,27 @@ const SpawnPanel = ({ stageId }) => {
             value={formData.distant_spawn}
             onChange={handleChange}
             style={{ flex: 1, minWidth: 180 }}
+            data-tooltip="ระยะทางในด่านที่ผู้เล่นเดินไปถึง แล้วมอนสเตอร์ตัวนี้จะเกิด"
           />
         </div>
 
         <div style={{ width: "100%", display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
-          <button type="submit" className={`btn ${isEditing ? "btn-edit" : "btn-add"}`} style={{ flex: 1 }}>
+          <button 
+            type="submit" 
+            className={`btn ${isEditing ? "btn-edit" : "btn-add"}`} 
+            style={{ flex: 1 }}
+            data-tooltip={isEditing ? "บันทึกการแก้ไขจุดเกิด" : "เพิ่มจุดเกิดมอนสเตอร์"}
+          >
             {isEditing ? "UPDATE SPAWN" : "ADD SPAWN"}
           </button>
           {isEditing && (
-            <button type="button" className="btn" onClick={resetForm} style={{ background: "#555", flex: 1 }}>
+            <button 
+              type="button" 
+              className="btn" 
+              onClick={resetForm} 
+              style={{ background: "#555", flex: 1 }}
+              data-tooltip="ยกเลิกการแก้ไข"
+            >
               CANCEL
             </button>
           )}
@@ -566,11 +613,11 @@ const SpawnPanel = ({ stageId }) => {
           <table className="dict-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Monster</th>
-                <th>Level</th>
-                <th>distant_spawn</th>
-                <th>Actions</th>
+                <th data-tooltip="รหัสอ้างอิงของจุดเกิด (สร้างอัตโนมัติ)">ID</th>
+                <th data-tooltip="ชื่อและรหัสของมอนสเตอร์">Monster</th>
+                <th data-tooltip="ระดับของมอนสเตอร์ (Level)">Level</th>
+                <th data-tooltip="ระยะทางที่มอนสเตอร์ตัวนี้จะเกิดในด่าน">distant_spawn</th>
+                <th data-tooltip="ปุ่มจัดการข้อมูลจุดเกิด">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -581,8 +628,8 @@ const SpawnPanel = ({ stageId }) => {
                   <td>{sp.level}</td>
                   <td>{sp.distant_spawn}</td>
                   <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEdit(sp)}>Edit</button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(sp.id)}>Del</button>
+                    <button className="btn btn-edit" onClick={() => handleEdit(sp)} data-tooltip="แก้ไขจุดเกิดมอนสเตอร์นี้">Edit</button>
+                    <button className="btn btn-delete" onClick={() => handleDelete(sp.id)} data-tooltip="ลบจุดเกิดมอนสเตอร์นี้">Del</button>
                   </td>
                 </tr>
               ))}
