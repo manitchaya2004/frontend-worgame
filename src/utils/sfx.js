@@ -10,6 +10,7 @@ import block from "../assets/sound/block.wav";
 import miss from "../assets/sound/miss.wav";
 import walk from "../assets/sound/walk.wav";
 import poison from "../assets/sound/poison.wav";
+import gameOver from "../assets/sound/game-over.mp3";
 
 // --- Background Music (BGM) ---
 // ✅ Import ไฟล์เพลงใหม่ตรงนี้ (ตรวจสอบ path ให้ชัวร์ว่าไฟล์อยู่ที่นี่จริง)
@@ -33,6 +34,7 @@ export const sfx = {
   playMiss: () => playSound(miss),
   playWalk: () => playSound(walk, 0.3), // เดินอาจจะปรับเบาหน่อย
   playPoison: () => playSound(poison),
+  playGameOver: () => playSound(gameOver, 0.7)
 };
 
 // =========================================================

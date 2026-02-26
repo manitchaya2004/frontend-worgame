@@ -5,8 +5,12 @@ import {
   GiHealthPotion,
   GiMagicPotion,
   GiStandingPotion,
-  GiVisoredHelm
+  GiVisoredHelm,
+  GiHearts,
+  GiBroadsword, // 🟢 เพิ่มไอคอนดาบ
+  GiLeatherBoot     // 🟢 เพิ่มไอคอนรองเท้า
 } from "react-icons/gi";
+// import { MdSpeed } from "react-icons/md"; // 🔴 นำออก ไม่ได้ใช้แล้ว
 import { useGameStore } from "../../../../store/useGameStore";
 
 /* ===== Reusable Pixel Bar (เพิ่มระบบ Tooltip อธิบายสถานะ) ===== */
@@ -36,7 +40,7 @@ const PixelBar = ({ current, max, color, height = "18px", labelColor = "#fff", l
             color: color, 
             textShadow: "1px 1px 0 #000",
             fontFamily: "monospace",
-            minWidth: "22px", // บีบให้ชิดหลอด
+            minWidth: "22px", 
             textAlign: "left",
             lineHeight: 1
           }}
@@ -50,7 +54,7 @@ const PixelBar = ({ current, max, color, height = "18px", labelColor = "#fff", l
           flex: 1, 
           height: height, 
           background: "#1a1a1a", 
-          border: "1px solid #3d2e24", // ขอบสีน้ำตาลทอง
+          border: "1px solid #3d2e24", 
           borderRadius: "4px", 
           overflow: "hidden", 
           boxShadow: "inset 0 0 5px rgba(0,0,0,0.8)", 
@@ -94,7 +98,7 @@ const PixelBar = ({ current, max, color, height = "18px", labelColor = "#fff", l
             transition={{ duration: 0.15 }}
             style={{
               position: "absolute",
-              bottom: "calc(100% + 8px)", // ลอยอยู่ด้านบน
+              bottom: "calc(100% + 8px)", 
               left: "50%",
               background: "rgba(15, 11, 8, 0.95)", 
               border: "1px solid #d4af37", 
@@ -139,6 +143,89 @@ const PixelBar = ({ current, max, color, height = "18px", labelColor = "#fff", l
   );
 };
 
+/* ===== Mini Stat Box (สำหรับ HP, Power, Speed) ===== */
+const MiniStatBox = ({ icon, value, label, color, tooltipDesc }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div 
+      style={{ position: "relative", width: "100%" }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div style={{
+        background: "rgba(20,20,20,0.6)",
+        border: "1px solid #3d2e24",
+        borderRadius: "4px",
+        padding: "4px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "6px",
+        cursor: "default",
+        boxShadow: "inset 0 0 5px rgba(0,0,0,0.8)"
+      }}>
+        {/* เพิ่มขนาดไอคอนเล็กน้อยเพื่อให้ดูสมดุล */}
+        <div style={{ color: color, fontSize: "18px", display: "flex" }}>
+          {icon}
+        </div>
+        <span style={{ color: "#fff", fontSize: "14px", fontWeight: "900", fontFamily: "monospace" }}>
+          {value}
+        </span>
+      </div>
+
+      {/* Tooltip */}
+      <AnimatePresence>
+        {isHovered && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "absolute",
+              bottom: "calc(100% + 8px)", 
+              left: "50%",
+              background: "rgba(15, 11, 8, 0.95)", 
+              border: "1px solid #d4af37", 
+              borderRadius: "6px",
+              padding: "6px 8px",
+              minWidth: "100px",
+              zIndex: 100, 
+              pointerEvents: "none", 
+              boxShadow: "0 4px 8px rgba(0,0,0,0.8)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "2px",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <div style={{
+              position: "absolute",
+              bottom: "-4px",
+              left: "50%",
+              marginLeft: "-4px", 
+              width: "8px",
+              height: "8px",
+              background: "rgba(15, 11, 8, 0.95)",
+              borderRight: "1px solid #d4af37",
+              borderBottom: "1px solid #d4af37",
+              transform: "rotate(45deg)",
+            }} />
+            <span style={{ color: color, fontSize: "11px", fontWeight: "bold", textTransform: "uppercase" }}>
+              {label}
+            </span>
+            <span style={{ color: "#bdc3c7", fontSize: "10px" }}>
+              {tooltipDesc}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 /* ===== Potion Slot (เพิ่มระบบ Tooltip อธิบายผลลัพธ์) ===== */
 const PotionSlot = ({ icon, count, color, label, description, onClick, disabled }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -161,9 +248,9 @@ const PotionSlot = ({ icon, count, color, label, description, onClick, disabled 
           background: isDisabled 
               ? "rgba(20,20,20,0.6)" 
               : "linear-gradient(180deg, rgba(30,30,30,0.5) 0%, rgba(10,10,10,0.9) 100%)",
-          border: `1px solid #3d2e24`, // ขอบน้ำตาลทอง
+          border: `1px solid #3d2e24`, 
           borderRadius: "8px",
-          height: "130px",
+          height: "90px", // 💡 ปรับความสูง Potion ลงเล็กน้อยเพื่อให้มีที่ว่างสำหรับ Stat Box
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -174,9 +261,9 @@ const PotionSlot = ({ icon, count, color, label, description, onClick, disabled 
           opacity: isDisabled ? 0.6 : 1
         }}
       >
-        <div style={{ position: "absolute", top: "10px", fontSize: "10px", color: "#8b7355", fontWeight: "bold", letterSpacing: "1px" }}>{label}</div>
-        <div style={{ fontSize: "60px", color: !isDisabled ? color : "#444", filter: !isDisabled ? "drop-shadow(0px 0px 8px rgba(255,255,255,0.2))" : "grayscale(100%) opacity(0.5)", transform: "translateY(5px)" }}>{icon}</div>
-        <div style={{ position: "absolute", bottom: "8px", right: "8px", background: count > 0 ? "#c0392b" : "#555", color: "#fff", fontSize: "14px", fontWeight: "900", borderRadius: "6px", padding: "2px 8px", boxShadow: "0 2px 4px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)" }}>x{count}</div>
+        <div style={{ position: "absolute", top: "6px", fontSize: "9px", color: "#8b7355", fontWeight: "bold", letterSpacing: "1px" }}>{label}</div>
+        <div style={{ fontSize: "45px", color: !isDisabled ? color : "#444", filter: !isDisabled ? "drop-shadow(0px 0px 8px rgba(255,255,255,0.2))" : "grayscale(100%) opacity(0.5)", transform: "translateY(5px)" }}>{icon}</div>
+        <div style={{ position: "absolute", bottom: "4px", right: "6px", background: count > 0 ? "#c0392b" : "#555", color: "#fff", fontSize: "12px", fontWeight: "900", borderRadius: "4px", padding: "2px 6px", boxShadow: "0 2px 4px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)" }}>x{count}</div>
       </motion.div>
 
       {/* Tooltip อธิบายยา */}
@@ -189,7 +276,7 @@ const PotionSlot = ({ icon, count, color, label, description, onClick, disabled 
             transition={{ duration: 0.15 }}
             style={{
               position: "absolute",
-              bottom: "calc(100% + 8px)", // ลอยอยู่ด้านบน
+              bottom: "calc(100% + 8px)", 
               left: "50%",
               background: "rgba(15, 11, 8, 0.95)", 
               border: "1px solid #d4af37", 
@@ -205,7 +292,6 @@ const PotionSlot = ({ icon, count, color, label, description, onClick, disabled 
               whiteSpace: "nowrap"
             }}
           >
-            {/* ลูกศรชี้ลงด้านล่าง */}
             <div style={{
               position: "absolute",
               bottom: "-5px",
@@ -219,11 +305,9 @@ const PotionSlot = ({ icon, count, color, label, description, onClick, disabled 
               transform: "rotate(45deg)",
             }} />
 
-            {/* หัวข้อ (ชื่อยา) */}
             <span style={{ color: color, fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>
               {label} POTION
             </span>
-            {/* คำอธิบาย */}
             <span style={{ color: "#bdc3c7", fontSize: "11px" }}>
               {description}
             </span>
@@ -235,24 +319,23 @@ const PotionSlot = ({ icon, count, color, label, description, onClick, disabled 
 };
 
 export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
-  // ดึง gameState มาใช้ตรวจสอบสถานะการต่อสู้
   const { playerData, username, gameState } = useGameStore();
   const [isShieldHovered, setIsShieldHovered] = useState(false);
 
   if (!playerData) return null;
 
   const {
-    name = "Hero", hp = 0, max_hp = 0, mana = 0, max_mana = 0, shield = 0, potions = { health: 0, reroll: 0, cure: 0 }
+    name = "Hero", hp = 0, max_hp = 0, mana = 0, max_mana = 0, shield = 0, potions = { health: 0, reroll: 0, cure: 0 },
+    power = 0, speed = 0 // ดึง power กับ speed มาใช้งาน
   } = playerData;
 
-  // กำหนดเงื่อนไข: ถ้าไม่ใช่เทิร์นเพลเยอร์ ถือว่ากดไม่ได้ (อยู่นอกการต่อสู้ หรือเป็นเทิร์นศัตรู)
   const isActionDisabled = gameState !== "PLAYERTURN";
 
   return (
     <div style={{ 
       width: "25%", 
-      background: "#0c0a09", // พื้นหลังดำน้ำตาลเข้ม
-      border: "2px solid #3d2e24", // ขอบธีม COMMANDS
+      background: "#0c0a09", 
+      border: "2px solid #3d2e24", 
       borderRadius: "8px",
       padding: "12px", 
       display: "flex", 
@@ -331,14 +414,14 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
         </div>
       </div>
 
-      {/* HP & MANA BARS (ชิดกันและสูงเท่ากัน) */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "10px" }}>
+      {/* HP & MANA BARS */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
         <PixelBar 
           labelText="HP" 
           current={hp} 
           max={max_hp} 
           color="#4dff8b" 
-          height="18px" 
+          height="14px" 
           tooltipTitle={`Health: ${hp}/${max_hp}`}
           tooltipDesc="Your life points."
         />
@@ -347,20 +430,46 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
           current={mana} 
           max={max_mana} 
           color="#4dcdff" 
-          height="18px" 
+          height="14px" 
           tooltipTitle={`Mana: ${mana}/${max_mana}`}
           tooltipDesc="Used to cast special skills."
         />
       </div>
 
+      {/* 🌟 3 STATS ROW (MAX HP, POWER, SPEED) */}
+{/* 🌟 3 STATS ROW (MAX HP, POWER, SPEED) */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", marginTop: "2px" }}>
+        <MiniStatBox 
+          icon={<GiHearts />} 
+          label="HP" 
+          value={max_hp} 
+          color="#ff4d4d" 
+          tooltipDesc="Maximum health points." 
+        />
+        <MiniStatBox 
+          icon={<GiBroadsword />} 
+          label="ATK" 
+          value={power} 
+          color="#e67e22" 
+          tooltipDesc="Letter limit. Exceeding this causes recoil damage." 
+        />
+        <MiniStatBox 
+          icon={<GiLeatherBoot />} 
+          label="SPEED" 
+          value={speed} 
+          color="#f1c40f" 
+          tooltipDesc="Determines turn order in battle." 
+        />
+      </div>
+
       {/* Potions Grid */}
-      <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+      <div style={{ marginTop: "4px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
         <PotionSlot 
           label="HEAL" 
           icon={<GiHealthPotion />} 
           color="#e74c3c" 
           count={potions.health || 0} 
-          description="Restores 30 HP."
+          description="Restores 5 HP."
           onClick={onHeal} 
           disabled={isActionDisabled} 
         />
@@ -369,7 +478,7 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
           icon={<GiStandingPotion />} 
           color="#ffffff" 
           count={potions.cure || 0} 
-          description="Cures all negative status."
+          description="Cleanses 1 random negative status."
           onClick={onCure} 
           disabled={isActionDisabled} 
         />
