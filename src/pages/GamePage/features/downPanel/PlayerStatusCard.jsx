@@ -469,7 +469,7 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
           icon={<GiHealthPotion />} 
           color="#e74c3c" 
           count={potions.health || 0} 
-          description="Restores 5 HP."
+          description="Restores 1 HP."
           onClick={onHeal} 
           disabled={isActionDisabled} 
         />
