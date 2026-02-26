@@ -194,68 +194,6 @@
 .filter-select { padding: 8px; background: #d4a373; border: 1px solid #8d5524; color: #000; font-weight: bold; cursor: pointer; }
 .search-icon { font-size: 1.2rem; color: #fca311; margin-right: 5px; }
 
-/* --- Monster Moves UI --- */
-.moves-container {
-  width: 100%;
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.pattern-card {
-  background-color: #1e1e1e;
-  border: 1px solid #444;
-  border-left: 4px solid #ff5555; /* สีแดงบ่งบอกว่าเป็น Pattern */
-  padding: 15px;
-  border-radius: 4px;
-  position: relative;
-}
-
-.pattern-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #333;
-  padding-bottom: 5px;
-}
-
-.move-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 8px;
-  align-items: center;
-  background: #2a2a2a;
-  padding: 8px;
-  border-radius: 4px;
-}
-
-.move-row input, .move-row select {
-  padding: 8px;
-  background: #333;
-  border: 1px solid #555;
-  color: #fff;
-  border-radius: 4px;
-}
-
-.btn-small {
-  padding: 5px 10px;
-  font-size: 12px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  color: white;
-}
-
-.btn-add-move { background-color: #2b6cb0; } /* สีน้ำเงิน */
-.btn-remove { background-color: #c53030; }   /* สีแดง */
-.btn-add-pattern { 
-  background-color: #2f855a; 
-  padding: 10px; 
-  width: 100%; 
-  margin-top: 10px;
-}
 
 /* ================================
    ADDITIONS: move inline styles to CSS
@@ -442,7 +380,6 @@
 /* สีข้อความในตาราง */
 .move-type-physical { color: #ff5555; } /* แดง */
 .move-type-magical { color: #55aaff; }  /* ฟ้า */
-.move-type-status { color: #ffd700; }    /* เหลือง */
 
 /* ===== Server Control (Top-Left) ===== */
 .server-control{

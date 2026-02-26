@@ -9,10 +9,9 @@ import DictionaryPanel from "./panels/DictionaryPanel";
 import MonsterPanel from "./panels/MonsterPanel";
 import HeroPanel from "./panels/HeroPanel";
 import StagePanel from "./panels/StagePanel";
-import MovePanel from "./panels/MovePanel";
+import PlayerPanel from "./panels/PlayerPanel";
 
 import VisionHelper from "./components/VisionHelper";
-
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("dictionary");
@@ -26,12 +25,10 @@ const AdminPage = () => {
 
   return (
     <div className="admin-container">
-      {/* --- HEADER --- */}
       <div className="pokedex-header">
         <div className="header-left">
           <h1 className="pixel-title-small">ADMIN PANEL</h1>
           <ServerControl serverId="hell" />
-          {/* --- Ai Read Image --- */}
           <VisionHelper />
         </div>
 
@@ -67,10 +64,10 @@ const AdminPage = () => {
               </button>
 
               <button
-                className={`tab-btn move-tab ${activeTab === "move" ? "active" : ""}`}
-                onClick={() => setActiveTab("move")}
+                className={`tab-btn ${activeTab === "players" ? "active" : ""}`}
+                onClick={() => setActiveTab("players")}
               >
-                ⚔️ MOVES
+                👤 PLAYERS
               </button>
 
               <button
@@ -82,13 +79,11 @@ const AdminPage = () => {
                 <span className="logout-dot" />
                 LOGOUT
               </button>
-              
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- CONTENT AREA --- */}
       <div className="content-area">
         {activeTab === "dictionary" ? (
           <DictionaryPanel />
@@ -99,7 +94,7 @@ const AdminPage = () => {
         ) : activeTab === "stage" ? (
           <StagePanel />
         ) : (
-          <MovePanel />
+          <PlayerPanel />
         )}
       </div>
     </div>

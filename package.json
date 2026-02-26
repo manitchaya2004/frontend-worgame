@@ -16,6 +16,7 @@
     "@mui/material": "^7.3.8",
     "@mui/system": "^7.3.8",
     "@reduxjs/toolkit": "^2.11.2",
+    "axios": "^1.13.5",
     "cors": "^2.8.5",
     "framer-motion": "^12.24.2",
     "lucide-react": "^0.563.0",
