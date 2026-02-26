@@ -3,11 +3,14 @@ import { FormTextField } from "../../../components/FormTextField";
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLoginPlayer } from "./hook/useLoginPlayer";
+import { useAuthStore } from "../../../store/useAuthStore";
 import GameSnackbar from "../../../components/Snackbar";
 import PaperFrame from "../../../components/PaparFrame/PaperFrame";
 import { THEMES } from "../../HomePage/hook/const";
 import MagicCursor from "../../../components/Cursor";
+
 const LoginPage = () => {
+  const { currentUser } = useAuthStore();
   const {
     message,
     isLoading,
@@ -19,6 +22,12 @@ const LoginPage = () => {
     clearBackendMessage,
   } = useLoginPlayer();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/"); // หรือ /home
+    }
+  }, [currentUser, navigate]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -35,7 +44,7 @@ const LoginPage = () => {
     clearBackendMessage();
   };
   const goToHomePage = useCallback(() => {
-    navigate("/");
+    navigate("/home");
   }, [navigate]);
 
   // state
@@ -106,8 +115,6 @@ const LoginPage = () => {
       username: formLogin.username,
       password: formLogin.password,
     });
-
-    goToHomePage();
   };
 
   // //error network reject
@@ -126,10 +133,17 @@ const LoginPage = () => {
       <MagicCursor />
       <Box
         sx={{
+          minHeight: "100dvh", // เปลี่ยนเป็น 100dvh เพื่อให้พอดีกับมือถือจริงๆ
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          gap: 3,
+          justifyContent: "center",
+          px: { xs: 2, sm: 0 },
+          // ปรับโครงสร้างแค่ตอนตะแคงมือถือ (แนวนอนจอเล็ก)
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            alignItems: "center", // ดันขึ้นบนสุดไม่ให้หัวล้น
+            py: 2, // เพิ่มขอบบนล่างกันตกขอบ
+     
+          },
         }}
       >
         <PaperFrame title="LOGIN">
@@ -166,7 +180,13 @@ const LoginPage = () => {
               bgcolor: "#694037",
               color: "#E8E9CD",
               borderRadius: "15px",
-              fontSize: "20px",
+              fontSize: {
+                xs: "14px",
+                sm: "16px",
+                md: "18px",
+                lg: "20px",
+              },
+              py: { xs: 1, sm: 1.2 },
               fontFamily: "'Press Start 2P'",
               "&:hover": { bgcolor: "#4f2e27ff" },
               "&.Mui-disabled": {
@@ -174,6 +194,12 @@ const LoginPage = () => {
                 color: "#E8E9CD", // ฟอนต์ไม่ดำ
                 opacity: 0.8, // ลดนิดเดียวพอ
               },
+              // ลดระยะห่างบนล่างเฉพาะตอนตะแคงมือถือ
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: "10px",
+                mt: 1,
+                height: 30
+              }
             }}
             startIcon={
               isLoading ? <CircularProgress size={20} color="inherit" /> : null
@@ -185,16 +211,26 @@ const LoginPage = () => {
           <Box
             sx={{
               display: "flex",
-              justifyContent: "space-evenly",
+              // flexDirection :{ xs: "column", sm: "row" },
+              justifyContent: { xs: "center", sm: "space-evenly" },
+              alignItems: "center",
               width: "100%",
               mt: 1,
+              gap: 1,
+              // ลด margin top เฉพาะตอนตะแคงมือถือ
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                mt: 0.5,
+              },
             }}
           >
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: "10px",
-                color: "white",
+                fontSize: {
+                  xs: "7px",
+                  sm: "9px",
+                },
+                color: "rgb(207, 207, 207)",
               }}
             >
               Don’t have an account ?
@@ -203,7 +239,10 @@ const LoginPage = () => {
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: "10px",
+                fontSize: {
+                  xs: "8px",
+                  sm: "10px",
+                },
                 color: "white",
                 cursor: "pointer",
                 "&:hover": { textDecoration: "underline" },

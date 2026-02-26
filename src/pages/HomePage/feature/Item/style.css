@@ -1,0 +1,13 @@
+/* tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+/* .ItemFeature{
+    height: 100%;
+} */
+  /* .background-item {
+    position: fixed;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 100%;
+  } */
+}

@@ -15,6 +15,7 @@ import { useHeroStore } from "../../../../store/useHeroStroe";
 import { THEMES } from "../../hook/const";
 import HeroCard from "./HeroCard";
 import { preloadImageAsync, LoadImage } from "../../hook/usePreloadFrams";
+import "./style.css";
 
 const MotionBox = motion(Box);
 const ShopHeroFeature = () => {
@@ -58,15 +59,22 @@ const ShopHeroFeature = () => {
 
   const scroll = (dir) => {
     if (!scrollRef.current) return;
+    // ปรับระยะการเลื่อนให้พอดีกับขนาดการ์ดที่เล็กลง
     scrollRef.current.scrollBy({
-      left: dir === "left" ? -220 : 220,
+      left: dir === "left" ? -280 : 280,
       behavior: "smooth",
     });
   };
 
+  useEffect(() => {
+    console.log("user", currentUser);
+    console.log("heros", heros);
+  },[])
+
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ height: "100vh" }}>
       <MotionBox
+        className="character-feature"
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{
           opacity: 1,
@@ -84,16 +92,17 @@ const ShopHeroFeature = () => {
           left: "50%",
           transform: "translate(-50%, -50%)",
 
-          // Container Design (Book/Panel style)
           background: `linear-gradient(${THEMES.bgMain}, #1a120b)`,
           border: `8px solid ${THEMES.border}`,
           borderRadius: "12px",
           boxShadow: `
-            0 0 0 4px #1a120b,
-            0 20px 60px rgba(49, 49, 49, 0.8)
-          `,
+    0 0 0 4px #1a120b,
+    0 20px 60px rgba(49, 49, 49, 0.8)
+  `,
+
           width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
-          height: "570px",
+          height: { xs: "70%", sm: "70%", md: "570px", xl: "82%" },
+
           p: 1,
           display: "flex",
           flexDirection: "column",
@@ -109,6 +118,15 @@ const ShopHeroFeature = () => {
             mt: -1,
 
             borderBottom: `4px solid ${THEMES.border}`,
+
+            //mobile landscape
+            "@media (orientation: landscape) and (max-height: 430px)": {
+              py: 1,
+              mb: 0,
+              borderBottom: `2px solid ${THEMES.border}`,
+              borderTopRightRadius: "8px",
+              borderTopLeftRadius: "8px",
+            },
           }}
         >
           {/* Title กลางจริง */}
@@ -116,38 +134,54 @@ const ShopHeroFeature = () => {
             sx={{
               fontFamily: "'Press Start 2P'",
               color: THEMES.accent,
-              fontSize: { xs: 16, md: 26 },
+              fontSize: { xs: 16, sm: 20, md: 26 },
               letterSpacing: "2px",
               textTransform: "uppercase",
               textShadow: `3px 3px 0 #000, 0 0 10px ${THEMES.accent}`,
+
+              //mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 12,
+                textShadow: `2px 2px 0 #000, 0 0 6px ${THEMES.accent}`,
+              },
             }}
           >
             CHARACTER
           </Typography>
         </Box>
+
         {/* Horizontal List */}
         <Box
+          className="list-container"
           sx={{
-            position: "relative",
-            mt: 0,
+            // position: "relative",
             display: "flex",
-            justifyContent: "center",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+            height: "100%",
+            overflow: "hidden", // กันส่วนเกินทะลุ
           }}
         >
           {/* LEFT */}
           <Box
+            className="scroll-left"
             onClick={() => scroll("left")}
             sx={{
-              position: "absolute",
-              left: { xs: "-10px", lg: "10px" },
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 2,
+              // position: "absolute",
+              // left: { xs: "-10px", lg: "10px" },
+              // top: "50%",
+              // transform: "translateY(-50%)",
+              // zIndex: 2,
+              height: "100%",
+              alignItems: "center",
+              display: "flex",
               cursor: "pointer",
               p: 0.5,
             }}
           >
             <img
+              className="img-scroll"
               src={arrowLeft}
               style={{ width: 40, imageRendering: "pixelated" }}
             />
@@ -155,15 +189,22 @@ const ShopHeroFeature = () => {
 
           {/* LIST */}
           <Box
+            className="list-charcter"
             ref={scrollRef}
             sx={{
               display: "flex",
-              gap: 1,
+              alignItems: "center",
+              // backgroundColor:'pink',
+              gap: { xs: 1, md: 1 },
               overflowX: "auto",
               scrollSnapType: "x mandatory",
-              px: 4,
-              py: 2,
               "&::-webkit-scrollbar": { display: "none" },
+              height: "100%",
+              width: "100%",
+
+              // "@media (orientation: landscape) and (max-height: 450px)": {
+              //   gap: 1,
+              // },
             }}
           >
             {/* ตรวจสอบ isReady ก่อนค่อยเรนเดอร์การ์ดจริงๆ */}
@@ -171,7 +212,7 @@ const ShopHeroFeature = () => {
               <Box
                 sx={{
                   width: "100%",
-                  height: "480px",
+                  height: "100%",
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
@@ -183,7 +224,7 @@ const ShopHeroFeature = () => {
               heros?.map((hero) => (
                 <Box
                   key={hero.id || hero.name}
-                  sx={{ scrollSnapAlign: "start" }}
+                  sx={{ scrollSnapAlign: "start" }} // Snap กลางจอให้สวยงาม
                 >
                   <HeroCard
                     hero={hero}
@@ -197,18 +238,24 @@ const ShopHeroFeature = () => {
 
           {/* RIGHT */}
           <Box
+            className="scroll-right"
             onClick={() => scroll("right")}
             sx={{
-              position: "absolute",
-              right: { xs: -10, lg: 10 },
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 2,
+              // position: "absolute",
+              // left: { xs: "-10px", lg: "10px" },
+              // top: "50%",
+              // transform: "translateY(-50%)",
+              // zIndex: 2,
+              height: "100%",
+              alignItems: "center",
+              display: "flex",
               cursor: "pointer",
+              p: 0.5,
             }}
           >
             <img
               src={arrowRight}
+              className="img-scroll"
               style={{ width: 40, imageRendering: "pixelated" }}
             />
           </Box>

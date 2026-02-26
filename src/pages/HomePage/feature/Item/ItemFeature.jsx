@@ -1,10 +1,10 @@
 import {
   Box,
   Typography,
-  Grid,
   Tooltip,
   Button,
   CircularProgress,
+  Grid,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -16,7 +16,13 @@ import BackpackIcon from "@mui/icons-material/Backpack";
 import SaveIcon from "@mui/icons-material/Save";
 import RestoreIcon from "@mui/icons-material/Restore";
 
-import { GiHealthPotion, GiMagicPotion, GiBubblingFlask,GiStandingPotion } from "react-icons/gi";
+import {
+  GiHealthPotion,
+  GiMagicPotion,
+  GiBubblingFlask,
+  GiStandingPotion,
+} from "react-icons/gi";
+import "./style.css";
 
 const MotionBox = motion(Box);
 const ItemFeature = () => {
@@ -105,8 +111,12 @@ const ItemFeature = () => {
   };
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box
+      className="ItemFeature"
+      sx={{ height: "100vh" }}
+    >
       <MotionBox
+        className="background-item"
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{
           opacity: 1,
@@ -133,7 +143,7 @@ const ItemFeature = () => {
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
           width: { xs: "90%", sm: "80%", md: "80%", lg: "65%" },
-          height: "550px",
+          height: { xs: "80%", sm: "80%", md: "80%", lg: "90%", xl: "80%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
@@ -141,6 +151,7 @@ const ItemFeature = () => {
       >
         {/* Header Title */}
         <Box
+          className="Title-Item"
           sx={{
             py: 2,
             textAlign: "center",
@@ -153,6 +164,7 @@ const ItemFeature = () => {
         >
           {/* Title กลางจริง */}
           <Typography
+            id="Support Item"
             sx={{
               fontFamily: "'Press Start 2P'",
               color: THEMES.accent,
@@ -180,9 +192,18 @@ const ItemFeature = () => {
             alignItems: "center",
             justifyContent: "space-between",
             boxShadow: "inset 0 0 8px rgba(0,0,0,0.6)",
+            gap: 2, // เพิ่ม gap เพื่อไม่ให้เบียดกัน
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {/* ส่วนข้อความซ้ายมือ (ห้ามบีบเล็กลง) */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              flexShrink: 0,
+            }}
+          >
             <BackpackIcon sx={{ color: "#d7ccc8", fontSize: 28 }} />
             <Box>
               <Typography
@@ -206,19 +227,42 @@ const ItemFeature = () => {
               </Typography>
             </Box>
           </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
+
+          {/* 💡 THE FIX: ส่วนของแถบ Slot ปรับให้ยืดหยุ่น รองรับได้ถึง 100+ อัน */}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.5, // ลดระยะห่างให้พอดีขึ้น
+              flex: 1, // สั่งให้กินพื้นที่ฝั่งขวาจนเต็ม
+              flexWrap: "wrap", // 💡 สำคัญ: อนุญาตให้ปัดขึ้นบรรทัดใหม่
+              justifyContent: "flex-end", // ชิดขวาเสมอ
+              maxHeight: "35px", // ถ้ามีเยอะมาก จำกัดความสูงไว้ไม่ให้ดันกล่องใหญ่พัง
+              overflowY: "auto", // มีสกอร์บาร์เล็กๆ เลื่อนดูได้ถ้าเกิน
+              p: 0.5,
+              borderRadius: 1,
+              // แต่งสี Scrollbar ให้เข้ากับธีมเกม
+              "&::-webkit-scrollbar": { width: "4px" },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "#5d4037",
+                borderRadius: "4px",
+              },
+            }}
+          >
+            {/* วนลูปตาม max_slot จริงๆ ไม่ใช่เลข 30 */}
             {Array.from({ length: max_slot }).map((_, i) => (
               <Box
                 key={i}
                 sx={{
-                  width: 24,
-                  height: 36,
+                  // ปรับขนาดความกว้าง-สูงให้เล็กลงนิดนึง พอดีตา
+                  width: { xs: 12, md: 16 },
+                  height: { xs: 20, md: 24 },
+                  flexShrink: 0, // ป้องกันการบีบกล่องจนเบี้ยว
                   backgroundColor: i < currentUsed ? "#ffca28" : "#2b1d14",
                   border:
                     i < currentUsed ? "2px solid #ff6f00" : "2px solid #4e342e",
-                  borderRadius: "4px",
+                  borderRadius: "2px",
                   boxShadow:
-                    i < currentUsed ? "0 0 8px #ffb300" : "inset 0 0 4px #000",
+                    i < currentUsed ? "0 0 4px #ffb300" : "inset 0 0 4px #000",
                   transition: "all 0.3s ease",
                 }}
               />
@@ -229,12 +273,23 @@ const ItemFeature = () => {
         {/* === ITEM GRID === */}
         <Box
           sx={{
-            mt:1,
+            mt: 1,
             width: "100%",
             height: "100%",
           }}
         >
-          <Box sx={{ gap: 5, alignItems: "center", justifyContent: "center", display: "flex",mr:2, ml:2 }}>
+          <Box
+            sx={{
+              gap: { xs: 1, sm: 5 },
+              alignItems: "center",
+              justifyContent: "center",
+              display: "flex",
+              mr: 2,
+              ml: 2,
+              flexDirection: { xs: "column", sm: "row" },
+              width: "100%",
+            }}
+          >
             <ItemCard
               type="heal"
               label="HEAL"
