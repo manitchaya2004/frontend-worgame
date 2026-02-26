@@ -9,17 +9,17 @@ import UpgradeDialog from "./UpgradeLevel";
 import { StatVisualBar, StatLine } from "../../components/StatDisplay";
 import LevelBar from "../../components/LevelBar";
 import correct from "../../../../assets/icons/correct.png";
-
+import { getDeckIconData } from "../../hook/const";
 // Icons
 import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
 import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
 import SpeedIcon from "@mui/icons-material/Speed"; // Speed
-import BackpackIcon from "@mui/icons-material/Backpack"; // Fallback Slot Icon
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 // Icons สำหรับปุ่ม Switch
 import ViewListIcon from "@mui/icons-material/ViewList"; // ดูแบบหลอด (List)
 import ViewModuleIcon from "@mui/icons-material/ViewModule"; // ดูแบบกล่อง (Grid)
+
 
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
 const HeroCard = ({ hero, playerHeroes, money }) => {
@@ -66,7 +66,17 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
         speed: playerHero?.stats?.speed || 0,
         power: playerHero?.stats?.power || 0,
       }
-    : {};
+    : {
+        hp: hero.hp || 0,
+        speed: hero.speed || 0,
+        power: hero.power || 0,
+      };
+
+  // ดึงข้อมูล Deck ล่าสุดมาแสดง และหา Effect ที่ไม่ซ้ำกัน
+  const rawDeck = isOwned ? playerHero?.deck_list : hero?.hero_deck;
+  const uniqueEffects = rawDeck
+    ? Array.from(new Set(rawDeck.map((card) => card.effect)))
+    : [];
 
   // เดี๋ยวมาปรับ
   const MAX_STATS_REF = {
@@ -112,7 +122,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
           willChange: "transform",
 
           // ⭐ บีบอัดขนาดสำหรับ Mobile Landscape
-          
+
           "@media (orientation: landscape) and (max-height: 450px)": {
             width: 200,
 
@@ -223,40 +233,97 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             onUpgrade={handleOpenUpgrade}
           />
 
+          {/* ส่วนแสดงไอคอน Deck */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 1,
+              gap: 0.5,
               backgroundColor: "rgba(0,0,0,0.2)",
               border: "1px solid #5a3e2b",
               borderRadius: "4px",
               padding: "4px 8px",
               minHeight: "28px",
+              flexWrap: "wrap", // เผื่อฮีโร่มีการ์ดหลายประเภทจะได้ปัดขึ้นบรรทัดใหม่ได้
               "@media (orientation: landscape) and (max-height: 450px)": {
                 minHeight: "10px",
                 padding: "2px 4px",
               },
             }}
           >
-            <InfoOutlinedIcon
-              sx={{ fontSize: { xs: 12, md: 14 }, color: "#8d6e63" }}
-            />
-            <Typography
-              sx={{
-                fontFamily: "'Verdana', sans-serif",
-                fontSize: { xs: 9, md: 11 },
-                color: "#d7ccc8",
-                lineHeight: 1.2,
-                textAlign: "center",
-                "@media (orientation: landscape) and (max-height: 450px)": {
-                  fontSize: 7,
-                },
-              }}
-            >
-              {hero.ability_description || "No ability description"}
-            </Typography>
+            {uniqueEffects.length > 0 ? (
+              uniqueEffects.map((effect, index) => {
+                const iconData = getDeckIconData(effect);
+                return (
+                  <Tooltip
+                    key={index}
+                    title={iconData.desc}
+                    placement="top"
+                    arrow
+                    slotProps={{
+                      tooltip: {
+                        sx: {
+                          fontSize: "12px",
+                          fontFamily: "'Verdana', sans-serif",
+                          // fontWeight: "bold",
+                          backgroundColor: "#2a160f",
+                          border: `1px solid ${iconData.color}`,
+                          color: iconData.color,
+                        },
+                      },
+                      arrow: { sx: { color: "#2a160f" } },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: { xs: 16, md: 18 },
+                        height: { xs: 16, md: 18 },
+                        borderRadius: "50%",
+                        backgroundColor: iconData.color,
+                        color: "#fff",
+                        border: "1.5px solid #fff",
+                        boxShadow: "0px 2px 4px rgba(0,0,0,0.5)",
+                        fontSize: { xs: 12, md: 14 },
+                        cursor: "pointer",
+                        transition: "transform 0.2s",
+                        "&:hover": {
+                          transform: "scale(1.2)",
+                        },
+                        "@media (orientation: landscape) and (max-height: 450px)":
+                          {
+                            width: 9,
+                            height: 9,
+                            fontSize: 8,
+                             justifyContent: "center",
+                            border: "0.2px solid #fff",
+                          },
+                      }}
+                    >
+                      {iconData.icon}
+                    </Box>
+                  </Tooltip>
+                );
+              })
+            ) : (
+              <Typography
+                sx={{
+                  fontFamily: "'Verdana', sans-serif",
+                  fontSize: { xs: 9, md: 11 },
+                  color: "#d7ccc8",
+                  lineHeight: 1.2,
+                  textAlign: "center",
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 7,
+                  },
+                }}
+              >
+                No deck info available
+              </Typography>
+            )}
           </Box>
 
           {/* ส่วน Divider และ ปุ่ม Toggle */}
@@ -279,7 +346,8 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               sx={{ borderColor: "#444", borderStyle: "dashed", flex: 1 }}
             />
 
-            {/* แสดงปุ่มเฉพาะตอนเป็นเจ้าของ (isOwned) */}
+            {/* แสดงปุ่มเฉพาะตอนเป็นเจ้าของ (isOwned)
+         
             {isOwned && (
               <Tooltip
                 title={showDetail ? "Switch to Bars" : "Switch to Details"}
@@ -309,7 +377,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   {showDetail ? <ViewListIcon /> : <ViewModuleIcon />}
                 </IconButton>
               </Tooltip>
-            )}
+            )} */}
           </Box>
 
           <Box
@@ -320,7 +388,40 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               "&::-webkit-scrollbar": { display: "none" },
             }}
           >
-            {showDetail ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 0.7,
+                // mobile landscape อาจจะดูแน่นๆ หน่อย แต่ยังพอไหว
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  gap: 0,
+                },
+              }}
+            >
+              <StatLine
+                label="HP"
+                value={game_stats.hp}
+                icon={<FavoriteIcon />}
+                color="#ff5252"
+                description="Max Health. 0 = Game Over."
+              />
+              <StatLine
+                label="POWER"
+                value={game_stats.power}
+                icon={<FlashOnIcon />}
+                color="#ffca28"
+                description="Bag Size. Max letters you can hold in hand."
+              />
+              <StatLine
+                label="SPEED"
+                value={game_stats.speed}
+                icon={<SpeedIcon />}
+                color="#00e5ff"
+                description="Turn Speed. Faster acts first."
+              />
+            </Box>
+            {/* {showDetail ? (
               <Box
                 sx={{
                   display: "flex",
@@ -387,7 +488,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                   color="#00e5ff"
                 />
               </Box>
-            )}
+            )} */}
           </Box>
         </Box>
 

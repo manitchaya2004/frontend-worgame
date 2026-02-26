@@ -3,7 +3,21 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ShieldIcon from "@mui/icons-material/Shield";
 import CasinoIcon from "@mui/icons-material/Casino";
-import StarIcon from "@mui/icons-material/Star";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+// Icons สำหรับ Deck Effects
+import {
+  GiBroadsword,
+  GiShield,
+  GiStarShuriken,
+  GiTrident,
+  GiBowieKnife,
+  GiFangs,
+} from "react-icons/gi";
+import { FaCloud, FaBolt, FaEyeSlash, FaPlus, FaCross } from "react-icons/fa";
+// --- Icons ที่เพิ่มเข้ามา ---
+import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
+import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn"; // COIN
 import { API_URL } from "../../../store/const";
 
 export const MAX_STAT = 20;
@@ -62,6 +76,101 @@ export const STAT_CONFIG = {
     icon: <CasinoIcon sx={{ fontSize: 12 }} />,
     labelBg: "#efe6f3",
   },
+};
+
+// ฟังก์ชันแปลง Effect เป็นข้อมูล Icon, สี และ คำอธิบาย
+export const getDeckIconData = (effect) => {
+  switch (effect) {
+    case "double-dmg":
+      return {
+        desc: " Double score when strike",
+        color: "#e74c3c",
+        icon: <GiBroadsword />,
+      };
+    case "double-guard":
+    case "double-shield":
+      return {
+        desc: " Double score when guard",
+        color: "#3498db",
+        icon: <GiShield />,
+      };
+    case "mana-plus":
+      return {
+        desc: " Gain 5 mana",
+        color: "#00bcd4",
+        icon: <GiStarShuriken />,
+      };
+    case "shield-plus":
+      return {
+        desc: " Gain 1 shield on strike",
+        color: "#e67e22",
+        icon: <GiTrident />,
+      };
+    case "add_bleed":
+      return {
+        desc: " Apply Bleed to target",
+        color: "#e74c3c",
+        icon: <GiBowieKnife />,
+      };
+    case "add_poison":
+    case "add_posion":
+      return {
+        desc: " Apply Poison to target",
+        color: "#2ecc71",
+        icon: <FaCloud />,
+      };
+    case "add_stun":
+      return {
+        desc: " Chance to Stun target",
+        color: "#f1c40f",
+        icon: <FaBolt />,
+      };
+    case "add_blind":
+      return {
+        desc: " Chance to Blind target",
+        color: "#8e44ad",
+        icon: <FaEyeSlash />,
+      };
+    case "heal":
+      return {
+        desc: " Heal HP by letter score (Guard)",
+        color: "#2ecc71",
+        icon: <FaPlus />,
+      };
+    case "bless":
+      return {
+        desc: " Cleanses 1 Debuff (Guard)",
+        color: "#f1c40f",
+        icon: <FaCross />,
+      };
+    case "vampire_fang":
+      return {
+        desc: " Chance to Lifesteal (Strike)",
+        color: "#8b0000",
+        icon: <GiFangs />,
+      };
+    default:
+      return {
+        desc: effect || "Unknown effect",
+        color: "#95a5a6",
+        icon: <InfoOutlinedIcon />,
+      };
+  }
+};
+// ฟังก์ชันสำหรับเลือก Icon และสีตาม Label อัตโนมัติ
+export const getStatIcon = (label) => {
+  const lowerLabel = label.toLowerCase();
+  if (lowerLabel.includes("hp"))
+    return <FavoriteIcon sx={{ color: "#ff4d4d", fontSize: 16 }} />;
+  if (lowerLabel.includes("power"))
+    return <FlashOnIcon sx={{ color: "#ffb84d", fontSize: 16 }} />;
+  if (lowerLabel.includes("speed"))
+    return <SpeedIcon sx={{ color: "#00e5ff", fontSize: 16 }} />;
+  if (lowerLabel.includes("mana"))
+    return <AutoFixHighIcon sx={{ color: "#9933ff", fontSize: 16 }} />;
+  if (lowerLabel.includes("coin"))
+    return <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 16 }} />;
+  return null;
 };
 
 export const name = "img_hero";

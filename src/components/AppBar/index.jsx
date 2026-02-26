@@ -20,6 +20,8 @@ import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+import FlashOnIcon from "@mui/icons-material/FlashOn";
+import AddIcon from "@mui/icons-material/Add"; // ➕ ปุ่มบวก
 
 import { GiBroadsword, GiBackpack } from "react-icons/gi";
 import { FaCrown } from "react-icons/fa";
@@ -104,9 +106,178 @@ const AnimatedMoney = ({ value, fontSize = 10 }) => {
   );
 };
 
+// ==========================================
+// ⚡ COMPONENT: Energy Bar (สายฟ้า + เวลานับถอยหลัง + ปุ่มบวก)
+// ==========================================
+const EnergyBar = ({ energy = 5, timeToNextEnergy = 0, onAddClick }) => {
+  const MAX_ENERGY = 5;
+  const isFull = energy >= MAX_ENERGY;
+  const [timeLeft, setTimeLeft] = useState(Math.floor(timeToNextEnergy / 1000));
+
+  // อัปเดตเวลาตั้งต้นเมื่อได้รับค่าใหม่จาก Store / Backend
+  useEffect(() => {
+    setTimeLeft(Math.floor(timeToNextEnergy / 1000));
+  }, [timeToNextEnergy]);
+
+  // นับถอยหลังทุกๆ 1 วินาที
+  useEffect(() => {
+    if (energy >= MAX_ENERGY || timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [energy, timeLeft]);
+
+  // ฟอร์แมตเวลา นาที:วินาที
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        backgroundColor: "#E8E9CD",
+        border: "3px solid #5A3A2E",
+        boxShadow: "0 3px 0 #2b1a12",
+        borderRadius: "15px",
+        height: { xs: "32px", sm: "40px" },
+        px: { xs: 0.5, sm: 1 },
+        gap: { xs: 0.5, sm: 1 },
+
+        //mobile landscape
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          height: "35px",
+          borderRadius: "13px",
+          px: 0.5,
+          mr: 1,
+        },
+      }}
+    >
+      {/* ⚡ แสดงสายฟ้า 5 ดวง */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
+        {[...Array(MAX_ENERGY)].map((_, index) => {
+          const isActive = index < energy;
+          return (
+            <FlashOnIcon
+              key={index}
+              sx={{
+                fontSize: { xs: 12, sm: 22 },
+                color: isActive ? "#ffd000" : "#3e2615",
+                filter: isActive
+                  ? isFull
+                    ? "drop-shadow(0 0 6px #FFD700)"
+                    : "drop-shadow(1px 2px 0px #B8860B)"
+                  : "none",
+                // ⭐ เส้นขอบตามรูปสายฟ้า
+                stroke: "#B8860B",
+                strokeWidth: 2,
+                paintOrder: "stroke fill", // ให้เส้นขอบอยู่ใต้สี
+                transition: "all 0.3s",
+
+                //mobile landscape
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 16,
+                },
+              }}
+            />
+          );
+        })}
+      </Box>
+
+      {/* ⏳ เวลานับถอยหลัง */}
+      {energy < MAX_ENERGY && (
+        <Box
+          sx={{
+            minWidth: { xs: "30px", sm: "40px" },
+            textAlign: "center",
+            mx: { xs: 0.5, sm: 1 },
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: "'Press Start 2P'",
+              fontSize: { xs: 5.5, sm: 7 },
+              opacity: 0.8,
+              color: "#3e2615",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            {formatTime(timeLeft)}
+          </Typography>
+        </Box>
+      )}
+
+      {/* ➕ ปุ่มบวก สำหรับเล่นมินิเกม */}
+      <Tooltip
+        title="Play Minigame to get Energy!"
+        arrow
+        placement="bottom"
+        slotProps={{
+          tooltip: {
+            sx: {
+              fontSize: "12px",
+              fontFamily: "'Verdana', sans-serif",
+              // fontWeight: "bold",
+              backgroundColor: "#2a160f",
+              border: `1px solid black`,
+              color: "gray",
+            },
+          },
+          arrow: { sx: { color: "#000000" } },
+        }}
+      >
+        <IconButton
+          onClick={onAddClick}
+          sx={{
+            backgroundColor: "#66bb6a",
+            border: "1.5px solid #2e7d32",
+            boxShadow: "0 0 6px rgba(102,187,106,0.6)",
+            p: 0,
+            width: { xs: 18, sm: 22 },
+            height: { xs: 18, sm: 22 },
+            // boxShadow: "0 2px 0 #1b5e20",
+            "&:hover": {
+              backgroundColor: "#66bb6a",
+              transform: "translateY(1px)",
+              boxShadow: "0 1px 0 #1b5e20",
+            },
+            "&:active": {
+              transform: "translateY(2px)",
+              boxShadow: "none",
+            },
+
+            //mobile landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              width: 18,
+              height: 18,
+              borderRadius: "4px",
+            },
+          }}
+        >
+          <AddIcon
+            sx={{
+              color: "#fff",
+              fontSize: { xs: 14, sm: 18 },
+              fontWeight: "bold",
+
+              //mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 14,
+              },
+            }}
+          />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+};
+
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
-  console.log("Current User in AppBar:", currentUser);
   const muiTheme = useMuiTheme();
 
   // 💡 THE FIX: จับทั้งหน้าจอเล็ก (xs) และ หน้าจอมือถือแนวนอน (landscape)
@@ -115,7 +286,7 @@ const GameAppBar = () => {
   const isLandscapeMobile = useMediaQuery(
     "(orientation: landscape) and (max-height: 450px)",
   );
-  const isCompact = isMobileWidth || isLandscapeMobile ; // ถ้าย่อจอ หรือตะแคงมือถือ จะยุบปุ่มเหลือแค่ไอคอน
+  const isCompact = isMobileWidth || isLandscapeMobile; // ถ้าย่อจอ หรือตะแคงมือถือ จะยุบปุ่มเหลือแค่ไอคอน
 
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
@@ -185,17 +356,25 @@ const GameAppBar = () => {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: { xs: 0.5, sm: 2 },
           }}
         >
-          {/* 🔹 LEFT : PROFILE & MONEY */}
+          {/* 🔹 LEFT : PROFILE & MONEY & ENERGY */}
+          {/* 💡 THE FIX: เพิ่ม flex: 1 และ justifyContent: "flex-start" เพื่อถ่วงน้ำหนักกับฝั่งขวา */}
           <Box
             sx={{
+              flex: 1,
               display: "flex",
               alignItems: "center",
-              minWidth: { xs: "auto", sm: "180px", md: "240px" },
+              justifyContent: "flex-start",
+              gap: { xs: 0.5, sm: 1 },
+
+              //mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                gap: 0.5,
+              },
             }}
           >
+            {/* กล่อง 1: Profile & Money (เอาสายฟ้าออกไปแล้ว) */}
             <Box
               sx={{
                 position: "relative",
@@ -214,7 +393,7 @@ const GameAppBar = () => {
                   boxShadow: "0 3px 0 #2b1a12",
                   display: "flex",
                   flexDirection: "column",
-                  minWidth: { xs: "90px", sm: "120px", md: "140px" },
+                  minWidth: { xs: "90px", sm: "110px", md: "130px" },
                   width: "fit-content",
                   // หดป้ายโปรไฟล์ตอนแนวนอนไม่ให้กินพื้นที่มากไป
                   "@media (orientation: landscape) and (max-height: 450px)": {
@@ -229,19 +408,13 @@ const GameAppBar = () => {
                     fontFamily: "'Press Start 2P'",
                     fontSize: { xs: 6, sm: 8, md: 9 },
                     color: "#3e2615",
-                    mb: 0.2,
+                    mb: 0.5,
                   }}
                 >
                   {currentUser?.username}
                 </Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    width: "100%",
-                  }}
-                >
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <MonetizationOnIcon
                     sx={{
                       fontSize: { xs: 10, sm: 12 },
@@ -252,7 +425,6 @@ const GameAppBar = () => {
                       border: "1px solid #B8860B",
                     }}
                   />
-                  {/* เปลี่ยนมาใช้ isCompact ในการเช็คขนาดฟอนต์ */}
                   <AnimatedMoney
                     value={currentUser?.money || 0}
                     fontSize={isCompact ? 7 : 9}
@@ -314,12 +486,22 @@ const GameAppBar = () => {
                 </Box>
               </Box>
             </Box>
+
+            {/* กล่อง 2: Energy Bar วางแยกออกมาด้านขวา */}
+            <EnergyBar
+              energy={currentUser?.energy ?? 5}
+              timeToNextEnergy={currentUser?.timeToNextEnergy ?? 0}
+              onAddClick={() => {
+                // เปลี่ยน Path ไปที่มินิเกมของคุณได้เลย
+                navigate("/home/minigame-vocab");
+              }}
+            />
           </Box>
 
           {/* 🔹 CENTER : NAVIGATION (Adventure ใหญ่สุดบนจอใหญ่) */}
+          {/* 💡 THE FIX: เอา flex: 1 ออกไป เพื่อให้มันจัดตัวเองอยู่กึ่งกลางจริงๆ */}
           <Box
             sx={{
-              flex: 1,
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
@@ -388,12 +570,13 @@ const GameAppBar = () => {
           </Box>
 
           {/* 🔹 RIGHT : LIBRARY & SETTINGS */}
+          {/* 💡 THE FIX: เพิ่ม flex: 1 และ justifyContent: "flex-end" เพื่อถ่วงน้ำหนักกับฝั่งซ้าย */}
           <Box
             sx={{
+              flex: 1,
               display: "flex",
               justifyContent: "flex-end",
               alignItems: "center",
-              minWidth: { xs: "auto", sm: "120px", md: "200px" },
               gap: { xs: 0.2, sm: 1 },
             }}
           >

@@ -30,9 +30,7 @@ const STAT_CONFIG = {
   SPEED: { icon: <SpeedIcon fontSize="inherit" />, color: "#00e5ff" },
 };
 
-// 2. ปรับ StatLine ให้โชว์ Icon
 const StatLine = ({ label, value, isImproved }) => {
-  // ดึง Config ตาม Label (ถ้าไม่มีให้ใช้ Default)
   const config = STAT_CONFIG[label] || { icon: null, color: "#aaa" };
 
   return (
@@ -44,35 +42,44 @@ const StatLine = ({ label, value, isImproved }) => {
         alignItems: "center",
       }}
     >
-      {/* ฝั่งซ้าย: Icon + Label */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {/* กล่อง Icon */}
         <Box
           sx={{
             color: config.color,
             display: "flex",
-            fontSize: "12px", // ขนาดไอคอน
+            fontSize: "12px",
             filter: "drop-shadow(0 2px 0 rgba(0,0,0,0.3))",
+            "@media (orientation: landscape) and (max-height: 430px)": {
+              fontSize: 10,
+            },
           }}
         >
           {config.icon}
         </Box>
 
-        {/* ชื่อ Stat */}
         <Typography
-          sx={{ fontFamily: "'Press Start 2P'", fontSize: 9, color: "#aaa" }}
+          sx={{
+            fontFamily: "'Press Start 2P'",
+            fontSize: 9,
+            color: "#aaa",
+            "@media (orientation: landscape) and (max-height: 430px)": {
+              fontSize: 8,
+            },
+          }}
         >
           {label}
         </Typography>
       </Box>
 
-      {/* ฝั่งขวา: ค่าตัวเลข */}
       <Typography
         sx={{
           fontFamily: "'Press Start 2P'",
           fontSize: 9,
           color: isImproved ? "#69f0ae" : "#fff",
           textShadow: isImproved ? "0 0 5px rgba(105, 240, 174, 0.4)" : "none",
+          "@media (orientation: landscape) and (max-height: 430px)": {
+            fontSize: 7,
+          },
         }}
       >
         {value}
@@ -88,7 +95,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
     upgradeHero,
     clearUpgradeStatus,
     currentUser,
-    fetchPreviewData
+    fetchPreviewData,
   } = useAuthStore();
 
   const isLoading = upgradeStatus === LOADING;
@@ -107,15 +114,10 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
 
   const handleConfirmUpgrade = async () => {
     if (!canUpgrade) return;
-    
-    // รอให้อัปเกรดเสร็จ
     await upgradeHero(heroId);
-    
-    // อัปเดตข้อมูลพรีวิวสำหรับเลเวลถัดไปทันที (ไม่ต้องมี if result มากั้นแล้ว)
     await fetchPreviewData(heroId);
   };
 
-  // ดึงข้อมูล Preview ใหม่เมื่อ Dialog เปิดขึ้นมา
   useEffect(() => {
     if (open && heroId) {
       fetchPreviewData(heroId);
@@ -125,29 +127,31 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
   return (
     <Dialog
       open={open}
-      //   onClose={isLoading ? undefined : onClose}
+      fullWidth
+      maxWidth="sm"
       PaperProps={{
         sx: {
           backgroundColor: "#2b1d14",
           border: "4px solid #5d4037",
-          borderRadius: "12px", // มุมมนแบบ Cookie Run
-          width: "100%",
-          maxWidth: "sm",
-          height: "500px",
-          boxShadow: "0 8px 0 #1a120b", // เงาหนาด้านล่าง
-          overflow: "visible",
+          borderRadius: "12px",
+          width: "95%",
+          maxHeight: "90vh", // ป้องกันทะลุขอบบนล่าง
+          height: "auto", // ให้ความสูงยืดตาม Content
+          boxShadow: "0 8px 0 #1a120b",
+          overflow: "hidden", // ให้ตัว Scroll ไปอยู่ที่ Body แทน
+          "@media (orientation: landscape) and (max-height: 430px)": {
+            border: "3px solid #5d4037",
+          },
         },
       }}
     >
-      {/* === HEADER (Hero Name) === */}
+      {/* === HEADER === */}
       <Box
         sx={{
           p: 1.5,
           textAlign: "center",
           position: "relative",
-          //   backgroundColor: "#3e2723",
-          borderRadius: "12px 12px 0 0",
-          //   borderBottom: "2px solid #5d4037",
+          flexShrink: 0, // หัวห้ามหด
         }}
       >
         <Typography
@@ -157,12 +161,15 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
             color: "#ffecb3",
             textShadow: "2px 2px 0 #000",
             mt: 1,
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 12,
+              mt: 0.5,
+            },
           }}
         >
           {heroName.toUpperCase()}
         </Typography>
 
-        {/* Close Button */}
         {!isLoading && !isSuccess && (
           <IconButton
             onClick={onClose}
@@ -173,96 +180,89 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               color: "#d7ccc8",
               backgroundColor: "rgba(0,0,0,0.2)",
               "&:hover": { backgroundColor: "rgba(0,0,0,0.4)" },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                top: 4,
+                right: 4,
+                padding: "4px",
+              },
             }}
           >
-            <CloseIcon />
+            <CloseIcon fontSize="small" />
           </IconButton>
         )}
       </Box>
 
-      {/* === BODY === */}
+      {/* === BODY (ใส่ Scroll ได้ถ้าจอเตี้ยเกินไป) === */}
       <Box
         sx={{
-          p: 3,
-          minHeight: "260px",
+          p: 2,
+          flexGrow: 1,
+          overflowY: "auto", // กรณีจอแนวนอนเตี้ยมากๆ จะเลื่อนดูได้
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          scrollbarWidth: "none", // ซ่อน scrollbar (Firefox)
+          "&::-webkit-scrollbar": { display: "none" }, // ซ่อน scrollbar (Chrome/Safari)
+          "@media (orientation: landscape) and (max-height: 430px)": {
+            py: 1,
+          },
         }}
       >
-        {/* 1. LOADING */}
         {isLoading && (
-          <Box sx={{ textAlign: "center" }}>
+          <Box sx={{ textAlign: "center", py: 4 }}>
             <CircularProgress size={40} sx={{ color: "#ffca28", mb: 2 }} />
-            <Typography
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                fontSize: 10,
-                color: "#ccc",
-              }}
-            >
+            <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 10, color: "#ccc" }}>
               Calculating...
             </Typography>
           </Box>
         )}
 
-        {/* 2. SUCCESS */}
         {isSuccess && (
-          <Box sx={{ textAlign: "center", animation: "popIn 0.3s ease" }}>
+          <Box sx={{ textAlign: "center", animation: "popIn 0.3s ease", py: 2 }}>
             <CheckCircleIcon
               sx={{
-                fontSize: 80,
+                fontSize: 60,
                 color: "#66bb6a",
                 mb: 2,
                 filter: "drop-shadow(0 4px 0 rgba(0,0,0,0.3))",
               }}
             />
-            <Typography
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                fontSize: 16,
-                color: "#fff",
-                mb: 1,
-              }}
-            >
+            <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 14, color: "#fff", mb: 1 }}>
               LEVEL UP!
-            </Typography>
-            <Typography
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                fontSize: 10,
-                color: "#aaa",
-              }}
-            >
-              Stats Increased
             </Typography>
           </Box>
         )}
 
-        {/* 3. PREVIEW (2 Boxes Layout) */}
         {isPreviewReady && previewData && (
           <Box sx={{ width: "100%", animation: "fadeIn 0.3s ease" }}>
-            {/* Image Placeholder (ตรงกลางบน) */}
-            <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+            {/* Image Placeholder */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                mb: 2,
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  mb: 1,
+                },
+              }}
+            >
               <Box
                 component="img"
                 src={LoadImage("img_hero", heroId, 1)}
                 sx={{
-                  width: 140,
-                  height: 140,
+                  width: 120,
+                  height: 120,
                   backgroundColor: "rgba(0,0,0,0.3)",
                   borderRadius: "12px",
                   border: "2px dashed #5d4037",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#5d4037",
                   imageRendering: "pixelated",
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    width: 70,
+                    height: 70,
+                  },
                 }}
-              >
-                {/* ใส่ <img /> ตรงนี้ได้เลยถ้ามีรูปส่งเข้ามา */}
-              </Box>
+              />
             </Box>
 
             {/* --- THE 2 BOXES --- */}
@@ -282,6 +282,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   borderRadius: "12px",
                   border: "2px solid #3e2723",
                   p: 1.5,
+                  "@media (orientation: landscape) and (max-height: 450px)": { p: 1 },
                 }}
               >
                 <Typography
@@ -290,35 +291,32 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                     fontSize: 10,
                     color: "#aaa",
                     textAlign: "center",
-                    mb: 1.5,
+                    mb: 1,
+                    "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 8 },
                   }}
                 >
                   Lv.{previewData.level.current}
                 </Typography>
-                <Divider sx={{ borderColor: "#3e2723", mb: 1.5 }} />
-
+                <Divider sx={{ borderColor: "#3e2723", mb: 1 }} />
                 <StatLine label="HP" value={previewData.hp.current} />
                 <StatLine label="POWER" value={previewData.power.current} />
                 <StatLine label="SPEED" value={previewData.speed.current} />
               </Box>
 
-              {/* Arrow Icon */}
-              <Box
-                sx={{ display: "flex", alignItems: "center", color: "#5d4037" }}
-              >
+              <Box sx={{ display: "flex", alignItems: "center", color: "#5d4037" }}>
                 <ArrowRightAltIcon />
               </Box>
 
-              {/* BOX 2: NEXT (Highlighted) */}
+              {/* BOX 2: NEXT */}
               <Box
                 sx={{
                   flex: 1,
-                  backgroundColor: "#2e1e14", // สว่างกว่านิดนึง
+                  backgroundColor: "#2e1e14",
                   borderRadius: "12px",
-                  border: "2px solid #69f0ae", // ขอบสีเขียวเน้น Upgrade
+                  border: "2px solid #69f0ae",
                   boxShadow: "0 0 10px rgba(105, 240, 174, 0.1)",
                   p: 1.5,
-                  position: "relative",
+                  "@media (orientation: landscape) and (max-height: 450px)": { p: 1 },
                 }}
               >
                 <Typography
@@ -327,26 +325,16 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                     fontSize: 10,
                     color: "#69f0ae",
                     textAlign: "center",
-                    mb: 1.5,
+                    mb: 1,
+                    "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 8 },
                   }}
                 >
                   Lv.{previewData.level.next}
                 </Typography>
-                <Divider
-                  sx={{ borderColor: "#69f0ae", opacity: 0.3, mb: 1.5 }}
-                />
-
+                <Divider sx={{ borderColor: "#69f0ae", opacity: 0.3, mb: 1 }} />
                 <StatLine label="HP" value={previewData.hp.next} isImproved />
-                <StatLine
-                  label="SPEED"
-                  value={previewData.speed.next}
-                  isImproved
-                />
-                <StatLine
-                  label="POWER"
-                  value={previewData.power.next}
-                  isImproved
-                />
+                <StatLine label="POWER" value={previewData.power.next} isImproved />
+                <StatLine label="SPEED" value={previewData.speed.next} isImproved />
               </Box>
             </Box>
           </Box>
@@ -355,86 +343,71 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
 
       {/* === FOOTER ACTION === */}
       {isPreviewReady && (
-        <Box sx={{ p: 2, display: "flex", justifyContent: "center", pb: 3 }}>
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            justifyContent: "center",
+            pb: 3,
+            flexShrink: 0, // ท้ายห้ามหด
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              p: 1,
+              pb: 1.5,
+            },
+          }}
+        >
           <Button
             onClick={handleConfirmUpgrade}
             disabled={!canUpgrade}
             sx={{
-              // 🟡 ใช้ Gradient ตามที่คุณขอ
-              background: canUpgrade
-                ? "linear-gradient(180deg, #f2dfb6, #d9b97a)"
-                : "#3e2723",
-
-              // 🟤 ตัวหนังสือสีน้ำตาลเข้ม (เพราะพื้นหลังสว่าง)
+              background: canUpgrade ? "linear-gradient(180deg, #f2dfb6, #d9b97a)" : "#3e2723",
               color: canUpgrade ? "#2b1d14" : "#795548",
-
               fontFamily: "'Press Start 2P'",
               fontSize: 14,
-              py: 1.5,
+              py: 1.2,
               px: 4,
-              gap: 2,
               width: "100%",
-
-              // 🧱 ปรับสีเงาด้านล่าง (Border Bottom) ให้เข้ากับ Gradient
-              // ใช้สีน้ำตาลทองเข้มๆ (#af8f52) ตัดกับสี #d9b97a
-              borderBottom: canUpgrade
-                ? "6px solid #886d3a"
-                : "6px solid #271c19",
-
+              borderBottom: canUpgrade ? "6px solid #886d3a" : "6px solid #271c19",
               borderRadius: "16px",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-
-              // ✨ Hover: ปรับให้สว่างขึ้นนิดหน่อย
-              "&:hover": {
-                background: canUpgrade
-                  ? "linear-gradient(180deg, #ebd29b, #ba9d61)"
-                  : "#3e2723",
+              gap: 2,
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                py: 0.8,
+                fontSize: 11,
+                borderBottomWidth: "4px",
               },
-
-              // 👇 Active: กดแล้วยุบ
+              "&:hover": {
+                background: canUpgrade ? "linear-gradient(180deg, #ebd29b, #ba9d61)" : "#3e2723",
+              },
               "&:active": {
-                borderBottom: "0px solid transparent",
-                transform: "translateY(6px)",
+                borderBottomWidth: "0px",
+                transform: "translateY(4px)",
               },
             }}
           >
-            <Typography
-              sx={{
-                fontFamily: "inherit",
-                fontSize: "inherit",
-                color: canUpgrade ? "#2b1d14" : "#7b7677",
-              }}
-            >
+            <Typography sx={{ fontFamily: "inherit", fontSize: "inherit" }}>
               UPGRADE
             </Typography>
 
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                borderRadius: "8px",
-                px: 1,
-                py: 0.5,
-              }}
-            >
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               <MonetizationOnIcon
                 sx={{
                   mr: 1,
                   fontSize: 16,
                   color: "#FFD700",
                   filter: "drop-shadow(1px 1px 0px #B8860B)",
-                  borderRadius: "50%",
                   backgroundColor: "#fff",
+                  borderRadius: "50%",
                   border: "1px solid #B8860B",
+                  "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 14 },
                 }}
               />
               <Typography
                 sx={{
                   fontFamily: "inherit",
-                  fontSize: 14,
-                  lineHeight: 1,
+                  fontSize: "inherit",
                   color: canUpgrade ? "#2b1d14" : "#ff1744",
                 }}
               >

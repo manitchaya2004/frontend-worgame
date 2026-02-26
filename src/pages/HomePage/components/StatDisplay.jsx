@@ -1,118 +1,6 @@
-import { Typography, Box, LinearProgress, Tooltip } from "@mui/material";
-import { styled } from "@mui/material/styles";
-
-// ------------------------------------------------
-// 1. แบบกล่องตัวเลข (Numeric Row) - กลับมาใช้แบบกล่องเดียว
-// ------------------------------------------------
-export const StatNumericBox = ({ label, value, icon, color, description }) => {
-  const content = (
-    <Box
-      sx={{
-        // --- Layout ---
-        width: "95px", // 🟢 ยืดเต็มช่อง Grid (xs=4) เสมอ
-        height: "35px", // สูงเท่ากัน
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between", // ดันซ้าย-ขวา
-
-        // --- Appearance ---
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        borderRadius: "6px",
-        border: `1px solid ${color}40`, // ขอบสีจาง
-
-        // --- Spacing (หัวใจสำคัญ: ลด Padding เพื่อไม่ให้ล้น) ---
-        py: 0.5,
-        px: 0.8, // ลดขอบข้างลงนิดนึงจะได้ไม่เบียด
-
-        boxShadow: "inset 0 0 5px rgba(0,0,0,0.5)",
-        boxSizing: "border-box", // 🟢 กันไม่ให้ Padding ดันจนกล่องบวม
-
-        transition: "all 0.2s",
-        "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.05)",
-          borderColor: color,
-          transform: "translateY(-1px)",
-        },
-        
-        // 💡 THE FIX: Responsive Landscape
-        "@media (orientation: landscape) and (max-height: 450px)": {
-          height: "24px",
-          width: "70px",
-          px: 0.5,
-        }
-      }}
-    >
-      {/* LEFT: Icon & Label */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-        {/* Icon: ปรับขนาดให้เล็กลงนิดนึงจะได้ไม่กินที่ */}
-        <Box 
-          sx={{ 
-            color: color, 
-            display: "flex", 
-            "& svg": { 
-              fontSize: 16,
-              "@media (orientation: landscape) and (max-height: 450px)": {
-                fontSize: 12,
-              } 
-            } 
-          }}
-        >
-          {icon}
-        </Box>
-
-        {/* Label: ย่อฟอนต์ลงเล็กน้อยเพื่อความปลอดภัย */}
-        <Typography
-          sx={{
-            fontFamily: "'Press Start 2P'",
-            fontSize: 8, // ลดเหลือ 8px (จาก 9px) กันล้น
-            color: "#bbb",
-            textTransform: "uppercase",
-            mt: "2px",
-            whiteSpace: "nowrap", // 🟢 ห้ามขึ้นบรรทัดใหม่
-            "@media (orientation: landscape) and (max-height: 450px)": {
-              fontSize: 6,
-            }
-          }}
-        >
-          {label}
-        </Typography>
-      </Box>
-
-      {/* RIGHT: Value */}
-      <Typography
-        sx={{
-          fontFamily: "'Verdana', sans-serif",
-          fontWeight: "bold",
-          fontSize: 12,
-          color: "#fff",
-          textShadow: `0 0 5px ${color}`,
-          ml: 0.5, // ดันห่างจาก Label นิดนึง
-          "@media (orientation: landscape) and (max-height: 450px)": {
-            fontSize: 10,
-          }
-        }}
-      >
-        {value}
-      </Typography>
-    </Box>
-  );
-  if (!description) return content;
-
-  return (
-    <Tooltip
-      title={
-        <Typography sx={{ fontSize: 12, fontFamily: "'Verdana'" }}>
-          {description}
-        </Typography>
-      }
-      arrow
-      placement="top"
-    >
-      {content}
-    </Tooltip>
-  );
-};
-
+import { Typography, Box, LinearProgress, Tooltip, IconButton } from "@mui/material";
+import { THEME, getStatIcon } from "../hook/const";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 export const StatLine = ({
   label,
   value,
@@ -129,11 +17,11 @@ export const StatLine = ({
         alignItems: "center",
         width: "100%",
         height: "22px",
-        
+
         // py:0.30,
         // px:0.20,
-        
-         // --- Appearance ---
+
+        // --- Appearance ---
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         borderRadius: "6px",
         border: `1px solid ${color}40`, // ขอบสีจาง
@@ -141,29 +29,29 @@ export const StatLine = ({
         "@media (orientation: landscape) and (max-height: 450px)": {
           height: "10px", // บีบความสูงกล่อง List Detail
           borderRadius: "4px",
-        }
+        },
       }}
     >
       {/* ฝั่งซ้าย: Icon + Label */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 1 }}>
         {/* กล่อง Icon */}
-        <Box 
-          sx={{ 
-            color: color, 
-            display: "flex", 
-            "& svg": { 
+        <Box
+          sx={{
+            color: color,
+            display: "flex",
+            "& svg": {
               fontSize: 16,
               "@media (orientation: landscape) and (max-height: 450px)": {
                 fontSize: 8.5,
-              }  
-            } 
+              },
+            },
           }}
         >
           {icon}
         </Box>
 
         {/* ชื่อ Stat */}
-         <Typography
+        <Typography
           sx={{
             fontFamily: "'Press Start 2P'",
             fontSize: 8, // ลดเหลือ 8px (จาก 9px) กันล้น
@@ -173,7 +61,7 @@ export const StatLine = ({
             whiteSpace: "nowrap", // 🟢 ห้ามขึ้นบรรทัดใหม่
             "@media (orientation: landscape) and (max-height: 450px)": {
               fontSize: 5,
-            }
+            },
           }}
         >
           {label}
@@ -188,12 +76,12 @@ export const StatLine = ({
           fontSize: 11,
           color: "#fff",
           textShadow: `0 0 5px ${color}`,
-           mr: 1,
+          mr: 1,
           // color: isImproved ? "#69f0ae" : "#fff",
           // textShadow: isImproved ? "0 0 5px rgba(105, 240, 174, 0.4)" : "none",
           "@media (orientation: landscape) and (max-height: 450px)": {
             fontSize: 6,
-          }
+          },
         }}
       >
         {value}
@@ -209,6 +97,19 @@ export const StatLine = ({
           {description}
         </Typography>
       }
+      slotProps={{
+        tooltip: {
+          sx: {
+            fontSize: "12px",
+            fontFamily: "'Verdana', sans-serif",
+            // fontWeight: "bold",
+            backgroundColor: "#2a160f",
+            border: `1px solid black`,
+           
+          },
+        },
+        arrow: { sx: { color: "#000000" } },
+      }}
       arrow
       placement="top"
     >
@@ -229,15 +130,15 @@ export const StatVisualBar = ({ label, value, max = 100, icon, color }) => {
   );
 
   return (
-    <Box 
-      sx={{ 
-        display: "flex", 
-        alignItems: "center", 
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
         gap: 1,
         // ลดช่องว่างระหว่างหลอดเล็กน้อย
         "@media (orientation: landscape) and (max-height: 450px)": {
-          gap: 0.5, 
-        }
+          gap: 0.5,
+        },
       }}
     >
       {/* Icon & Label (Box ซ้าย) */}
@@ -254,19 +155,19 @@ export const StatVisualBar = ({ label, value, max = 100, icon, color }) => {
             width: "55px",
             gap: 0.4,
             padding: "1px 2px",
-          }
+          },
         }}
       >
-        <Box 
-          sx={{ 
-            color: color, 
-            display: "flex", 
-            "& svg": { 
+        <Box
+          sx={{
+            color: color,
+            display: "flex",
+            "& svg": {
               fontSize: 18,
               "@media (orientation: landscape) and (max-height: 450px)": {
                 fontSize: 9,
-              }
-            } 
+              },
+            },
           }}
         >
           {icon}
@@ -279,7 +180,7 @@ export const StatVisualBar = ({ label, value, max = 100, icon, color }) => {
             mt: "2px",
             "@media (orientation: landscape) and (max-height: 450px)": {
               fontSize: 5,
-            }
+            },
           }}
         >
           {label}
@@ -305,7 +206,7 @@ export const StatVisualBar = ({ label, value, max = 100, icon, color }) => {
           "@media (orientation: landscape) and (max-height: 450px)": {
             height: 9, // ย่อหลอด Stat ลง
             border: "1px solid #5a3e2b",
-          }
+          },
         }}
       >
         {Array.from({ length: TOTAL_BLOCKS }).map((_, index) => {
@@ -344,3 +245,77 @@ export const StatVisualBar = ({ label, value, max = 100, icon, color }) => {
     </Box>
   );
 };
+
+// 3 stat ของ monster ย้าย
+export const StatTextBox = ({
+  label,
+  value,
+  showTooltip = false,
+  tooltipText = "",
+  isUnlocked = true, // เพิ่ม prop เพื่อเช็คปลดล็อค
+}) => (
+  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+    {/* LABEL + INFO ICON */}
+    <Box
+      sx={{
+        width: "140px", 
+        display: "flex",
+        alignItems: "center",
+        gap: 0.8, 
+        flexShrink: 0,
+      }}
+    >
+      {getStatIcon(label)}
+
+      <Typography
+        sx={{
+          fontFamily: "'Press Start 2P'",
+          fontSize: {xs: 8, md: 10}, 
+          color: isUnlocked ? THEME.accent : "#777", // สีเทาถ้ายังล็อค
+          textShadow: `1px 1px 0 ${THEME.shadow}`,
+          letterSpacing: "1px",
+        }}
+      >
+        {label}
+      </Typography>
+
+      {showTooltip && isUnlocked && (
+        <Tooltip title={tooltipText} arrow placement="top">
+          <IconButton
+            size="small"
+            sx={{
+              p: 0,
+              color: THEME.accent,
+              "&:hover": {
+                color: "#ffd966", 
+              },
+            }}
+          >
+            <InfoOutlinedIcon sx={{ fontSize: 12 }} />
+          </IconButton>
+        </Tooltip>
+      )}
+    </Box>
+
+    {/* VALUE BOX */}
+    <Box
+      sx={{
+        ml: { xs: 0, md: 3 }, 
+        flex: 1,
+        backgroundColor: "#1a120b",
+        color: isUnlocked ? THEME.accent : "#555",
+        border: `2px solid ${isUnlocked ? THEME.border : "#333"}`,
+        borderRadius: "4px",
+        py: 0.5,
+        px: 2,
+        textAlign: "center",
+        boxShadow: "inset 0 2px 5px rgba(0,0,0,0.8)",
+        fontFamily: "'Verdana', sans-serif",
+        fontWeight: "bold",
+        fontSize: 13,
+      }}
+    >
+      {isUnlocked ? value : "???"}
+    </Box>
+  </Box>
+);

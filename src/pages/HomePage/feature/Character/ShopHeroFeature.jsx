@@ -66,6 +66,11 @@ const ShopHeroFeature = () => {
     });
   };
 
+  useEffect(() => {
+    console.log("user", currentUser);
+    console.log("heros", heros);
+  },[])
+
   return (
     <Box sx={{ height: "100vh" }}>
       <MotionBox
@@ -96,7 +101,7 @@ const ShopHeroFeature = () => {
   `,
 
           width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
-          height: { xs: "50%", sm: "55%", md: "570px", xl: "82%" },
+          height: { xs: "70%", sm: "70%", md: "570px", xl: "82%" },
 
           p: 1,
           display: "flex",
