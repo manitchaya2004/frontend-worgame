@@ -27,7 +27,15 @@ export const useAuthStore = create(
       errorLogin: false,
       errorRegister: false,
       buyHeroError: null,
+
+
+      // volumn
+      volume: 0.3, 
+      isMuted: false,
       /* ================= ACTIONS ================= */
+
+      setVolume: (newVolume) => set({ volume: newVolume }),
+      toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
 
       /* ===== REGISTER ===== */
       registerUser: async (userData) => {
@@ -498,6 +506,9 @@ export const useAuthStore = create(
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
+
+        volume: state.volume,
+        isMuted: state.isMuted
       }),
     },
   ),

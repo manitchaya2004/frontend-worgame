@@ -22,10 +22,13 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add"; // ➕ ปุ่มบวก
+import CloseIcon from "@mui/icons-material/Close"; // 💡 Icon ปิดหน้าต่าง
+import LogoutIcon from "@mui/icons-material/Logout"; // 💡 Icon Logout
 
 import { GiBroadsword, GiBackpack } from "react-icons/gi";
 import { FaCrown } from "react-icons/fa";
 // Assets
+import { useAuthStore } from "../../store/useAuthStore";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 import { GameDialog } from "../GameDialog";
@@ -94,7 +97,7 @@ const AnimatedMoney = ({ value, fontSize = 10 }) => {
             ? "#4caf50"
             : status === "decrease"
               ? "#ff1744"
-              : "#3e2615",
+              : "#E8E9CD",
         textAlign: "left",
         transition: "color 0.3s ease",
         lineHeight: 1,
@@ -140,7 +143,7 @@ const EnergyBar = ({ energy = 5, timeToNextEnergy = 0, onAddClick }) => {
       sx={{
         display: "flex",
         alignItems: "center",
-        backgroundColor: "#E8E9CD",
+        backgroundColor: "rgba(43, 29, 20, 0.6)",
         border: "3px solid #5A3A2E",
         boxShadow: "0 3px 0 #2b1a12",
         borderRadius: "15px",
@@ -278,6 +281,8 @@ const EnergyBar = ({ energy = 5, timeToNextEnergy = 0, onAddClick }) => {
 
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
+  const { volume, isMuted, setVolume, toggleMute } = useAuthStore();
+
   const muiTheme = useMuiTheme();
 
   // 💡 THE FIX: จับทั้งหน้าจอเล็ก (xs) และ หน้าจอมือถือแนวนอน (landscape)
@@ -295,6 +300,13 @@ const GameAppBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [confirmLogout, setConfirmLogout] = useState(false);
+
+  const handleVolumeChange = (event, newValue) => {
+    setVolume(newValue);
+    if (newValue > 0 && isMuted) {
+      toggleMute();
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -387,7 +399,7 @@ const GameAppBar = () => {
                   pl: { xs: "45px", sm: "50px", md: "55px" },
                   pr: { xs: 1.5, sm: 2.5 },
                   py: 0.5,
-                  backgroundColor: "#E8E9CD",
+                  backgroundColor: "rgba(43, 29, 20, 0.6)",
                   borderRadius: "15px",
                   border: "3px solid #5A3A2E",
                   boxShadow: "0 3px 0 #2b1a12",
@@ -402,17 +414,20 @@ const GameAppBar = () => {
                   },
                 }}
               >
-                <Typography
-                  noWrap
-                  sx={{
-                    fontFamily: "'Press Start 2P'",
-                    fontSize: { xs: 6, sm: 8, md: 9 },
-                    color: "#3e2615",
-                    mb: 0.5,
-                  }}
-                >
-                  {currentUser?.username}
-                </Typography>
+                <Tooltip>
+                  <Typography
+                    noWrap
+                    sx={{
+                      fontFamily: "'Press Start 2P'",
+                      fontSize: { xs: 6, sm: 8, md: 9 },
+                      color: "#E8E9CD",
+                      mb: 0.5,
+                      width: { xs: "90px", sm: "110px", md: "130px" },
+                    }}
+                  >
+                    {currentUser?.username}
+                  </Typography>
+                </Tooltip>
 
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <MonetizationOnIcon
@@ -636,6 +651,11 @@ const GameAppBar = () => {
         onCancel={() => setConfirmLogout(false)}
         confirmText="Logout"
         cancelText="Cancel"
+        showAudioSettings={true}
+        volume={volume}
+        isMuted={isMuted}
+        onVolumeChange={handleVolumeChange}
+        onToggleMute={toggleMute}
       />
     </>
   );
