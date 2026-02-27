@@ -78,6 +78,8 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
     ? Array.from(new Set(rawDeck.map((card) => card.effect)))
     : [];
 
+  console.log(" uniqueEffects", uniqueEffects);
+
   // เดี๋ยวมาปรับ
   const MAX_STATS_REF = {
     hp: 20,
@@ -252,9 +254,9 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               },
             }}
           >
-            {uniqueEffects.length > 0 ? (
-              uniqueEffects.map((effect, index) => {
-                const iconData = getDeckIconData(effect);
+            {rawDeck.length > 0 ? (
+              rawDeck.map((effect, index) => {
+                const iconData = getDeckIconData(effect.effect);
                 return (
                   <Tooltip
                     key={index}

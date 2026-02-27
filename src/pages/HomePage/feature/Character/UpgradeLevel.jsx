@@ -106,6 +106,9 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
   const userMoney = currentUser?.money || 0;
   const canUpgrade = userMoney >= upgradeCost;
 
+  // เช็คเงื่อนไข Max Level
+  const isMaxLevel = previewData?.level?.current >= 10;
+
   useEffect(() => {
     if (!open) {
       setTimeout(() => clearUpgradeStatus(), 200);
@@ -113,7 +116,8 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
   }, [open, clearUpgradeStatus]);
 
   const handleConfirmUpgrade = async () => {
-    if (!canUpgrade) return;
+    if (!canUpgrade || isLoading || isMaxLevel) return;
+
     await upgradeHero(heroId);
     await fetchPreviewData(heroId);
   };
@@ -210,16 +214,30 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
         }}
       >
         {isLoading && (
-          <Box sx={{ textAlign: "center", py: 4 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              py: 4,
+              height: { xs: "auto", sm: "250px" },
+            }}
+          >
             <CircularProgress size={40} sx={{ color: "#ffca28", mb: 2 }} />
-            <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 10, color: "#ccc" }}>
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: 10,
+                color: "#ccc",
+              }}
+            >
               Calculating...
             </Typography>
           </Box>
         )}
 
-        {isSuccess && (
-          <Box sx={{ textAlign: "center", animation: "popIn 0.3s ease", py: 2 }}>
+        {isSuccess && !isLoading && !isMaxLevel && (
+          <Box
+            sx={{ textAlign: "center", animation: "popIn 0.3s ease", py: 2 }}
+          >
             <CheckCircleIcon
               sx={{
                 fontSize: 60,
@@ -228,13 +246,20 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                 filter: "drop-shadow(0 4px 0 rgba(0,0,0,0.3))",
               }}
             />
-            <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: 14, color: "#fff", mb: 1 }}>
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: 14,
+                color: "#fff",
+                mb: 1,
+              }}
+            >
               LEVEL UP!
             </Typography>
           </Box>
         )}
 
-        {isPreviewReady && previewData && (
+        {isPreviewReady && (
           <Box sx={{ width: "100%", animation: "fadeIn 0.3s ease" }}>
             {/* Image Placeholder */}
             <Box
@@ -266,83 +291,145 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
             </Box>
 
             {/* --- THE 2 BOXES --- */}
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1.5,
-                justifyContent: "center",
-                alignItems: "stretch",
-              }}
-            >
-              {/* BOX 1: CURRENT */}
-              <Box
-                sx={{
-                  flex: 1,
-                  backgroundColor: "#23160e",
-                  borderRadius: "12px",
-                  border: "2px solid #3e2723",
-                  p: 1.5,
-                  "@media (orientation: landscape) and (max-height: 450px)": { p: 1 },
-                }}
-              >
-                <Typography
+            {isMaxLevel ? (
+              /* โชว์แค่กล่องเดียวตรงกลางเมื่อถึง Max Level */
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <Box
                   sx={{
-                    fontFamily: "'Press Start 2P'",
-                    fontSize: 10,
-                    color: "#aaa",
-                    textAlign: "center",
-                    mb: 1,
-                    "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 8 },
+                    width: "65%",
+                    backgroundColor: "#2e1e14",
+                    borderRadius: "12px",
+                    border: "2px solid #ffd700",
+                    boxShadow: "0 0 10px rgba(255, 215, 0, 0.2)",
+                    p: 1.5,
                   }}
                 >
-                  Lv.{previewData.level.current}
-                </Typography>
-                <Divider sx={{ borderColor: "#3e2723", mb: 1 }} />
-                <StatLine label="HP" value={previewData.hp.current} />
-                <StatLine label="POWER" value={previewData.power.current} />
-                <StatLine label="SPEED" value={previewData.speed.current} />
-              </Box>
+                  <Typography
+                    sx={{
+                      fontFamily: "'Press Start 2P'",
+                      fontSize: 10,
+                      color: "#ffd700",
+                      textAlign: "center",
+                      mb: 1.5,
+                      textShadow: "1px 1px 0 #000",
+                    }}
+                  >
+                    MAX LEVEL (Lv.{previewData.level.current})
+                  </Typography>
+                  <Divider
+                    sx={{ borderColor: "#ffd700", opacity: 0.3, mb: 1.5 }}
+                  />
 
-              <Box sx={{ display: "flex", alignItems: "center", color: "#5d4037" }}>
-                <ArrowRightAltIcon />
+                  <StatLine label="HP" value={previewData.hp.current} />
+                  <StatLine label="POWER" value={previewData.power.current} />
+                   <StatLine label="SPEED" value={previewData.speed.current} />
+                </Box>
               </Box>
-
-              {/* BOX 2: NEXT */}
+            ) : (
               <Box
                 sx={{
-                  flex: 1,
-                  backgroundColor: "#2e1e14",
-                  borderRadius: "12px",
-                  border: "2px solid #69f0ae",
-                  boxShadow: "0 0 10px rgba(105, 240, 174, 0.1)",
-                  p: 1.5,
-                  "@media (orientation: landscape) and (max-height: 450px)": { p: 1 },
+                  display: "flex",
+                  gap: 1.5,
+                  justifyContent: "center",
+                  alignItems: "stretch",
                 }}
               >
-                <Typography
+                {/* BOX 1: CURRENT */}
+                <Box
                   sx={{
-                    fontFamily: "'Press Start 2P'",
-                    fontSize: 10,
-                    color: "#69f0ae",
-                    textAlign: "center",
-                    mb: 1,
-                    "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 8 },
+                    flex: 1,
+                    backgroundColor: "#23160e",
+                    borderRadius: "12px",
+                    border: "2px solid #3e2723",
+                    p: 1.5,
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      p: 1,
+                    },
                   }}
                 >
-                  Lv.{previewData.level.next}
-                </Typography>
-                <Divider sx={{ borderColor: "#69f0ae", opacity: 0.3, mb: 1 }} />
-                <StatLine label="HP" value={previewData.hp.next} isImproved />
-                <StatLine label="POWER" value={previewData.power.next} isImproved />
-                <StatLine label="SPEED" value={previewData.speed.next} isImproved />
+                  <Typography
+                    sx={{
+                      fontFamily: "'Press Start 2P'",
+                      fontSize: 10,
+                      color: "#aaa",
+                      textAlign: "center",
+                      mb: 1,
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 8,
+                        },
+                    }}
+                  >
+                    Lv.{previewData.level.current}
+                  </Typography>
+                  <Divider sx={{ borderColor: "#3e2723", mb: 1 }} />
+                  <StatLine label="HP" value={previewData.hp.current} />
+                  <StatLine label="POWER" value={previewData.power.current} />
+                  <StatLine label="SPEED" value={previewData.speed.current} />
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    color: "#5d4037",
+                  }}
+                >
+                  <ArrowRightAltIcon />
+                </Box>
+
+                {/* BOX 2: NEXT */}
+                <Box
+                  sx={{
+                    flex: 1,
+                    backgroundColor: "#2e1e14",
+                    borderRadius: "12px",
+                    border: "2px solid #69f0ae",
+                    boxShadow: "0 0 10px rgba(105, 240, 174, 0.1)",
+                    p: 1.5,
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      p: 1,
+                    },
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontFamily: "'Press Start 2P'",
+                      fontSize: 10,
+                      color: "#69f0ae",
+                      textAlign: "center",
+                      mb: 1,
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 8,
+                        },
+                    }}
+                  >
+                    Lv.{previewData.level.next}
+                  </Typography>
+                  <Divider
+                    sx={{ borderColor: "#69f0ae", opacity: 0.3, mb: 1 }}
+                  />
+                  <StatLine label="HP" value={previewData.hp.next} isImproved />
+                  <StatLine
+                    label="POWER"
+                    value={previewData.power.next}
+                    isImproved
+                  />
+                  <StatLine
+                    label="SPEED"
+                    value={previewData.speed.next}
+                    isImproved
+                  />
+                </Box>
               </Box>
-            </Box>
+            )}
           </Box>
         )}
       </Box>
 
       {/* === FOOTER ACTION === */}
-      {isPreviewReady && (
+      {isPreviewReady && !isMaxLevel && (
         <Box
           sx={{
             p: 2,
@@ -360,14 +447,18 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
             onClick={handleConfirmUpgrade}
             disabled={!canUpgrade}
             sx={{
-              background: canUpgrade ? "linear-gradient(180deg, #f2dfb6, #d9b97a)" : "#3e2723",
+              background: canUpgrade
+                ? "linear-gradient(180deg, #f2dfb6, #d9b97a)"
+                : "#3e2723",
               color: canUpgrade ? "#2b1d14" : "#795548",
               fontFamily: "'Press Start 2P'",
               fontSize: 14,
               py: 1.2,
               px: 4,
               width: "100%",
-              borderBottom: canUpgrade ? "6px solid #886d3a" : "6px solid #271c19",
+              borderBottom: canUpgrade
+                ? "6px solid #886d3a"
+                : "6px solid #271c19",
               borderRadius: "16px",
               display: "flex",
               justifyContent: "center",
@@ -379,7 +470,9 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                 borderBottomWidth: "4px",
               },
               "&:hover": {
-                background: canUpgrade ? "linear-gradient(180deg, #ebd29b, #ba9d61)" : "#3e2723",
+                background: canUpgrade
+                  ? "linear-gradient(180deg, #ebd29b, #ba9d61)"
+                  : "#3e2723",
               },
               "&:active": {
                 borderBottomWidth: "0px",
@@ -401,7 +494,9 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   backgroundColor: "#fff",
                   borderRadius: "50%",
                   border: "1px solid #B8860B",
-                  "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 14 },
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 14,
+                  },
                 }}
               />
               <Typography
@@ -417,6 +512,34 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
           </Button>
         </Box>
       )}
+
+      {/* ปุ่มโชว์ตอนตันแล้ว (Disable) */}
+      {isPreviewReady && isMaxLevel && (
+        <Box sx={{ p: 2, display: "flex", justifyContent: "center", pb: 3 }}>
+           <Button
+            disabled
+            sx={{
+              backgroundColor: "#1a120b",
+              color: "#5d4037",
+              fontFamily: "'Press Start 2P'",
+              fontSize: 14,
+              py: 1.5,
+              px: 4,
+              width: "100%",
+              border: "2px solid #3e2723",
+              borderRadius: "16px",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Typography sx={{ fontFamily: "inherit", fontSize: "inherit", color: "#6d4c41" }}>
+              MAX LEVEL REACHED
+            </Typography>
+          </Button>
+        </Box>
+      )}
+
     </Dialog>
   );
 };
