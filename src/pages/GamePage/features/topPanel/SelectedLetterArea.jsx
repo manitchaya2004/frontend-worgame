@@ -1,7 +1,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint, FaBolt, FaCloud, FaPlus, FaCross } from "react-icons/fa";
-import { GiBroadsword, GiShield, GiStarShuriken, GiTrident, GiBowieKnife, GiFangs } from "react-icons/gi";
+import { GiBroadsword, GiShield, GiWaterDrop, GiTrident, GiBowieKnife, GiFangs } from "react-icons/gi";
 import { getLetterDamage } from "../../../../store/useGameStore"; 
 
 export const SelectedLetterArea = ({ store, constraintsRef }) => {
@@ -31,7 +31,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
                 case "double-guard":
                 case "double-shield": return { icon: <GiShield />, bgColor: "#2980b9" }; 
                 // 🌟 เปลี่ยนสี mana-plus เป็น Cyan (#00bcd4) จะได้ไม่ซ้ำกับ blind
-                case "mana-plus": return { icon: <GiStarShuriken />, bgColor: "#00bcd4" };
+                case "mana-plus": return { icon: <GiWaterDrop />, bgColor: "#00bcd4" };
                 case "shield-plus": return { icon: <GiTrident />, bgColor: "#e67e22" };
                 case "add_bleed": return { icon: <GiBowieKnife />, bgColor: "#8b0000" }; 
                 case "add_poison":

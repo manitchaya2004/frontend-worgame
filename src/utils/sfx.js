@@ -10,11 +10,11 @@ import block from "../assets/sound/block.wav";
 import miss from "../assets/sound/miss.wav";
 import walk from "../assets/sound/walk.wav";
 import poison from "../assets/sound/poison.wav";
+import gameOver from "../assets/sound/game-over.mp3";
 
 // --- Background Music (BGM) ---
 // ✅ Import ไฟล์เพลงใหม่ตรงนี้ (ตรวจสอบ path ให้ชัวร์ว่าไฟล์อยู่ที่นี่จริง)
 import greenGrassUrl from "../assets/music/green-grass.mp3"; 
-import battleUrl from "../assets/music/battle.mp3"
 
 // =========================================================
 // 2. SFX SYSTEM (เสียงเอฟเฟกต์)
@@ -31,8 +31,9 @@ export const sfx = {
   playHit: () => playSound(hitSoundUrl),
   playBlock: () => playSound(block),
   playMiss: () => playSound(miss),
-  playWalk: () => playSound(walk, 0.3), // เดินอาจจะปรับเบาหน่อย
+  playWalk: () => playSound(walk, 0.1), // เดินอาจจะปรับเบาหน่อย
   playPoison: () => playSound(poison),
+  playGameOver: () => playSound(gameOver, 0.7)
 };
 
 // =========================================================
@@ -89,6 +90,5 @@ export const bgm = {
   // ------------------------------------
   // ✅ PRESETS: เรียกใช้ง่ายๆ
   // ------------------------------------
-  playGreenGrass: () => bgm.play(greenGrassUrl, 0.08), // ปรับความดังตรงนี้ (0.2 = 20%)
-  playBattle: () => bgm.play(battleUrl, 0.08)
+  playGreenGrass: () => bgm.play(greenGrassUrl, 0.05), // ปรับความดังตรงนี้ (0.2 = 20%)
 };

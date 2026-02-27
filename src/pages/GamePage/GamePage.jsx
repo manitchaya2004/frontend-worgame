@@ -299,12 +299,6 @@ export default function GameApp() {
   );
 
   const handleSkillClick = useCallback(async () => {
-    const abilityCode = store.playerData.ability.code;
-    if (!abilityCode) return;
-    if (abilityCode === "Expolsion") {
-      await store.performPlayerSkill(null);
-      return;
-    }
     const alive = store.enemies.filter((e) => e.hp > 0);
     if (alive.length === 1) {
       await store.performPlayerSkill(alive[0].id);
@@ -312,7 +306,7 @@ export default function GameApp() {
       setPendingAction("SKILL");
       setShowTargetPicker(true);
     }
-  }, [store.playerData.ability.code, store.enemies, store.performPlayerSkill]);
+  }, [store.enemies, store.performPlayerSkill]);
 
   const handleHeal = useCallback(() => {
     const { potions, hp, max_hp } = store.playerData;

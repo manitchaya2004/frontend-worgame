@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint, FaInfoCircle, FaBolt, FaCloud, FaPlus, FaCross } from "react-icons/fa";
 import { INVENTORY_COUNT } from "../../../../const/index";
 import { useGameStore, getLetterDamage } from "../../../../store/useGameStore";
-import { GiBrain, GiBroadsword, GiShield, GiStarShuriken, GiTrident, GiBowieKnife, GiFangs } from "react-icons/gi";
+import { GiBrain, GiBroadsword, GiShield, GiWaterDrop, GiTrident, GiBowieKnife, GiFangs } from "react-icons/gi";
 
 const SingleSlot = ({ index }) => {
   const store = useGameStore();
@@ -38,8 +38,7 @@ const SingleSlot = ({ index }) => {
       case "double-dmg": return { icon: <GiBroadsword />, bgColor: "#c0392b" };
       case "double-guard":
       case "double-shield": return { icon: <GiShield />, bgColor: "#2980b9" }; 
-      // 🌟 เปลี่ยนสี mana-plus เป็น Cyan (#00bcd4)
-      case "mana-plus": return { icon: <GiStarShuriken />, bgColor: "#00bcd4" };
+      case "mana-plus": return { icon: <GiWaterDrop />, bgColor: "#00bcd4" };
       case "shield-plus": return { icon: <GiTrident />, bgColor: "#e67e22" };
       case "add_bleed": return { icon: <GiBowieKnife />, bgColor: "#8b0000" }; 
       case "add_poison":
@@ -70,20 +69,20 @@ const SingleSlot = ({ index }) => {
 
   const getTooltipBuffInfo = () => {
     switch (buffType) {
-      case "double-dmg": return { desc: " Double score when strike", color: "#e74c3c", icon: <GiBroadsword /> };
+      case "double-dmg": return { desc: " Double score on strike", color: "#e74c3c", icon: <GiBroadsword /> };
       case "double-guard":
-      case "double-shield": return { desc: " Double score when guard", color: "#3498db", icon: <GiShield /> };
+      case "double-shield": return { desc: " Double score on guard", color: "#3498db", icon: <GiShield /> };
       // 🌟 เปลี่ยนสี Tooltip mana-plus เป็น Cyan ด้วย
-      case "mana-plus": return { desc: " Gain 5 mana", color: "#00bcd4", icon: <GiStarShuriken /> };
+      case "mana-plus": return { desc: " Gain 5 mana", color: "#00bcd4", icon: <GiWaterDrop /> };
       case "shield-plus": return { desc: " Gain 1 shield on strike", color: "#e67e22", icon: <GiTrident /> };
-      case "add_bleed": return { desc: " Apply Bleed to target", color: "#e74c3c", icon: <GiBowieKnife /> };
+      case "add_bleed": return { desc: " 50% Chance to Bleed target (stack +25% acc)", color: "#e74c3c", icon: <GiBowieKnife /> };
       case "add_poison":
-      case "add_posion": return { desc: " Apply Poison to target", color: "#2ecc71", icon: <FaCloud /> };
-      case "add_stun": return { desc: " Chance to Stun target", color: "#f1c40f", icon: <FaBolt /> };
-      case "add_blind": return { desc: " Chance to Blind target", color: "#8e44ad", icon: <FaEyeSlash /> };
-      case "heal": return { desc: " Heal HP by letter score (Guard)", color: "#2ecc71", icon: <FaPlus /> };
-      case "bless": return { desc: " Cleanses 1 Debuff (Guard)", color: "#f1c40f", icon: <FaCross /> };
-      case "vampire_fang": return { desc: " Chance to Lifesteal (Strike)", color: "#8b0000", icon: <GiFangs /> };
+      case "add_posion": return { desc: " 50% Chance to Poison target (stack +1 count)", color: "#2ecc71", icon: <FaCloud /> };
+      case "add_stun": return { desc: " 50% Chance to Stun target (stack +1 count)", color: "#f1c40f", icon: <FaBolt /> };
+      case "add_blind": return { desc: " 50% Chance to Blind target (stack +1 count)", color: "#8e44ad", icon: <FaEyeSlash /> };
+      case "heal": return { desc: " Heal 1 HP on guard", color: "#2ecc71", icon: <FaPlus /> };
+      case "bless": return { desc: " Cleanses 1 Debuff on guard", color: "#f1c40f", icon: <FaCross /> };
+      case "vampire_fang": return { desc: " 50% Chance to Lifesteal (stack +25% acc)", color: "#8b0000", icon: <GiFangs /> };
       default: return null;
     }
   };
@@ -272,7 +271,7 @@ export const InventorySlot = () => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", borderBottom: isEnemyTurn ? "1px solid #e74c3c" : "1px solid #4d3a2b", paddingBottom: "8px", marginBottom: "10px" }}>
         <GiBrain style={{ color: isEnemyTurn ? "#e74c3c" : "#d4af37", fontSize: "18px" }} />
         <div style={{ color: isEnemyTurn ? "#e74c3c" : "#d4af37", fontSize: "15px", fontWeight: "900", letterSpacing: "2px", textTransform: "uppercase", textShadow: "0 2px 0 #000" }}>
-          {isEnemyTurn ? "ENEMY TURN" : "BRAIN SLOT"}
+          {isEnemyTurn ? "ENEMY TURN" : "PLAYER TURN"}
         </div>
         <GiBrain style={{ color: isEnemyTurn ? "#e74c3c" : "#d4af37", fontSize: "18px", transform: "scaleX(-1)" }} />
       </div>
