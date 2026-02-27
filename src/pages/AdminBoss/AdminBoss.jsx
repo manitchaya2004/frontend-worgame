@@ -1,4 +1,4 @@
-// src/pages/AdminPage/AdminPage.jsx
+// src/pages/AdminPage/AdminBoss.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminBoss.css";
@@ -9,7 +9,7 @@ import DictionaryPanel from "./panels/DictionaryPanel";
 import MonsterPanel from "./panels/MonsterPanel";
 import HeroPanel from "./panels/HeroPanel";
 import StagePanel from "./panels/StagePanel";
-import MovePanel from "./panels/MovePanel";
+import PlayerPanel from "./panels/PlayerPanel"; // 🌟 นำเข้าตัวจัดการ Player
 
 const AdminBoss = () => {
   const [activeTab, setActiveTab] = useState("dictionary");
@@ -56,11 +56,12 @@ const AdminBoss = () => {
             >
               🗺️ STAGES
             </button>
+            {/* 🌟 Tab สำหรับจัดการ Player */}
             <button
-              className={`tab-btn move-tab ${activeTab === "move" ? "active" : ""}`}
-              onClick={() => setActiveTab("move")}
+              className={`tab-btn ${activeTab === "player" ? "active" : ""}`}
+              onClick={() => setActiveTab("player")}
             >
-              ⚔️ MOVES
+              👥 PLAYERS
             </button>
           </div>
 
@@ -82,7 +83,7 @@ const AdminBoss = () => {
         ) : activeTab === "stage" ? (
           <StagePanel />
         ) : (
-          <MovePanel />
+          <PlayerPanel />
         )}
       </div>
     </div>
