@@ -461,6 +461,52 @@ export const useAuthStore = create(
         }
       },
 
+      // =========================================
+      // ⚡ UPDATE STAMINA 
+      // =========================================
+      updateStamina: async (amount) => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+
+          // ตรวจสอบชื่อ Route ให้ตรงกับ Express Backend ของคุณ (สมมติว่าเป็น /api/update-stamina)
+          const res = await fetch(`/api/update-stamina`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ amount }),
+          });
+
+          const contentType = res.headers.get("content-type");
+          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+            throw new Error("server error");
+          }
+
+          const data = await res.json();
+          if (!data.isSuccess) throw new Error(data.message);
+
+          // อัปเดตข้อมูล Stamina ใหม่ลงใน currentUser ทันที
+          set((state) => ({
+            currentUser: {
+              ...state.currentUser,
+              stamina: {
+                ...state.currentUser.stamina,
+                current: data.stamina.current,
+                max: data.stamina.max,
+                timeToNext: data.stamina.timeToNext // เวลานับถอยหลังที่ได้จาก Backend
+              },
+            },
+          }));
+
+          return { success: true, currentStamina: data.stamina.current };
+        } catch (err) {
+          console.error("updateStamina error:", err);
+          return { success: false, error: err.message };
+        }
+      },
+
 
       /* ===== CLEAR STATES (เหมือน reducers) ===== */
       logout: () => {

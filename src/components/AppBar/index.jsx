@@ -11,7 +11,7 @@ import {
   useTheme as useMuiTheme,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import { motion, animate } from "framer-motion";
 
 // Icons
@@ -22,16 +22,15 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add"; // ➕ ปุ่มบวก
-import CloseIcon from "@mui/icons-material/Close"; // 💡 Icon ปิดหน้าต่าง
-import LogoutIcon from "@mui/icons-material/Logout"; // 💡 Icon Logout
 
-import { GiBroadsword, GiBackpack } from "react-icons/gi";
+import { GiBroadsword } from "react-icons/gi";
 import { FaCrown } from "react-icons/fa";
 // Assets
 import { useAuthStore } from "../../store/useAuthStore";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 import { GameDialog } from "../GameDialog";
+import MiniGame from "../../pages/HomePage/feature/MiniGame/MiniGame";
 
 const THEME = {
   bgMain: "#E8E9CD",
@@ -112,176 +111,208 @@ const AnimatedMoney = ({ value, fontSize = 10 }) => {
 // ==========================================
 // ⚡ COMPONENT: Energy Bar (สายฟ้า + เวลานับถอยหลัง + ปุ่มบวก)
 // ==========================================
-const EnergyBar = ({ energy = 5, timeToNextEnergy = 0, onAddClick }) => {
-  const MAX_ENERGY = 5;
-  const isFull = energy >= MAX_ENERGY;
-  const [timeLeft, setTimeLeft] = useState(Math.floor(timeToNextEnergy / 1000));
+const EnergyBar = React.memo(
+  ({
+    currentStamina = 0,
+    maxStamina = 3,
+    timeToNextEnergy = 0,
+    onAddClick,
+    onTimerEnd,
+  }) => {
+    // 💡 THE FIX: เช็คว่าถ้าโดนหักสายฟ้าไปแล้วแต่เวลาไม่มา ให้บังคับเริ่มที่ 30 นาที (1800 วินาที)
+    const defaultTimeLeft =
+      currentStamina < maxStamina && timeToNextEnergy <= 0
+        ? 30 * 60 // 30 นาที
+        : Math.floor(timeToNextEnergy / 1000);
 
-  // อัปเดตเวลาตั้งต้นเมื่อได้รับค่าใหม่จาก Store / Backend
-  useEffect(() => {
-    setTimeLeft(Math.floor(timeToNextEnergy / 1000));
-  }, [timeToNextEnergy]);
+    const [timeLeft, setTimeLeft] = useState(defaultTimeLeft);
 
-  // นับถอยหลังทุกๆ 1 วินาที
-  useEffect(() => {
-    if (energy >= MAX_ENERGY || timeLeft <= 0) return;
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [energy, timeLeft]);
+    // สร้างตัวแปรเช็คว่าพลังงานเต็มหรือยัง
+    const isFull = currentStamina >= maxStamina;
 
-  // ฟอร์แมตเวลา นาที:วินาที
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+    // อัปเดตเวลาตั้งต้นเมื่อได้รับค่าใหม่จาก Store
+    useEffect(() => {
+      if (currentStamina < maxStamina) {
+        setTimeLeft(
+          timeToNextEnergy > 0 ? Math.floor(timeToNextEnergy / 1000) : 30 * 60,
+        );
+      } else {
+        setTimeLeft(0);
+      }
+    }, [timeToNextEnergy, currentStamina, maxStamina]);
 
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        backgroundColor: "rgba(43, 29, 20, 0.6)",
-        border: "3px solid #5A3A2E",
-        boxShadow: "0 3px 0 #2b1a12",
-        borderRadius: "15px",
-        height: { xs: "32px", sm: "40px" },
-        px: { xs: 0.5, sm: 1 },
-        gap: { xs: 0.5, sm: 1 },
+    // นับถอยหลัง
+    useEffect(() => {
+      if (isFull) return;
 
-        //mobile landscape
-        "@media (orientation: landscape) and (max-height: 450px)": {
-          height: "35px",
-          borderRadius: "13px",
-          px: 0.5,
-          mr: 1,
-        },
-      }}
-    >
-      {/* ⚡ แสดงสายฟ้า 5 ดวง */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
-        {[...Array(MAX_ENERGY)].map((_, index) => {
-          const isActive = index < energy;
-          return (
-            <FlashOnIcon
-              key={index}
-              sx={{
-                fontSize: { xs: 12, sm: 22 },
-                color: isActive ? "#ffd000" : "#3e2615",
-                filter: isActive
-                  ? isFull
-                    ? "drop-shadow(0 0 6px #FFD700)"
-                    : "drop-shadow(1px 2px 0px #B8860B)"
-                  : "none",
-                // ⭐ เส้นขอบตามรูปสายฟ้า
-                stroke: "#B8860B",
-                strokeWidth: 2,
-                paintOrder: "stroke fill", // ให้เส้นขอบอยู่ใต้สี
-                transition: "all 0.3s",
+      if (timeLeft <= 0) {
+        // พอเวลาเหลือ 0 ปุ๊บ ให้เรียกฟังก์ชันดึงข้อมูลใหม่!
+        if (onTimerEnd) onTimerEnd();
+        return;
+      }
 
-                //mobile landscape
-                "@media (orientation: landscape) and (max-height: 450px)": {
-                  fontSize: 16,
-                },
-              }}
-            />
-          );
-        })}
-      </Box>
+      const interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
 
-      {/* ⏳ เวลานับถอยหลัง */}
-      {energy < MAX_ENERGY && (
-        <Box
-          sx={{
-            minWidth: { xs: "30px", sm: "40px" },
-            textAlign: "center",
-            mx: { xs: 0.5, sm: 1 },
-          }}
-        >
-          <Typography
-            sx={{
-              fontFamily: "'Press Start 2P'",
-              fontSize: { xs: 5.5, sm: 7 },
-              opacity: 0.8,
-              color: "#3e2615",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            {formatTime(timeLeft)}
-          </Typography>
-        </Box>
-      )}
+      return () => clearInterval(interval);
+    }, [isFull, timeLeft, onTimerEnd]);
 
-      {/* ➕ ปุ่มบวก สำหรับเล่นมินิเกม */}
-      <Tooltip
-        title="Play Minigame to get Energy!"
-        arrow
-        placement="bottom"
-        slotProps={{
-          tooltip: {
-            sx: {
-              fontSize: "12px",
-              fontFamily: "'Verdana', sans-serif",
-              // fontWeight: "bold",
-              backgroundColor: "#2a160f",
-              border: `1px solid black`,
-              color: "gray",
-            },
+    const formatTime = (seconds) => {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    };
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          backgroundColor: "rgba(43, 29, 20, 0.6)",
+          border: "3px solid #5A3A2E",
+          boxShadow: "0 3px 0 #2b1a12",
+          borderRadius: "15px",
+          height: { xs: "32px", sm: "40px" },
+          px: { xs: 0.5, sm: 1 },
+          gap: { xs: 0.5, sm: 1 },
+
+          //mobile landscape
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            height: "35px",
+            borderRadius: "13px",
+            px: 0.5,
+            mr: 1,
           },
-          arrow: { sx: { color: "#000000" } },
         }}
       >
-        <IconButton
-          onClick={onAddClick}
-          sx={{
-            backgroundColor: "#66bb6a",
-            border: "1.5px solid #2e7d32",
-            boxShadow: "0 0 6px rgba(102,187,106,0.6)",
-            p: 0,
-            width: { xs: 18, sm: 22 },
-            height: { xs: 18, sm: 22 },
-            // boxShadow: "0 2px 0 #1b5e20",
-            "&:hover": {
-              backgroundColor: "#66bb6a",
-              transform: "translateY(1px)",
-              boxShadow: "0 1px 0 #1b5e20",
-            },
-            "&:active": {
-              transform: "translateY(2px)",
-              boxShadow: "none",
-            },
+        {/* ⚡ แสดงสายฟ้า 5 ดวง (หรือตาม Max) */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
+          {[...Array(maxStamina)].map((_, index) => {
+            const isActive = index < currentStamina;
+            return (
+              <FlashOnIcon
+                key={index}
+                sx={{
+                  fontSize: { xs: 12, sm: 22 },
+                  color: isActive ? "#ffd000" : "#3e2615",
+                  filter: isActive
+                    ? isFull
+                      ? "drop-shadow(0 0 6px #FFD700)"
+                      : "drop-shadow(1px 2px 0px #B8860B)"
+                    : "none",
+                  // ⭐ เส้นขอบตามรูปสายฟ้า
+                  stroke: "#B8860B",
+                  strokeWidth: 2,
+                  paintOrder: "stroke fill", // ให้เส้นขอบอยู่ใต้สี
+                  transition: "all 0.3s",
 
-            //mobile landscape
-            "@media (orientation: landscape) and (max-height: 450px)": {
-              width: 18,
-              height: 18,
-              borderRadius: "4px",
+                  //mobile landscape
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 16,
+                  },
+                }}
+              />
+            );
+          })}
+        </Box>
+
+        {/* ⏳ เวลานับถอยหลัง */}
+        {/* 💡 THE FIX: เอาเงื่อนไข timeToNextEnergy > 0 ออก ให้โชว์เสมอถ้าสายฟ้ายังไม่เต็ม */}
+        {currentStamina < maxStamina && (
+          <Box
+            sx={{
+              minWidth: { xs: "30px", sm: "40px" },
+              textAlign: "center",
+              mx: { xs: 0.5, sm: 1 },
+            }}
+          >
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: { xs: 7.5, sm: 9 },
+                opacity: 0.9,
+                color: "#E8E9CD",
+                letterSpacing: "-0.5px",
+              }}
+            >
+              {formatTime(timeLeft)}
+            </Typography>
+          </Box>
+        )}
+
+        {/* ➕ ปุ่มบวก สำหรับเล่นมินิเกม */}
+        {/* 💡 (ใส่เงื่อนไขซ่อนปุ่มถ้าเต็ม ไว้เผื่อต้องการ) */}
+
+        <Tooltip
+          title="Play Minigame to get Energy!"
+          arrow
+          placement="bottom"
+          slotProps={{
+            tooltip: {
+              sx: {
+                fontSize: "12px",
+                fontFamily: "'Verdana', sans-serif",
+                // fontWeight: "bold",
+                backgroundColor: "#2a160f",
+                border: `1px solid black`,
+                color: "gray",
+              },
             },
+            arrow: { sx: { color: "#000000" } },
           }}
         >
-          <AddIcon
+          <IconButton
+            onClick={onAddClick}
+            disabled={isFull}
             sx={{
-              color: "#fff",
-              fontSize: { xs: 14, sm: 18 },
-              fontWeight: "bold",
+              backgroundColor: "#66bb6a",
+              border: "1.5px solid #2e7d32",
+              boxShadow: "0 0 6px rgba(102,187,106,0.6)",
+              p: 0,
+              width: { xs: 18, sm: 22 },
+              height: { xs: 18, sm: 22 },
+              "&:hover": {
+                backgroundColor: "#66bb6a",
+                transform: "translateY(1px)",
+                boxShadow: "0 1px 0 #1b5e20",
+              },
+              "&:active": {
+                transform: "translateY(2px)",
+                boxShadow: "none",
+              },
 
               //mobile landscape
               "@media (orientation: landscape) and (max-height: 450px)": {
-                fontSize: 14,
+                width: 18,
+                height: 18,
+                borderRadius: "4px",
               },
             }}
-          />
-        </IconButton>
-      </Tooltip>
-    </Box>
-  );
-};
+          >
+            <AddIcon
+              sx={{
+                color: "#fff",
+                fontSize: { xs: 14, sm: 18 },
+                fontWeight: "bold",
+
+                //mobile landscape
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 14,
+                },
+              }}
+            />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    );
+  },
+);
 
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
-  const { volume, isMuted, setVolume, toggleMute } = useAuthStore();
+  const { volume, isMuted, setVolume, toggleMute, refreshUser } =
+    useAuthStore();
 
   const muiTheme = useMuiTheme();
 
@@ -300,6 +331,8 @@ const GameAppBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [confirmLogout, setConfirmLogout] = useState(false);
+
+  const [isMiniGameOpen, setIsMiniGameOpen] = useState(false);
 
   const handleVolumeChange = (event, newValue) => {
     setVolume(newValue);
@@ -504,11 +537,12 @@ const GameAppBar = () => {
 
             {/* กล่อง 2: Energy Bar วางแยกออกมาด้านขวา */}
             <EnergyBar
-              energy={currentUser?.energy ?? 5}
-              timeToNextEnergy={currentUser?.timeToNextEnergy ?? 0}
-              onAddClick={() => {
-                // เปลี่ยน Path ไปที่มินิเกมของคุณได้เลย
-                navigate("/home/minigame-vocab");
+              currentStamina={currentUser?.stamina?.current ?? 0}
+              maxStamina={currentUser?.stamina?.max ?? 3}
+              timeToNextEnergy={currentUser?.stamina?.timeToNext ?? 0} // ถ้า Backend ส่งเวลามา
+              onAddClick={() => setIsMiniGameOpen(true)}
+              onTimerEnd={() => {
+                refreshUser();
               }}
             />
           </Box>
@@ -645,7 +679,7 @@ const GameAppBar = () => {
 
       <GameDialog
         open={confirmLogout}
-        title="Confirm Logout"
+        title="SETTINGS"
         description="Are you sure you want to logout?"
         onConfirm={handleLogout}
         onCancel={() => setConfirmLogout(false)}
@@ -657,8 +691,15 @@ const GameAppBar = () => {
         onVolumeChange={handleVolumeChange}
         onToggleMute={toggleMute}
       />
+
+      <MiniGame
+        open={isMiniGameOpen}
+        onClose={() => setIsMiniGameOpen(false)}
+        currentStamina={currentUser?.stamina?.current}
+        maxStamina={currentUser?.stamina?.max}
+      />
     </>
   );
 };
 
-export default GameAppBar;
+export default React.memo(GameAppBar);
