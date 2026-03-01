@@ -54,7 +54,7 @@ const RpgButton = ({ children, onClick, color = "wood", style = {} }) => {
         borderRadius: "6px",
         color: theme.text,
         padding: "12px 20px",
-        fontSize: "14px",
+        fontSize: "12px", // 💡 ขนาดตัวอักษรปุ่มพอดีๆ
         fontFamily: '"Press Start 2P", monospace',
         fontWeight: "bold",
         cursor: "pointer",
@@ -99,11 +99,13 @@ export const GameDialog = ({
   description,
   confirmText = "START",
   cancelText = "BACK",
+  confirmColor = "gold", 
+  cancelColor = "red",
   onConfirm,
   onCancel,
 
-  // 💡 Props ใหม่สำหรับควบคุมเรื่องเสียง
-  showAudioSettings = false, // ค่าเริ่มต้นคือ false จะได้ไม่กระทบหน้าอื่นที่เรียกใช้
+  // 💡 Props สำหรับเสียง (เอากลับมาแล้ว!)
+  showAudioSettings = false, 
   volume = 0.5,
   isMuted = false,
   onVolumeChange,
@@ -128,14 +130,14 @@ export const GameDialog = ({
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             style={{
               background: "#19120e",
-              width: "400px",
+              width: "420px", // ขยายความกว้างนิดนึง
               padding: "30px 25px",
               borderRadius: "12px",
               border: "3px solid #8c734b",
               boxShadow: "0 0 0 5px #0f0a08, 0 20px 60px rgba(0,0,0,0.9)",
               display: "flex",
               flexDirection: "column",
-              gap: "25px",
+              gap: "20px",
               position: "relative",
               alignItems: "center",
             }}
@@ -144,7 +146,7 @@ export const GameDialog = ({
             <Typography
               sx={{
                 fontFamily: '"Press Start 2P", monospace',
-                fontSize: "20px",
+                fontSize: "18px",
                 color: "#f1c40f",
                 textAlign: "center",
                 textShadow: "2px 2px 0 #000",
@@ -156,7 +158,7 @@ export const GameDialog = ({
               {title}
             </Typography>
 
-            {/* 💡 ส่วนตั้งค่าเสียง (จะแสดงก็ต่อเมื่อส่ง showAudioSettings={true} มาเท่านั้น) */}
+            {/* 🔊 THE FIX: คืนชีพแถบปรับเสียง! จะแสดงเฉพาะตอนส่ง showAudioSettings=true มา */}
             {showAudioSettings && (
               <Box sx={{ width: "100%", mb: 1 }}>
                 <Typography
@@ -206,7 +208,7 @@ export const GameDialog = ({
                         height: 20,
                         backgroundColor: "#8c734b",
                         border: `2px solid #f1c40f`,
-                        borderRadius: "4px", // ปุ่มเหลี่ยมเข้ากับเกม
+                        borderRadius: "4px", 
                         boxShadow: "0 2px 0 #000",
                       },
                       "& .MuiSlider-track": {
@@ -223,36 +225,49 @@ export const GameDialog = ({
                 </Box>
               </Box>
             )}
-            {/* คำอธิบาย (Description) */}
+            
+            {/* คำอธิบาย (เปลี่ยนฟอนต์ให้อ่านง่ายตาแตก) */}
             {description && (
-              <Typography
+              <Box
                 sx={{
-                  fontFamily: '"Press Start 2P", monospace',
-                  fontSize: "12px",
-                  textAlign: "center",
-                  color: "#d1c4b6",
-                  lineHeight: 1.8,
-                  mb: 1,
+                  width: "100%",
+                  backgroundColor: "rgba(0, 0, 0, 0.3)",
+                  border: "1px solid #3a2a18",
+                  borderRadius: "6px",
+                  padding: "16px",
+                  boxSizing: "border-box",
+                  boxShadow: "inset 0 2px 5px rgba(0,0,0,0.5)",
                 }}
               >
-                {description}
-              </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: "'Prompt', 'Kanit', 'Arial', sans-serif",
+                    fontSize: "15px",
+                    textAlign: "center",
+                    color: "#e8dcc4",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {description}
+                </Typography>
+              </Box>
             )}
 
-            {/* ปุ่มกด (Buttons) */}
+            {/* ปุ่มกดซ้าย-ขวา */}
             <Box
               sx={{
                 display: "flex",
-                flexDirection: "column",
+                flexDirection: "row", // 💡 วางแนวนอน
                 gap: 2,
                 width: "100%",
+                mt: 1,
               }}
             >
-              <RpgButton onClick={onConfirm} color="gold">
-                {confirmText}
-              </RpgButton>
-              <RpgButton onClick={onCancel} color="red">
+              <RpgButton onClick={onCancel} color={cancelColor} style={{ flex: 1 }}>
                 {cancelText}
+              </RpgButton>
+              <RpgButton onClick={onConfirm} color={confirmColor} style={{ flex: 1 }}>
+                {confirmText}
               </RpgButton>
             </Box>
           </motion.div>

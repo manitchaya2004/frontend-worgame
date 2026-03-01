@@ -32,6 +32,10 @@ export const THEMES = {
   textDark: "#1a120b", // สีตัวหนังสือบนพื้นสว่าง
   magic: "#00bcd4", // สีฟ้าเวทมนตร์
   shadow: "#1a120b", // สีเงา
+
+  accent: "#ffecb3",
+  success: "#4caf50",
+  error: "#f44336",
 };
 
 export const THEME = {

@@ -52,6 +52,9 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   const currentExp = isOwned ? playerHero?.current_exp || 0 : 0;
   const nextExp = playerHero?.next_exp || 100;
 
+  // ดึงข้อมูล Deck ล่าสุดมาแสดง และหา Effect ที่ไม่ซ้ำกัน
+  const rawDeck = isOwned ? playerHero?.deck_list : hero?.hero_deck;
+
   // Map ข้อมูล 5 ตัวตามที่ขอ
   const base_stats = {
     hp: isOwned ? playerHero?.stats?.levels?.hp_lv : hero.hp_lv,
@@ -72,22 +75,8 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
         power: hero.power || 0,
       };
 
-  // ดึงข้อมูล Deck ล่าสุดมาแสดง และหา Effect ที่ไม่ซ้ำกัน
-  const rawDeck = isOwned ? playerHero?.deck_list : hero?.hero_deck;
-  const uniqueEffects = rawDeck
-    ? Array.from(new Set(rawDeck.map((card) => card.effect)))
-    : [];
-
-  console.log(" uniqueEffects", uniqueEffects);
-
-  // เดี๋ยวมาปรับ
-  const MAX_STATS_REF = {
-    hp: 20,
-    power: 20,
-    speed: 20,
-    slot: 20,
-  };
-
+  
+  
   const handleConfirmBuy = async () => {
     await buyHero(hero.id);
     setOpenBuy(false);
