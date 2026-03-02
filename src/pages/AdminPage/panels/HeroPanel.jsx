@@ -5,44 +5,45 @@ import { HeroSpriteLoop } from "../components/SpriteLoops";
 
 // ✅ UI แบบในไฟล์เกม (dropdown + animation + icon)
 import { AnimatePresence, motion } from "framer-motion";
-import { GiBroadsword, GiShield, GiWaterDrop, GiTrident } from "react-icons/gi";
+import {
+  GiBroadsword,
+  GiShield,
+  GiWaterDrop,
+  GiTrident,
+  GiBowieKnife,
+  GiFangs,
+} from "react-icons/gi";
+import { FaBolt, FaCloud, FaEyeSlash, FaPlus } from "react-icons/fa";
 
-// รายชื่อ Effect อ้างอิงจากระบบเกม
+// ✅ รายชื่อ Effect สำหรับ Deck (id ล้วน) — ให้เหมือน MonsterPanel
 const DECK_EFFECTS = [
   "double-dmg",
-  "double-guard",
   "double-shield",
   "mana-plus",
   "shield-plus",
+  "add_bleed",
+  "add_poison",
+  "add_stun",
+  "add_blind",
+  "heal",
+  "bless",
+  "vampire_fang",
 ];
 
-// ✅ meta สำหรับทำ UI ให้เหมือนในไฟล์เกม (icon + สี + label)
+// ✅ meta สำหรับทำ UI ให้เหมือนในไฟล์เกม (icon + สี + label) — ให้เหมือน MonsterPanel
 const EFFECT_META = {
-  "double-dmg": {
-    label: "Double Damage",
-    icon: <GiBroadsword />,
-    color: "#c0392b",
-  },
-  "double-guard": {
-    label: "Double Guard",
-    icon: <GiShield />,
-    color: "#2980b9",
-  },
-  "double-shield": {
-    label: "Double Shield",
-    icon: <GiShield />,
-    color: "#2980b9",
-  },
-  "mana-plus": {
-    label: "Mana Plus",
-    icon: <GiWaterDrop />,
-    color: "#00bcd4",
-  },
-  "shield-plus": {
-    label: "Shield Plus",
-    icon: <GiTrident />,
-    color: "#e67e22",
-  },
+  "double-dmg": { label: "Double Damage", icon: <GiBroadsword />, color: "#c0392b" },
+  "double-shield": { label: "Double Shield", icon: <GiShield />, color: "#2980b9" },
+  "mana-plus": { label: "Mana Plus", icon: <GiWaterDrop />, color: "#00bcd4" },
+  "shield-plus": { label: "Shield Plus", icon: <GiTrident />, color: "#e67e22" },
+
+  "add_bleed": { label: "Add Bleed", icon: <GiBowieKnife />, color: "#8b0000" },
+  "add_poison": { label: "Add Poison", icon: <FaCloud />, color: "#27ae60" },
+  "add_stun": { label: "Add Stun", icon: <FaBolt />, color: "#f39c12" },
+  "add_blind": { label: "Add Blind", icon: <FaEyeSlash />, color: "#8e44ad" },
+  "heal": { label: "Heal", icon: <FaPlus />, color: "#2ecc71" },
+  "bless": { label: "Bless", icon: <FaPlus />, color: "#f1c40f" },
+  "vampire_fang": { label: "Vampire Fang", icon: <GiFangs />, color: "#8b0000" },
 };
 
 // ✅ Effect dropdown แบบเดียวกับไฟล์เกม: badge + icon + popup list + motion
@@ -483,11 +484,12 @@ const HeroPanel = () => {
       speed: h.speed ?? "",
       ability_cost: h.ability_cost ?? "",
       description: h.description ?? "",
-      hero_deck: h.hero_deck || [],
+      hero_deck: Array.isArray(h.hero_deck) ? h.hero_deck : [],
     });
+
     resetSpriteFiles();
     setIsEditing(true);
-    document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
+
   };
 
   const handleDelete = async (id) => {
@@ -863,22 +865,25 @@ const HeroPanel = () => {
                     </div>
 
                     {Array.isArray(h.hero_deck) && h.hero_deck.length > 0 && (
-                      <div style={{ maxHeight: 120, overflowY: "auto", paddingRight: 6 }}>
-                        {h.hero_deck.map((card, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              color: "#ddd",
-                              fontSize: 13,
-                              lineHeight: 1.3,
-                              padding: "3px 0",
-                              whiteSpace: "normal",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {card.effect} (x{card.size})
-                          </div>
-                        ))}
+                      <div style={{ paddingRight: 6 }}>
+                        {h.hero_deck.map((card, idx) => {
+                          const meta = EFFECT_META[card.effect];
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                color: "#ddd",
+                                fontSize: 13,
+                                lineHeight: 1.3,
+                                padding: "3px 0",
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {meta ? meta.label : card.effect} (x{card.size})
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </td>
@@ -897,13 +902,26 @@ const HeroPanel = () => {
                         flexWrap: "wrap",
                       }}
                     >
-                      <button className="btn btn-edit" onClick={() => handleEdit(h)} data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้">
+                      <button
+                        type="button"
+                        className="btn btn-edit"
+                        onClick={() => handleEdit(h)}
+                        data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้"
+                      >
                         Edit
                       </button>
-                      <button className="btn btn-delete" onClick={() => handleDelete(h.id)} data-tooltip="ลบฮีโร่ถาวร">
+
+                      <button
+                        type="button"
+                        className="btn btn-delete"
+                        onClick={() => handleDelete(h.id)}
+                        data-tooltip="ลบฮีโร่ถาวร"
+                      >
                         Del
                       </button>
+
                       <button
+                        type="button"
                         className="btn"
                         style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }}
                         onClick={() => handleDeleteSprites(h.id)}
