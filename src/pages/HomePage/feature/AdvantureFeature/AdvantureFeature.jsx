@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom"; //เปลี่ยน หน้า
-import { useEffect, useState, useMemo, memo } from "react";
+import React, { useEffect, useState, useMemo, memo } from "react";
 import { Box, Typography } from "@mui/material";
 import { useData } from "../../hook/useData";
 import { motion } from "framer-motion";

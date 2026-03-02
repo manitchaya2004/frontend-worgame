@@ -12,15 +12,15 @@ import StagePanel from "./panels/StagePanel";
 import PlayerPanel from "./panels/PlayerPanel";
 
 import VisionHelper from "./components/VisionHelper";
-
+import { useAuthStore } from "../../store/useAuthStore";
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("dictionary");
   const navigate = useNavigate();
-
+  const { currentUser, logout } = useAuthStore();
+  console.log("AdminPage rendered", currentUser);
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/auth/login");
+    logout(); 
+    navigate("/auth");
   };
 
   return (
