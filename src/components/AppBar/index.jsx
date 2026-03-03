@@ -7,6 +7,7 @@ import {
   Button,
   Tooltip,
   IconButton,
+  Badge,
   useMediaQuery,
   useTheme as useMuiTheme,
 } from "@mui/material";
@@ -19,10 +20,11 @@ import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsIcon from "@mui/icons-material/Settings";
-import LogoutIcon from "@mui/icons-material/Logout"; // 💡 Import ไอคอน Logout แบบประตู
+import LogoutIcon from "@mui/icons-material/Logout";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add";
+import ErrorIcon from '@mui/icons-material/Error';
 
 import { GiBroadsword } from "react-icons/gi";
 import { FaCrown } from "react-icons/fa";
@@ -180,6 +182,7 @@ const EnergyBar = React.memo(
             borderRadius: "13px",
             px: 0.5,
             mr: 1,
+            gap:0
           },
         }}
       >
@@ -216,6 +219,9 @@ const EnergyBar = React.memo(
               minWidth: { xs: "30px", sm: "40px" },
               textAlign: "center",
               mx: { xs: 0.5, sm: 1 },
+               "@media (orientation: landscape) and (max-height: 450px)": {
+                   mx:0
+                  },
             }}
           >
             <Typography
@@ -225,6 +231,10 @@ const EnergyBar = React.memo(
                 opacity: 0.9,
                 color: "#E8E9CD",
                 letterSpacing: "-0.5px",
+                 "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 7,
+                  },
+
               }}
             >
               {formatTime(timeLeft)}
@@ -251,7 +261,7 @@ const EnergyBar = React.memo(
         >
           <IconButton
             onClick={onAddClick}
-            disabled={isFull}
+            // disabled={isFull}
             sx={{
               backgroundColor: "#66bb6a",
               border: "1.5px solid #2e7d32",
@@ -269,9 +279,9 @@ const EnergyBar = React.memo(
                 boxShadow: "none",
               },
               "@media (orientation: landscape) and (max-height: 450px)": {
-                width: 18,
-                height: 18,
-                borderRadius: "4px",
+                width: 16,
+                height: 16,
+                borderRadius: "6px",
               },
             }}
           >
@@ -294,10 +304,17 @@ const EnergyBar = React.memo(
 
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
-  const { 
-    volume, isMuted, setVolume, toggleMute, 
-    sfxVolume, isSfxMuted, setSfxVolume, toggleSfxMute,
-    refreshUser 
+  console.log("user", currentUser);
+  const {
+    volume,
+    isMuted,
+    setVolume,
+    toggleMute,
+    sfxVolume,
+    isSfxMuted,
+    setSfxVolume,
+    toggleSfxMute,
+    refreshUser,
   } = useAuthStore();
 
   const muiTheme = useMuiTheme();
@@ -308,7 +325,14 @@ const GameAppBar = () => {
   const isLandscapeMobile = useMediaQuery(
     "(orientation: landscape) and (max-height: 450px)",
   );
+  
   const isCompact = isMobileWidth || isLandscapeMobile;
+
+  const isLandscape = useMediaQuery("(orientation: landscape)");
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+
+  // 💡 กลยุทธ์: ถ้าจอเล็กมาก ให้รวม Monsters กับ Dictionary เข้าด้วยกัน
+  const showCompactLibrary = isMobile || isLandscapeMobile;
 
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
@@ -323,27 +347,25 @@ const GameAppBar = () => {
 
   const [isMiniGameOpen, setIsMiniGameOpen] = useState(false);
 
-  // การจัดการ Music (BGM)
-  const handleVolumeChange = (event, newValue) => {
-    setVolume(newValue);
-    if (newValue > 0 && isMuted) toggleMute();
-  };
-
-  // การจัดการ Effect (SFX)
-  const handleSfxVolumeChange = (event, newValue) => {
-    setSfxVolume(newValue);
-    if (newValue > 0 && isSfxMuted) toggleSfxMute();
-  };
-
+  // ใน GameAppBar.js
   const handleSaveSettings = (newSettings) => {
+    if (!newSettings) return; // กันพัง
+
     playClickSound();
-    
-    // บันทึกลง Store จริงๆ
+
+    // 1. จัดการเรื่อง Music
     setVolume(newSettings.volume);
-    if (newSettings.isMuted !== isMuted) toggleMute();
-    
+    // ถ้าค่าที่ส่งมา (newSettings.isMuted) ไม่ตรงกับใน Store (isMuted) ถึงค่อยสั่งสลับ
+    if (newSettings.isMuted !== isMuted) {
+      toggleMute();
+    }
+
+    // 2. จัดการเรื่อง Sound Effects
     setSfxVolume(newSettings.sfxVolume);
-    if (newSettings.isSfxMuted !== isSfxMuted) toggleSfxMute();
+    // ถ้าค่าที่ส่งมาไม่ตรงกับใน Store ถึงค่อยสั่งสลับ
+    if (newSettings.isSfxMuted !== isSfxMuted) {
+      toggleSfxMute();
+    }
 
     setOpenSettings(false);
   };
@@ -354,6 +376,19 @@ const GameAppBar = () => {
     navigate("/auth");
     setConfirmLogout(false);
   };
+
+  // 💡 THE FIX: คำนวณจำนวนไอเทมเฉพาะ cure, health, reroll
+  const currentItemsCount = currentUser?.potion
+    ? (currentUser.potion.cure || 0) +
+      (currentUser.potion.health || 0) +
+      (currentUser.potion.reroll || 0)
+    : 0;
+
+  // 💡 THE FIX: ดึง max_slot จากใน potion object
+  const maxItemsSlot = currentUser?.potion?.max_slot || 0;
+  
+  // เช็คว่าช่องว่างหรือไม่
+  const hasEmptySlot = currentItemsCount < maxItemsSlot;
 
   const MAIN_NAV_ITEMS = [
     { id: "item", label: "ITEM", path: "/home/item", icon: <InventoryIcon /> },
@@ -396,6 +431,7 @@ const GameAppBar = () => {
           boxShadow: "none",
           borderBottom: `2px solid ${THEME.border}`,
           zIndex: 1100,
+          height: isLandscapeMobile ? "50px" : "auto",
         }}
       >
         <Toolbar
@@ -418,10 +454,18 @@ const GameAppBar = () => {
               alignItems: "center",
               justifyContent: "flex-start",
               gap: { xs: 0.5, sm: 1 },
-              "@media (orientation: landscape) and (max-height: 450px)": { gap: 0.5 },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                gap: 0.5,
+              },
             }}
           >
-            <Box sx={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <Box
+              sx={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               <Box
                 sx={{
                   pl: { xs: "45px", sm: "50px", md: "55px" },
@@ -435,7 +479,10 @@ const GameAppBar = () => {
                   flexDirection: "column",
                   minWidth: { xs: "90px", sm: "110px", md: "130px" },
                   width: "fit-content",
-                  "@media (orientation: landscape) and (max-height: 450px)": { pl: "45px", minWidth: "90px" },
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    pl: "45px",
+                    minWidth: "90px",
+                  },
                 }}
               >
                 <Tooltip>
@@ -485,12 +532,20 @@ const GameAppBar = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   zIndex: 2,
-                  "@media (orientation: landscape) and (max-height: 450px)": { width: 40, height: 40 },
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    width: 40,
+                    height: 40,
+                  },
                 }}
               >
                 <Avatar
                   src={LoadImage(name, heroId, 1)}
-                  sx={{ width: "120%", height: "120%", imageRendering: "pixelated", mb: 1 }}
+                  sx={{
+                    width: "120%",
+                    height: "120%",
+                    imageRendering: "pixelated",
+                    mb: 1,
+                  }}
                 />
                 <Box
                   sx={{
@@ -504,7 +559,13 @@ const GameAppBar = () => {
                     zIndex: 3,
                   }}
                 >
-                  <Typography sx={{ fontSize: { xs: 5, sm: 7 }, color: "#FFD700", fontFamily: "'Press Start 2P'" }}>
+                  <Typography
+                    sx={{
+                      fontSize: { xs: 5, sm: 7 },
+                      color: "#FFD700",
+                      fontFamily: "'Press Start 2P'",
+                    }}
+                  >
                     Lv.{currentLevel}
                   </Typography>
                 </Box>
@@ -515,59 +576,159 @@ const GameAppBar = () => {
               currentStamina={currentUser?.stamina?.current ?? 0}
               maxStamina={currentUser?.stamina?.max ?? 3}
               timeToNextEnergy={currentUser?.stamina?.timeToNext ?? 0}
-              onAddClick={() => { playClickSound(); setIsMiniGameOpen(true); }}
+              onAddClick={() => {
+                playClickSound();
+                setIsMiniGameOpen(true);
+              }}
               onTimerEnd={() => refreshUser()}
             />
           </Box>
 
           {/* 🔹 CENTER : NAVIGATION */}
-          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: { xs: 0.5, sm: 1, md: 1.5 } }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: { xs: 0.5, sm: 1, md: 1.5 },
+               "@media (orientation: landscape) and (max-height: 450px)": {
+                   gap:1
+                  },
+            }}
+          >
             {MAIN_NAV_ITEMS.map((item) => {
-              const isActive = item.path === "/home" ? location.pathname === "/home" : location.pathname.includes(item.path);
-              return (
+              const isActive =
+                item.path === "/home"
+                  ? location.pathname === "/home"
+                  : location.pathname.includes(item.path);
+
+              const buttonContent = (
                 <Button
-                  key={item.id}
-                  onClick={() => { playClickSound(); navigate(item.path); }}
+                  onClick={() => {
+                    playClickSound();
+                    navigate(item.path);
+                  }}
                   sx={{
-                    minWidth: isCompact ? "40px" : item.isMain ? "160px" : "120px",
-                    height: isCompact ? "36px" : item.isMain ? { xs: "40px", sm: "45px", md: "52px" } : { xs: "36px", md: "40px" },
+                    position: "relative",
+                    overflow: "visible",
+                    minWidth: isCompact
+                      ? "40px"
+                      : item.isMain
+                        ? "160px"
+                        : "120px",
+                    height: isCompact
+                      ? "36px"
+                      : item.isMain
+                        ? { xs: "40px", sm: "45px", md: "52px" }
+                        : { xs: "36px", md: "40px" },
                     flexDirection: { xs: "column", sm: "row" },
                     fontFamily: "'Press Start 2P'",
-                    fontSize: item.isMain ? { xs: 8, sm: 10, md: 12 } : { xs: 6, sm: 8 },
+                    fontSize: item.isMain
+                      ? { xs: 8, sm: 10, md: 12 }
+                      : { xs: 6, sm: 8 },
                     color: isActive ? THEME.bgDark : "#d7ccc8",
-                    backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
+                    backgroundColor: isActive
+                      ? THEME.accent
+                      : "rgba(43, 29, 20, 0.6)",
                     border: `2px solid ${isActive ? THEME.activeBorder : "#5a3e2b"}`,
                     borderRadius: "8px",
-                    boxShadow: isActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
+                    boxShadow: isActive
+                      ? `0 0 12px ${THEME.accent}`
+                      : "0 3px 0 #1a120b",
                     p: isCompact ? 0 : { xs: 0, sm: 1.5 },
                     transition: "all 0.1s",
                     "& .MuiButton-startIcon": {
                       margin: isCompact ? 0 : "0 8px 0 0",
-                      "& > *:nth-of-type(1)": { fontSize: isCompact ? 22 : item.isMain ? 26 : 22 },
+                      "& > *:nth-of-type(1)": {
+                        fontSize: isCompact ? 22 : item.isMain ? 26 : 22,
+                      },
                     },
-                    "&:hover": { backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.9)", transform: "translateY(1px)" },
+                    "&:hover": {
+                      backgroundColor: isActive
+                        ? THEME.accent
+                        : "rgba(43, 29, 20, 0.9)",
+                      transform: "translateY(1px)",
+                    },
                   }}
                   startIcon={item.icon}
                 >
                   {!isCompact && item.label}
                 </Button>
               );
+
+              return (
+                <Box key={item.id} sx={{ position: "relative" }}>
+                  {/* 💡 ถ้าเป็นปุ่มไอเทม และมีช่องว่าง ให้ใส่ Badge ครอบ */}
+                  {item.id === "item" && hasEmptySlot ? (
+                    <Tooltip
+                      title={`You have empty slots! (${currentItemsCount}/${maxItemsSlot})`}
+                      arrow
+                      placement="top"
+                    >
+                      <Badge
+                        overlap="circular"
+                        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                        badgeContent={
+                          <ErrorIcon
+                            sx={{
+                              color: "#ff1744",
+                              fontSize: "1.2rem",
+                              backgroundColor: "#fff",
+                              borderRadius: "50%",
+                              boxShadow: "0 0 5px rgba(0,0,0,0.5)",
+                            }}
+                          />
+                        }
+                      >
+                        {buttonContent}
+                      </Badge>
+                    </Tooltip>
+                  ) : (
+                    buttonContent
+                  )}
+                </Box>
+              );
             })}
           </Box>
 
           {/* 🔹 RIGHT : LIBRARY & SETTINGS & LOGOUT */}
-          <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: { xs: 0.2, sm: 1 } }}>
-            {!isCompact && <Box sx={{ width: "1px", height: "24px", bgcolor: "rgba(255,255,255,0.2)", mx: 0.5 }} />}
-            
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: { xs: 0.2, sm: 1 },
+               "@media (orientation: landscape) and (max-height: 450px)": {
+                  gap:0
+                  },
+            }}
+          >
+            {!isCompact && (
+              <Box
+                sx={{
+                  width: "1px",
+                  height: "24px",
+                  bgcolor: "rgba(255,255,255,0.2)",
+                  mx: 0.5,
+                }}
+              />
+            )}
+
             {LIBRARY_ITEMS.map((item) => {
               const isActive = location.pathname.includes(item.path);
               return (
                 <Tooltip key={item.id} title={item.label} arrow>
                   <IconButton
-                    onClick={() => { playClickSound(); navigate(item.path); }}
+                    onClick={() => {
+                      playClickSound();
+                      navigate(item.path);
+                    }}
                     sx={{
                       color: isActive ? THEME.activeBorder : "#d7ccc8",
-                      backgroundColor: isActive ? "rgba(255, 236, 179, 0.1)" : "transparent",
+                      backgroundColor: isActive
+                        ? "rgba(255, 236, 179, 0.1)"
+                        : "transparent",
                       border: `2px solid ${isActive ? THEME.activeBorder : "transparent"}`,
                       borderRadius: "8px",
                       p: { xs: 0.5, sm: 1 },
@@ -583,7 +744,10 @@ const GameAppBar = () => {
             {/* 💡 THE FIX: แยกปุ่ม Settings (ฟันเฟือง) */}
             <Tooltip title="Settings" arrow>
               <IconButton
-                onClick={() => { playClickSound(); setOpenSettings(true); }}
+                onClick={() => {
+                  playClickSound();
+                  setOpenSettings(true);
+                }}
                 sx={{
                   color: "#d7ccc8",
                   p: { xs: 0.5, sm: 1 },
@@ -598,7 +762,10 @@ const GameAppBar = () => {
             {/* 💡 THE FIX: แยกปุ่ม Logout ออกมา (ไอคอนประตู) */}
             <Tooltip title="Logout" arrow>
               <IconButton
-                onClick={() => { playClickSound(); setConfirmLogout(true); }}
+                onClick={() => {
+                  playClickSound();
+                  setConfirmLogout(true);
+                }}
                 sx={{
                   color: "#d7ccc8",
                   p: { xs: 0.5, sm: 1 },
@@ -618,7 +785,10 @@ const GameAppBar = () => {
         open={openSettings}
         title="SETTINGS"
         onConfirm={handleSaveSettings} // 💡 ใช้ฟังก์ชัน Save ใหม่
-        onCancel={() => { playClickSound(); setOpenSettings(false); }} // 💡 กด Back จะแค่ปิดไป ค่าใน Store ไม่เปลี่ยน
+        onCancel={() => {
+          playClickSound();
+          setOpenSettings(false);
+        }} // 💡 กด Back จะแค่ปิดไป ค่าใน Store ไม่เปลี่ยน
         confirmText="SAVE"
         showAudioSettings={true}
         volume={volume}
@@ -633,7 +803,10 @@ const GameAppBar = () => {
         title="LOGOUT"
         description="Are you sure you want to logout?"
         onConfirm={handleLogout}
-        onCancel={() => { playClickSound(); setConfirmLogout(false); }}
+        onCancel={() => {
+          playClickSound();
+          setConfirmLogout(false);
+        }}
         confirmText="YES"
         cancelText="NO"
         cancelColor="wood"
