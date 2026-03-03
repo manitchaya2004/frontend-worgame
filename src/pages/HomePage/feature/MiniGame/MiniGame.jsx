@@ -24,21 +24,27 @@ import { LetterPool } from "./LetterPool";
 import { useDictionaryStore } from "../../../../store/useDictionaryStore";
 import { useAuthStore } from "../../../../store/useAuthStore";
 
-export const getRandomLetters = (count) => {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let result = "";
-  for (let i = 0; i < count; i++) {
-    result += letters.charAt(Math.floor(Math.random() * letters.length));
-  }
-  return result;
-};
+//sound
+import { useGameSfx } from "../../../../hook/useGameSfx";
+import click from "../../../../assets/sound/click2.ogg";
+
+// export const getRandomLetters = (count) => {
+//   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+//   let result = "";
+//   for (let i = 0; i < count; i++) {
+//     result += letters.charAt(Math.floor(Math.random() * letters.length));
+//   }
+//   return result;
+// };
 
 export const shuffleArray = (array) => {
   return array.sort(() => Math.random() - 0.5);
 };
 
+let audioCtx = null;
+
 const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
-  const { updateStamina } = useAuthStore();
+  const { updateStamina, sfxVolume, isSfxMuted } = useAuthStore();
   const {
     fetchMiniGameDictionary,
     clearMiniGameDictionary,
@@ -56,6 +62,79 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
   const [status, setStatus] = useState("fetching");
   const controls = useAnimation();
   const canPlayAgain = currentStamina + 1 < maxStamina;
+
+  const playClickLetter = useGameSfx(click);
+
+  const playSfx = useCallback(
+    (type) => {
+      // เช็คการ Mute จาก Store
+      if (isSfxMuted || sfxVolume <= 0) return;
+
+      try {
+        // ปลุก Context อีกครั้งเผื่อกรณีเปลี่ยน Tab
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window["webkitAudioContext"];
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        // คำนวณความดังตาม Store
+        const baseVol = type === "success" ? 0.1 : 0.15;
+        const targetVol = baseVol * sfxVolume;
+
+        if (type === "success") {
+          // --- เสียงเดิม Success ---
+          oscillator.type = "square";
+          oscillator.frequency.setValueAtTime(523.25, now); // โน้ต 1
+          oscillator.frequency.setValueAtTime(783.99, now + 0.1); // โน้ต 2
+          oscillator.frequency.setValueAtTime(1046.5, now + 0.2); // โน้ต 3
+
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(targetVol, now + 0.05);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+          oscillator.start(now);
+          oscillator.stop(now + 0.4);
+        } else if (type === "error") {
+          // --- เสียงเดิม Error ---
+          oscillator.type = "sawtooth";
+          oscillator.frequency.setValueAtTime(150, now);
+          oscillator.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(targetVol, now + 0.05);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+          oscillator.start(now);
+          oscillator.stop(now + 0.3);
+        }
+      } catch (error) {
+        console.error("Web Audio API Error:", error);
+      }
+    },
+    [sfxVolume, isSfxMuted]
+  );
+  // เพิ่มฟังก์ชันนี้ต่อจาก playSfx
+  const unlockAudio = useCallback(() => {
+    if (!audioCtx) {
+      const AudioContextClass =
+        window.AudioContext || window["webkitAudioContext"];
+      audioCtx = new AudioContextClass();
+    }
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+  }, []);
 
   // 💡 THE FIX: สร้างฟังก์ชันสำหรับเริ่มเกมใหม่โดยเฉพาะ
   const startNewGame = useCallback(() => {
@@ -189,6 +268,8 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
   }, []);
 
   const handleSelectLetter = (item) => {
+    unlockAudio();
+    playClickLetter(); // เล่นเสียงทุกครั้งที่คลิกเลือกตัวอักษร
     if (status !== "playing" || item.isUsed) return;
 
     const firstEmptyIdx = selectedLetters.findIndex((s) => s === null);
@@ -224,6 +305,9 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
     const currentWord = selected.map((s) => s?.char || "").join("");
 
     if (currentWord === targetWord) {
+      // 💡 เรียกเสียงตอนตอบถูก
+      playSfx("success");
+
       setStatus("success");
       setTimeout(() => {
         if (currentRound + 1 < 3) {
@@ -236,6 +320,9 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
     } else {
       const newLives = lives - 1;
       setLives(newLives);
+
+      // 💡 เรียกเสียงตอนตอบผิด
+      playSfx("error");
 
       setStatus("error");
       await controls.start({
@@ -326,7 +413,7 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
       <Fade in={open}>
         <Box
           sx={{
-            width: { xs: "95%", sm: "450px" },
+            width: { xs: "95%", sm: "50%" },
             minHeight: "450px",
             display: "flex",
             flexDirection: "column",

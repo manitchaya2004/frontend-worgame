@@ -14,7 +14,7 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, hintsRemaining
           justifyContent: "center", 
           gap: { xs: 1, sm: 1.5 }, 
           mb: 3,
-          maxWidth: "350px", 
+          maxWidth: "400px", 
           mx: "auto"
         }}
       >
