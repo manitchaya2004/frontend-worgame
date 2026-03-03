@@ -24,11 +24,14 @@ import {
 } from "react-icons/gi";
 import "./style.css";
 
+import { useGameSfx } from "../../../../hook/useGameSfx";
+import clickSfx from "../../../../assets/sound/click1.ogg";
+
 const MotionBox = motion(Box);
 const ItemFeature = () => {
   const { currentUser, updateResources, resourceStatus } = useAuthStore();
 
-  console.log("Current User in ItemFeature:", currentUser);
+  const playClickSound = useGameSfx(clickSfx);
   // const isLoading = resourceStatus === "LOADING";
   const [isLoading, setIsLoading] = useState(false);
   const potions = currentUser?.potion || {};
@@ -342,7 +345,10 @@ const ItemFeature = () => {
           {/* RESET BUTTON */}
           <Button
             disabled={!isEdit || isLoading} // กดได้เฉพาะตอนมีการแก้
-            onClick={handleReset}
+            onClick={() => {
+              playClickSound();
+              handleReset();
+            }}
             startIcon={<RestoreIcon />}
             sx={{
               fontFamily: "'Press Start 2P'",
@@ -361,7 +367,10 @@ const ItemFeature = () => {
           {/* SAVE BUTTON */}
           <Button
             disabled={!isEdit || isLoading} // กดได้เฉพาะตอนมีการแก้
-            onClick={handleSave}
+            onClick={() => {  
+              playClickSound();
+              handleSave();
+            }}
             startIcon={
               isLoading ? (
                 <CircularProgress size={16} color="inherit" />

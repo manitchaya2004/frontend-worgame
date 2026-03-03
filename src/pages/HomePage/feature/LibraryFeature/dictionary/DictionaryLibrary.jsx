@@ -8,6 +8,10 @@ import { SelectComponent } from "../../../components/SelectComponent";
 import { motion } from "framer-motion";
 import StarBackground from "../../../components/StarBackground";
 import { THEMES } from "../../../hook/const";
+//sound
+import { useGameSfx } from "../../../../../hook/useGameSfx";
+import clickSFX from "../../../../../assets/sound/click1.ogg";
+import clickMouse from "../../../../../assets/sound/mouserelease1.ogg";
 
 const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const MotionBox = motion(Box);
@@ -79,6 +83,7 @@ const WordList = ({
   onLoadMore,
   onSelect,
   selectedWord,
+  playMouseClick,
 }) => {
   const handleScroll = (e) => {
     const el = e.currentTarget;
@@ -133,7 +138,10 @@ const WordList = ({
         return (
           <Box
             key={w.word}
-            onClick={() => onSelect(w)}
+            onClick={() => {
+              playMouseClick();
+              onSelect(w);
+            }}
             sx={{
               p: 1,
               display: "flex",
@@ -361,6 +369,9 @@ const DictionaryLibrary = () => {
   const [selectType, setSelectType] = useState("");
   const [selectLength, setSelectLength] = useState("");
 
+  const playClickSFX = useGameSfx(clickSFX);
+  const playMouseClick = useGameSfx(clickMouse);
+
   const handleSearchChange = () => {
     if (searchInput === searchText) return;
     setSearchText(searchInput);
@@ -505,6 +516,7 @@ const DictionaryLibrary = () => {
               <Box
                 key={l}
                 onClick={() => {
+                  playClickSFX();
                   setSelectedLetter(l);
                   setSearchText("");
                   setSearchInput("");
@@ -594,6 +606,7 @@ const DictionaryLibrary = () => {
               onLoadMore={loadMore}
               onSelect={setSelectedWord}
               selectedWord={currentActiveWord}
+              playMouseClick={playMouseClick}
             />
 
             <WordDetail dictionary={currentActiveWord} />

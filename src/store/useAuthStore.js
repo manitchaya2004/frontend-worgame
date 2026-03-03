@@ -20,7 +20,6 @@ export const useAuthStore = create(
       isAuthenticated: false,
       isFirstTime: false,
 
-
       backendRegisMessage: null,
       backendLoginMessage: null,
 
@@ -28,14 +27,20 @@ export const useAuthStore = create(
       errorRegister: false,
       buyHeroError: null,
 
-
       // volumn
-      volume: 0.3, 
+      volume: 0.3,
       isMuted: false,
+
+      // 💥 SFX Settings (เพิ่มใหม่!)
+      sfxVolume: 0.5,
+      isSfxMuted: false,
+
       /* ================= ACTIONS ================= */
 
       setVolume: (newVolume) => set({ volume: newVolume }),
       toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+      setSfxVolume: (newVolume) => set({ sfxVolume: newVolume }),
+      toggleSfxMute: () => set((state) => ({ isSfxMuted: !state.isSfxMuted })),
 
       /* ===== REGISTER ===== */
       registerUser: async (userData) => {
@@ -55,8 +60,14 @@ export const useAuthStore = create(
 
           // Safety Check: ถ้าไม่ใช่ JSON หรือส่ง Error กลับมา
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
-            throw new Error("Server error (Not JSON), please check your Backend URL");
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
+            throw new Error(
+              "Server error (Not JSON), please check your Backend URL",
+            );
           }
 
           const data = await res.json();
@@ -103,7 +114,11 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             throw new Error("Login failed: Server returned non-JSON response");
           }
 
@@ -147,7 +162,11 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             throw new Error("unauthorized");
           }
 
@@ -180,7 +199,11 @@ export const useAuthStore = create(
 
           // แก้จุดนี้: ตรวจสอบก่อนว่าเป็น JSON หรือไม่ ก่อนจะสั่ง parse
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             console.warn("Refresh failed: Server returned HTML or Error");
             return;
           }
@@ -212,7 +235,11 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             throw new Error("server error");
           }
 
@@ -251,7 +278,11 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             throw new Error("server error");
           }
 
@@ -298,7 +329,7 @@ export const useAuthStore = create(
 
           const contentType = res.headers.get("content-type");
           if (!contentType || !contentType.includes("application/json")) {
-             throw new Error("Server returned non-JSON. Possible 404 or Crash.");
+            throw new Error("Server returned non-JSON. Possible 404 or Crash.");
           }
 
           const data = await res.json(); // ✅ fetch ต้อง parse เอง
@@ -347,7 +378,11 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             throw new Error("server error");
           }
 
@@ -400,7 +435,11 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             throw new Error("Server returned non-JSON");
           }
 
@@ -415,7 +454,7 @@ export const useAuthStore = create(
             currentUser: {
               ...state.currentUser,
               heroes: state.currentUser.heroes.map((h) =>
-                h.hero_id === heroId ? { ...h, ...hero } : h
+                h.hero_id === heroId ? { ...h, ...hero } : h,
               ),
               money: data.moneyLeft ?? state.currentUser.money,
             },
@@ -444,16 +483,20 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
-             throw new Error("Server error");
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
+            throw new Error("Server error");
           }
 
           const data = await res.json();
           if (!res.ok || !data.isSuccess) throw new Error(data.message);
 
-          set({ 
+          set({
             previewData: data.data, // ข้อมูล comparison
-            upgradeStatus: LOADED // โหลดเสร็จแล้ว โชว์ข้อมูลได้
+            upgradeStatus: LOADED, // โหลดเสร็จแล้ว โชว์ข้อมูลได้
           });
         } catch (err) {
           console.error("fetchPreviewData error:", err);
@@ -462,7 +505,7 @@ export const useAuthStore = create(
       },
 
       // =========================================
-      // ⚡ UPDATE STAMINA 
+      // ⚡ UPDATE STAMINA
       // =========================================
       updateStamina: async (amount) => {
         try {
@@ -480,7 +523,11 @@ export const useAuthStore = create(
           });
 
           const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (
+            !res.ok ||
+            !contentType ||
+            !contentType.includes("application/json")
+          ) {
             throw new Error("server error");
           }
 
@@ -495,7 +542,7 @@ export const useAuthStore = create(
                 ...state.currentUser.stamina,
                 current: data.stamina.current,
                 max: data.stamina.max,
-                timeToNext: data.stamina.timeToNext // เวลานับถอยหลังที่ได้จาก Backend
+                timeToNext: data.stamina.timeToNext, // เวลานับถอยหลังที่ได้จาก Backend
               },
             },
           }));
@@ -506,7 +553,6 @@ export const useAuthStore = create(
           return { success: false, error: err.message };
         }
       },
-
 
       /* ===== CLEAR STATES (เหมือน reducers) ===== */
       logout: () => {
@@ -525,7 +571,8 @@ export const useAuthStore = create(
 
       clearRegisterState: () => set({ registerState: INITIALIZED }),
 
-      clearUpgradeStatus: () => set({ upgradeStatus: INITIALIZED, previewData: null }),
+      clearUpgradeStatus: () =>
+        set({ upgradeStatus: INITIALIZED, previewData: null }),
 
       // hero ที่กำลังใช้อยู่
       getSelectedHero: () => {
@@ -554,7 +601,10 @@ export const useAuthStore = create(
         currentUser: state.currentUser,
 
         volume: state.volume,
-        isMuted: state.isMuted
+        isMuted: state.isMuted,
+
+        sfxVolume: state.sfxVolume,
+        isSfxMuted: state.isSfxMuted,
       }),
     },
   ),

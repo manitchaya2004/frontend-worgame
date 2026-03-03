@@ -3,6 +3,7 @@ import { INITIALIZED, LOADING, LOADED, FAILED ,API_URL} from "./const";
 
 export const useDictionaryStore = create((set, get) => ({
   words: [],
+  wordsForMiniGame: [],
   count: 0,
   hasNext: false,
   lastWord: null,
@@ -35,9 +36,44 @@ export const useDictionaryStore = create((set, get) => ({
     }
   },
 
+  // dictionary สำหรับหน้า minigame
+  fetchMiniGameDictionary: async (payload) => {
+    try {
+      set({ loading: LOADING, error: null });
+
+      const res = await fetch(`/api/dict/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Fetch dictionary failed");
+
+      const data = await res.json();
+
+      set({
+        count: data.count,
+        hasNext: data.hasNext,
+        lastWord: data.lastWord,
+        wordsForMiniGame: payload.append ? [...get().wordsForMiniGame, ...data.data] : data.data, 
+        loading: LOADED,
+      });
+    } catch (err) {
+      set({ loading: FAILED, error: err.message });
+    }
+  },
+
   clearDictionary: () => {
     set({
       words: [],
+      count: 0,
+      hasNext: false,
+      lastWord: null,
+    });
+  },
+  clearMiniGameDictionary: () => {
+    set({
+      wordsForMiniGame: [],
       count: 0,
       hasNext: false,
       lastWord: null,

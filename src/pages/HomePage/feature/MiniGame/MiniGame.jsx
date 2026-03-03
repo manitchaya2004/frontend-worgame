@@ -40,9 +40,9 @@ export const shuffleArray = (array) => {
 const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
   const { updateStamina } = useAuthStore();
   const {
-    fetchDictionary,
-    clearDictionary,
-    words,
+    fetchMiniGameDictionary,
+    clearMiniGameDictionary,
+    wordsForMiniGame,
     loading: dictLoading,
   } = useDictionaryStore();
 
@@ -50,7 +50,7 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
   const [currentRound, setCurrentRound] = useState(0);
   const [poolLetters, setPoolLetters] = useState([]);
   const [selectedLetters, setSelectedLetters] = useState([]);
-  const [hintsRemaining, setHintsRemaining] = useState(3);
+  const [hintsRemaining, setHintsRemaining] = useState(2);
   const [lives, setLives] = useState(5);
 
   const [status, setStatus] = useState("fetching");
@@ -61,7 +61,7 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
   const startNewGame = useCallback(() => {
     setStatus("fetching");
     setCurrentRound(0);
-    setHintsRemaining(3);
+    setHintsRemaining(2);
     setLives(5);
     setGameWords([]);
 
@@ -70,13 +70,13 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
       Math.floor(Math.random() * safeLetters.length),
     );
 
-    clearDictionary();
-    fetchDictionary({
+    clearMiniGameDictionary();
+    fetchMiniGameDictionary({
       startsWith: randomLetter,
-      limit: 500,
+      limit: 10000,
       append: false,
     });
-  }, [clearDictionary, fetchDictionary]);
+  }, [clearMiniGameDictionary, fetchMiniGameDictionary]);
 
   // เรียกใช้ startNewGame เมื่อเปิด Modal ขึ้นมา
   useEffect(() => {
@@ -87,25 +87,25 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
 
   useEffect(() => {
     if (open && status === "fetching" && dictLoading === LOADED) {
-      if (words && words.length > 0) {
-        let wordPoolToUse = words.filter((item) => {
+      if (wordsForMiniGame && wordsForMiniGame.length > 0) {
+        let wordPoolToUse = wordsForMiniGame.filter((item) => {
           const wordText = item.word || "";
           return (
             item.is_oxford === true &&
             wordText.length >= 3 &&
-            wordText.length <= 5
+            wordText.length <= 8
           );
         });
 
         if (wordPoolToUse.length < 3) {
-          wordPoolToUse = words.filter((item) => {
+          wordPoolToUse = wordsForMiniGame.filter((item) => {
             const wordText = item.word || "";
             return wordText.length >= 3 && wordText.length <= 5;
           });
         }
 
         if (wordPoolToUse.length < 3) {
-          wordPoolToUse = words.filter(
+          wordPoolToUse = wordsForMiniGame.filter(
             (item) => item.word && item.word.length > 0,
           );
         }
@@ -141,7 +141,7 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
         startNewGame();
       }
     }
-  }, [open, status, words, dictLoading, startNewGame]);
+  }, [open, status, wordsForMiniGame, dictLoading, startNewGame]);
 
   const setupRound = useCallback((targetData) => {
     if (!targetData || !targetData.word) return;
@@ -183,7 +183,7 @@ const MiniGame = ({ open, onClose, currentStamina, maxStamina }) => {
     setSelectedLetters(initialSelected);
     setPoolLetters(shuffled);
 
-    setHintsRemaining(3);
+    setHintsRemaining(2);
     setLives(5);
     setStatus("playing");
   }, []);

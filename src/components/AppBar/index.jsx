@@ -19,9 +19,10 @@ import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout"; // 💡 Import ไอคอน Logout แบบประตู
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
-import AddIcon from "@mui/icons-material/Add"; // ➕ ปุ่มบวก
+import AddIcon from "@mui/icons-material/Add";
 
 import { GiBroadsword } from "react-icons/gi";
 import { FaCrown } from "react-icons/fa";
@@ -31,6 +32,10 @@ import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlay
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 import { GameDialog } from "../GameDialog";
 import MiniGame from "../../pages/HomePage/feature/MiniGame/MiniGame";
+
+//sound
+import { useGameSfx } from "../../hook/useGameSfx";
+import clickSfx from "../../assets/sound/click1.ogg";
 
 const THEME = {
   bgMain: "#E8E9CD",
@@ -109,7 +114,7 @@ const AnimatedMoney = ({ value, fontSize = 10 }) => {
 };
 
 // ==========================================
-// ⚡ COMPONENT: Energy Bar (สายฟ้า + เวลานับถอยหลัง + ปุ่มบวก)
+// ⚡ COMPONENT: Energy Bar
 // ==========================================
 const EnergyBar = React.memo(
   ({
@@ -119,18 +124,14 @@ const EnergyBar = React.memo(
     onAddClick,
     onTimerEnd,
   }) => {
-    // 💡 THE FIX: เช็คว่าถ้าโดนหักสายฟ้าไปแล้วแต่เวลาไม่มา ให้บังคับเริ่มที่ 30 นาที (1800 วินาที)
     const defaultTimeLeft =
       currentStamina < maxStamina && timeToNextEnergy <= 0
-        ? 30 * 60 // 30 นาที
+        ? 30 * 60
         : Math.floor(timeToNextEnergy / 1000);
 
     const [timeLeft, setTimeLeft] = useState(defaultTimeLeft);
-
-    // สร้างตัวแปรเช็คว่าพลังงานเต็มหรือยัง
     const isFull = currentStamina >= maxStamina;
 
-    // อัปเดตเวลาตั้งต้นเมื่อได้รับค่าใหม่จาก Store
     useEffect(() => {
       if (currentStamina < maxStamina) {
         setTimeLeft(
@@ -141,12 +142,10 @@ const EnergyBar = React.memo(
       }
     }, [timeToNextEnergy, currentStamina, maxStamina]);
 
-    // นับถอยหลัง
     useEffect(() => {
       if (isFull) return;
 
       if (timeLeft <= 0) {
-        // พอเวลาเหลือ 0 ปุ๊บ ให้เรียกฟังก์ชันดึงข้อมูลใหม่!
         if (onTimerEnd) onTimerEnd();
         return;
       }
@@ -176,8 +175,6 @@ const EnergyBar = React.memo(
           height: { xs: "32px", sm: "40px" },
           px: { xs: 0.5, sm: 1 },
           gap: { xs: 0.5, sm: 1 },
-
-          //mobile landscape
           "@media (orientation: landscape) and (max-height: 450px)": {
             height: "35px",
             borderRadius: "13px",
@@ -186,7 +183,6 @@ const EnergyBar = React.memo(
           },
         }}
       >
-        {/* ⚡ แสดงสายฟ้า 5 ดวง (หรือตาม Max) */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
           {[...Array(maxStamina)].map((_, index) => {
             const isActive = index < currentStamina;
@@ -201,13 +197,10 @@ const EnergyBar = React.memo(
                       ? "drop-shadow(0 0 6px #FFD700)"
                       : "drop-shadow(1px 2px 0px #B8860B)"
                     : "none",
-                  // ⭐ เส้นขอบตามรูปสายฟ้า
                   stroke: "#B8860B",
                   strokeWidth: 2,
-                  paintOrder: "stroke fill", // ให้เส้นขอบอยู่ใต้สี
+                  paintOrder: "stroke fill",
                   transition: "all 0.3s",
-
-                  //mobile landscape
                   "@media (orientation: landscape) and (max-height: 450px)": {
                     fontSize: 16,
                   },
@@ -217,8 +210,6 @@ const EnergyBar = React.memo(
           })}
         </Box>
 
-        {/* ⏳ เวลานับถอยหลัง */}
-        {/* 💡 THE FIX: เอาเงื่อนไข timeToNextEnergy > 0 ออก ให้โชว์เสมอถ้าสายฟ้ายังไม่เต็ม */}
         {currentStamina < maxStamina && (
           <Box
             sx={{
@@ -241,9 +232,6 @@ const EnergyBar = React.memo(
           </Box>
         )}
 
-        {/* ➕ ปุ่มบวก สำหรับเล่นมินิเกม */}
-        {/* 💡 (ใส่เงื่อนไขซ่อนปุ่มถ้าเต็ม ไว้เผื่อต้องการ) */}
-
         <Tooltip
           title="Play Minigame to get Energy!"
           arrow
@@ -253,7 +241,6 @@ const EnergyBar = React.memo(
               sx: {
                 fontSize: "12px",
                 fontFamily: "'Verdana', sans-serif",
-                // fontWeight: "bold",
                 backgroundColor: "#2a160f",
                 border: `1px solid black`,
                 color: "gray",
@@ -281,8 +268,6 @@ const EnergyBar = React.memo(
                 transform: "translateY(2px)",
                 boxShadow: "none",
               },
-
-              //mobile landscape
               "@media (orientation: landscape) and (max-height: 450px)": {
                 width: 18,
                 height: 18,
@@ -295,8 +280,6 @@ const EnergyBar = React.memo(
                 color: "#fff",
                 fontSize: { xs: 14, sm: 18 },
                 fontWeight: "bold",
-
-                //mobile landscape
                 "@media (orientation: landscape) and (max-height: 450px)": {
                   fontSize: 14,
                 },
@@ -311,18 +294,21 @@ const EnergyBar = React.memo(
 
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
-  const { volume, isMuted, setVolume, toggleMute, refreshUser } =
-    useAuthStore();
+  const { 
+    volume, isMuted, setVolume, toggleMute, 
+    sfxVolume, isSfxMuted, setSfxVolume, toggleSfxMute,
+    refreshUser 
+  } = useAuthStore();
 
   const muiTheme = useMuiTheme();
+  const playClickSound = useGameSfx(clickSfx);
 
-  // 💡 THE FIX: จับทั้งหน้าจอเล็ก (xs) และ หน้าจอมือถือแนวนอน (landscape)
   const isMobileWidth = useMediaQuery(muiTheme.breakpoints.down("sm"));
   const isMdWidth = useMediaQuery(muiTheme.breakpoints.down("md"));
   const isLandscapeMobile = useMediaQuery(
     "(orientation: landscape) and (max-height: 450px)",
   );
-  const isCompact = isMobileWidth || isLandscapeMobile; // ถ้าย่อจอ หรือตะแคงมือถือ จะยุบปุ่มเหลือแค่ไอคอน
+  const isCompact = isMobileWidth || isLandscapeMobile;
 
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
@@ -330,18 +316,40 @@ const GameAppBar = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 💡 THE FIX: แยก State ระหว่าง Settings กับ Logout
+  const [openSettings, setOpenSettings] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const [isMiniGameOpen, setIsMiniGameOpen] = useState(false);
 
+  // การจัดการ Music (BGM)
   const handleVolumeChange = (event, newValue) => {
     setVolume(newValue);
-    if (newValue > 0 && isMuted) {
-      toggleMute();
-    }
+    if (newValue > 0 && isMuted) toggleMute();
+  };
+
+  // การจัดการ Effect (SFX)
+  const handleSfxVolumeChange = (event, newValue) => {
+    setSfxVolume(newValue);
+    if (newValue > 0 && isSfxMuted) toggleSfxMute();
+  };
+
+  const handleSaveSettings = (newSettings) => {
+    playClickSound();
+    
+    // บันทึกลง Store จริงๆ
+    setVolume(newSettings.volume);
+    if (newSettings.isMuted !== isMuted) toggleMute();
+    
+    setSfxVolume(newSettings.sfxVolume);
+    if (newSettings.isSfxMuted !== isSfxMuted) toggleSfxMute();
+
+    setOpenSettings(false);
   };
 
   const handleLogout = () => {
+    playClickSound();
     logout();
     navigate("/auth");
     setConfirmLogout(false);
@@ -393,7 +401,6 @@ const GameAppBar = () => {
         <Toolbar
           sx={{
             minHeight: { xs: "60px", md: "70px" },
-            // ลดความสูงแถบบาร์เฉพาะตอนแนวนอน
             "@media (orientation: landscape) and (max-height: 450px)": {
               minHeight: "48px",
             },
@@ -404,7 +411,6 @@ const GameAppBar = () => {
           }}
         >
           {/* 🔹 LEFT : PROFILE & MONEY & ENERGY */}
-          {/* 💡 THE FIX: เพิ่ม flex: 1 และ justifyContent: "flex-start" เพื่อถ่วงน้ำหนักกับฝั่งขวา */}
           <Box
             sx={{
               flex: 1,
@@ -412,21 +418,10 @@ const GameAppBar = () => {
               alignItems: "center",
               justifyContent: "flex-start",
               gap: { xs: 0.5, sm: 1 },
-
-              //mobile landscape
-              "@media (orientation: landscape) and (max-height: 450px)": {
-                gap: 0.5,
-              },
+              "@media (orientation: landscape) and (max-height: 450px)": { gap: 0.5 },
             }}
           >
-            {/* กล่อง 1: Profile & Money (เอาสายฟ้าออกไปแล้ว) */}
-            <Box
-              sx={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
+            <Box sx={{ position: "relative", display: "flex", alignItems: "center" }}>
               <Box
                 sx={{
                   pl: { xs: "45px", sm: "50px", md: "55px" },
@@ -440,11 +435,7 @@ const GameAppBar = () => {
                   flexDirection: "column",
                   minWidth: { xs: "90px", sm: "110px", md: "130px" },
                   width: "fit-content",
-                  // หดป้ายโปรไฟล์ตอนแนวนอนไม่ให้กินพื้นที่มากไป
-                  "@media (orientation: landscape) and (max-height: 450px)": {
-                    pl: "45px",
-                    minWidth: "90px",
-                  },
+                  "@media (orientation: landscape) and (max-height: 450px)": { pl: "45px", minWidth: "90px" },
                 }}
               >
                 <Tooltip>
@@ -480,7 +471,6 @@ const GameAppBar = () => {
                 </Box>
               </Box>
 
-              {/* Avatar Container */}
               <Box
                 sx={{
                   position: "absolute",
@@ -495,20 +485,12 @@ const GameAppBar = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   zIndex: 2,
-                  "@media (orientation: landscape) and (max-height: 450px)": {
-                    width: 40,
-                    height: 40,
-                  },
+                  "@media (orientation: landscape) and (max-height: 450px)": { width: 40, height: 40 },
                 }}
               >
                 <Avatar
                   src={LoadImage(name, heroId, 1)}
-                  sx={{
-                    width: "120%",
-                    height: "120%",
-                    imageRendering: "pixelated",
-                    mb: 1,
-                  }}
+                  sx={{ width: "120%", height: "120%", imageRendering: "pixelated", mb: 1 }}
                 />
                 <Box
                   sx={{
@@ -522,135 +504,70 @@ const GameAppBar = () => {
                     zIndex: 3,
                   }}
                 >
-                  <Typography
-                    sx={{
-                      fontSize: { xs: 5, sm: 7 },
-                      color: "#FFD700",
-                      fontFamily: "'Press Start 2P'",
-                    }}
-                  >
+                  <Typography sx={{ fontSize: { xs: 5, sm: 7 }, color: "#FFD700", fontFamily: "'Press Start 2P'" }}>
                     Lv.{currentLevel}
                   </Typography>
                 </Box>
               </Box>
             </Box>
 
-            {/* กล่อง 2: Energy Bar วางแยกออกมาด้านขวา */}
             <EnergyBar
               currentStamina={currentUser?.stamina?.current ?? 0}
               maxStamina={currentUser?.stamina?.max ?? 3}
-              timeToNextEnergy={currentUser?.stamina?.timeToNext ?? 0} // ถ้า Backend ส่งเวลามา
-              onAddClick={() => setIsMiniGameOpen(true)}
-              onTimerEnd={() => {
-                refreshUser();
-              }}
+              timeToNextEnergy={currentUser?.stamina?.timeToNext ?? 0}
+              onAddClick={() => { playClickSound(); setIsMiniGameOpen(true); }}
+              onTimerEnd={() => refreshUser()}
             />
           </Box>
 
-          {/* 🔹 CENTER : NAVIGATION (Adventure ใหญ่สุดบนจอใหญ่) */}
-          {/* 💡 THE FIX: เอา flex: 1 ออกไป เพื่อให้มันจัดตัวเองอยู่กึ่งกลางจริงๆ */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: { xs: 0.5, sm: 1, md: 1.5 },
-            }}
-          >
+          {/* 🔹 CENTER : NAVIGATION */}
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: { xs: 0.5, sm: 1, md: 1.5 } }}>
             {MAIN_NAV_ITEMS.map((item) => {
-              const isActive =
-                item.path === "/home"
-                  ? location.pathname === "/home"
-                  : location.pathname.includes(item.path);
-
+              const isActive = item.path === "/home" ? location.pathname === "/home" : location.pathname.includes(item.path);
               return (
                 <Button
                   key={item.id}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => { playClickSound(); navigate(item.path); }}
                   sx={{
-                    // 💡 เปลี่ยนมาใช้ isCompact ทั้งหมดในการเช็คเพื่อยุบปุ่ม
-                    minWidth: isCompact
-                      ? "40px"
-                      : item.isMain
-                        ? "160px"
-                        : "120px",
-                    height: isCompact
-                      ? "36px"
-                      : item.isMain
-                        ? { xs: "40px", sm: "45px", md: "52px" }
-                        : { xs: "36px", md: "40px" },
+                    minWidth: isCompact ? "40px" : item.isMain ? "160px" : "120px",
+                    height: isCompact ? "36px" : item.isMain ? { xs: "40px", sm: "45px", md: "52px" } : { xs: "36px", md: "40px" },
                     flexDirection: { xs: "column", sm: "row" },
                     fontFamily: "'Press Start 2P'",
-                    fontSize: item.isMain
-                      ? { xs: 8, sm: 10, md: 12 }
-                      : { xs: 6, sm: 8 },
+                    fontSize: item.isMain ? { xs: 8, sm: 10, md: 12 } : { xs: 6, sm: 8 },
                     color: isActive ? THEME.bgDark : "#d7ccc8",
-                    backgroundColor: isActive
-                      ? THEME.accent
-                      : "rgba(43, 29, 20, 0.6)",
+                    backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
                     border: `2px solid ${isActive ? THEME.activeBorder : "#5a3e2b"}`,
                     borderRadius: "8px",
-                    boxShadow: isActive
-                      ? `0 0 12px ${THEME.accent}`
-                      : "0 3px 0 #1a120b",
+                    boxShadow: isActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
                     p: isCompact ? 0 : { xs: 0, sm: 1.5 },
                     transition: "all 0.1s",
                     "& .MuiButton-startIcon": {
                       margin: isCompact ? 0 : "0 8px 0 0",
-
-                      "& > *:nth-of-type(1)": {
-                        fontSize: isCompact ? 22 : item.isMain ? 26 : 22,
-                      },
+                      "& > *:nth-of-type(1)": { fontSize: isCompact ? 22 : item.isMain ? 26 : 22 },
                     },
-                    "&:hover": {
-                      backgroundColor: isActive
-                        ? THEME.accent
-                        : "rgba(43, 29, 20, 0.9)",
-                      transform: "translateY(1px)",
-                    },
+                    "&:hover": { backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.9)", transform: "translateY(1px)" },
                   }}
                   startIcon={item.icon}
                 >
-                  {/* แสดง Label เฉพาะตอนที่ไม่ถูกยุบ (ไม่กะทัดรัด) */}
                   {!isCompact && item.label}
                 </Button>
               );
             })}
           </Box>
 
-          {/* 🔹 RIGHT : LIBRARY & SETTINGS */}
-          {/* 💡 THE FIX: เพิ่ม flex: 1 และ justifyContent: "flex-end" เพื่อถ่วงน้ำหนักกับฝั่งซ้าย */}
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              gap: { xs: 0.2, sm: 1 },
-            }}
-          >
-            {/* ซ่อนเส้นคั่นตอนยุบจอ */}
-            {!isCompact && (
-              <Box
-                sx={{
-                  width: "1px",
-                  height: "24px",
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  mx: 0.5,
-                }}
-              />
-            )}
+          {/* 🔹 RIGHT : LIBRARY & SETTINGS & LOGOUT */}
+          <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: { xs: 0.2, sm: 1 } }}>
+            {!isCompact && <Box sx={{ width: "1px", height: "24px", bgcolor: "rgba(255,255,255,0.2)", mx: 0.5 }} />}
+            
             {LIBRARY_ITEMS.map((item) => {
               const isActive = location.pathname.includes(item.path);
               return (
                 <Tooltip key={item.id} title={item.label} arrow>
                   <IconButton
-                    onClick={() => navigate(item.path)}
+                    onClick={() => { playClickSound(); navigate(item.path); }}
                     sx={{
                       color: isActive ? THEME.activeBorder : "#d7ccc8",
-                      backgroundColor: isActive
-                        ? "rgba(255, 236, 179, 0.1)"
-                        : "transparent",
+                      backgroundColor: isActive ? "rgba(255, 236, 179, 0.1)" : "transparent",
                       border: `2px solid ${isActive ? THEME.activeBorder : "transparent"}`,
                       borderRadius: "8px",
                       p: { xs: 0.5, sm: 1 },
@@ -662,34 +579,64 @@ const GameAppBar = () => {
                 </Tooltip>
               );
             })}
-            <IconButton
-              onClick={() => setConfirmLogout(true)}
-              sx={{
-                color: "#d7ccc8",
-                p: { xs: 0.5, sm: 1 },
-                "&:hover": { color: "#ff1744", transform: "rotate(90deg)" },
-                transition: "all 0.3s",
-              }}
-            >
-              <SettingsIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-            </IconButton>
+
+            {/* 💡 THE FIX: แยกปุ่ม Settings (ฟันเฟือง) */}
+            <Tooltip title="Settings" arrow>
+              <IconButton
+                onClick={() => { playClickSound(); setOpenSettings(true); }}
+                sx={{
+                  color: "#d7ccc8",
+                  p: { xs: 0.5, sm: 1 },
+                  "&:hover": { color: "#f1c40f", transform: "rotate(90deg)" },
+                  transition: "all 0.3s",
+                }}
+              >
+                <SettingsIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              </IconButton>
+            </Tooltip>
+
+            {/* 💡 THE FIX: แยกปุ่ม Logout ออกมา (ไอคอนประตู) */}
+            <Tooltip title="Logout" arrow>
+              <IconButton
+                onClick={() => { playClickSound(); setConfirmLogout(true); }}
+                sx={{
+                  color: "#d7ccc8",
+                  p: { xs: 0.5, sm: 1 },
+                  "&:hover": { color: "#ff1744", transform: "translateX(2px)" },
+                  transition: "all 0.3s",
+                }}
+              >
+                <LogoutIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Toolbar>
       </AppBar>
 
+      {/* ⚙️ 1. Dialog สำหรับ "ตั้งค่าเสียง" เท่านั้น (ไม่ถามเรื่อง Logout) */}
       <GameDialog
-        open={confirmLogout}
+        open={openSettings}
         title="SETTINGS"
-        description="Are you sure you want to logout?"
-        onConfirm={handleLogout}
-        onCancel={() => setConfirmLogout(false)}
-        confirmText="Logout"
-        cancelText="Cancel"
+        onConfirm={handleSaveSettings} // 💡 ใช้ฟังก์ชัน Save ใหม่
+        onCancel={() => { playClickSound(); setOpenSettings(false); }} // 💡 กด Back จะแค่ปิดไป ค่าใน Store ไม่เปลี่ยน
+        confirmText="SAVE"
         showAudioSettings={true}
         volume={volume}
         isMuted={isMuted}
-        onVolumeChange={handleVolumeChange}
-        onToggleMute={toggleMute}
+        sfxVolume={sfxVolume}
+        isSfxMuted={isSfxMuted}
+      />
+
+      {/* 🚪 2. Dialog สำหรับ "ยืนยันการล็อคเอาท์" แยกออกมาเป็นอีกหน้าต่าง */}
+      <GameDialog
+        open={confirmLogout}
+        title="LOGOUT"
+        description="Are you sure you want to logout?"
+        onConfirm={handleLogout}
+        onCancel={() => { playClickSound(); setConfirmLogout(false); }}
+        confirmText="YES"
+        cancelText="NO"
+        cancelColor="wood"
       />
 
       <MiniGame

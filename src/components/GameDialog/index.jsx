@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   Box,
@@ -10,6 +10,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // 💡 Import ไอคอนสำหรับแถบปรับเสียง
+import MusicNoteIcon from "@mui/icons-material/MusicNote";
+import MusicOffIcon from "@mui/icons-material/MusicOff";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 
@@ -99,18 +101,46 @@ export const GameDialog = ({
   description,
   confirmText = "START",
   cancelText = "BACK",
-  confirmColor = "gold", 
+  confirmColor = "gold",
   cancelColor = "red",
   onConfirm,
   onCancel,
 
   // 💡 Props สำหรับเสียง (เอากลับมาแล้ว!)
-  showAudioSettings = false, 
+  showAudioSettings = false,
   volume = 0.5,
   isMuted = false,
-  onVolumeChange,
-  onToggleMute,
+  // เราจะเปลี่ยนชื่อ props นิดหน่อยเพื่อให้สื่อสารชัดเจน
+  sfxVolume = 0.5,
+  isSfxMuted = false,
+
+  isSettingsDialog = false, // 💡 ถ้าเป็น Dialog ตั้งค่า จะมีปุ่มปิดมุมขวาบน
 }) => {
+  const [tempMusic, setTempMusic] = useState(volume);
+  const [tempMute, setTempMute] = useState(isMuted);
+  const [tempSfx, setTempSfx] = useState(sfxVolume);
+  const [tempSfxMute, setTempSfxMute] = useState(isSfxMuted);
+
+  // 💡 ทุกครั้งที่เปิด Dialog ขึ้นมา ให้ Reset ค่า Temp ให้เท่ากับค่าจริงใน Store
+  useEffect(() => {
+    if (open) {
+      setTempMusic(volume);
+      setTempMute(isMuted);
+      setTempSfx(sfxVolume);
+      setTempSfxMute(isSfxMuted);
+    }
+  }, [open, volume, isMuted, sfxVolume, isSfxMuted]);
+
+  const handleSave = () => {
+    // ส่งค่า Temp กลับไปบันทึกที่ Store ผ่านฟังก์ชัน onConfirm
+    onConfirm({
+      volume: tempMusic,
+      isMuted: tempMute,
+      sfxVolume: tempSfx,
+      isSfxMuted: tempSfxMute,
+    });
+  };
+
   return (
     <Dialog
       open={open}
@@ -167,10 +197,10 @@ export const GameDialog = ({
                     fontSize: 10,
                     color: "#8c734b",
                     mb: 1,
-                    textAlign: "left",
                   }}
                 >
-                  AUDIO SETTINGS
+                  {" "}
+                  AUDIO SETTINGS{" "}
                 </Typography>
 
                 <Box
@@ -182,50 +212,132 @@ export const GameDialog = ({
                     p: 2,
                     borderRadius: 2,
                     border: "2px solid #2b2218",
+                    flexDirection: "column",
                   }}
                 >
-                  <IconButton
-                    onClick={onToggleMute}
+                  {/* Music Control */}
+                  <Box
                     sx={{
-                      color: isMuted ? "#e74c3c" : "#f1c40f",
-                      backgroundColor: "rgba(255,255,255,0.05)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      width: "100%",
                     }}
                   >
-                    {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-                  </IconButton>
+                    <Typography
+                      sx={{
+                        fontFamily: '"Press Start 2P"',
+                        fontSize: 9,
+                        color: "#aaa",
+                        width: "45px",
+                      }}
+                    >
+                      {" "}
+                      MUSIC{" "}
+                    </Typography>
+                    <IconButton
+                      onClick={() => setTempMute(!tempMute)}
+                      sx={{ color: tempMute ? "#e74c3c" : "#f1c40f" }}
+                    >
+                      {tempMute ? (
+                        <MusicOffIcon fontSize="small" />
+                      ) : (
+                        <MusicNoteIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                    <Slider
+                      value={tempMute ? 0 : tempMusic}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onChange={(e, v) => {
+                        setTempMusic(v);
+                        if (v > 0) setTempMute(false);
+                      }}
+                      disabled={tempMute}
+                      sx={{
+                        color: "#f1c40f",
+                        "& .MuiSlider-thumb": {
+                          width: 16,
+                          height: 16,
+                          backgroundColor: "#8c734b",
+                          border: `2px solid #f1c40f`,
+                          borderRadius: "4px",
+                          boxShadow: "0 2px 0 #000",
+                        },
+                        "& .MuiSlider-track": { border: "none", height: 8 },
+                        "& .MuiSlider-rail": {
+                          opacity: 0.5,
+                          backgroundColor: "#000",
+                          height: 8,
+                        },
+                      }}
+                    />
+                  </Box>
 
-                  <Slider
-                    value={isMuted ? 0 : volume}
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    onChange={onVolumeChange}
-                    disabled={isMuted}
+                  {/* Sound Effect Control */}
+                  <Box
                     sx={{
-                      color: "#f1c40f",
-                      "& .MuiSlider-thumb": {
-                        width: 20,
-                        height: 20,
-                        backgroundColor: "#8c734b",
-                        border: `2px solid #f1c40f`,
-                        borderRadius: "4px", 
-                        boxShadow: "0 2px 0 #000",
-                      },
-                      "& .MuiSlider-track": {
-                        border: "none",
-                        height: 8,
-                      },
-                      "& .MuiSlider-rail": {
-                        opacity: 0.5,
-                        backgroundColor: "#000",
-                        height: 8,
-                      },
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      width: "100%",
                     }}
-                  />
+                  >
+                    <Typography
+                      sx={{
+                        fontFamily: '"Press Start 2P"',
+                        fontSize: 9,
+                        color: "#aaa",
+                        width: "45px",
+                      }}
+                    >
+                      {" "}
+                      SOUND{" "}
+                    </Typography>
+                    <IconButton
+                      onClick={() => setTempSfxMute(!tempSfxMute)}
+                      sx={{ color: tempSfxMute ? "#e74c3c" : "#4caf50" }}
+                    >
+                      {tempSfxMute ? (
+                        <VolumeOffIcon fontSize="small" />
+                      ) : (
+                        <VolumeUpIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                    <Slider
+                      value={tempSfxMute ? 0 : tempSfx}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onChange={(e, v) => {
+                        setTempSfx(v);
+                        if (v > 0) setTempSfxMute(false);
+                      }}
+                      disabled={tempSfxMute}
+                      sx={{
+                        color: "#4caf50",
+                        "& .MuiSlider-thumb": {
+                          width: 16,
+                          height: 16,
+                          backgroundColor: "#2e7d32",
+                          border: `2px solid #4caf50`,
+                          borderRadius: "4px",
+                          boxShadow: "0 2px 0 #000",
+                        },
+                        "& .MuiSlider-track": { border: "none", height: 8 },
+                        "& .MuiSlider-rail": {
+                          opacity: 0.5,
+                          backgroundColor: "#000",
+                          height: 8,
+                        },
+                      }}
+                    />
+                  </Box>
                 </Box>
               </Box>
             )}
-            
+
             {/* คำอธิบาย (เปลี่ยนฟอนต์ให้อ่านง่ายตาแตก) */}
             {description && (
               <Box
@@ -263,10 +375,20 @@ export const GameDialog = ({
                 mt: 1,
               }}
             >
-              <RpgButton onClick={onCancel} color={cancelColor} style={{ flex: 1 }}>
-                {cancelText}
-              </RpgButton>
-              <RpgButton onClick={onConfirm} color={confirmColor} style={{ flex: 1 }}>
+              {!isSettingsDialog && (
+                <RpgButton
+                  onClick={onCancel}
+                  color={cancelColor}
+                  style={{ flex: 1 }}
+                >
+                  {cancelText}
+                </RpgButton>
+              )}
+              <RpgButton
+                onClick={onConfirm}
+                color={confirmColor}
+                style={{ flex: 1 }}
+              >
                 {confirmText}
               </RpgButton>
             </Box>
