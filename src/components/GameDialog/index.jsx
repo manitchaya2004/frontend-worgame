@@ -385,7 +385,7 @@ export const GameDialog = ({
                 </RpgButton>
               )}
               <RpgButton
-                onClick={onConfirm}
+                onClick={handleSave}
                 color={confirmColor}
                 style={{ flex: 1 }}
               >

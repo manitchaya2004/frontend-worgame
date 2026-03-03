@@ -303,6 +303,7 @@ const ItemFeature = () => {
               currentTotal={currentUsed}
               onEquip={handleEquip}
               onUpgrade={() => handleUpgrade("heal")}
+              description="Restores 1 HP"
             />
 
             <ItemCard
@@ -315,6 +316,7 @@ const ItemFeature = () => {
               currentTotal={currentUsed}
               onEquip={handleEquip}
               onUpgrade={() => handleUpgrade("cure")}
+              description="Cleanses 1 random negative status."
             />
 
             <ItemCard
@@ -327,6 +329,7 @@ const ItemFeature = () => {
               currentTotal={currentUsed}
               onEquip={handleEquip}
               onUpgrade={() => handleUpgrade("reroll")}
+              description="Rerolls all brain slots."
             />
           </Box>
         </Box>
