@@ -33,7 +33,6 @@ export const THEMES = {
   magic: "#00bcd4", // สีฟ้าเวทมนตร์
   shadow: "#1a120b", // สีเงา
 
-  accent: "#ffecb3",
   success: "#4caf50",
   error: "#f44336",
 };

@@ -1,8 +1,10 @@
 import { Box, Typography, IconButton, Button, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import LevelBar from "../../components/LevelBar";
+
+//sound 
+import { useGameSfx } from "../../../../hook/useGameSfx";
+import equipSfx from "../../../../assets/sound/click3.ogg";
 
 const ITEM_COLORS = {
   heal: "#e57373", // แดงตุ่นๆ
@@ -25,6 +27,7 @@ const ItemCard = ({
   const canAdd = currentTotal < maxLimit;
   const canRemove = count > 0;
 
+  const playEquipSound = useGameSfx(equipSfx);
   return (
     <Box
       sx={{
@@ -177,7 +180,10 @@ const ItemCard = ({
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <IconButton
-            onClick={() => onEquip(type, -1)}
+            onClick={() => {
+              playEquipSound();
+              onEquip(type, -1);
+            }}
             disabled={!canRemove}
             sx={{
               backgroundColor: "#3e2723",
@@ -203,7 +209,10 @@ const ItemCard = ({
           </Box>
 
           <IconButton
-            onClick={() => onEquip(type, 1)}
+            onClick={() => {
+              playEquipSound();
+              onEquip(type, 1);
+            }}
             disabled={!canAdd}
             sx={{
               backgroundColor: canAdd ? "#4caf50" : "#856c67",

@@ -14,6 +14,12 @@ import { useAuthStore } from "../../../../store/useAuthStore";
 
 import { preloadImage } from "../../hook/usePreloadFrams";
 import { backgroundStage } from "../../hook/const";
+
+//sound
+import { useGameSfx } from "../../../../hook/useGameSfx";
+import clickSfx from "../../../../assets/sound/click3.ogg";
+import clickSfx2 from "../../../../assets/sound/click1.ogg";
+
 const MotionBox = motion(Box);
 
 const AdvantureFeature = () => {
@@ -24,6 +30,9 @@ const AdvantureFeature = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const playClickSound = useGameSfx(clickSfx);
+  const playClickSound2 = useGameSfx(clickSfx2);
+
   const completedStageId = location.state?.completedStageId;
 
   const [isEntering, setIsEntering] = useState(false);
@@ -32,6 +41,7 @@ const AdvantureFeature = () => {
   const [isPlayingMiniGame, setIsPlayingMiniGame] = useState(false);
 
   const handleStageClick = async (stage) => {
+    playClickSound();
     // เช็ค Stamina ปัจจุบันก่อนเลย
     if (!currentUser?.stamina || currentUser.stamina.current <= 0) {
       // 💡 THE FIX: แทนที่จะใช้ window.confirm ให้เปิด GameDialog แทน
@@ -252,8 +262,12 @@ const AdvantureFeature = () => {
           setIsDialogOpen(false);
           // ใส่ Path ที่ถูกต้องของมินิเกมคุณ
           setIsPlayingMiniGame(true);
+          playClickSound();
         }}
-        onCancel={() => setIsDialogOpen(false)}
+        onCancel={() => {
+          setIsDialogOpen(false);
+          playClickSound2();
+        }}
       />
 
       <MiniGame
