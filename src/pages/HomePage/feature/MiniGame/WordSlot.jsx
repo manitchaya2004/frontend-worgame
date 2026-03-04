@@ -1,7 +1,6 @@
-
 import { Box, Typography } from "@mui/material";
 import { motion } from "framer-motion";
-import { THEMES } from "../../hook/const";
+import { THEMES } from "../../hook/const"; // เช็ค path ด้วยนะครับว่าตรงตามที่คุณใช้จริงมั้ย
 
 export const WordSlots = ({ targetLength, selectedLetters, status, onRemoveLetter, controls }) => {
   return (
