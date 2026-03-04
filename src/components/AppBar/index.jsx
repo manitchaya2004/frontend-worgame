@@ -18,16 +18,15 @@ import { motion, animate, useAnimation } from "framer-motion";
 // Icons
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
-import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add";
 import ErrorIcon from "@mui/icons-material/Error";
-
-import { GiBroadsword } from "react-icons/gi";
-import { FaCrown } from "react-icons/fa";
+import { MdInventory } from "react-icons/md";
+import { GiBroadsword} from "react-icons/gi";
+import { FaCrown,FaSuitcase,FaUserAlt } from "react-icons/fa";
 // Assets
 import { useAuthStore } from "../../store/useAuthStore";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
@@ -341,28 +340,22 @@ const GameAppBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 💡 THE FIX: แยก State ระหว่าง Settings กับ Logout
   const [openSettings, setOpenSettings] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const [isMiniGameOpen, setIsMiniGameOpen] = useState(false);
 
-  // ใน GameAppBar.js
   const handleSaveSettings = (newSettings) => {
-    if (!newSettings) return; // กันพัง
+    if (!newSettings) return;
 
     playClickSound();
 
-    // 1. จัดการเรื่อง Music
     setVolume(newSettings.volume);
-    // ถ้าค่าที่ส่งมา (newSettings.isMuted) ไม่ตรงกับใน Store (isMuted) ถึงค่อยสั่งสลับ
     if (newSettings.isMuted !== isMuted) {
       toggleMute();
     }
 
-    // 2. จัดการเรื่อง Sound Effects
     setSfxVolume(newSettings.sfxVolume);
-    // ถ้าค่าที่ส่งมาไม่ตรงกับใน Store ถึงค่อยสั่งสลับ
     if (newSettings.isSfxMuted !== isSfxMuted) {
       toggleSfxMute();
     }
@@ -377,33 +370,29 @@ const GameAppBar = () => {
     setConfirmLogout(false);
   };
 
-  // 💡 THE FIX: คำนวณจำนวนไอเทมเฉพาะ cure, health, reroll
   const currentItemsCount = currentUser?.potion
     ? (currentUser.potion.cure || 0) +
       (currentUser.potion.health || 0) +
       (currentUser.potion.reroll || 0)
     : 0;
 
-  // 💡 THE FIX: ดึง max_slot จากใน potion object
   const maxItemsSlot = currentUser?.potion?.max_slot || 0;
-
-  // เช็คว่าช่องว่างหรือไม่
   const hasEmptySlot = currentItemsCount < maxItemsSlot;
 
   const MAIN_NAV_ITEMS = [
-    { id: "item", label: "ITEM", path: "/home/item", icon: <InventoryIcon /> },
+    { id: "item", label: "ITEM", path: "/home/item", icon: <FaSuitcase/> },
     {
       id: "adventure",
       label: "ADVENTURE",
       path: "/home",
-      icon: <GiBroadsword />,
+      icon: <GiBroadsword />, // 💡 ไม่ถูกโชว์แล้ว แต่ทิ้งไว้เป็นข้อมูลเฉยๆ
       isMain: true,
     },
     {
       id: "character",
       label: "CHARACTER",
       path: "/home/character",
-      icon: <FaCrown />,
+      icon: <FaUserAlt />,
     },
   ];
 
@@ -622,11 +611,12 @@ const GameAppBar = () => {
                   sx={{
                     position: "relative",
                     overflow: "visible",
+                    // 💡 THE FIX: Adventure ใหญ่คงที่ (160px) ส่วน Item/Character บนคอมเล็กลง (60px)
                     minWidth: isCompact
                       ? "40px"
                       : item.isMain
                         ? "160px"
-                        : "120px",
+                        : "60px", 
                     height: isCompact
                       ? "36px"
                       : item.isMain
@@ -634,8 +624,9 @@ const GameAppBar = () => {
                         : { xs: "36px", md: "40px" },
                     flexDirection: { xs: "column", sm: "row" },
                     fontFamily: "'Press Start 2P'",
+                    // 💡 THE FIX: ปรับขนาดฟอนต์ของ Adventure ให้เล็กลงนิดหน่อย
                     fontSize: item.isMain
-                      ? { xs: 8, sm: 10, md: 12 }
+                      ? { xs: 7, sm: 8, md: 10 } 
                       : { xs: 6, sm: 8 },
                     color: isActive ? THEME.bgDark : "#d7ccc8",
                     backgroundColor: isActive
@@ -649,7 +640,8 @@ const GameAppBar = () => {
                     p: isCompact ? 0 : { xs: 0, sm: 1.5 },
                     transition: "all 0.1s",
                     "& .MuiButton-startIcon": {
-                      margin: isCompact ? 0 : "0 8px 0 0",
+                      // 💡 THE FIX: เอา margin ออกเมื่อโชว์แค่ไอคอนอย่างเดียว หรือ ไม่มีไอคอนเลย
+                      margin: 0, 
                       "& > *:nth-of-type(1)": {
                         fontSize: isCompact ? 18 : item.isMain ? 26 : 22,
                       },
@@ -661,42 +653,60 @@ const GameAppBar = () => {
                       transform: "translateY(1px)",
                     },
                   }}
-                  startIcon={item.icon}
+                  // 💡 THE FIX: โชว์ไอคอนเฉพาะปุ่มที่ไม่ได้เป็นหน้าหลัก (Item / Character)
+                  startIcon={!item.isMain ? item.icon : null}
                 >
-                  {!isCompact && item.label}
+                  {/* 💡 THE FIX: โชว์ Text เฉพาะปุ่มหน้าหลัก (Adventure) */}
+                  {item.isMain ? item.label : null}
                 </Button>
               );
 
+              // 💡 THE FIX: ระบบห่อ Tooltip ให้ Item กับ Character
+              let renderedContent = buttonContent;
+
+              if (item.id === "item" && hasEmptySlot) {
+                // ถ้าเป็น Item และมีช่องว่าง โชว์ Tooltip ข้อมูลช่องว่าง
+                renderedContent = (
+                  <Tooltip
+                    title={`You have empty slots! (${currentItemsCount}/${maxItemsSlot})`}
+                    arrow
+                    placement="top"
+                  >
+                    <Badge
+                      overlap="circular"
+                      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                      badgeContent={
+                        <ErrorIcon
+                          sx={{
+                            color: "#ff1744",
+                            fontSize: "1.2rem",
+                            backgroundColor: "#fff",
+                            borderRadius: "50%",
+                            boxShadow: "0 0 5px rgba(0,0,0,0.5)",
+                          }}
+                        />
+                      }
+                    >
+                      {buttonContent}
+                    </Badge>
+                  </Tooltip>
+                );
+              } else if (!item.isMain) {
+                // ถ้าเป็น Item (ตอนเต็ม) หรือ Character โชว์ Tooltip เป็นชื่อของเมนู
+                renderedContent = (
+                  <Tooltip title={item.label} arrow placement="top">
+                    {/* ห่อ Box กันเหนียวเผื่อ Tooltip งงกับ Button */}
+                    <Box>{buttonContent}</Box>
+                  </Tooltip>
+                );
+              } else {
+                // ส่วน Adventure เป็นปุ่มใหญ่มี Text อยู่แล้ว ปล่อยโล่ง
+                renderedContent = buttonContent;
+              }
+
               return (
                 <Box key={item.id} sx={{ position: "relative" }}>
-                  {/* 💡 ถ้าเป็นปุ่มไอเทม และมีช่องว่าง ให้ใส่ Badge ครอบ */}
-                  {item.id === "item" && hasEmptySlot ? (
-                    <Tooltip
-                      title={`You have empty slots! (${currentItemsCount}/${maxItemsSlot})`}
-                      arrow
-                      placement="top"
-                    >
-                      <Badge
-                        overlap="circular"
-                        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                        badgeContent={
-                          <ErrorIcon
-                            sx={{
-                              color: "#ff1744",
-                              fontSize: "1.2rem",
-                              backgroundColor: "#fff",
-                              borderRadius: "50%",
-                              boxShadow: "0 0 5px rgba(0,0,0,0.5)",
-                            }}
-                          />
-                        }
-                      >
-                        {buttonContent}
-                      </Badge>
-                    </Tooltip>
-                  ) : (
-                    buttonContent
-                  )}
+                  {renderedContent}
                 </Box>
               );
             })}
@@ -752,7 +762,6 @@ const GameAppBar = () => {
               );
             })}
 
-            {/* 💡 THE FIX: แยกปุ่ม Settings (ฟันเฟือง) */}
             <Tooltip title="Settings" arrow>
               <IconButton
                 onClick={() => {
@@ -770,7 +779,6 @@ const GameAppBar = () => {
               </IconButton>
             </Tooltip>
 
-            {/* 💡 THE FIX: แยกปุ่ม Logout ออกมา (ไอคอนประตู) */}
             <Tooltip title="Logout" arrow>
               <IconButton
                 onClick={() => {
@@ -795,11 +803,11 @@ const GameAppBar = () => {
       <GameDialog
         open={openSettings}
         title="SETTINGS"
-        onConfirm={handleSaveSettings} // 💡 ใช้ฟังก์ชัน Save ใหม่
+        onConfirm={handleSaveSettings}
         onCancel={() => {
           playClickSound();
           setOpenSettings(false);
-        }} // 💡 กด Back จะแค่ปิดไป ค่าใน Store ไม่เปลี่ยน
+        }} 
         confirmText="SAVE"
         showAudioSettings={true}
         volume={volume}
