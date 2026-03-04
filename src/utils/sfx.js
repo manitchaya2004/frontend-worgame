@@ -14,7 +14,7 @@ import gameOver from "../assets/sound/game-over.mp3";
 
 // --- Background Music (BGM) ---
 // ✅ Import ไฟล์เพลงใหม่ตรงนี้ (ตรวจสอบ path ให้ชัวร์ว่าไฟล์อยู่ที่นี่จริง)
-import greenGrassUrl from "../assets/music/green-grass.mp3"; 
+import advantureUrl from "../assets/music/advanture.mp3"; 
 
 // =========================================================
 // 2. SFX SYSTEM (เสียงเอฟเฟกต์)
@@ -90,5 +90,5 @@ export const bgm = {
   // ------------------------------------
   // ✅ PRESETS: เรียกใช้ง่ายๆ
   // ------------------------------------
-  playGreenGrass: () => bgm.play(greenGrassUrl, 0.05), // ปรับความดังตรงนี้ (0.2 = 20%)
+  playAdvanture: () => bgm.play(advantureUrl, 0.2), // ปรับความดังตรงนี้ (0.2 = 20%)
 };
