@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import {
   Dialog,
   Box,
@@ -88,6 +88,8 @@ const StatLine = ({ label, value, isImproved }) => {
   );
 };
 
+let audioCtx = null;
+
 const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
   const {
     upgradeStatus,
@@ -96,30 +98,85 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
     clearUpgradeStatus,
     currentUser,
     fetchPreviewData,
+    sfxVolume,
+    isSfxMuted,
   } = useAuthStore();
 
+  // 💡 THE FIX: เพิ่ม State ควบคุมการโชว์หน้า Success ชั่วคราว
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const isLoading = upgradeStatus === LOADING;
-  const isSuccess = upgradeStatus === LOADED && !previewData;
   const isPreviewReady = upgradeStatus === LOADED && previewData;
   const isError = upgradeStatus === FAILED;
 
   const userMoney = currentUser?.money || 0;
   const canUpgrade = userMoney >= upgradeCost;
-
-  // เช็คเงื่อนไข Max Level
   const isMaxLevel = previewData?.level?.current >= 10;
+
+  const playUpgradeSfx = useCallback(() => {
+    if (isSfxMuted || sfxVolume <= 0) return;
+
+    try {
+      const AudioContextClass =
+        window.AudioContext || window["webkitAudioContext"];
+      if (!audioCtx) {
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      const targetVol = 0.15 * sfxVolume;
+
+      oscillator.type = "square";
+      oscillator.frequency.setValueAtTime(523.25, now);
+      oscillator.frequency.setValueAtTime(659.25, now + 0.1);
+      oscillator.frequency.setValueAtTime(783.99, now + 0.2);
+      oscillator.frequency.setValueAtTime(1046.5, now + 0.3);
+
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(targetVol, now + 0.05);
+      gainNode.gain.setValueAtTime(targetVol, now + 0.4);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.8);
+    } catch (error) {
+      console.error("Web Audio API Error:", error);
+    }
+  }, [sfxVolume, isSfxMuted]);
 
   useEffect(() => {
     if (!open) {
+      setShowSuccess(false); // รีเซ็ตหน้า Success ตอนปิด Dialog
       setTimeout(() => clearUpgradeStatus(), 200);
     }
   }, [open, clearUpgradeStatus]);
 
+  // 💡 THE FIX: ปรับลอจิกการกดอัปเกรดให้หน่วงเวลา
   const handleConfirmUpgrade = async () => {
-    if (!canUpgrade || isLoading || isMaxLevel) return;
+    if (!canUpgrade || isLoading || isMaxLevel || showSuccess) return;
 
+    // 1. สั่ง API อัปเกรด
     await upgradeHero(heroId);
-    await fetchPreviewData(heroId);
+
+    // 2. โชว์หน้าติ๊กถูก + เล่นเสียง
+    setShowSuccess(true);
+    playUpgradeSfx();
+
+    // 3. หน่วงเวลา 1.5 วินาที เพื่อให้เห็นอนิเมชัน
+    setTimeout(async () => {
+      setShowSuccess(false);
+      // 4. ค่อยดึงข้อมูลอัปเกรดใหม่มาโชว์ (มันจะไม่วาร์ปข้ามแล้ว)
+      await fetchPreviewData(heroId);
+    }, 700);
   };
 
   useEffect(() => {
@@ -139,12 +196,14 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
           border: "4px solid #5d4037",
           borderRadius: "12px",
           width: "95%",
-          maxHeight: "90vh", // ป้องกันทะลุขอบบนล่าง
-          height: "auto", // ให้ความสูงยืดตาม Content
+          maxHeight: "90vh",
+          height: "auto",
           boxShadow: "0 8px 0 #1a120b",
-          overflow: "hidden", // ให้ตัว Scroll ไปอยู่ที่ Body แทน
-          "@media (orientation: landscape) and (max-height: 430px)": {
+          overflow: "hidden",
+          "@media (orientation: landscape) and (max-height: 450px)": {
             border: "3px solid #5d4037",
+            width: "80%",
+            height: "80vh",
           },
         },
       }}
@@ -155,7 +214,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
           p: 1.5,
           textAlign: "center",
           position: "relative",
-          flexShrink: 0, // หัวห้ามหด
+          flexShrink: 0,
         }}
       >
         <Typography
@@ -174,7 +233,8 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
           {heroName.toUpperCase()}
         </Typography>
 
-        {!isLoading && !isSuccess && (
+        {/* ซ่อนปุ่มปิดตอนกำลังโหลดหรือกำลังโชว์ Success */}
+        {!isLoading && !showSuccess && (
           <IconButton
             onClick={onClose}
             sx={{
@@ -196,51 +256,55 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
         )}
       </Box>
 
-      {/* === BODY (ใส่ Scroll ได้ถ้าจอเตี้ยเกินไป) === */}
+      {/* === BODY === */}
       <Box
         sx={{
           p: 2,
           flexGrow: 1,
-          overflowY: "auto", // กรณีจอแนวนอนเตี้ยมากๆ จะเลื่อนดูได้
+          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          scrollbarWidth: "none", // ซ่อน scrollbar (Firefox)
-          "&::-webkit-scrollbar": { display: "none" }, // ซ่อน scrollbar (Chrome/Safari)
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
           "@media (orientation: landscape) and (max-height: 430px)": {
             py: 1,
           },
         }}
       >
-        {isLoading && (
-          <Box
+        {/* 💡 THE FIX: แสดงสถานะ Loading เฉพาะตอนที่ไม่ได้โชว์ Success*/}
+        {isLoading && !showSuccess && (
+        <Box
+          sx={{
+            textAlign: "center",
+            py: 4,
+            height: { xs: "auto", sm: "250px" },
+            display:'flex',flexDirection:'column',justifyContent:'start',alignItems:'center',gap:5 
+           
+          }}
+        >
+          <CircularProgress size={40} sx={{ color: "#ffca28", mb: 2 }} />
+          <Typography
             sx={{
-              textAlign: "center",
-              py: 4,
-              height: { xs: "auto", sm: "250px" },
+              fontFamily: "'Press Start 2P'",
+              fontSize: 10,
+              color: "#ccc",
             }}
           >
-            <CircularProgress size={40} sx={{ color: "#ffca28", mb: 2 }} />
-            <Typography
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                fontSize: 10,
-                color: "#ccc",
-              }}
-            >
-              Calculating...
-            </Typography>
-          </Box>
+            Calculating...
+          </Typography>
+        </Box>
         )}
 
-        {isSuccess && !isLoading && !isMaxLevel && (
-          <Box
-            sx={{ textAlign: "center", animation: "popIn 0.3s ease", py: 2 }}
+        {/* 💡 THE FIX: แสดงหน้า Success ค้างไว้ */}
+        {showSuccess && (
+        <Box
+            sx={{ textAlign: "center", animation: "popIn 0.5s ease", py: 4, height: { xs: "auto", sm: "250px" },display:'flex',flexDirection:'column',justifyContent:'start',alignItems:'center',gap:5 }}
           >
             <CheckCircleIcon
               sx={{
-                fontSize: 60,
+                fontSize: {xs:70,sm:100},
                 color: "#66bb6a",
                 mb: 2,
                 filter: "drop-shadow(0 4px 0 rgba(0,0,0,0.3))",
@@ -249,19 +313,19 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: 14,
+                fontSize: {xs:10,sm:14},
                 color: "#fff",
                 mb: 1,
               }}
             >
               LEVEL UP!
             </Typography>
-          </Box>
+          </Box> 
         )}
 
-        {isPreviewReady && (
+        {/* 💡 THE FIX: แสดงข้อมูล Preview เฉพาะตอนที่ไม่ได้โหลดและไม่ได้โชว์ Success */}
+        {isPreviewReady && !showSuccess && !isLoading && (
           <Box sx={{ width: "100%", animation: "fadeIn 0.3s ease" }}>
-            {/* Image Placeholder */}
             <Box
               sx={{
                 display: "flex",
@@ -290,9 +354,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               />
             </Box>
 
-            {/* --- THE 2 BOXES --- */}
             {isMaxLevel ? (
-              /* โชว์แค่กล่องเดียวตรงกลางเมื่อถึง Max Level */
               <Box sx={{ display: "flex", justifyContent: "center" }}>
                 <Box
                   sx={{
@@ -334,7 +396,6 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   alignItems: "stretch",
                 }}
               >
-                {/* BOX 1: CURRENT */}
                 <Box
                   sx={{
                     flex: 1,
@@ -378,7 +439,6 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   <ArrowRightAltIcon />
                 </Box>
 
-                {/* BOX 2: NEXT */}
                 <Box
                   sx={{
                     flex: 1,
@@ -429,14 +489,14 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
       </Box>
 
       {/* === FOOTER ACTION === */}
-      {isPreviewReady && !isMaxLevel && (
+      {isPreviewReady && !isMaxLevel && !showSuccess && !isLoading && (
         <Box
           sx={{
             p: 2,
             display: "flex",
             justifyContent: "center",
             pb: 3,
-            flexShrink: 0, // ท้ายห้ามหด
+            flexShrink: 0, 
             "@media (orientation: landscape) and (max-height: 450px)": {
               p: 1,
               pb: 1.5,
@@ -513,10 +573,10 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
         </Box>
       )}
 
-      {/* ปุ่มโชว์ตอนตันแล้ว (Disable) */}
-      {isPreviewReady && isMaxLevel && (
+      {/* ปุ่มโชว์ตอนตันแล้ว */}
+      {isPreviewReady && isMaxLevel && !showSuccess && (
         <Box sx={{ p: 2, display: "flex", justifyContent: "center", pb: 3 }}>
-           <Button
+          <Button
             disabled
             sx={{
               backgroundColor: "#1a120b",
@@ -533,13 +593,18 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
               alignItems: "center",
             }}
           >
-            <Typography sx={{ fontFamily: "inherit", fontSize: "inherit", color: "#6d4c41" }}>
+            <Typography
+              sx={{
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                color: "#6d4c41",
+              }}
+            >
               MAX LEVEL REACHED
             </Typography>
           </Button>
         </Box>
       )}
-
     </Dialog>
   );
 };
