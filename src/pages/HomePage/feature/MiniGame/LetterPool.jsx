@@ -1,12 +1,15 @@
 import React from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
-import { motion } from "framer-motion";
-import { THEMES } from "../../hook/const";
-export const LetterPool = ({ poolLetters, onSelectLetter, onHint, hintsRemaining, status }) => {
+import FastForwardIcon from '@mui/icons-material/FastForward';
+import { motion, AnimatePresence } from "framer-motion";
+
+export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hintsRemaining, status }) => {
+  // กรองเอาเฉพาะตัวที่ยังไม่ถูกใช้งานมาแสดง
+  const availableLetters = poolLetters.filter(item => !item.isUsed);
+
   return (
     <Box sx={{ mt: "auto" }}>
-      
       <Box 
         sx={{ 
           display: "flex", 
@@ -14,59 +17,41 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, hintsRemaining
           justifyContent: "center", 
           gap: { xs: 1, sm: 1.5 }, 
           mb: 3,
-          maxWidth: "400px", 
+          // ขยายความกว้างเพื่อรองรับคำศัพท์ 7-8 ตัวอักษร
+          maxWidth: "100%", 
+          px: 1,
           mx: "auto"
         }}
       >
-        {poolLetters.map((item) => {
-          // ถ้าปุ่มถูกใช้ไปแล้ว ให้โชว์เป็นหลุมดำมืดๆ
-          if (item.isUsed) {
-            return (
-              <Box
-                key={item.id}
-                sx={{
-                  width: { xs: 45, sm: 55 },
-                  height: { xs: 45, sm: 55 },
-                  background: "rgba(10,10,10,0.8)",
-                  border: "1px solid #333",
-                  borderRadius: "6px",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Typography sx={{ opacity: 0.1, color: "#fff", fontSize: 16 }}>
-                  {item.char}
-                </Typography>
-              </Box>
-            );
-          }
-
-          // ปุ่มปกติที่ยังไม่โดนกด (สไตล์เดียวกับ Inventory Slot)
-          return (
+        <AnimatePresence>
+          {availableLetters.map((item) => (
             <Box
               key={item.id}
+              // 💡 THE FIX: ใช้ layout ให้มันเลื่อนสไลด์เข้าหากันตอนมีตัวหายไป
               component={motion.div}
-              whileHover={status === "playing" ? { scale: 1.05 } : {}}
-              whileTap={status === "playing" ? { scale: 0.95 } : {}}
+              layout
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0, transition: { duration: 0.15 } }}
+              whileHover={status === "playing" ? { scale: 1.1 } : {}}
+              whileTap={status === "playing" ? { scale: 0.9 } : {}}
               onClick={() => onSelectLetter(item)}
               sx={{
-                width: { xs: 45, sm: 55 },
-                height: { xs: 45, sm: 55 },
+                width: { xs: 40, sm: 50 },
+                height: { xs: 40, sm: 50 },
                 background: "linear-gradient(145deg, #ffffff, #e8dcc4)",
-                border: "1px solid #5c4033",
-                borderRadius: "5px",
+                border: "2px solid #5c4033",
+                borderRadius: "8px",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
                 position: "relative",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.4)",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.5), inset 0 -3px 0 rgba(0,0,0,0.1)",
                 cursor: status === "playing" ? "pointer" : "default",
                 opacity: status === "playing" ? 1 : 0.6,
-                // กรอบแวววาวเวลาเอาเมาส์ไปชี้
                 "&:hover": {
-                   border: status === "playing" ? "1px solid #d4af37" : "1px solid #5c4033",
-                   boxShadow: status === "playing" ? "0 4px 8px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.6)" : "none",
+                   border: status === "playing" ? "2px solid #d4af37" : "2px solid #5c4033",
+                   boxShadow: status === "playing" ? "0 6px 12px rgba(0,0,0,0.6), inset 0 -3px 0 rgba(212,175,55,0.3)" : "none",
                 }
               }}
             >
@@ -74,9 +59,9 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, hintsRemaining
                 sx={{ 
                   zIndex: 1, 
                   fontWeight: 900, 
-                  fontSize: { xs: "20px", sm: "24px" },
-                  fontFamily: "'Palatino', serif", // ใช้ฟอนต์เดียวกับโค้ดตัวอย่าง
-                  color: "#3e2723", // สีน้ำตาลเข้ม
+                  fontSize: { xs: "18px", sm: "22px" },
+                  fontFamily: "'Palatino', serif", 
+                  color: "#3e2723", 
                   textShadow: "0.5px 1px 0px rgba(255,255,255,0.8)", 
                   lineHeight: 1,
                 }}
@@ -84,12 +69,32 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, hintsRemaining
                 {item.char}
               </Typography>
             </Box>
-          );
-        })}
+          ))}
+        </AnimatePresence>
       </Box>
 
-      {/* ปุ่ม HINT (ปรับสไตล์ให้กลมกลืนขึ้น) */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      {/* แถบปุ่มช่วยเหลือ (REVEAL & HINT) */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", px: { xs: 1, sm: 3 } }}>
+        <Button
+          onClick={onReveal}
+          disabled={status !== "playing"}
+          startIcon={<FastForwardIcon sx={{ color: "#ff8a65" }} />}
+          sx={{
+            fontFamily: "'Press Start 2P'",
+            fontSize: 10,
+            color: "#ff8a65", 
+            border: `2px solid #555`,
+            borderRadius: "20px",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            "&:hover": {
+              backgroundColor: "rgba(255, 138, 101, 0.1)",
+              border: `2px solid #ff8a65`,
+            }
+          }}
+        >
+          REVEAL
+        </Button>
+
         <Tooltip title={hintsRemaining > 0 ? "Use Hint" : "No hints left!"} arrow placement="top">
           <span>
             <Button
@@ -114,7 +119,6 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, hintsRemaining
           </span>
         </Tooltip>
       </Box>
-
     </Box>
   );
 };

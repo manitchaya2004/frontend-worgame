@@ -31,7 +31,7 @@ export const useAuthStore = create(
       volume: 0.3,
       isMuted: false,
 
-      // 💥 SFX Settings (เพิ่มใหม่!)
+      // 💥 SFX Settings
       sfxVolume: 0.5,
       isSfxMuted: false,
 
@@ -58,7 +58,6 @@ export const useAuthStore = create(
             credentials: "include",
           });
 
-          // Safety Check: ถ้าไม่ใช่ JSON หรือส่ง Error กลับมา
           const contentType = res.headers.get("content-type");
           if (
             !res.ok ||
@@ -78,11 +77,11 @@ export const useAuthStore = create(
 
           set({
             registerState: LOADED,
-            currentUser: data.user ?? null, // ✅ สำคัญ
+            currentUser: data.user ?? null, 
             errorRegister: false,
           });
 
-          return data; // ✅ เหมือน thunk
+          return data; 
         } catch (err) {
           const message =
             err instanceof Error ? err.message : "Register failed";
@@ -93,7 +92,7 @@ export const useAuthStore = create(
             errorRegister: true,
           });
 
-          throw err; // ✅ ให้ component handle ได้
+          throw err; 
         }
       },
 
@@ -186,18 +185,17 @@ export const useAuthStore = create(
         }
       },
 
-      /* ===== REFRESH USER DATA (แบบเงียบ ไม่หมุนติ้ว) ===== */
+      /* ===== REFRESH USER DATA ===== */
       refreshUser: async () => {
         try {
           const token = localStorage.getItem("token");
-          if (!token) return; // ถ้าไม่มี token ก็ช่างมัน
+          if (!token) return;
 
           const res = await fetch(`/api/checkAuth`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          // แก้จุดนี้: ตรวจสอบก่อนว่าเป็น JSON หรือไม่ ก่อนจะสั่ง parse
           const contentType = res.headers.get("content-type");
           if (
             !res.ok ||
@@ -211,7 +209,6 @@ export const useAuthStore = create(
           const data = await res.json();
 
           set({
-            // อัปเดตแค่ข้อมูล User (เงิน, ด่านที่ผ่าน)
             currentUser: data.user,
             isAuthenticated: true,
           });
@@ -251,7 +248,7 @@ export const useAuthStore = create(
             isFirstTime: data.firstTime,
           });
 
-          return data.firstTime; // 👈 เผื่อ component เอาไปใช้
+          return data.firstTime; 
         } catch (error) {
           console.error("checkFirstTime error:", error);
           set({
@@ -289,7 +286,6 @@ export const useAuthStore = create(
           const data = await res.json();
           if (!data.isSuccess) throw new Error(data.message);
 
-          // ⭐ update hero ใน store
           set((state) => ({
             selectHeroState: LOADED,
             currentUser: {
@@ -309,7 +305,6 @@ export const useAuthStore = create(
         }
       },
 
-      // buy
       buyHero: async (heroId) => {
         try {
           set({ buyHeroState: LOADING, buyHeroError: null });
@@ -324,7 +319,7 @@ export const useAuthStore = create(
               Authorization: `Bearer ${token}`,
             },
             credentials: "include",
-            body: JSON.stringify({ heroId }), // ✅ สำคัญ
+            body: JSON.stringify({ heroId }),
           });
 
           const contentType = res.headers.get("content-type");
@@ -332,7 +327,7 @@ export const useAuthStore = create(
             throw new Error("Server returned non-JSON. Possible 404 or Crash.");
           }
 
-          const data = await res.json(); // ✅ fetch ต้อง parse เอง
+          const data = await res.json(); 
 
           if (!res.ok || !data.isSuccess) {
             throw new Error(data.message || "buy hero failed");
@@ -340,7 +335,6 @@ export const useAuthStore = create(
 
           const { hero, moneyLeft } = data;
 
-          // ✅ update local state
           set((state) => ({
             currentUser: {
               ...state.currentUser,
@@ -362,7 +356,6 @@ export const useAuthStore = create(
         }
       },
 
-      //update resource (item)
       updateResources: async (payload) => {
         set({ resourceStatus: LOADING });
         try {
@@ -392,7 +385,6 @@ export const useAuthStore = create(
           if (data.isSuccess) {
             const { health, cure, reroll } = data.resources;
 
-            // อัปเดต State currentUser ทันทีเพื่อให้ UI เปลี่ยน
             set((state) => ({
               resourceStatus: LOADED,
               currentUser: {
@@ -406,7 +398,6 @@ export const useAuthStore = create(
               },
             }));
 
-            // Reset status กลับเป็น INIT หลังจากผ่านไป 1 วิ
             setTimeout(() => {
               set({ resourceStatus: INITIALIZED });
             }, 1000);
@@ -419,7 +410,6 @@ export const useAuthStore = create(
         }
       },
 
-      // level up
       upgradeHero: async (heroId) => {
         set({ upgradeStatus: LOADING });
         try {
@@ -446,11 +436,10 @@ export const useAuthStore = create(
           const data = await res.json();
           if (!res.ok || !data.isSuccess) throw new Error(data.message);
 
-          const { hero } = data; // ข้อมูล Hero ตัวใหม่ที่อัปเวลแล้ว
+          const { hero } = data; 
 
-          // อัปเดต Hero ใน List ทันที
           set((state) => ({
-            upgradeStatus: LOADED, // สำเร็จ
+            upgradeStatus: LOADED, 
             currentUser: {
               ...state.currentUser,
               heroes: state.currentUser.heroes.map((h) =>
@@ -467,7 +456,6 @@ export const useAuthStore = create(
         }
       },
 
-      //  preview data for level up
       fetchPreviewData: async (heroId) => {
         set({ previewData: null, upgradeStatus: LOADING });
         try {
@@ -495,8 +483,8 @@ export const useAuthStore = create(
           if (!res.ok || !data.isSuccess) throw new Error(data.message);
 
           set({
-            previewData: data.data, // ข้อมูล comparison
-            upgradeStatus: LOADED, // โหลดเสร็จแล้ว โชว์ข้อมูลได้
+            previewData: data.data, 
+            upgradeStatus: LOADED, 
           });
         } catch (err) {
           console.error("fetchPreviewData error:", err);
@@ -512,7 +500,6 @@ export const useAuthStore = create(
           const token = localStorage.getItem("token");
           if (!token) throw new Error("no token");
 
-          // ตรวจสอบชื่อ Route ให้ตรงกับ Express Backend ของคุณ (สมมติว่าเป็น /api/update-stamina)
           const res = await fetch(`/api/update-stamina`, {
             method: "POST",
             headers: {
@@ -534,7 +521,6 @@ export const useAuthStore = create(
           const data = await res.json();
           if (!data.isSuccess) throw new Error(data.message);
 
-          // อัปเดตข้อมูล Stamina ใหม่ลงใน currentUser ทันที
           set((state) => ({
             currentUser: {
               ...state.currentUser,
@@ -542,7 +528,7 @@ export const useAuthStore = create(
                 ...state.currentUser.stamina,
                 current: data.stamina.current,
                 max: data.stamina.max,
-                timeToNext: data.stamina.timeToNext, // เวลานับถอยหลังที่ได้จาก Backend
+                timeToNext: data.stamina.timeToNext, 
               },
             },
           }));
@@ -550,6 +536,56 @@ export const useAuthStore = create(
           return { success: true, currentStamina: data.stamina.current };
         } catch (err) {
           console.error("updateStamina error:", err);
+          return { success: false, error: err.message };
+        }
+      },
+
+      // =========================================
+      // ⏳ REDUCE STAMINA TIMER (มินิเกมตอบถูก)
+      // =========================================
+      reduceStaminaTimer: async (minutes) => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("no token");
+
+          const res = await fetch(`/api/reduce-stamina-timer`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ minutes }), 
+          });
+
+          // ... (ส่วนตรวจเช็ค error เหมือนเดิม) ...
+
+          const data = await res.json();
+          if (!data.isSuccess) throw new Error(data.message);
+
+          // 💡 ตรวจสอบว่าสายฟ้าปัจจุบัน เพิ่มขึ้นจากของเดิมใน Store หรือไม่
+          const previousStamina = get().currentUser?.stamina?.current || 0;
+          const currentStamina = data.stamina.current;
+          const earnedStamina = currentStamina > previousStamina; // ถ้าได้เพิ่ม ถือว่าตีบวกสำเร็จ!
+
+          set((state) => ({
+            currentUser: {
+              ...state.currentUser,
+              stamina: {
+                ...state.currentUser.stamina,
+                current: currentStamina,
+                max: data.stamina.max,
+                timeToNext: data.stamina.timeToNext, 
+              },
+            },
+          }));
+
+          return { 
+             success: true, 
+             currentStamina: currentStamina,
+             earnedStamina: earnedStamina // 💡 ส่งค่านี้กลับไปให้ MiniGame.jsx รู้ 
+          };
+        } catch (err) {
+          console.error("reduceStaminaTimer error:", err);
           return { success: false, error: err.message };
         }
       },
@@ -574,19 +610,16 @@ export const useAuthStore = create(
       clearUpgradeStatus: () =>
         set({ upgradeStatus: INITIALIZED, previewData: null }),
 
-      // hero ที่กำลังใช้อยู่
       getSelectedHero: () => {
         const user = get().currentUser;
         return user?.heroes?.find((h) => h.is_selected === true) ?? null;
       },
 
-      // เช็คว่าผู้เล่นมี hero นี้ไหม
       isHeroOwned: (heroId) => {
         const user = get().currentUser;
         return !!user?.heroes?.some((h) => h.hero_id === heroId);
       },
 
-      // เช็คว่า hero นี้กำลังถูกเลือกอยู่ไหม
       isHeroSelected: (heroId) => {
         const user = get().currentUser;
         return !!user?.heroes?.some(

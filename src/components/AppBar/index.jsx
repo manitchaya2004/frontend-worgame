@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useRef, useEffect, memo } from "react";
-import { motion, animate } from "framer-motion";
+import { motion, animate, useAnimation } from "framer-motion";
 
 // Icons
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
@@ -24,7 +24,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add";
-import ErrorIcon from '@mui/icons-material/Error';
+import ErrorIcon from "@mui/icons-material/Error";
 
 import { GiBroadsword } from "react-icons/gi";
 import { FaCrown } from "react-icons/fa";
@@ -34,7 +34,7 @@ import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlay
 import { LoadImage } from "../../pages/HomePage/hook/usePreloadFrams";
 import { GameDialog } from "../GameDialog";
 import MiniGame from "../../pages/HomePage/feature/MiniGame/MiniGame";
-
+import { useStaminaTimer } from "../../hook/useStaminaTimer";
 //sound
 import { useGameSfx } from "../../hook/useGameSfx";
 import clickSfx from "../../assets/sound/click1.ogg";
@@ -108,6 +108,9 @@ const AnimatedMoney = ({ value, fontSize = 10 }) => {
         transition: "color 0.3s ease",
         lineHeight: 1,
         whiteSpace: "nowrap",
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          fontSize: 6,
+        },
       }}
     >
       {formatGameMoney(displayValue)}
@@ -115,9 +118,6 @@ const AnimatedMoney = ({ value, fontSize = 10 }) => {
   );
 };
 
-// ==========================================
-// ⚡ COMPONENT: Energy Bar
-// ==========================================
 const EnergyBar = React.memo(
   ({
     currentStamina = 0,
@@ -126,38 +126,36 @@ const EnergyBar = React.memo(
     onAddClick,
     onTimerEnd,
   }) => {
-    const defaultTimeLeft =
-      currentStamina < maxStamina && timeToNextEnergy <= 0
-        ? 30 * 60
-        : Math.floor(timeToNextEnergy / 1000);
+    // 💡 THE FIX: แพ็คข้อมูลให้ตรงกับรูปแบบที่ Hook ต้องการ
+    const staminaObj = React.useMemo(() => ({
+      current: currentStamina,
+      max: maxStamina,
+      timeToNext: timeToNextEnergy,
+    }), [currentStamina, maxStamina, timeToNextEnergy]);
 
-    const [timeLeft, setTimeLeft] = useState(defaultTimeLeft);
-    const isFull = currentStamina >= maxStamina;
+    // 💡 THE FIX: ใช้ Hook ตัวกลาง Single Source of Truth
+    const { timeLeft, isFull, timerStatus } = useStaminaTimer(staminaObj);
+    
+    const controls = useAnimation();
+    const prevTimeLeft = useRef(timeLeft);
 
+    // 💡 THE FIX: อนิเมชันเด้งตอนเวลาลดลง
     useEffect(() => {
-      if (currentStamina < maxStamina) {
-        setTimeLeft(
-          timeToNextEnergy > 0 ? Math.floor(timeToNextEnergy / 1000) : 30 * 60,
-        );
-      } else {
-        setTimeLeft(0);
+      if (timerStatus === "reduced") {
+        controls.start({
+          scale: [1, 1.3, 1], // เด้งขยายแล้วหดกลับ
+          transition: { duration: 0.5 }
+        });
       }
-    }, [timeToNextEnergy, currentStamina, maxStamina]);
+    }, [timerStatus, controls]);
 
+    // 💡 THE FIX: เช็คจังหวะที่เวลาหมด เพื่อบอก Backend ให้รีเฟรชสตามิน่า
     useEffect(() => {
-      if (isFull) return;
-
-      if (timeLeft <= 0) {
+      if (!isFull && timeLeft <= 0 && prevTimeLeft.current > 0) {
         if (onTimerEnd) onTimerEnd();
-        return;
       }
-
-      const interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }, [isFull, timeLeft, onTimerEnd]);
+      prevTimeLeft.current = timeLeft;
+    }, [timeLeft, isFull, onTimerEnd]);
 
     const formatTime = (seconds) => {
       const m = Math.floor(seconds / 60);
@@ -182,7 +180,7 @@ const EnergyBar = React.memo(
             borderRadius: "13px",
             px: 0.5,
             mr: 1,
-            gap:0
+            gap: 0.5,
           },
         }}
       >
@@ -205,7 +203,7 @@ const EnergyBar = React.memo(
                   paintOrder: "stroke fill",
                   transition: "all 0.3s",
                   "@media (orientation: landscape) and (max-height: 450px)": {
-                    fontSize: 16,
+                    fontSize: 13,
                   },
                 }}
               />
@@ -213,28 +211,31 @@ const EnergyBar = React.memo(
           })}
         </Box>
 
-        {currentStamina < maxStamina && (
+        {!isFull && (
           <Box
             sx={{
               minWidth: { xs: "30px", sm: "40px" },
               textAlign: "center",
               mx: { xs: 0.5, sm: 1 },
-               "@media (orientation: landscape) and (max-height: 450px)": {
-                   mx:0
-                  },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                mx: 0,
+              },
             }}
           >
             <Typography
+              component={motion.span}
+              animate={controls}
               sx={{
                 fontFamily: "'Press Start 2P'",
                 fontSize: { xs: 7.5, sm: 9 },
                 opacity: 0.9,
-                color: "#E8E9CD",
+                color: timerStatus === "reduced" ? "#69f0ae" : "#E8E9CD", 
                 letterSpacing: "-0.5px",
-                 "@media (orientation: landscape) and (max-height: 450px)": {
-                    fontSize: 7,
-                  },
-
+                transition: "color 0.3s ease",
+                display: "inline-block",
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 7,
+                },
               }}
             >
               {formatTime(timeLeft)}
@@ -261,7 +262,6 @@ const EnergyBar = React.memo(
         >
           <IconButton
             onClick={onAddClick}
-            // disabled={isFull}
             sx={{
               backgroundColor: "#66bb6a",
               border: "1.5px solid #2e7d32",
@@ -291,7 +291,7 @@ const EnergyBar = React.memo(
                 fontSize: { xs: 14, sm: 18 },
                 fontWeight: "bold",
                 "@media (orientation: landscape) and (max-height: 450px)": {
-                  fontSize: 14,
+                  fontSize: 12,
                 },
               }}
             />
@@ -325,7 +325,7 @@ const GameAppBar = () => {
   const isLandscapeMobile = useMediaQuery(
     "(orientation: landscape) and (max-height: 450px)",
   );
-  
+
   const isCompact = isMobileWidth || isLandscapeMobile;
 
   const isLandscape = useMediaQuery("(orientation: landscape)");
@@ -386,7 +386,7 @@ const GameAppBar = () => {
 
   // 💡 THE FIX: ดึง max_slot จากใน potion object
   const maxItemsSlot = currentUser?.potion?.max_slot || 0;
-  
+
   // เช็คว่าช่องว่างหรือไม่
   const hasEmptySlot = currentItemsCount < maxItemsSlot;
 
@@ -481,7 +481,8 @@ const GameAppBar = () => {
                   width: "fit-content",
                   "@media (orientation: landscape) and (max-height: 450px)": {
                     pl: "45px",
-                    minWidth: "90px",
+                    minWidth: "auto",
+                    borderRadius: "12px",
                   },
                 }}
               >
@@ -494,6 +495,11 @@ const GameAppBar = () => {
                       color: "#E8E9CD",
                       mb: 0.5,
                       width: { xs: "90px", sm: "110px", md: "130px" },
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 6,
+                          width: currentUser?.username.length > 6 ?"100px" : "auto",
+                        },
                     }}
                   >
                     {currentUser?.username}
@@ -509,6 +515,10 @@ const GameAppBar = () => {
                       borderRadius: "50%",
                       backgroundColor: "#fff",
                       border: "1px solid #B8860B",
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 8,
+                        },
                     }}
                   />
                   <AnimatedMoney
@@ -533,18 +543,19 @@ const GameAppBar = () => {
                   justifyContent: "center",
                   zIndex: 2,
                   "@media (orientation: landscape) and (max-height: 450px)": {
-                    width: 40,
-                    height: 40,
+                    width: 35,
+                    height: 35,
                   },
                 }}
               >
                 <Avatar
                   src={LoadImage(name, heroId, 1)}
                   sx={{
-                    width: "120%",
-                    height: "120%",
+                    width: !isLandscapeMobile ?"120%" :"110%",
+                    height: !isLandscapeMobile ?"120%" :"110%",
                     imageRendering: "pixelated",
                     mb: 1,
+                    
                   }}
                 />
                 <Box
@@ -561,7 +572,7 @@ const GameAppBar = () => {
                 >
                   <Typography
                     sx={{
-                      fontSize: { xs: 5, sm: 7 },
+                      fontSize: !isLandscapeMobile ? { xs: 5, sm: 7 } : 6.5,
                       color: "#FFD700",
                       fontFamily: "'Press Start 2P'",
                     }}
@@ -591,9 +602,9 @@ const GameAppBar = () => {
               justifyContent: "center",
               alignItems: "center",
               gap: { xs: 0.5, sm: 1, md: 1.5 },
-               "@media (orientation: landscape) and (max-height: 450px)": {
-                   gap:1
-                  },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                gap: 1,
+              },
             }}
           >
             {MAIN_NAV_ITEMS.map((item) => {
@@ -640,7 +651,7 @@ const GameAppBar = () => {
                     "& .MuiButton-startIcon": {
                       margin: isCompact ? 0 : "0 8px 0 0",
                       "& > *:nth-of-type(1)": {
-                        fontSize: isCompact ? 22 : item.isMain ? 26 : 22,
+                        fontSize: isCompact ? 18 : item.isMain ? 26 : 22,
                       },
                     },
                     "&:hover": {
@@ -699,9 +710,9 @@ const GameAppBar = () => {
               justifyContent: "flex-end",
               alignItems: "center",
               gap: { xs: 0.2, sm: 1 },
-               "@media (orientation: landscape) and (max-height: 450px)": {
-                  gap:0
-                  },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                gap: 0,
+              },
             }}
           >
             {!isCompact && (
@@ -732,7 +743,7 @@ const GameAppBar = () => {
                       border: `2px solid ${isActive ? THEME.activeBorder : "transparent"}`,
                       borderRadius: "8px",
                       p: { xs: 0.5, sm: 1 },
-                      "& .MuiSvgIcon-root": { fontSize: { xs: 20, sm: 24 } },
+                      "& .MuiSvgIcon-root": { fontSize: !isLandscapeMobile ?{ xs: 20, sm: 24 } : 18 },
                     }}
                   >
                     {item.icon}
@@ -755,7 +766,7 @@ const GameAppBar = () => {
                   transition: "all 0.3s",
                 }}
               >
-                <SettingsIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                <SettingsIcon sx={{ fontSize:!isLandscapeMobile ? { xs: 20, sm: 24 } : 18}} />
               </IconButton>
             </Tooltip>
 
@@ -773,7 +784,7 @@ const GameAppBar = () => {
                   transition: "all 0.3s",
                 }}
               >
-                <LogoutIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                <LogoutIcon sx={{ fontSize:!isLandscapeMobile ? { xs: 20, sm: 24 } : 18}} />
               </IconButton>
             </Tooltip>
           </Box>

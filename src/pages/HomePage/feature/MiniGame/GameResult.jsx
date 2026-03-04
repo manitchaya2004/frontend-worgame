@@ -1,6 +1,7 @@
 import { Box, Typography, Button } from "@mui/material";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import HeartBrokenIcon from "@mui/icons-material/HeartBroken"; 
+import { THEMES } from "../../hook/const";
 export const GameResult = ({ onExit, onPlayAgain, canPlayAgain }) => {
   return (
     <Box
@@ -105,6 +106,10 @@ export const GameOver = ({onClose,startNewGame}) => {
         textAlign: "center",
         py: 5,
         animation: "fadeIn 0.5s ease-in-out",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 3,
       }}
     >
       <HeartBrokenIcon
