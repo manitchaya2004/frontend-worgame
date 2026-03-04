@@ -196,14 +196,12 @@ export default function GameApp() {
     [activeSelectedItems],
   );
 
-  // 🌟 อัปเดต Prediction ให้คำนวณ Overload และ Heal ด้วย
   const prediction = useMemo(() => {
     let strikeTotal = 0;
     let guardTotal = 0;
     let healTotal = 0;
     let recoilDmg = 0;
 
-    // คำนวณ Recoil (Overload) 
     const wordLength = activeSelectedItems.length;
     const playerPower = store.playerData?.power || 3;
     const excessLetters = wordLength - playerPower;
@@ -763,13 +761,17 @@ export default function GameApp() {
             <AnimatePresence>
               {store.validWordInfo && (prediction.guard.max > 0 || prediction.heal > 0) && (
                 <div style={{ position: "absolute", bottom: "170px", right: `calc(50% + ${centerOffset}px)`, zIndex: 900, pointerEvents: "none", display: "flex", gap: "8px" }}>
-                  {/* บล็อก Heal (ซ้อนต่อกันทางขวา) */}
+                  {/* บล็อก Heal */}
                   {prediction.heal > 0 && (
-                    <PredictionBadge type="HEAL" value={prediction.heal} color="#2ecc71" side="right" />
+                    <TopHudTooltipWrapper title="Predicted Healing" desc="Amount of HP restored when using this word." align="center">
+                      <PredictionBadge type="HEAL" value={prediction.heal} color="#2ecc71" side="right" />
+                    </TopHudTooltipWrapper>
                   )}
                   {/* บล็อก Shield */}
                   {prediction.guard.max > 0 && (
-                    <PredictionBadge type="SHIELD" value={prediction.guard} color="#3498db" side="right" />
+                    <TopHudTooltipWrapper title="Predicted Shield" desc="Defense value gained to block incoming damage." align="center">
+                      <PredictionBadge type="SHIELD" value={prediction.guard} color="#3498db" side="right" />
+                    </TopHudTooltipWrapper>
                   )}
                 </div>
               )}
@@ -779,13 +781,17 @@ export default function GameApp() {
             <AnimatePresence>
               {store.validWordInfo && (prediction.strike.max > 0 || prediction.recoil > 0) && (
                 <div style={{ position: "absolute", bottom: "170px", left: `calc(50% + ${centerOffset}px)`, zIndex: 900, pointerEvents: "none", display: "flex", gap: "8px", flexDirection: "row-reverse" }}>
-                  {/* บล็อก Recoil (ซ้อนต่อกันทางซ้าย) */}
+                  {/* บล็อก Recoil */}
                   {prediction.recoil > 0 && (
-                    <PredictionBadge type="RECOIL" value={prediction.recoil} color="#8b0000" side="left" isWarning={true} />
+                    <TopHudTooltipWrapper title="Overload Recoil" desc="Damage taken due to exceeding your power capacity." align="center">
+                      <PredictionBadge type="RECOIL" value={prediction.recoil} color="#8b0000" side="left" isWarning={true} />
+                    </TopHudTooltipWrapper>
                   )}
                   {/* บล็อก Damage */}
                   {prediction.strike.max > 0 && (
-                    <PredictionBadge type="DAMAGE" value={prediction.strike} color="#ff4d4d" side="left" />
+                    <TopHudTooltipWrapper title="Predicted Damage" desc="Base damage dealt to the target(s)." align="center">
+                      <PredictionBadge type="DAMAGE" value={prediction.strike} color="#ff4d4d" side="left" />
+                    </TopHudTooltipWrapper>
                   )}
                 </div>
               )}
@@ -874,12 +880,10 @@ export default function GameApp() {
 }
 
 // --------------------------------------------------------------------------
-// 🔲 SUB-COMPONENT: PredictionBadge (ปรับให้รองรับการเรียงต่อกัน)
+// 🔲 SUB-COMPONENT: PredictionBadge
 // --------------------------------------------------------------------------
 const PredictionBadge = memo(({ type, value, color, side, isWarning = false }) => {
   const isRight = side === "right";
-  
-  // แปลง value เดี่ยว (สำหรับ Heal, Overload) ให้เป็น {min, max} เพื่อใช้ Logic เดิมในการเรนเดอร์
   const displayValue = typeof value === "number" ? { min: value, max: value } : value;
 
   return (
@@ -888,6 +892,7 @@ const PredictionBadge = memo(({ type, value, color, side, isWarning = false }) =
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 10 }}
       transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      style={{ pointerEvents: "auto" }} // เปิด pointerEvents เพื่อให้ Hover Tooltip ทำงานได้
     >
       <div
         style={{
