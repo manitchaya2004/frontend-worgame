@@ -234,7 +234,7 @@ const AdvantureFeature = () => {
                 },
               }}
             >
-              ADVANTURE
+              ADVENTURE
             </Typography>
           </Box>
           <ListSection
@@ -245,6 +245,7 @@ const AdvantureFeature = () => {
             changeCharacter={changeCharacter}
             isEntering={isEntering}
             completedStageId={completedStageId}
+            playClickSound={playClickSound2}
           />
         </MotionBox>
       </Box>

@@ -220,7 +220,7 @@ const DetailItem = ({
                   <Typography
                     sx={{
                       fontFamily: "'Press Start 2P'",
-                      fontSize: { xs: 12, sm: 16, md: 18, xl: 20 }, // ใหญ่ขึ้น!
+                      fontSize: stage?.name.length < 15 ? { xs: 12, sm: 16, md: 18, xl: 18 } :{ xs: 10, sm: 14, md: 16, xl: 16 }, // ใหญ่ขึ้น!
                       color: "#fffbe6", // สีขาวครีม อ่านง่าย
                       textShadow: `2px 2px 0 #000`,
                       textTransform: "uppercase",

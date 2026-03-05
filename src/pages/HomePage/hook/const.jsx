@@ -8,7 +8,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   GiBroadsword,
   GiShield,
-  GiStarShuriken,
+  GiWaterDrop,
   GiTrident,
   GiBowieKnife,
   GiFangs,
@@ -101,7 +101,7 @@ export const getDeckIconData = (effect) => {
       return {
         desc: " Gain 5 mana",
         color: "#00bcd4",
-        icon: <GiStarShuriken />,
+        icon: <GiWaterDrop />,
       };
     case "shield-plus":
       return {
