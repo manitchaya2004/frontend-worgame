@@ -36,6 +36,7 @@ const ListSection = memo(
     changeCharacter,
     isEntering,
     completedStageId,
+    playClickSound,
   }) => {
     const navigate = useNavigate();
     const [index, setIndex] = useState(initialIndex);
@@ -143,7 +144,14 @@ const ListSection = memo(
           <Box
             component="img"
             src={arrowLeft}
-            onClick={canGoPrev ? () => paginate(-1) : undefined}
+            onClick={
+              canGoPrev
+                ? () => {
+                    paginate(-1);
+                    playClickSound();
+                  }
+                : undefined
+            }
             sx={{
               width: { xs: 36, sm: 44 },
               position: "absolute",
@@ -220,7 +228,14 @@ const ListSection = memo(
           <Box
             component="img"
             src={arrowRight}
-            onClick={canGoNext ? () => paginate(1) : undefined}
+            onClick={
+              canGoNext
+                ? () => {
+                    paginate(1);
+                    playClickSound();
+                  }
+                : undefined
+            }
             sx={{
               width: { xs: 36, sm: 44 },
               position: "absolute",

@@ -116,7 +116,7 @@ const ItemCard = ({
             </Tooltip>
           </Box>
 
-          <Typography
+          {/* <Typography
             sx={{
               fontFamily: "'Press Start 2P'",
               fontSize: 8,
@@ -125,7 +125,7 @@ const ItemCard = ({
             }}
           >
             Lv.{level}
-          </Typography>
+          </Typography> */}
         </Box>
         
         <Box

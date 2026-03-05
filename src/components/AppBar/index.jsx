@@ -261,6 +261,7 @@ const EnergyBar = React.memo(
         >
           <IconButton
             onClick={onAddClick}
+            disabled={isFull}
             sx={{
               backgroundColor: "#66bb6a",
               border: "1.5px solid #2e7d32",
@@ -303,7 +304,6 @@ const EnergyBar = React.memo(
 
 const GameAppBar = () => {
   const { currentUser, logout } = useLoginPlayer();
-  console.log("user", currentUser);
   const {
     volume,
     isMuted,
@@ -626,7 +626,7 @@ const GameAppBar = () => {
                     fontFamily: "'Press Start 2P'",
                     // 💡 THE FIX: ปรับขนาดฟอนต์ของ Adventure ให้เล็กลงนิดหน่อย
                     fontSize: item.isMain
-                      ? { xs: 7, sm: 8, md: 10 } 
+                      ? { xs: 7, sm: 8, md: 13 } 
                       : { xs: 6, sm: 8 },
                     color: isActive ? THEME.bgDark : "#d7ccc8",
                     backgroundColor: isActive

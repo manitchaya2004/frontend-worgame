@@ -5,6 +5,8 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ReplayIcon from "@mui/icons-material/Replay";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import LocalDrinkIcon from "@mui/icons-material/LocalDrink"; // ไอคอน Potion
+import UpgradeIcon from "@mui/icons-material/Upgrade"; // ไอคอนลูกศรอัปเกรด
 import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied"; // ไอคอนหน้าเศร้า
 import { THEMES } from "../HomePage/hook/const";
 
@@ -28,6 +30,7 @@ export default function RewardMoney({
   earnedCoins,
   stageCoins,
   hasWordLog,
+  hasMaxSlotUpgrade, // รับค่าเพื่อบอกว่ามีการอัปเกรดหรือไม่
   onNextStep,
   onExit,
 }) {
@@ -35,8 +38,8 @@ export default function RewardMoney({
   const rewardMoney = stageCoins || 0;
   const totalMoney = monsterMoney + rewardMoney;
 
-  // ✅ เงื่อนไข: จะโชว์การ์ดเงินก็ต่อเมื่อมีเงินมากกว่า 0
-  const showRewardCard = totalMoney > 0;
+  // ✅ เงื่อนไข: จะโชว์การ์ดเงินก็ต่อเมื่อมีเงินมากกว่า 0 หรือมีการอัปเกรด
+  const showRewardCard = totalMoney > 0 || hasMaxSlotUpgrade;
 
   return (
     <motion.div
@@ -78,80 +81,130 @@ export default function RewardMoney({
       </motion.div>
 
       {/* 2. Money Card OR Empty State */}
-      <motion.div variants={itemVariants} style={{ width: "100%" }}>
-        <Paper
-          elevation={6}
-          sx={{
-            backgroundColor: THEMES.bgPanel,
-            border: `4px solid ${isWin ? THEMES.accent : THEMES.border}`,
-            borderRadius: "16px",
-            padding: "24px",
-            boxShadow: `0 10px 0 ${THEMES.shadow}`,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          <Typography
+      {showRewardCard && (
+        <motion.div variants={itemVariants} style={{ width: "100%" }}>
+          <Paper
+            elevation={6}
             sx={{
-              fontFamily: '"Press Start 2P"',
-              fontSize: "0.9rem",
-              color: THEMES.textMain,
-              textAlign: "center",
-              opacity: 0.8,
+              backgroundColor: THEMES.bgPanel,
+              border: `4px solid ${isWin ? THEMES.accent : THEMES.border}`,
+              borderRadius: "16px",
+              padding: "24px",
+              boxShadow: `0 10px 0 ${THEMES.shadow}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
             }}
           >
-            - REWARDS -
-          </Typography>
-
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <RowLabelValue label="Monster Drop" value={`+${monsterMoney}`} />
-            <RowLabelValue
-              label="Stage Reward"
-              value={rewardMoney > 0 ? `+${rewardMoney}` : "0"}
-              highlight={rewardMoney > 0}
-            />
-
-            <Divider
+            <Typography
               sx={{
-                borderColor: THEMES.border,
-                my: 1,
-                borderStyle: "dashed",
-              }}
-            />
-
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                fontFamily: '"Press Start 2P"',
+                fontSize: "0.9rem",
+                color: THEMES.textMain,
+                textAlign: "center",
+                opacity: 0.8,
               }}
             >
-              <Typography
+              - REWARDS -
+            </Typography>
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <RowLabelValue label="Monster Drop" value={`+${monsterMoney}`} />
+              <RowLabelValue
+                label="Stage Reward"
+                value={rewardMoney > 0 ? `+${rewardMoney}` : "0"}
+                highlight={rewardMoney > 0}
+              />
+
+              <Divider
                 sx={{
-                  color: "#fff",
-                  fontFamily: '"Press Start 2P"',
-                  fontSize: "1rem",
+                  borderColor: THEMES.border,
+                  my: 1,
+                  borderStyle: "dashed",
+                }}
+              />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                TOTAL
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 28 }} />
                 <Typography
                   sx={{
-                    color: "#ffd700",
+                    color: "#fff",
                     fontFamily: '"Press Start 2P"',
-                    fontSize: "1.5rem",
+                    fontSize: "1rem",
                   }}
                 >
-                  {totalMoney}
+                  TOTAL
                 </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 28 }} />
+                  <Typography
+                    sx={{
+                      color: "#ffd700",
+                      fontFamily: '"Press Start 2P"',
+                      fontSize: "1.5rem",
+                    }}
+                  >
+                    {totalMoney}
+                  </Typography>
+                </Box>
               </Box>
+
+              {/* ส่วนแสดงผล Item Upgrade */}
+              {hasMaxSlotUpgrade && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
+                >
+                  <Box
+                    sx={{
+                      mt: 1,
+                      p: 1.5,
+                      border: `2px dashed ${THEMES.accent}`,
+                      borderRadius: "12px",
+                      backgroundColor: "rgba(255, 215, 0, 0.1)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <LocalDrinkIcon sx={{ color: "#4caf50", fontSize: 24 }} />
+                      <Typography
+                        sx={{
+                          fontFamily: '"Press Start 2P"',
+                          color: "#fff",
+                          fontSize: "0.75rem",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        POTION <br /> MAX SLOT
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <UpgradeIcon sx={{ color: THEMES.accent, fontSize: 24 }} />
+                      <Typography
+                        sx={{
+                          fontFamily: '"Press Start 2P"',
+                          color: THEMES.accent,
+                          fontSize: "1.2rem",
+                        }}
+                      >
+                        +1
+                      </Typography>
+                    </Box>
+                  </Box>
+                </motion.div>
+              )}
             </Box>
-          </Box>
-        </Paper>
-      </motion.div>
+          </Paper>
+        </motion.div>
+      )}
 
       {/* 3. Action Buttons */}
       <motion.div

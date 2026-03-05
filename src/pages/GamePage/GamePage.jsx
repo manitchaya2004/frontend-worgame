@@ -439,6 +439,7 @@ export default function GameApp() {
           earnedCoins: store.receivedCoin,
           stageCoins: isFirstClear ? store.stageData?.money_reward || 0 : 0,
           wordLog: store.wordLog,
+          hasMaxSlotUpgrade: isFirstClear,
         },
       });
     }
