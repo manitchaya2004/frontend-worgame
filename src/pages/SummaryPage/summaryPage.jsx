@@ -1,33 +1,27 @@
-import React, { useState, useMemo } from "react";
+import React, { useState} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
-  Typography,
-  Button,
-  Paper,
-  Divider,
-  Chip,
-  IconButton,
 } from "@mui/material";
-import { motion, AnimatePresence } from "framer-motion";
-import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import ReplayIcon from "@mui/icons-material/Replay";
-import MenuBookIcon from "@mui/icons-material/MenuBook";
-import BoltIcon from "@mui/icons-material/Bolt";
+import {AnimatePresence } from "framer-motion";
 import WordLog from "./WordLog";
 import RewardMoney from "./RewardMoney";
+import { useGameSfx } from "../../hook/useGameSfx";
+import clickSfx from "../../assets/sound/click1.ogg"
 
 export default function SummaryPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { result, earnedCoins, stageCoins, wordLog, stageId } =
+  const { result, earnedCoins, stageCoins, wordLog, stageId, hasMaxSlotUpgrade } =
     location.state || {};
 
   const [step, setStep] = useState(1); // 1 = Money, 2 = Log
   const isWin = result === "WIN";
 
+  const playClickSound = useGameSfx(clickSfx)
+
   const handleExit = () => {
+    playClickSound();
     if (isWin && stageId) {
       navigate("/home", { state: { completedStageId: stageId } });
     } else {
@@ -61,6 +55,7 @@ export default function SummaryPage() {
             isWin={isWin}
             earnedCoins={earnedCoins}
             stageCoins={stageCoins}
+            hasMaxSlotUpgrade={hasMaxSlotUpgrade}
             hasWordLog={wordLog && Object.keys(wordLog).length > 0}
             onNextStep={() => setStep(2)}
             onExit={handleExit}

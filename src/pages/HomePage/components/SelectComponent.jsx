@@ -1,11 +1,17 @@
 import { Select, FormControl, InputLabel, MenuItem } from "@mui/material";
+import { useGameSfx } from "../../../hook/useGameSfx";
+import clickSFX from "../../../assets/sound/click1.ogg";
+import clickMouseSFX from "../../../assets/sound/mouserelease1.ogg";
 
-export const SelectComponent = ({
-  label,
-  value,
-  onChange,
-  options,
-}) => {
+export const SelectComponent = ({ label, value, onChange, options }) => {
+  const playClickSound = useGameSfx(clickSFX);
+  const playMouseClickSound = useGameSfx(clickMouseSFX);
+
+  const handleChange = (e) => {
+    playMouseClickSound();
+    onChange(e.target.value ? String(e.target.value) : null);
+  };
+
   return (
     <FormControl
       sx={{ mb: 1, minWidth: { xs: 52, sm: 109, md: 121, lg: 170 } }}
@@ -14,9 +20,8 @@ export const SelectComponent = ({
       <Select
         value={value ?? ""}
         displayEmpty
-        onChange={(e) =>
-          onChange(e.target.value ? String(e.target.value) : null)
-        }
+        onChange={handleChange}
+        onOpen={() => playClickSound()}
         renderValue={(selected) => {
           if (!selected) {
             return <span style={{ opacity: 0.6 }}>{label}</span>;
@@ -69,7 +74,6 @@ export const SelectComponent = ({
         </MenuItem>
 
         {options?.map((opt) => (
-
           <MenuItem
             key={opt.value}
             value={opt.value}

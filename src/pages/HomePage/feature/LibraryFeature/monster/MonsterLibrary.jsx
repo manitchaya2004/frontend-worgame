@@ -28,6 +28,11 @@ import {
   preloadImageAsync,
 } from "../../../hook/usePreloadFrams";
 
+//sound
+import { useGameSfx } from "../../../../../hook/useGameSfx";
+import clickSFX from "../../../../../assets/sound/click1.ogg";
+import clickMouseSFX from "../../../../../assets/sound/mouserelease1.ogg";
+
 const MotionBox = motion(Box);
 
 // 3. Info Tab Content
@@ -37,9 +42,6 @@ const InfoTab = ({ monster }) => {
   const maxCoin = monster?.exp + 1;
 
   const deck = monster?.monster_deck || [];
-  const uniqueDeckEffects = deck
-    ? Array.from(new Set(deck.map((d) => d.effect)))
-    : []; // ดึงเอาเฉพาะ Effect ที่ไม่ซ้ำกัน
   return (
     <Box sx={{ m: 2, height: "100%", overflowY: "auto", pr: 1 }}>
       <Box
@@ -73,63 +75,21 @@ const InfoTab = ({ monster }) => {
             flexWrap: "wrap",
           }}
         >
-          {isUnlocked && uniqueDeckEffects.length > 0 ? (
-            uniqueDeckEffects.map((effect, index) => {
-              // เรียกใช้ getDeckIconData เพื่อดึง icon และ color
-              const deckInfo = getDeckIconData(effect);
-              return (
-                <Tooltip
-                  key={index}
-                  title={deckInfo.desc}
-                  placement="top"
-                  arrow
-                  slotProps={{
-                    tooltip: {
-                      sx: {
-                        fontSize: "12px",
-                        fontFamily: "'Verdana', sans-serif",
-                        // fontWeight: "bold",
-                        backgroundColor: "#2a160f",
-                        border: `1px solid ${deckInfo.color}`,
-                        color: deckInfo.color,
-                      },
-                    },
-                    arrow: { sx: { color: "#2a160f" } },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: { xs: 16, md: 18 },
-                      height: { xs: 16, md: 18 },
-                      borderRadius: "50%",
-                      backgroundColor: deckInfo.color,
-                      color: "#fff",
-                      border: "1.5px solid #fff",
-                      boxShadow: "0px 2px 4px rgba(0,0,0,0.5)",
-                      fontSize: { xs: 12, md: 14 },
-                      cursor: "pointer",
-                      transition: "transform 0.2s",
-                      "&:hover": {
-                        transform: "scale(1.2)",
-                      },
-                      "@media (orientation: landscape) and (max-height: 450px)":
-                        {
-                          width: 9,
-                          height: 9,
-                          fontSize: 8,
-                          justifyContent: "center",
-                          border: "0.2px solid #fff",
-                        },
-                    }}
-                  >
-                    {deckInfo.icon}
-                  </Box>
-                </Tooltip>
-              );
-            })
+          {isUnlocked ? (
+            <Typography
+              sx={{
+                fontFamily: "'Verdana', sans-serif",
+                fontSize: { xs: 9, md: 11 },
+                color: "#d7ccc8",
+                lineHeight: 1.2,
+                textAlign: "center",
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 7,
+                },
+              }}
+            >
+              {monster?.description || "No description available."}
+            </Typography>
           ) : (
             <Typography
               sx={{
@@ -143,7 +103,7 @@ const InfoTab = ({ monster }) => {
                 },
               }}
             >
-              No deck info available
+              No description available
             </Typography>
           )}
         </Box>
@@ -183,10 +143,10 @@ const InfoTab = ({ monster }) => {
   );
 };
 
-// 4. Moves Tab Content
-const MovesTab = ({ monster }) => {
+// 4. Buff Tab Content (เปลี่ยนจาก Moves Tab)
+const BuffTab = ({ monster }) => {
   const isUnlocked = monster?.isUnlocked ?? true;
-  const moves = monster?.monster_moves;
+  const deck = monster?.monster_deck || [];
 
   // ดักกรณีมอนสเตอร์ยังไม่ปลดล็อค
   if (!isUnlocked) {
@@ -217,7 +177,7 @@ const MovesTab = ({ monster }) => {
     );
   }
 
-  if (!moves || moves.length === 0) {
+  if (deck.length === 0) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
         <Typography
@@ -227,75 +187,97 @@ const MovesTab = ({ monster }) => {
             color: THEME.textMain,
           }}
         >
-          No move patterns found.
+          No buff found.
         </Typography>
       </Box>
     );
   }
 
+  // 💡 รวม Buff ที่ซ้ำกัน และนับจำนวน เพื่อแสดงเป็น x2, x3 ประหยัดพื้นที่ได้เยอะมาก
+  const groupedDeck = deck.reduce((acc, curr) => {
+    // เช็คว่ามี effect นี้อยู่ใน acc หรือยัง
+    const existing = acc.find((item) => item.effect === curr.effect);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      acc.push({ ...curr, count: 1 });
+    }
+    return acc;
+  }, []);
+
   return (
     <Box sx={{ m: 2, height: "100%", overflowY: "auto", pr: 1 }}>
-      {moves.map((pattern, index) => (
-        <Box key={index} sx={{ mb: 3 }}>
-          <Typography
-            sx={{
-              fontFamily: "'Press Start 2P'",
-              fontSize: 10,
-              color: THEME.magic,
-              mb: 1,
-              borderBottom: `2px solid ${THEME.border}`,
-              display: "inline-block",
-              textShadow: `1px 1px 0 #000`,
-            }}
-          >
-            PATTERN {pattern.pattern_no}
-          </Typography>
-
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-            flexWrap="wrap"
-            useFlexGap
-            sx={{ mt: 1 }}
-          >
-            {pattern.moves
-              .sort((a, b) => a.pattern_order - b.pattern_order)
-              .map((move, i) => (
-                <Box key={i} sx={{ display: "flex", alignItems: "center" }}>
-                  <Chip
-                    label={`${move.pattern_order}. ${move.pattern_move}`}
-                    sx={{
-                      fontFamily: "'Press Start 2P'",
-                      fontSize: 10,
-                      height: 24,
-                      backgroundColor: THEME.bgMain,
-                      color: THEME.textMain,
-                      borderRadius: "4px",
-                      border: `1px solid ${THEME.border}`,
-                      "& .MuiChip-label": { px: 1 },
-                    }}
-                  />
-                  {i < pattern.moves.length - 1 && (
-                    <Typography
-                      sx={{ mx: 0.5, color: THEME.accent, fontWeight: "bold" }}
-                    >
-                      →
-                    </Typography>
-                  )}
-                </Box>
-              ))}
-          </Stack>
-        </Box>
-      ))}
+      {/* 💡 เปลี่ยนจาก Stack เป็น Grid เพื่อให้แสดง 2 คอลัมน์ */}
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1.5,
+          p: 1,
+        }}
+      >
+        {deck.map((effect, index) => {
+          // เรียกใช้ getDeckIconData เพื่อดึง icon และ color
+          const deckInfo = getDeckIconData(effect.effect);
+          return (
+            <Tooltip
+              key={index}
+              title={deckInfo.desc}
+              placement="top"
+              arrow
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    fontSize: "12px",
+                    fontFamily: "'Verdana', sans-serif",
+                    // fontWeight: "bold",
+                    backgroundColor: "#2a160f",
+                    border: `1px solid ${deckInfo.color}`,
+                    color: deckInfo.color,
+                  },
+                },
+                arrow: { sx: { color: "#2a160f" } },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: { xs: 20, md: 30 },
+                  height: { xs: 20, md: 30 },
+                  borderRadius: "50%",
+                  backgroundColor: deckInfo.color,
+                  color: "#fff",
+                  border: "1.5px solid #fff",
+                  boxShadow: "0px 2px 4px rgba(0,0,0,0.5)",
+                  fontSize: { xs: 12, md: 14 },
+                  cursor: "pointer",
+                  transition: "transform 0.2s",
+                  "&:hover": {
+                    transform: "scale(1.2)",
+                  },
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    width: 9,
+                    height: 9,
+                    fontSize: 8,
+                    justifyContent: "center",
+                    border: "0.2px solid #fff",
+                  },
+                }}
+              >
+                {deckInfo.icon}
+              </Box>
+            </Tooltip>
+          );
+        })}
+      </Box>
     </Box>
   );
 };
 
 // --- MAIN COMPONENTS ---
 
-const DetailMonster = ({ monster }) => {
-  console.log("Rendering DetailMonster for:", monster);
+const DetailMonster = ({ monster, playClickSound }) => {
   const [tab, setTab] = useState("info");
 
   const frames = usePreloadFrames("img_monster", monster?.id, 2);
@@ -486,10 +468,13 @@ const DetailMonster = ({ monster }) => {
                 background: "#1a120b",
               }}
             >
-              {["info", "moves"].map((t) => (
+              {["info", "buff"].map((t) => (
                 <Button
                   key={t}
-                  onClick={() => setTab(t)}
+                  onClick={() => {
+                    playClickSound();
+                    setTab(t);
+                  }}
                   fullWidth
                   sx={{
                     fontFamily: "'Press Start 2P'",
@@ -511,7 +496,7 @@ const DetailMonster = ({ monster }) => {
 
             <Box sx={{ flex: 1, overflow: "hidden" }}>
               {tab === "info" && <InfoTab monster={monster} />}
-              {tab === "moves" && <MovesTab monster={monster} />}
+              {tab === "buff" && <BuffTab monster={monster} />}
             </Box>
           </Box>
         </Box>
@@ -539,7 +524,12 @@ const arrowBtnStyle = {
   "&:disabled": { opacity: 0.5, boxShadow: "none", cursor: "not-allowed" },
 };
 
-const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
+const ListMonster = ({
+  listMonster,
+  onSelectMonster,
+  selectedMonster,
+  playClickSound,
+}) => {
   const scrollRef = useRef(null);
 
   const scroll = (dir) => {
@@ -629,7 +619,10 @@ const ListMonster = ({ listMonster, onSelectMonster, selectedMonster }) => {
           return (
             <Box
               key={m.id}
-              onClick={() => onSelectMonster(m)}
+              onClick={() => {
+                playClickSound();
+                onSelectMonster(m);
+              }}
               sx={{
                 flexShrink: 0,
                 width: { xs: 45, sm: 50 },
@@ -703,6 +696,9 @@ const MonsterLibrary = () => {
 
   const [isMinLoading, setIsMinLoading] = useState(true);
   const [isLoadingAssets, setIsLoadingAssets] = useState(true);
+
+  const playClickSound = useGameSfx(clickSFX);
+  const playMouseReleaseSound = useGameSfx(clickMouseSFX);
 
   // --- จุดที่แก้ไข (กรองเอาเฉพาะ Stage ที่ผ่านแล้ว) ---
   useEffect(() => {
@@ -828,7 +824,10 @@ const MonsterLibrary = () => {
         >
           <Box sx={{ flex: 1, mb: 1 }}>
             {/* 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster */}
-            <DetailMonster monster={currentActiveMonster} />
+            <DetailMonster
+              monster={currentActiveMonster}
+              playClickSound={playMouseReleaseSound}
+            />
           </Box>
 
           {/* Footer List */}
@@ -838,6 +837,7 @@ const MonsterLibrary = () => {
               // 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster
               selectedMonster={currentActiveMonster}
               onSelectMonster={setSelectedMonster}
+              playClickSound={playClickSound}
             />
           </Box>
         </Box>

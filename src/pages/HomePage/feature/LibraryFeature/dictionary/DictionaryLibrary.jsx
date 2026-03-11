@@ -9,68 +9,14 @@ import { motion } from "framer-motion";
 import StarBackground from "../../../components/StarBackground";
 import { THEMES } from "../../../hook/const";
 
+import { shortType,Lenght, Type, Level } from "../../../hook/const";
+//sound
+import { useGameSfx } from "../../../../../hook/useGameSfx";
+import clickSFX from "../../../../../assets/sound/click1.ogg";
+import clickMouse from "../../../../../assets/sound/mouserelease1.ogg";
+
 const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const MotionBox = motion(Box);
-const shortType = (type) => {
-  if (!type) return "";
-  switch (type) {
-    case "verb":
-      return "v.";
-    case "noun":
-      return "n.";
-    case "adjective":
-      return "adj.";
-    case "adverb":
-      return "adv.";
-    case "preposition":
-      return "prep.";
-    default:
-      return type;
-  }
-};
-const Type = [
-  { value: "noun", label: "Noun" },
-  { value: "verb", label: "Verb" },
-  { value: "adjective", label: "Adjective" },
-  { value: "adverb", label: "Adverb" },
-  { value: "preposition", label: "Preposition" },
-];
-
-const Level = [
-  {
-    value: "A1",
-    label: "A1",
-  },
-  {
-    value: "A2",
-    label: "A2",
-  },
-  {
-    value: "B1",
-    label: "B1",
-  },
-  {
-    value: "B2",
-    label: "B2",
-  },
-];
-
-const Lenght = [
-  { value: 2, label: "2 chars" },
-  { value: 3, label: "3 chars" },
-  { value: 4, label: "4 chars" },
-  { value: 5, label: "5 chars" },
-  { value: 6, label: "6 chars" },
-  { value: 7, label: "7 chars" },
-  { value: 8, label: "8 chars" },
-  { value: 9, label: "9 chars" },
-  { value: 10, label: "10 chars" },
-  { value: 11, label: "11 chars" },
-  { value: 12, label: "12 chars" },
-  { value: 13, label: "13 chars" },
-  { value: 14, label: "14 chars" },
-  { value: 15, label: "15 chars" },
-];
 
 const WordList = ({
   dictionary,
@@ -79,6 +25,7 @@ const WordList = ({
   onLoadMore,
   onSelect,
   selectedWord,
+  playMouseClick,
 }) => {
   const handleScroll = (e) => {
     const el = e.currentTarget;
@@ -133,7 +80,10 @@ const WordList = ({
         return (
           <Box
             key={w.word}
-            onClick={() => onSelect(w)}
+            onClick={() => {
+              playMouseClick();
+              onSelect(w);
+            }}
             sx={{
               p: 1,
               display: "flex",
@@ -361,6 +311,9 @@ const DictionaryLibrary = () => {
   const [selectType, setSelectType] = useState("");
   const [selectLength, setSelectLength] = useState("");
 
+  const playClickSFX = useGameSfx(clickSFX);
+  const playMouseClick = useGameSfx(clickMouse);
+
   const handleSearchChange = () => {
     if (searchInput === searchText) return;
     setSearchText(searchInput);
@@ -505,6 +458,7 @@ const DictionaryLibrary = () => {
               <Box
                 key={l}
                 onClick={() => {
+                  playClickSFX();
                   setSelectedLetter(l);
                   setSearchText("");
                   setSearchInput("");
@@ -594,6 +548,7 @@ const DictionaryLibrary = () => {
               onLoadMore={loadMore}
               onSelect={setSelectedWord}
               selectedWord={currentActiveWord}
+              playMouseClick={playMouseClick}
             />
 
             <WordDetail dictionary={currentActiveWord} />

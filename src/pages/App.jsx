@@ -18,7 +18,6 @@ import AuthPage from "./AuthPage";
 import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";
 import LibraryFeature from "./HomePage/feature/LibraryFeature";
 import ShopHeroFeature from "./HomePage/feature/Character/ShopHeroFeature.jsx";
-import SelectHero from "./CharacterPage/SelectHero.jsx";
 import SummaryPage from "./SummaryPage/summaryPage.jsx";
 import ServerRoute from "../routes/ServerRoute.jsx";
 import ServerClosedPage from "./ServerClosePage/ServerClosePage.jsx";
@@ -62,7 +61,6 @@ export default function App() {
       {/* server route สำหรับ เช็คว่าถ้าปิดจะไป route server-closeed */}
       <Route element={<ServerRoute />}>
         <Route element={<PrivateRoute />}>
-          <Route path="/select-hero" element={<SelectHero />} />
           <Route path="/home" element={<HomePage />}>
             <Route index element={<AdvantureFeature />} />
             <Route path="character" element={<ShopHeroFeature />} />

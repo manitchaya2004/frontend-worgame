@@ -20,9 +20,14 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ViewListIcon from "@mui/icons-material/ViewList"; // ดูแบบหลอด (List)
 import ViewModuleIcon from "@mui/icons-material/ViewModule"; // ดูแบบกล่อง (Grid)
 
-
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
-const HeroCard = ({ hero, playerHeroes, money }) => {
+const HeroCard = ({
+  hero,
+  playerHeroes,
+  money,
+  playClickSound,
+  playAgreeSound,
+}) => {
   const { selectHero, buyHero, fetchPreviewData, previewData } = useAuthStore();
 
   // dialog buyhero
@@ -52,6 +57,9 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   const currentExp = isOwned ? playerHero?.current_exp || 0 : 0;
   const nextExp = playerHero?.next_exp || 100;
 
+  // 💡 THE FIX: ป้องกัน undefined โดยการบังคับให้เป็น Array ว่าง [] เสมอถ้าไม่มีข้อมูล
+  const rawDeck = (isOwned ? playerHero?.deck_list : hero?.hero_deck) || [];
+
   // Map ข้อมูล 5 ตัวตามที่ขอ
   const base_stats = {
     hp: isOwned ? playerHero?.stats?.levels?.hp_lv : hero.hp_lv,
@@ -72,20 +80,6 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
         power: hero.power || 0,
       };
 
-  // ดึงข้อมูล Deck ล่าสุดมาแสดง และหา Effect ที่ไม่ซ้ำกัน
-  const rawDeck = isOwned ? playerHero?.deck_list : hero?.hero_deck;
-  const uniqueEffects = rawDeck
-    ? Array.from(new Set(rawDeck.map((card) => card.effect)))
-    : [];
-
-  // เดี๋ยวมาปรับ
-  const MAX_STATS_REF = {
-    hp: 20,
-    power: 20,
-    speed: 20,
-    slot: 20,
-  };
-
   const handleConfirmBuy = async () => {
     await buyHero(hero.id);
     setOpenBuy(false);
@@ -96,6 +90,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
   };
 
   const handleOpenUpgrade = () => {
+    playClickSound();
     // ถ้าเวลตันแล้วไม่ให้กดเปิด (ป้องกันกรณีเผื่อกดได้)
     if (currentLevel >= 10) return;
     setOpenUpgrade(true);
@@ -252,9 +247,10 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
               },
             }}
           >
-            {uniqueEffects.length > 0 ? (
-              uniqueEffects.map((effect, index) => {
-                const iconData = getDeckIconData(effect);
+            {/* 💡 THE FIX: ป้องกัน undefined โดยการใช้ rawDeck?.length (ถึงบรรทัดบนจะแก้เป็น [] แล้วก็ใส่กันเหนียวไว้) */}
+            {rawDeck?.length > 0 ? (
+              rawDeck.map((effect, index) => {
+                const iconData = getDeckIconData(effect.effect);
                 return (
                   <Tooltip
                     key={index}
@@ -298,7 +294,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
                             width: 9,
                             height: 9,
                             fontSize: 8,
-                             justifyContent: "center",
+                            justifyContent: "center",
                             border: "0.2px solid #fff",
                           },
                       }}
@@ -526,6 +522,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
             },
           }}
           onClick={() => {
+            playClickSound();
             if (isSelected) return;
             if (isOwned) {
               selectHero(hero.id);
@@ -599,7 +596,7 @@ const HeroCard = ({ hero, playerHeroes, money }) => {
         description={`${hero.name}\nCost: ${hero.price} 💰`}
         confirmText="BUY"
         cancelText="NO"
-        onConfirm={handleConfirmBuy}
+        onConfirm={() => handleConfirmBuy()}
         onCancel={handleCancelBuy}
       />
 

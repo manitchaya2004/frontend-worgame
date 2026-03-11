@@ -17,16 +17,21 @@ import HeroCard from "./HeroCard";
 import { preloadImageAsync, LoadImage } from "../../hook/usePreloadFrams";
 import "./style.css";
 
+//sound
+import { useGameSfx } from "../../../../hook/useGameSfx";
+import clickSfx from "../../../../assets/sound/click1.ogg";
+import clickAgreeSfx from "../../../../assets/sound/click3.ogg";
+
 const MotionBox = motion(Box);
 const ShopHeroFeature = () => {
   const { currentUser } = useLoginPlayer();
   const { heros } = useHeroStore();
 
   const scrollRef = useRef(null);
-
-  const [isMinLoading, setIsMinLoading] = useState(true);
-
   const [isReady, setIsReady] = useState(false);
+
+  const playClickSound = useGameSfx(clickSfx);
+  const playAgreeSound = useGameSfx(clickAgreeSfx);
 
   useEffect(() => {
     if (!heros || heros.length === 0) return;
@@ -69,7 +74,7 @@ const ShopHeroFeature = () => {
   useEffect(() => {
     console.log("user", currentUser);
     console.log("heros", heros);
-  },[])
+  }, []);
 
   return (
     <Box sx={{ height: "100vh" }}>
@@ -166,7 +171,7 @@ const ShopHeroFeature = () => {
           {/* LEFT */}
           <Box
             className="scroll-left"
-            onClick={() => scroll("left")}
+            onClick={() => {scroll("left"); playClickSound();}}
             sx={{
               // position: "absolute",
               // left: { xs: "-10px", lg: "10px" },
@@ -230,6 +235,8 @@ const ShopHeroFeature = () => {
                     hero={hero}
                     playerHeroes={currentUser?.heroes}
                     money={currentUser?.money}
+                    playClickSound={playClickSound}
+                    playAgreeSound={playAgreeSound}
                   />
                 </Box>
               ))
@@ -239,7 +246,10 @@ const ShopHeroFeature = () => {
           {/* RIGHT */}
           <Box
             className="scroll-right"
-            onClick={() => scroll("right")}
+            onClick={() => {
+              scroll("right");
+              playClickSound();
+            }}
             sx={{
               // position: "absolute",
               // left: { xs: "-10px", lg: "10px" },
