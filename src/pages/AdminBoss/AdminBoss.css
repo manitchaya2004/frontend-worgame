@@ -2470,3 +2470,853 @@ select option:checked{
     text-align: center;
   }
 }
+
+/* =========================================================
+   ✅ GLOBAL RESPONSIVE PATCH (AdminPage + All Panels)
+   วางท้ายไฟล์ AdminPage.css
+========================================================= */
+
+/* กัน layout ล้นจอแนวนอน */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.admin-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.content-area {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* wrapper ของตารางให้เลื่อนแนวนอนได้บนจอเล็ก */
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* ตารางไม่บีบจนอ่านไม่ได้ */
+.dict-table {
+  min-width: 720px; /* fallback สำหรับจอเล็ก */
+}
+
+/* ป้องกันข้อความ/รูปทำให้คอลัมน์พัง */
+.dict-table th,
+.dict-table td {
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+/* รูปในตารางย่อได้ */
+.dict-table img,
+.dict-table canvas,
+.dict-table video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* form ต่าง ๆ ไม่ให้ของด้านในดันออกนอกกรอบ */
+.form-box,
+.form-field,
+.input-field,
+.search-input,
+.filter-select,
+textarea,
+select,
+button {
+  min-width: 0;
+}
+
+/* ปุ่มใน action row ให้ห่อบรรทัดได้ */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ปุ่มทั่วไป */
+.btn,
+.tab-btn {
+  white-space: nowrap;
+}
+
+/* -------------------------
+   ✅ Large Desktop / Monitor
+-------------------------- */
+@media (min-width: 1441px) {
+  .pokedex-header,
+  .content-area {
+    width: 100%;
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .content-area {
+    padding: 28px 34px;
+  }
+}
+
+/* -------------------------
+   ✅ Laptop / Small Desktop
+-------------------------- */
+@media (max-width: 1200px) {
+  .pokedex-header {
+    padding: 12px 16px;
+  }
+
+  .content-area {
+    padding: 16px;
+  }
+
+  .pixel-title-small {
+    font-size: 18px;
+  }
+
+  .tab-group {
+    gap: 8px;
+  }
+
+  .tab-btn {
+    font-size: 11px;
+    padding: 9px 12px;
+  }
+
+  .form-box {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 14px;
+  }
+}
+
+/* -------------------------
+   ✅ Tablet (landscape/portrait)
+-------------------------- */
+@media (max-width: 992px) {
+  .pokedex-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .header-left,
+  .header-right,
+  .header-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .header-left {
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .header-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .tab-group {
+    width: 100%;
+    max-width: 100% !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+
+  .tab-group .tab-btn {
+    flex: 0 0 auto;
+  }
+
+  .content-area {
+    padding: 14px;
+  }
+
+  .form-box {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  /* player toolbar */
+  .form-box.player-toolbar {
+    align-items: stretch !important;
+  }
+
+  .player-toolbar-left {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .player-search-field {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .player-reload-btn {
+    width: 100%;
+  }
+
+  .player-toolbar-total {
+    width: 100%;
+    margin-left: 0 !important;
+    text-align: center;
+  }
+}
+
+/* -------------------------
+   ✅ Mobile / Small Tablet
+-------------------------- */
+@media (max-width: 768px) {
+  .pixel-title-small {
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .header-left {
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ถ้าฝั่งซ้ายมีหลาย widget ให้ขึ้นบรรทัดใหม่ */
+  .header-left > * {
+    min-width: 0;
+  }
+
+  .content-area {
+    padding: 12px;
+  }
+
+  .tab-btn {
+    font-size: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+  }
+
+  .tab-btn.logout-tab,
+  .tab-btn.play-tab {
+    height: auto;
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+
+  .form-box {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    border-radius: 14px;
+  }
+
+  .form-box .form-field,
+  .form-box label,
+  .form-box .input-field,
+  .form-box select,
+  .form-box textarea {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .input-field,
+  .search-input,
+  .filter-select {
+    width: 100% !important;
+  }
+
+  textarea.input-field,
+  textarea {
+    min-height: 90px;
+    resize: vertical;
+  }
+
+  /* search/filter blocks */
+  .search-controls,
+  .filter-section {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch !important;
+  }
+
+  .search-controls > *,
+  .filter-section > * {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  /* alphabet grid */
+  .alphabet-grid {
+    grid-template-columns: repeat(auto-fit, minmax(34px, 1fr)) !important;
+    gap: 6px;
+  }
+
+  /* table typography */
+  .dict-table th,
+  .dict-table td {
+    padding: 8px 7px;
+    font-size: 12px;
+  }
+
+  .dict-table th {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  /* action buttons ใน cell ให้กดง่ายขึ้น */
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 110px;
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  /* ปุ่มทั่วไปให้แตะง่าย */
+  .btn {
+    min-height: 40px;
+  }
+
+  /* Hero/Monster/Stage ที่มี flex-row จำนวนมาก */
+  .flex-row {
+    flex-wrap: wrap !important;
+    gap: 8px;
+  }
+
+  .flex-row > * {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* inline-grid style ในบาง panel (เช่น sprite upload) */
+  div[style*="grid-template-columns: repeat(4"],
+  div[style*="grid-template-columns: repeat(3"],
+  div[style*="grid-template-columns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* -------------------------
+   ✅ Small Mobile
+-------------------------- */
+@media (max-width: 480px) {
+  .pokedex-header {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  .content-area {
+    padding: 10px;
+  }
+
+  .pixel-title-small {
+    font-size: 13px;
+  }
+
+  .tab-group {
+    gap: 6px;
+  }
+
+  .tab-btn {
+    font-size: 9px;
+    padding: 8px 9px;
+    border-radius: 9px;
+  }
+
+  .tab-btn.active::after {
+    bottom: -5px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .form-box {
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .dict-table {
+    min-width: 640px;
+  }
+
+  .dict-table th,
+  .dict-table td {
+    padding: 7px 6px;
+    font-size: 11px;
+  }
+
+  .btn {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+}
+
+/* -------------------------
+   ✅ Extra tiny phones
+-------------------------- */
+@media (max-width: 360px) {
+  .pixel-title-small {
+    font-size: 12px;
+  }
+
+  .tab-btn {
+    font-size: 8px;
+    padding: 7px 8px;
+  }
+
+  .dict-table {
+    min-width: 600px;
+  }
+}
+
+/* =========================
+   Action buttons ให้ขนาดเท่ากัน
+========================= */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons .btn,
+.action-buttons button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+
+  /* ✅ ขนาดให้เท่ากัน */
+  min-width: 46px;
+  height: 28px;
+  padding: 0 10px;
+
+  /* ✅ ตัวอักษร */
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+
+  /* ✅ ขอบ/มุม */
+  border-width: 1px !important;
+  border-style: solid;
+  border-radius: 8px;
+
+  /* กันปุ่มเด้งขึ้นลง */
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* ถ้ามี class เฉพาะ edit/delete จะช่วยให้เส้นเท่ากันมากขึ้น */
+.action-buttons .btn-edit,
+.action-buttons .btn-delete {
+  height: 28px;
+  min-width: 46px;
+  padding: 0 10px;
+  line-height: 1;
+}
+
+/* รีเซ็ต style ปุ่มใน Actions ให้เหมือนกันก่อน */
+.action-buttons button {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+/* ปุ่ม GAME PAGE ข้าง server */
+.header-server{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.server-mini-btn{
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(215,180,106,.25);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(80,86,96,.95), rgba(58,63,72,.95));
+  color: #f1efe9;
+  cursor: pointer;
+
+  font-family: "Press Start 2P", cursive;
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  transition: all .15s ease;
+}
+
+.server-mini-btn:hover{
+  transform: translateY(-1px);
+  color: #ffcc66;
+  border-color: rgba(215,180,106,.45);
+  background: linear-gradient(180deg, rgba(92,98,108,.98), rgba(62,67,76,.98));
+}
+
+.server-mini-btn:active{
+  transform: translateY(0);
+}
+
+/* =========================================
+   HEADER LAYOUT TUNE
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+.pokedex-header{
+  display: grid !important;
+  grid-template-columns: auto auto 1fr;
+  align-items: center !important;
+  column-gap: 26px;
+  padding: 14px 26px !important;
+}
+
+.header-brand{
+  display: flex;
+  align-items: center;
+  min-width: max-content;
+}
+
+.pixel-title-small{
+  margin: 0;
+  font-size: 20px !important;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.header-server{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: max-content;
+}
+
+.header-right{
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.header-actions{
+  width: 100%;
+  display: flex !important;
+  justify-content: flex-end;
+  align-items: center !important;
+}
+
+.tab-group{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  min-width: 0;
+  max-width: 100% !important;
+  overflow-x: auto;
+  padding-bottom: 0 !important;
+}
+
+/* ปุ่มเมนูให้เล็กลงนิด จะได้ไม่อึดอัด */
+.tab-btn{
+  height: 36px;
+  padding: 0 12px !important;
+  font-size: 10px !important;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.tab-btn.logout-tab{
+  height: 36px !important;
+  padding: 0 14px !important;
+  margin-left: 6px;
+}
+
+/* game ปุ่มเล็กฝั่ง server */
+.server-mini-btn{
+  height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 8px !important;
+  border-radius: 6px !important;
+  flex: 0 0 auto;
+}
+
+/* server control ไม่ให้บวมเกิน */
+.server-control{
+  transform: scale(0.96);
+  transform-origin: left center;
+}
+
+/* ถ้าจอแคบลงนิด ให้ช่องกลางกับขวาแน่นขึ้น */
+@media (max-width: 1400px){
+  .pokedex-header{
+    grid-template-columns: auto auto 1fr;
+    column-gap: 18px;
+    padding: 12px 18px !important;
+  }
+
+  .pixel-title-small{
+    font-size: 18px !important;
+  }
+
+  .tab-btn{
+    padding: 0 10px !important;
+    font-size: 9px !important;
+  }
+
+  .tab-btn.logout-tab{
+    padding: 0 12px !important;
+  }
+}
+
+/* =========================================
+   SERVER TOGGLE BUTTON
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+.server-btn{
+  min-width: 118px;
+  height: 28px;
+  padding: 0 10px;
+
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Press Start 2P", cursive;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .2px;
+  white-space: nowrap;
+
+  color: #f5f1e8;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 2px 8px rgba(0,0,0,.18);
+
+  transition:
+    transform .14s ease,
+    filter .14s ease,
+    box-shadow .14s ease,
+    border-color .14s ease;
+}
+
+/* ตอน server ปิด -> ปุ่มเปิด */
+.server-btn.open{
+  background: linear-gradient(180deg, #4fd486 0%, #2c9b5d 100%);
+  border-color: rgba(116,255,176,.28);
+  color: #f6fff9;
+}
+
+/* ตอน server เปิด -> ปุ่มปิด */
+.server-btn.close{
+  background: linear-gradient(180deg, #8d929c 0%, #666b74 100%);
+  border-color: rgba(255,255,255,.14);
+  color: #ffffff;
+}
+
+.server-btn:hover:not(:disabled){
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 4px 12px rgba(0,0,0,.24);
+}
+
+.server-btn.open:hover:not(:disabled){
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 4px 12px rgba(44,155,93,.28);
+}
+
+.server-btn.close:hover:not(:disabled){
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 4px 12px rgba(0,0,0,.24);
+}
+
+.server-btn:active:not(:disabled){
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.22),
+    0 1px 5px rgba(0,0,0,.18);
+}
+
+.server-btn:disabled{
+  opacity: .55;
+  cursor: not-allowed;
+  filter: grayscale(.15);
+}
+
+/* =========================================
+   SERVER INFO PANEL
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+.server-control{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(215, 180, 106, 0.22);
+
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    linear-gradient(135deg, rgba(46,52,64,0.96), rgba(33,38,48,0.96));
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 6px 16px rgba(0,0,0,0.22);
+}
+
+/* จุดสถานะ */
+.server-dot{
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.server-dot.on{
+  background: #54ff9f;
+  box-shadow:
+    0 0 8px rgba(84,255,159,0.45),
+    0 0 14px rgba(84,255,159,0.18);
+}
+
+.server-dot.off{
+  background: #ff6b6b;
+  box-shadow:
+    0 0 8px rgba(255,107,107,0.40),
+    0 0 14px rgba(255,107,107,0.16);
+}
+
+/* กลุ่มข้อความ */
+.server-meta{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+/* แถวบน */
+.server-title-row{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+}
+
+.server-label{
+  color: #f3dd9a;
+  font-size: 10px;
+  letter-spacing: .5px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+
+.server-id{
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+
+/* แถวล่าง */
+.server-sub-row{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1;
+}
+
+/* online */
+.server-online{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(84,255,159,0.18);
+
+  background: rgba(84,255,159,0.08);
+  color: #dfffea;
+  font-size: 9px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.3);
+}
+
+.server-online-count{
+  color: #7dffb0;
+  font-weight: 700;
+}
+
+/* badge open / closed */
+.server-badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 8px;
+  letter-spacing: .4px;
+  border: 1px solid transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+
+.badge-on{
+  color: #dfffea;
+  background: rgba(84,255,159,0.10);
+  border-color: rgba(84,255,159,0.20);
+}
+
+.badge-off{
+  color: #ffd9d9;
+  background: rgba(255,107,107,0.10);
+  border-color: rgba(255,107,107,0.20);
+}

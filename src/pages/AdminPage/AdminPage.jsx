@@ -11,25 +11,40 @@ import HeroPanel from "./panels/HeroPanel";
 import StagePanel from "./panels/StagePanel";
 import PlayerPanel from "./panels/PlayerPanel";
 
-import VisionHelper from "./components/VisionHelper";
 import { useAuthStore } from "../../store/useAuthStore";
+
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("dictionary");
   const navigate = useNavigate();
   const { currentUser, logout } = useAuthStore();
-  console.log("AdminPage rendered", currentUser);
+
   const handleLogout = () => {
-    logout(); 
+    logout();
     navigate("/auth");
+  };
+
+  const handleGoGamePage = () => {
+    navigate("/battle");
   };
 
   return (
     <div className="admin-container">
       <div className="pokedex-header">
-        <div className="header-left">
+        <div className="header-brand">
           <h1 className="pixel-title-small">ADMIN PANEL</h1>
+        </div>
+
+        <div className="header-server">
           <ServerControl serverId="hell" />
-          <VisionHelper />
+
+          <button
+            className="server-mini-btn"
+            onClick={handleGoGamePage}
+            type="button"
+            title="Go to Game Page"
+          >
+            🎮 GAME
+          </button>
         </div>
 
         <div className="header-right">
