@@ -15,15 +15,16 @@ const formatSubLabel = (text) => {
       flexDirection: "column", 
       alignItems: "flex-start",
       width: "100%",
-      marginTop: "2px"
+      marginTop: "2px" 
     }}>
       <span style={{ 
-        fontSize: "10px", 
+        fontSize: "10px", // ขยายกลับมานิดนึงให้อ่านง่าย
         fontWeight: "normal",
         color: "#bdc3c7",
         fontFamily: "sans-serif",
         fontStyle: "normal",
-        letterSpacing: "0.5px"
+        letterSpacing: "0.5px",
+        lineHeight: "1"
       }}>
         {text}
       </span>
@@ -50,12 +51,12 @@ const FantasyListButton = ({
       border: "none",
       background: "transparent",
       width: "100%",
-      height: "58px",
+      height: "54px", // 🌟 ปรับเพิ่มความสูงเป็น 54px เพื่อให้รวมแล้วเท่ากล่องซ้าย
       cursor: disabled ? "not-allowed" : "pointer",
       padding: 0,
       display: "flex",
       alignItems: "center",
-      marginBottom: "4px"
+      borderRadius: "6px" 
     }}
   >
     {highlight && !disabled && (
@@ -66,7 +67,7 @@ const FantasyListButton = ({
           background: `linear-gradient(90deg, ${color}33 0%, transparent 100%)`,
           borderLeft: `3px solid ${color}`,
           zIndex: 1,
-          borderRadius: "4px"
+          borderRadius: "6px"
         }}
       />
     )}
@@ -77,21 +78,22 @@ const FantasyListButton = ({
         zIndex: 2,
         display: "flex",
         alignItems: "center",
-        paddingLeft: "12px",
+        paddingLeft: "12px", 
         width: "100%",
       }}
     >
       <div
         style={{
-          width: "38px",
-          height: "38px",
+          width: "36px", // ขยายกล่องไอคอนให้รับกับปุ่มที่สูงขึ้น
+          height: "36px", 
           background: disabled ? "rgba(30,30,30,0.5)" : "rgba(0,0,0,0.6)",
           border: `1px solid ${disabled ? "#444" : "#4d3a2b"}`,
+          borderRadius: "6px", 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          marginRight: "15px",
-          fontSize: "20px",
+          marginRight: "14px", 
+          fontSize: "18px", // ขยายไอคอน
           color: disabled ? "#555" : color, 
           boxShadow: highlight && !disabled ? `0 0 10px ${color}66` : "none",
           flexShrink: 0
@@ -110,13 +112,14 @@ const FantasyListButton = ({
       }}>
         <div
           style={{
-            fontSize: "15px",
+            fontSize: "14px", // ขยายขนาดตัวหนังสือกลับขึ้นมาให้สมดุล
             fontWeight: "bold",
             color: disabled ? "#555" : (highlight ? "#fff" : "#c2a37d"),
             textTransform: "uppercase",
             letterSpacing: "1px",
             fontFamily: "sans-serif",
-            textShadow: disabled ? "none" : "1px 1px 2px #000"
+            textShadow: disabled ? "none" : "1px 1px 2px #000",
+            lineHeight: "1.2"
           }}
         >
           {label}
@@ -153,13 +156,15 @@ export const ActionControls = ({
     <div
       style={{
         width: "25%",
-        background: "rgba(0,0,0,0.5)",
-        border: "1px solid #4d3a2b",
+        background: "#0c0a09", 
+        border: "2px solid #3d2e24", 
+        borderRadius: "8px", 
+        boxShadow: "0 4px 20px rgba(0,0,0,0.6), inset 0 0 15px rgba(61,46,36,0.1)", 
         padding: "12px",
         display: "flex",
         flexDirection: "column",
         gap: "8px",
-        height: "fit-content"
+        height: "fit-content" 
       }}
     >
       <div
@@ -167,9 +172,9 @@ export const ActionControls = ({
           display: "flex", 
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: "1px solid #4d3a2b",
+          borderBottom: "1px solid #3d2e24", 
           paddingBottom: "8px",
-          marginBottom: "6px"
+          marginBottom: "2px" // เพิ่มระยะห่างนิดหน่อยให้สวยงาม
         }}
       >
         <div
@@ -189,7 +194,11 @@ export const ActionControls = ({
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <div style={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        gap: "6px" // 🌟 เพิ่มช่องว่างระหว่างปุ่มเป็น 6px เพื่อดันให้เต็มพอดี
+      }}> 
         <FantasyListButton
           label="STRIKE"
           icon={<GiBroadsword />}
@@ -214,9 +223,9 @@ export const ActionControls = ({
           label={"SKILL"}
           icon={<GiStarsStack />}
           subLabel={"Deal double damage to enemy"}
-          color="#9b59b6" // สีม่วง
-          disabled={!isPlayerTurn || !isManaEnough || !hasWord} // เพิ่ม !hasWord
-          highlight={isPlayerTurn && isManaEnough && hasWord} // เพิ่ม hasWord
+          color="#9b59b6" 
+          disabled={!isPlayerTurn || !isManaEnough || !hasWord} 
+          highlight={isPlayerTurn && isManaEnough && hasWord} 
           onClick={onSkillClick}
         />
 
