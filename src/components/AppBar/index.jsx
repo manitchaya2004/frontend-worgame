@@ -25,8 +25,8 @@ import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add";
 import ErrorIcon from "@mui/icons-material/Error";
 import { MdInventory } from "react-icons/md";
-import { GiBroadsword} from "react-icons/gi";
-import { FaCrown,FaSuitcase,FaUserAlt } from "react-icons/fa";
+import { GiBroadsword } from "react-icons/gi";
+import { FaCrown, FaSuitcase, FaUserAlt } from "react-icons/fa";
 // Assets
 import { useAuthStore } from "../../store/useAuthStore";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
@@ -125,35 +125,57 @@ const EnergyBar = React.memo(
     onAddClick,
     onTimerEnd,
   }) => {
-    // 💡 THE FIX: แพ็คข้อมูลให้ตรงกับรูปแบบที่ Hook ต้องการ
-    const staminaObj = React.useMemo(() => ({
-      current: currentStamina,
-      max: maxStamina,
-      timeToNext: timeToNextEnergy,
-    }), [currentStamina, maxStamina, timeToNextEnergy]);
+    const staminaObj = React.useMemo(
+      () => ({
+        current: currentStamina,
+        max: maxStamina,
+        timeToNext: timeToNextEnergy,
+      }),
+      [currentStamina, maxStamina, timeToNextEnergy],
+    );
 
-    // 💡 THE FIX: ใช้ Hook ตัวกลาง Single Source of Truth
     const { timeLeft, isFull, timerStatus } = useStaminaTimer(staminaObj);
-    
     const controls = useAnimation();
-    const prevTimeLeft = useRef(timeLeft);
+    
+    // 💡 THE FIX: เปลี่ยนมาใช้ useRef แทน State เพื่อไม่ให้เกิด Render loop กวนใจ
+    const hasTriggeredRef = useRef(false);
 
-    // 💡 THE FIX: อนิเมชันเด้งตอนเวลาลดลง
     useEffect(() => {
       if (timerStatus === "reduced") {
         controls.start({
-          scale: [1, 1.3, 1], // เด้งขยายแล้วหดกลับ
-          transition: { duration: 0.5 }
+          scale: [1, 1.3, 1], 
+          transition: { duration: 0.5 },
         });
       }
     }, [timerStatus, controls]);
 
-    // 💡 THE FIX: เช็คจังหวะที่เวลาหมด เพื่อบอก Backend ให้รีเฟรชสตามิน่า
+    // 💡 THE FIX: ลอจิกจับเวลาหมดที่ปรับปรุงใหม่ (ป้องกันค้างที่ 0:00)
     useEffect(() => {
-      if (!isFull && timeLeft <= 0 && prevTimeLeft.current > 0) {
-        if (onTimerEnd) onTimerEnd();
+      let retryTimer;
+      
+      if (timeLeft > 0) {
+        // เมื่อเวลามีมากกว่า 0 (คือเวลายังเดินอยู่ หรือเพิ่งได้สายฟ้ามาใหม่)
+        hasTriggeredRef.current = false;
+      } else if (timeLeft <= 0 && !isFull) {
+        if (!hasTriggeredRef.current) {
+          // เมื่อเวลาแตะ 0 พอดี และยังไม่เต็ม และยังไม่ได้ยิงคำสั่ง
+          hasTriggeredRef.current = true; // สับล็อคเพื่อกันการยิงรัวๆ ทันที
+          if (onTimerEnd) {
+            onTimerEnd(); // เรียกฟังก์ชัน refreshUser() ขอสายฟ้าจาก Backend!
+          }
+        }
+        
+        // 💡 THE FIX: Retry Mechanism!
+        // ถ้า UI ค้างที่ 0:00 นานเกิน 2.5 วินาที แสดงว่า Backend ตอบกลับมาไม่ทันเวลา
+        // ให้ปลดล็อคเพื่อยิง API ขอเช็คสายฟ้าอีกรอบอัตโนมัติ!
+        retryTimer = setTimeout(() => {
+          hasTriggeredRef.current = false;
+        }, 2500);
       }
-      prevTimeLeft.current = timeLeft;
+
+      return () => {
+        if (retryTimer) clearTimeout(retryTimer);
+      };
     }, [timeLeft, isFull, onTimerEnd]);
 
     const formatTime = (seconds) => {
@@ -228,7 +250,7 @@ const EnergyBar = React.memo(
                 fontFamily: "'Press Start 2P'",
                 fontSize: { xs: 7.5, sm: 9 },
                 opacity: 0.9,
-                color: timerStatus === "reduced" ? "#69f0ae" : "#E8E9CD", 
+                color: timerStatus === "reduced" ? "#69f0ae" : "#E8E9CD",
                 letterSpacing: "-0.5px",
                 transition: "color 0.3s ease",
                 display: "inline-block",
@@ -348,8 +370,6 @@ const GameAppBar = () => {
   const handleSaveSettings = (newSettings) => {
     if (!newSettings) return;
 
-    playClickSound();
-
     setVolume(newSettings.volume);
     if (newSettings.isMuted !== isMuted) {
       toggleMute();
@@ -364,7 +384,6 @@ const GameAppBar = () => {
   };
 
   const handleLogout = () => {
-    playClickSound();
     logout();
     navigate("/auth");
     setConfirmLogout(false);
@@ -380,7 +399,7 @@ const GameAppBar = () => {
   const hasEmptySlot = currentItemsCount < maxItemsSlot;
 
   const MAIN_NAV_ITEMS = [
-    { id: "item", label: "ITEM", path: "/home/item", icon: <FaSuitcase/> },
+    { id: "item", label: "ITEM", path: "/home/item", icon: <FaSuitcase /> },
     {
       id: "adventure",
       label: "ADVENTURE",
@@ -487,7 +506,8 @@ const GameAppBar = () => {
                       "@media (orientation: landscape) and (max-height: 450px)":
                         {
                           fontSize: 6,
-                          width: currentUser?.username.length > 6 ?"100px" : "auto",
+                          width:
+                            currentUser?.username.length > 6 ? "100px" : "auto",
                         },
                     }}
                   >
@@ -540,11 +560,10 @@ const GameAppBar = () => {
                 <Avatar
                   src={LoadImage(name, heroId, 1)}
                   sx={{
-                    width: !isLandscapeMobile ?"120%" :"110%",
-                    height: !isLandscapeMobile ?"120%" :"110%",
+                    width: !isLandscapeMobile ? "120%" : "110%",
+                    height: !isLandscapeMobile ? "120%" : "110%",
                     imageRendering: "pixelated",
                     mb: 1,
-                    
                   }}
                 />
                 <Box
@@ -616,7 +635,7 @@ const GameAppBar = () => {
                       ? "40px"
                       : item.isMain
                         ? "160px"
-                        : "60px", 
+                        : "60px",
                     height: isCompact
                       ? "36px"
                       : item.isMain
@@ -626,7 +645,7 @@ const GameAppBar = () => {
                     fontFamily: "'Press Start 2P'",
                     // 💡 THE FIX: ปรับขนาดฟอนต์ของ Adventure ให้เล็กลงนิดหน่อย
                     fontSize: item.isMain
-                      ? { xs: 7, sm: 8, md: 13 } 
+                      ? { xs: 7, sm: 8, md: 13 }
                       : { xs: 6, sm: 8 },
                     color: isActive ? THEME.bgDark : "#d7ccc8",
                     backgroundColor: isActive
@@ -641,7 +660,7 @@ const GameAppBar = () => {
                     transition: "all 0.1s",
                     "& .MuiButton-startIcon": {
                       // 💡 THE FIX: เอา margin ออกเมื่อโชว์แค่ไอคอนอย่างเดียว หรือ ไม่มีไอคอนเลย
-                      margin: 0, 
+                      margin: 0,
                       "& > *:nth-of-type(1)": {
                         fontSize: isCompact ? 18 : item.isMain ? 26 : 22,
                       },
@@ -753,7 +772,9 @@ const GameAppBar = () => {
                       border: `2px solid ${isActive ? THEME.activeBorder : "transparent"}`,
                       borderRadius: "8px",
                       p: { xs: 0.5, sm: 1 },
-                      "& .MuiSvgIcon-root": { fontSize: !isLandscapeMobile ?{ xs: 20, sm: 24 } : 18 },
+                      "& .MuiSvgIcon-root": {
+                        fontSize: !isLandscapeMobile ? { xs: 20, sm: 24 } : 18,
+                      },
                     }}
                   >
                     {item.icon}
@@ -775,7 +796,11 @@ const GameAppBar = () => {
                   transition: "all 0.3s",
                 }}
               >
-                <SettingsIcon sx={{ fontSize:!isLandscapeMobile ? { xs: 20, sm: 24 } : 18}} />
+                <SettingsIcon
+                  sx={{
+                    fontSize: !isLandscapeMobile ? { xs: 20, sm: 24 } : 18,
+                  }}
+                />
               </IconButton>
             </Tooltip>
 
@@ -792,7 +817,11 @@ const GameAppBar = () => {
                   transition: "all 0.3s",
                 }}
               >
-                <LogoutIcon sx={{ fontSize:!isLandscapeMobile ? { xs: 20, sm: 24 } : 18}} />
+                <LogoutIcon
+                  sx={{
+                    fontSize: !isLandscapeMobile ? { xs: 20, sm: 24 } : 18,
+                  }}
+                />
               </IconButton>
             </Tooltip>
           </Box>
@@ -804,10 +833,7 @@ const GameAppBar = () => {
         open={openSettings}
         title="SETTINGS"
         onConfirm={handleSaveSettings}
-        onCancel={() => {
-          playClickSound();
-          setOpenSettings(false);
-        }} 
+        onCancel={() => setOpenSettings(false)}
         confirmText="SAVE"
         showAudioSettings={true}
         volume={volume}
@@ -822,10 +848,7 @@ const GameAppBar = () => {
         title="LOGOUT"
         description="Are you sure you want to logout?"
         onConfirm={handleLogout}
-        onCancel={() => {
-          playClickSound();
-          setConfirmLogout(false);
-        }}
+        onCancel={() => setConfirmLogout(false)}
         confirmText="YES"
         cancelText="NO"
         cancelColor="wood"

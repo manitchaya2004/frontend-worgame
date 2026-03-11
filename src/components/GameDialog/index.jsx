@@ -15,6 +15,10 @@ import MusicOffIcon from "@mui/icons-material/MusicOff";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 
+//sound
+import { useGameSfx } from "../../hook/useGameSfx";
+import clickSfx from "../../assets/sound/click1.ogg";
+import closeSfx from "../../assets/sound/rollover6.ogg";
 // --- RpgButton Component ---
 const RpgButton = ({ children, onClick, color = "wood", style = {} }) => {
   const themes = {
@@ -120,6 +124,10 @@ export const GameDialog = ({
   const [tempMute, setTempMute] = useState(isMuted);
   const [tempSfx, setTempSfx] = useState(sfxVolume);
   const [tempSfxMute, setTempSfxMute] = useState(isSfxMuted);
+
+  //sound
+  const soundConfirm = useGameSfx(clickSfx);
+  const soundClose = useGameSfx(closeSfx);
 
   // 💡 ทุกครั้งที่เปิด Dialog ขึ้นมา ให้ Reset ค่า Temp ให้เท่ากับค่าจริงใน Store
   useEffect(() => {
@@ -377,7 +385,10 @@ export const GameDialog = ({
             >
               {!isSettingsDialog && (
                 <RpgButton
-                  onClick={onCancel}
+                  onClick={() => {
+                    soundClose();
+                    onCancel();
+                  }}
                   color={cancelColor}
                   style={{ flex: 1 }}
                 >
@@ -385,7 +396,10 @@ export const GameDialog = ({
                 </RpgButton>
               )}
               <RpgButton
-                onClick={handleSave}
+                onClick={() => {
+                  soundConfirm();
+                  handleSave();
+                }}
                 color={confirmColor}
                 style={{ flex: 1 }}
               >

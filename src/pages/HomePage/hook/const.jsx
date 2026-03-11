@@ -181,3 +181,72 @@ export const name = "img_hero";
 export const backgroundStage = (stageIDName) => {
   return `/api/img_map/${stageIDName}.png`;
 };
+
+
+// dictionary 
+export const shortType = (type) => {
+  if (!type) return "";
+  switch (type) {
+    case "verb":
+      return "v.";
+    case "noun":
+      return "n.";
+    case "adjective":
+      return "adj.";
+    case "adverb":
+      return "adv.";
+    case "preposition":
+      return "prep.";
+    case "pronoun":
+      return "pron.";
+    case "conjunction":
+      return "conj"
+    default:
+      return type;
+  }
+};
+export const Type = [
+  { value: "noun", label: "Noun" },
+  { value: "verb", label: "Verb" },
+  { value: "adjective", label: "Adjective" },
+  { value: "adverb", label: "Adverb" },
+  { value: "preposition", label: "Preposition" },
+  { value: "prenoun", label: "Prenoun"},
+  { value: "conjunction", label: "Conjunction"}
+];
+
+export const Level = [
+  {
+    value: "A1",
+    label: "A1",
+  },
+  {
+    value: "A2",
+    label: "A2",
+  },
+  {
+    value: "B1",
+    label: "B1",
+  },
+  {
+    value: "B2",
+    label: "B2",
+  },
+];
+
+export const Lenght = [
+  { value: 2, label: "2 chars" },
+  { value: 3, label: "3 chars" },
+  { value: 4, label: "4 chars" },
+  { value: 5, label: "5 chars" },
+  { value: 6, label: "6 chars" },
+  { value: 7, label: "7 chars" },
+  { value: 8, label: "8 chars" },
+  { value: 9, label: "9 chars" },
+  { value: 10, label: "10 chars" },
+  { value: 11, label: "11 chars" },
+  { value: 12, label: "12 chars" },
+  { value: 13, label: "13 chars" },
+  { value: 14, label: "14 chars" },
+  { value: 15, label: "15 chars" },
+];
