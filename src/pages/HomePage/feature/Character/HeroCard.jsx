@@ -20,9 +20,14 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ViewListIcon from "@mui/icons-material/ViewList"; // ดูแบบหลอด (List)
 import ViewModuleIcon from "@mui/icons-material/ViewModule"; // ดูแบบกล่อง (Grid)
 
-
 // --- ShopHeroCard (ปรับปรุง: รับ Point และรวม Stat) ---
-const HeroCard = ({ hero, playerHeroes, money ,playClickSound,playAgreeSound}) => {
+const HeroCard = ({
+  hero,
+  playerHeroes,
+  money,
+  playClickSound,
+  playAgreeSound,
+}) => {
   const { selectHero, buyHero, fetchPreviewData, previewData } = useAuthStore();
 
   // dialog buyhero
@@ -75,8 +80,6 @@ const HeroCard = ({ hero, playerHeroes, money ,playClickSound,playAgreeSound}) =
         power: hero.power || 0,
       };
 
-  
-  
   const handleConfirmBuy = async () => {
     await buyHero(hero.id);
     setOpenBuy(false);
@@ -291,7 +294,7 @@ const HeroCard = ({ hero, playerHeroes, money ,playClickSound,playAgreeSound}) =
                             width: 9,
                             height: 9,
                             fontSize: 8,
-                             justifyContent: "center",
+                            justifyContent: "center",
                             border: "0.2px solid #fff",
                           },
                       }}
@@ -593,10 +596,7 @@ const HeroCard = ({ hero, playerHeroes, money ,playClickSound,playAgreeSound}) =
         description={`${hero.name}\nCost: ${hero.price} 💰`}
         confirmText="BUY"
         cancelText="NO"
-        onConfirm={() => {
-          playAgreeSound();
-          handleConfirmBuy();
-        }}
+        onConfirm={() => handleConfirmBuy()}
         onCancel={handleCancelBuy}
       />
 

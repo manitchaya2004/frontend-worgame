@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef,memo } from "react";
+import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import {
   Box,
   Typography,
@@ -13,18 +13,16 @@ import TimerIcon from "@mui/icons-material/Timer";
 import { useAnimation, AnimatePresence, motion } from "framer-motion";
 
 // นำเข้า Components ที่เราแยกไว้
-import { LOADING, LOADED } from "../../../../store/const";
-import { THEMES } from "../../hook/const";
 import { GameResult, GameOver } from "./GameResult";
 import { WordSlots } from "./WordSlot";
 import { LetterPool } from "./LetterPool";
-
+import { shortType } from "../../hook/const";
 import { useStaminaTimer } from "../../../../hook/useStaminaTimer";
 import { useDictionaryStore } from "../../../../store/useDictionaryStore";
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { useGameSfx } from "../../../../hook/useGameSfx";
 import click from "../../../../assets/sound/click2.ogg";
-
+import closeSfx from "../../../../assets/sound/rollover6.ogg";
 
 let audioCtx = null;
 
@@ -39,12 +37,15 @@ const shuffleArray = (array) => {
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const InGameTimer = ({ stamina }) => {
+const InGameTimer = ({ stamina, onTimerEnd }) => {
   const { timeLeft, isFull, timerStatus } = useStaminaTimer(stamina);
   const currentStamina = stamina?.current || 0;
   const maxStamina = stamina?.max || 3;
 
   const controls = useAnimation();
+  
+  // 💡 THE FIX: เพิ่มตัวล็อคเหมือน EnergyBar ป้องกันการยิง API ซ้ำซ้อนตอน 0:00
+  const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
     if (timerStatus === "reduced") {
@@ -54,6 +55,31 @@ const InGameTimer = ({ stamina }) => {
       });
     }
   }, [timerStatus, controls]);
+
+  // 💡 THE FIX: ให้ InGameTimer ช่วยสะกิดขอสายฟ้าด้วย เผื่อเปิดมินิเกมค้างไว้แล้วหน้าจอหลักหลับ
+  useEffect(() => {
+    let retryTimer;
+    
+    if (timeLeft > 0) {
+      hasTriggeredRef.current = false;
+    } else if (timeLeft <= 0 && !isFull) {
+      if (!hasTriggeredRef.current) {
+        hasTriggeredRef.current = true;
+        if (onTimerEnd) {
+          onTimerEnd(); // เรียก refreshUser() เพื่อขอค่าสายฟ้าใหม่
+        }
+      }
+      
+      // ระบบ Retry ถ้ายังค้าง 0:00 เกิน 2.5 วิ ให้สะกิดใหม่
+      retryTimer = setTimeout(() => {
+        hasTriggeredRef.current = false;
+      }, 2500);
+    }
+
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [timeLeft, isFull, onTimerEnd]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -123,7 +149,8 @@ const InGameTimer = ({ stamina }) => {
 };
 
 const MiniGame = ({ open, onClose }) => {
-  const { sfxVolume, isSfxMuted, reduceStaminaTimer, currentUser } =
+  // 💡 THE FIX: ดึง refreshUser ออกมาใช้ด้วย
+  const { sfxVolume, isSfxMuted, reduceStaminaTimer, currentUser, refreshUser } =
     useAuthStore();
   const {
     fetchMiniGameDictionary,
@@ -139,7 +166,7 @@ const MiniGame = ({ open, onClose }) => {
   const [status, setStatus] = useState("fetching");
   const [floatingTexts, setFloatingTexts] = useState([]);
 
-  const [wordLength, setWordLength] = useState(2); 
+  const [wordLength, setWordLength] = useState(2);
   const [correctStreak, setCorrectStreak] = useState(0);
   const [hintsRemaining, setHintsRemaining] = useState(3);
 
@@ -149,28 +176,30 @@ const MiniGame = ({ open, onClose }) => {
 
   const controls = useAnimation();
   const playClickLetter = useGameSfx(click);
+  const soundClose = useGameSfx(closeSfx);
 
   const getLevelConfig = (length) => {
     switch (length) {
       case 2:
         return { reward: 2, target: 1 };
       case 3:
-        return { reward: 5, target: 1 };
+        return { reward: 4, target: 1 };
       case 4:
-        return { reward: 8, target: 1 };
+        return { reward: 6, target: 1 };
       case 5:
-        return { reward: 12, target: 1 };
+        return { reward: 8, target: 1 };
       case 6:
-        return { reward: 15, target: 1 };
+        return { reward: 10, target: 1 };
       case 7:
-        return { reward: 18, target: 1 };
+        return { reward: 12, target: 1 };
       default:
-        return { reward: 20, target: 1 }; 
+        return { reward: 14, target: 1 };
     }
   };
 
   const levelConfig = getLevelConfig(wordLength);
 
+  //sound
   const playSfx = useCallback(
     (type) => {
       if (isSfxMuted || sfxVolume <= 0) return;
@@ -239,7 +268,7 @@ const MiniGame = ({ open, onClose }) => {
       fetchMiniGameDictionary({
         startsWith: randomLetter,
         length: targetLength,
-        limit: 50,
+        limit: 5000,
         append: false,
       });
     },
@@ -247,7 +276,7 @@ const MiniGame = ({ open, onClose }) => {
   );
 
   const startNewGame = useCallback(() => {
-    setWordLength(2); 
+    setWordLength(2);
     setCorrectStreak(0);
     setHintsRemaining(3);
     fetchWordsByLength(2);
@@ -257,8 +286,35 @@ const MiniGame = ({ open, onClose }) => {
     if (open) startNewGame();
   }, [open, startNewGame]);
 
+  // 💡 THE FIX: ลอจิกจัดการเวลาแบบ UX ลื่นไหล! (เมื่อเปิดมินิเกมทิ้งไว้จนสายฟ้าเด้ง)
+  const prevStaminaRef = useRef(currentStaminaValue);
+
   useEffect(() => {
-    if (open && status === "fetching" && dictLoading === LOADED) {
+    if (open) {
+      if (currentStaminaValue > prevStaminaRef.current) {
+        // กรณีที่ 1: สายฟ้าเด้งจนเต็ม (เช่น 2/3 -> 3/3)
+        if (currentStaminaValue >= maxStaminaValue && status !== "finished" && status !== "gameover") {
+          setStatus("finished"); // บังคับจบเกม เพราะเล่นต่อก็ไม่ได้สายฟ้าเพิ่มแล้ว
+        } 
+        // กรณีที่ 2: สายฟ้าเด้งแต่ยังไม่เต็ม (เช่น 1/3 -> 2/3)
+        else if (status === "playing") {
+          // โชว์ Floating Text "⚡ +1 ENERGY!" แล้วให้เล่นต่อเนียนๆ
+          const newPopupId = Date.now();
+          setFloatingTexts((prev) => [
+            ...prev,
+            { id: newPopupId, text: `⚡ +1 ENERGY!`, color: "#FFD700" }, // สีทองเด่นๆ
+          ]);
+          setTimeout(() => {
+            setFloatingTexts((prev) => prev.filter((t) => t.id !== newPopupId));
+          }, 2000);
+        }
+      }
+      prevStaminaRef.current = currentStaminaValue;
+    }
+  }, [currentStaminaValue, maxStaminaValue, open, status]);
+
+  useEffect(() => {
+    if (open && status === "fetching" && dictLoading === "loaded") { // สมมติว่า LOADED เป็นสตริง "loaded"
       if (wordsForMiniGame && wordsForMiniGame.length > 0) {
         let matchedWords = wordsForMiniGame.filter(
           (item) =>
@@ -282,12 +338,13 @@ const MiniGame = ({ open, onClose }) => {
           const rawMeaning = item.meaning || "No meaning";
           const shortMeaning =
             rawMeaning.split(/[, ]+/).filter(Boolean)[0] || rawMeaning;
-          return { word: item.word || "", meaning: shortMeaning };
+          const type = item.type
+          return { word: item.word || "", meaning: shortMeaning, type:type };
         });
 
         if (formattedWords.length > 0) {
           setGameWords(formattedWords);
-          setupRound(formattedWords[0]); 
+          setupRound(formattedWords[0]);
         } else {
           fetchWordsByLength(wordLength);
         }
@@ -344,7 +401,6 @@ const MiniGame = ({ open, onClose }) => {
         const res = await reduceStaminaTimer(levelConfig.reward);
         if (res?.earnedStamina) earnedEnergy = true;
 
-        // 💡 THE FIX: ย้ายมาเช็คตรงนี้เป็นอันดับแรกสุด! ถ้าได้สายฟ้า ให้ทิ้งทุกอย่างแล้วไปหน้า finished ทันที
         if (earnedEnergy) {
           setStatus("finished");
           return;
@@ -354,9 +410,9 @@ const MiniGame = ({ open, onClose }) => {
         const newStreak = correctStreak + 1;
         if (newStreak >= levelConfig.target) {
           const nextLevel = wordLength + 1;
-          setWordLength(nextLevel); 
+          setWordLength(nextLevel);
           setCorrectStreak(0);
-          fetchWordsByLength(nextLevel); 
+          fetchWordsByLength(nextLevel);
           return;
         } else {
           setCorrectStreak(newStreak);
@@ -418,38 +474,57 @@ const MiniGame = ({ open, onClose }) => {
     );
   };
 
-  const performRevealAnimation = async (currentSelectedState, currentPoolState, targetWord, isGameOverAfter) => {
-    setStatus("revealing"); 
-    
+  const performRevealAnimation = async (
+    currentSelectedState,
+    currentPoolState,
+    targetWord,
+    isGameOverAfter,
+  ) => {
+    setStatus("revealing");
+
     let currentSelected = [...currentSelectedState];
     let currentPool = [...currentPoolState];
-    
-    currentSelected = currentSelected.map(item => item?.isHint ? item : null);
-    currentPool = currentPool.map(p => p.isHint ? p : { ...p, isUsed: false });
-    
+
+    currentSelected = currentSelected.map((item) =>
+      item?.isHint ? item : null,
+    );
+    currentPool = currentPool.map((p) =>
+      p.isHint ? p : { ...p, isUsed: false },
+    );
+
     setSelectedLetters([...currentSelected]);
     setPoolLetters([...currentPool]);
-    
-    await delay(500); 
+
+    await delay(500);
 
     const chars = targetWord.split("");
-    
+
     for (let i = 0; i < chars.length; i++) {
-        if (currentSelected[i] && currentSelected[i].char === chars[i] && currentSelected[i].isHint) {
-            continue; 
-        }
-        
-        const poolIdx = currentPool.findIndex(p => p.char === chars[i] && !p.isUsed);
-        if (poolIdx !== -1) {
-            currentPool[poolIdx] = { ...currentPool[poolIdx], isUsed: true, isHint: true };
-            currentSelected[i] = currentPool[poolIdx];
-            
-            setSelectedLetters([...currentSelected]);
-            setPoolLetters([...currentPool]);
-            
-            playClickLetter(); 
-            await delay(150); 
-        }
+      if (
+        currentSelected[i] &&
+        currentSelected[i].char === chars[i] &&
+        currentSelected[i].isHint
+      ) {
+        continue;
+      }
+
+      const poolIdx = currentPool.findIndex(
+        (p) => p.char === chars[i] && !p.isUsed,
+      );
+      if (poolIdx !== -1) {
+        currentPool[poolIdx] = {
+          ...currentPool[poolIdx],
+          isUsed: true,
+          isHint: true,
+        };
+        currentSelected[i] = currentPool[poolIdx];
+
+        setSelectedLetters([...currentSelected]);
+        setPoolLetters([...currentPool]);
+
+        playClickLetter();
+        await delay(150);
+      }
     }
 
     await delay(300);
@@ -459,12 +534,12 @@ const MiniGame = ({ open, onClose }) => {
     await delay(isGameOverAfter ? 2000 : 1200);
 
     if (isGameOverAfter) {
-        setStatus("gameover");
+      setStatus("gameover");
     } else {
-        setWordLength(2);
-        setCorrectStreak(0);
-        setHintsRemaining(3);
-        fetchWordsByLength(2);
+      setWordLength(2);
+      setCorrectStreak(0);
+      setHintsRemaining(3);
+      fetchWordsByLength(2);
     }
   };
 
@@ -478,7 +553,7 @@ const MiniGame = ({ open, onClose }) => {
       const newPopupId = Date.now();
       setFloatingTexts((prev) => [
         ...prev,
-        { id: newPopupId, text: `⏳ -${levelConfig.reward} MINS!` },
+        { id: newPopupId, text: `⏳ -${levelConfig.reward} MINS!`, color: "#69f0ae" },
       ]);
       setTimeout(
         () =>
@@ -490,7 +565,7 @@ const MiniGame = ({ open, onClose }) => {
     } else {
       playSfx("error");
       setStatus("error");
-      
+
       await controls.start({
         x: [-10, 10, -10, 10, 0],
         transition: { duration: 0.4 },
@@ -536,16 +611,15 @@ const MiniGame = ({ open, onClose }) => {
     if (status !== "playing") return;
 
     playSfx("error");
-    setStatus("error"); 
+    setStatus("error");
     const targetWord = gameWords[0].word.toUpperCase();
-    
+
     performRevealAnimation(selectedLetters, poolLetters, targetWord, false);
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
       closeAfterTransition
       keepMounted
       sx={{
@@ -598,9 +672,10 @@ const MiniGame = ({ open, onClose }) => {
                   sx={{
                     fontFamily: "'Press Start 2P'",
                     fontSize: { xs: 20, sm: 26 },
-                    color: "#69f0ae",
-                    textShadow:
-                      "3px 3px 0 #000, 0 0 10px rgba(105,240,174,0.8)",
+                    color: popup.color || "#69f0ae",
+                    textShadow: popup.color 
+                      ? `3px 3px 0 #000, 0 0 10px ${popup.color}80` 
+                      : "3px 3px 0 #000, 0 0 10px rgba(105,240,174,0.8)",
                   }}
                 >
                   {popup.text}
@@ -632,7 +707,7 @@ const MiniGame = ({ open, onClose }) => {
                 sx={{
                   fontFamily: "'Press Start 2P'",
                   fontSize: 10,
-                  color: THEMES.accent,
+                  color: "#ffd000",
                 }}
               >
                 MINING RUNES...
@@ -658,7 +733,8 @@ const MiniGame = ({ open, onClose }) => {
                   position: "relative",
                 }}
               >
-                <InGameTimer stamina={currentUser?.stamina} />
+                {/* 💡 THE FIX: ส่งฟังก์ชัน refreshUser ลงไปให้ InGameTimer จัดการ */}
+                <InGameTimer stamina={currentUser?.stamina} onTimerEnd={() => refreshUser()} />
 
                 <Box
                   sx={{
@@ -674,7 +750,7 @@ const MiniGame = ({ open, onClose }) => {
                   <Typography
                     sx={{
                       fontFamily: "'Press Start 2P'",
-                      color: THEMES.accent,
+                      color: "#ffd000",
                       fontSize: { xs: 12, sm: 14 },
                       textShadow: "1px 1px 0px #000",
                     }}
@@ -697,13 +773,13 @@ const MiniGame = ({ open, onClose }) => {
                       boxShadow: "0 0 8px rgba(105, 240, 174, 0.2)",
                     }}
                   >
-                    <TimerIcon 
-                      sx={{ 
-                        fontSize: 12, 
-                        color: "#69f0ae", 
-                        mr: 0.5, 
-                        filter: "drop-shadow(0 0 2px #69f0ae)" 
-                      }} 
+                    <TimerIcon
+                      sx={{
+                        fontSize: 12,
+                        color: "#69f0ae",
+                        mr: 0.5,
+                        filter: "drop-shadow(0 0 2px #69f0ae)",
+                      }}
                     />
                     <Typography
                       sx={{
@@ -719,7 +795,10 @@ const MiniGame = ({ open, onClose }) => {
                 </Box>
 
                 <IconButton
-                  onClick={onClose}
+                  onClick={() => {
+                    soundClose();
+                    onClose();
+                  }}
                   sx={{
                     color: "#888",
                     p: 0,
@@ -735,14 +814,23 @@ const MiniGame = ({ open, onClose }) => {
 
               {status === "finished" ? (
                 <GameResult
-                  onExit={onClose}
+                  onExit={() => {
+                    soundClose();
+                    onClose();
+                  }}
                   onPlayAgain={startNewGame}
                   canPlayAgain={canPlayAgain}
                 />
               ) : status === "gameover" ? (
-                <GameOver onClose={onClose} startNewGame={startNewGame} />
+                <GameOver
+                  onClose={() => {
+                    soundClose();
+                    onClose();
+                  }}
+                  startNewGame={startNewGame}
+                />
               ) : (
-                <Box
+              <Box
                   sx={{
                     flex: 1,
                     display: "flex",
@@ -751,13 +839,13 @@ const MiniGame = ({ open, onClose }) => {
                     gap: 3,
                   }}
                 >
-                  {/* กล่องโชว์คำแปล */}
+                  {/* 💡 THE FIX: กล่องโชว์คำแปลแบบใหม่ที่สวยขึ้นและจัดกึ่งกลางเป๊ะ */}
                   <Box
                     sx={{
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: 1,
+                      width: "100%",
                     }}
                   >
                     <Box
@@ -765,8 +853,11 @@ const MiniGame = ({ open, onClose }) => {
                         backgroundColor: "rgba(10, 5, 2, 0.6)",
                         border: "2px solid #5c4033",
                         borderRadius: "8px",
-                        padding: "12px 20px",
-                        display: "inline-block",
+                        padding: "8px 24px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
                         boxShadow:
                           "0 4px 6px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.8)",
                       }}
@@ -782,6 +873,21 @@ const MiniGame = ({ open, onClose }) => {
                         }}
                       >
                         {gameWords[0]?.meaning}
+                      </Typography>
+                      
+                      {/* ย้าย Type เข้ามาไว้ข้างใต้คำแปล */}
+                      <Typography
+                        sx={{
+                          color: "#a1887f",
+                          fontSize: { xs: 10, sm: 12 },
+                          fontWeight: "normal",
+                          fontStyle: "italic",
+                          letterSpacing: "0.5px",
+                          textShadow: "1px 1px 0px #000",
+                          mt: 0.5,
+                        }}
+                      >
+                        {shortType(gameWords[0]?.type)}
                       </Typography>
                     </Box>
                   </Box>
