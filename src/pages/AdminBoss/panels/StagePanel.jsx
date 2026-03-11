@@ -1,4 +1,3 @@
-// src/pages/AdminPage/panels/StagePanel.jsx
 import React, { useCallback, useEffect, useState } from "react";
 import { API_URL } from "../config";
 
@@ -27,7 +26,7 @@ const StagePanel = () => {
   const fetchStages = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/getAllStage`);
+      const res = await fetch(`/api/getAllStage`);
       if (!res.ok) throw new Error("Failed to fetch stages");
       const data = await res.json();
       setStages(data);
@@ -59,6 +58,11 @@ const StagePanel = () => {
     setMapFile(null);
   };
 
+  const closeSpawn = () => {
+    setSelectedStageId("");
+    setShowSpawn(false);
+  };
+
   // ✅ upload map (optional)
   const uploadMap = async (stageId) => {
     if (!mapFile) return;
@@ -66,7 +70,7 @@ const StagePanel = () => {
     const fd = new FormData();
     fd.append("map", mapFile);
 
-    const up = await fetch(`${API_URL}/stage/${stageId}/map`, {
+    const up = await fetch(`/api/stage/${stageId}/map`, {
       method: "POST",
       body: fd,
     });
@@ -89,15 +93,17 @@ const StagePanel = () => {
       orderNo: Number(formData.orderNo),
       name: formData.name,
       description: formData.description || null,
-      money_reward: formData.money_reward === "" ? null : Number(formData.money_reward),
-      distant_goal: formData.distant_goal === "" ? null : Number(formData.distant_goal),
+      money_reward:
+        formData.money_reward === "" ? null : Number(formData.money_reward),
+      distant_goal:
+        formData.distant_goal === "" ? null : Number(formData.distant_goal),
     };
 
     try {
-      let url = `${API_URL}/stage`;
+      let url = `/api/stage`;
       let method = "POST";
       if (isEditing) {
-        url = `${API_URL}/stage/${formData.id}`;
+        url = `/api/stage/${formData.id}`;
         method = "PUT";
       }
 
@@ -112,7 +118,6 @@ const StagePanel = () => {
         throw new Error(err.message || "Save stage failed");
       }
 
-      // ✅ ถ้ามีเลือกไฟล์ map ก็อัปโหลดต่อ
       if (mapFile) {
         await uploadMap(formData.id.trim());
       }
@@ -145,15 +150,14 @@ const StagePanel = () => {
       return;
 
     try {
-      const res = await fetch(`${API_URL}/stage/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/stage/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete stage failed");
       }
 
       if (selectedStageId === id) {
-        setSelectedStageId("");
-        setShowSpawn(false);
+        closeSpawn();
       }
 
       alert("Stage Deleted!");
@@ -165,18 +169,24 @@ const StagePanel = () => {
   };
 
   const openSpawn = (stageId) => {
+    if (selectedStageId === stageId && showSpawn) {
+      closeSpawn();
+      return;
+    }
+
     setSelectedStageId(stageId);
     setShowSpawn(true);
-    setTimeout(
-      () =>
-        document.getElementById("spawn-panel")?.scrollIntoView({ behavior: "smooth" }),
-      50
-    );
+
+    setTimeout(() => {
+      document
+        .getElementById(`spawn-inline-${stageId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
   };
 
   // Thumbnail map image: /img_map/{id}.png
   const MapThumb = ({ id }) => {
-    const url = `${API_URL}/img_map/${id}.png`;
+    const url = `/api/img_map/${id}.png`;
     const [hide, setHide] = useState(false);
 
     if (hide) return <span className="no-sprite">No Map</span>;
@@ -190,17 +200,20 @@ const StagePanel = () => {
     );
   };
 
+  const sortedStages = [...stages].sort((a, b) => a.orderNo - b.orderNo);
+
   return (
-    <div className="admin-container"> {/* ✅ เพิ่ม admin-container เพื่อให้ Tooltip ทำงาน */}
-      {/* ===== Stage Form ===== */}
+    <div className="admin-container">
       <form className="form-box stage-mode" onSubmit={handleSubmit}>
         <h3 className="form-title stage">
           {isEditing ? `EDITING STAGE: ${formData.id}` : "NEW STAGE"}
         </h3>
 
-        {/* ID + Order */}
         <div className="flex-row flex-wrap">
-          <div className="form-field flex-2 minw-220" data-tooltip="รหัสอ้างอิงของด่าน (ใช้เป็นชื่อไฟล์แผนที่ด้วย)">
+          <div
+            className="form-field flex-2 minw-220"
+            data-tooltip="รหัสอ้างอิงของด่าน (ใช้เป็นชื่อไฟล์แผนที่ด้วย)"
+          >
             <label className="form-label required">Stage ID</label>
             <input
               className="input-field"
@@ -212,11 +225,14 @@ const StagePanel = () => {
               disabled={isEditing}
             />
             <span className="form-hint">
-              ใช้เป็นชื่อไฟล์ map ด้วย → จะเซฟเป็น img_map/{`{id}`}.png
+              ใช้เป็นชื่อไฟล์ map ด้วย → จะเซฟเป็น img_map/{"{id}"}.png
             </span>
           </div>
 
-          <div className="form-field flex-1 minw-140" data-tooltip="ลำดับของด่านที่จะแสดงในเกม (ตัวเลข)">
+          <div
+            className="form-field flex-1 minw-140"
+            data-tooltip="ลำดับของด่านที่จะแสดงในเกม (ตัวเลข)"
+          >
             <label className="form-label required">OrderNo</label>
             <input
               className="input-field"
@@ -231,8 +247,10 @@ const StagePanel = () => {
           </div>
         </div>
 
-        {/* Name */}
-        <div className="form-field full" data-tooltip="ชื่อด่านที่จะแสดงให้ผู้เล่นเห็น">
+        <div
+          className="form-field full"
+          data-tooltip="ชื่อด่านที่จะแสดงให้ผู้เล่นเห็น"
+        >
           <label className="form-label required">Stage Name</label>
           <input
             className="input-field"
@@ -245,8 +263,10 @@ const StagePanel = () => {
           <span className="form-hint">ชื่อที่แสดงในหน้าเลือกด่าน</span>
         </div>
 
-        {/* Description */}
-        <div className="form-field full" data-tooltip="คำอธิบายหรือเนื้อเรื่องย่อของด่าน">
+        <div
+          className="form-field full"
+          data-tooltip="คำอธิบายหรือเนื้อเรื่องย่อของด่าน"
+        >
           <label className="form-label">Description</label>
           <input
             className="input-field"
@@ -258,9 +278,11 @@ const StagePanel = () => {
           <span className="form-hint">คำอธิบายสั้น ๆ (ไม่ใส่ได้)</span>
         </div>
 
-        {/* Reward / Goal */}
         <div className="flex-row flex-wrap">
-          <div className="form-field flex-1 minw-200" data-tooltip="จำนวนเงินรางวัลที่จะได้รับเมื่อผ่านด่านนี้">
+          <div
+            className="form-field flex-1 minw-200"
+            data-tooltip="จำนวนเงินรางวัลที่จะได้รับเมื่อผ่านด่านนี้"
+          >
             <label className="form-label">money_reward</label>
             <input
               className="input-field"
@@ -273,7 +295,10 @@ const StagePanel = () => {
             <span className="form-hint">เงินรางวัลหลังผ่านด่าน</span>
           </div>
 
-          <div className="form-field flex-1 minw-200" data-tooltip="ระยะทางที่ผู้เล่นต้องไปให้ถึงเพื่อผ่านด่านนี้">
+          <div
+            className="form-field flex-1 minw-200"
+            data-tooltip="ระยะทางที่ผู้เล่นต้องไปให้ถึงเพื่อผ่านด่านนี้"
+          >
             <label className="form-label">distant_goal</label>
             <input
               className="input-field"
@@ -283,30 +308,29 @@ const StagePanel = () => {
               value={formData.distant_goal}
               onChange={handleChange}
             />
-            <span className="form-hint">
-              ระยะเป้าหมาย/เงื่อนไขชนะ (ถ้ามี)
-            </span>
+            <span className="form-hint">ระยะเป้าหมาย/เงื่อนไขชนะ (ถ้ามี)</span>
           </div>
         </div>
 
-        {/* ✅ Map Upload พร้อม Preview */}
-        <div className="form-field full mt-10" data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)">
+        <div
+          className="form-field full mt-10"
+          data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)"
+        >
           <label className="form-label">Map Image (PNG)</label>
-          
-          {/* ✅ แสดงภาพ Preview หากมีการเลือกไฟล์ */}
+
           {mapFile && (
             <div style={{ marginBottom: "10px" }}>
-              <img 
-                src={URL.createObjectURL(mapFile)} 
-                alt="Map Preview" 
-                style={{ 
-                  maxWidth: "200px", 
-                  maxHeight: "150px", 
-                  objectFit: "contain", 
-                  border: "1px solid #444", 
-                  borderRadius: "4px", 
-                  background: "rgba(0,0,0,0.5)" 
-                }} 
+              <img
+                src={URL.createObjectURL(mapFile)}
+                alt="Map Preview"
+                style={{
+                  maxWidth: "200px",
+                  maxHeight: "150px",
+                  objectFit: "contain",
+                  border: "1px solid #444",
+                  borderRadius: "4px",
+                  background: "rgba(0,0,0,0.5)",
+                }}
               />
             </div>
           )}
@@ -317,7 +341,8 @@ const StagePanel = () => {
             onChange={(e) => setMapFile(e.target.files?.[0] || null)}
           />
           <span className="form-hint">
-            อัปโหลดได้เฉพาะ PNG • ไม่เลือกไฟล์ = ไม่อัปโหลด • ถ้า Edit แล้วเลือกไฟล์ใหม่จะอัปโหลดทับ
+            อัปโหลดได้เฉพาะ PNG • ไม่เลือกไฟล์ = ไม่อัปโหลด • ถ้า Edit
+            แล้วเลือกไฟล์ใหม่จะอัปโหลดทับ
           </span>
         </div>
 
@@ -332,14 +357,18 @@ const StagePanel = () => {
           </button>
 
           {isEditing && (
-            <button type="button" className="btn btn-cancel" onClick={resetForm} data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม">
+            <button
+              type="button"
+              className="btn btn-cancel"
+              onClick={resetForm}
+              data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม"
+            >
               CANCEL
             </button>
           )}
         </div>
       </form>
 
-      {/* ===== Stage Table ===== */}
       <div className="table-wrapper">
         {loading ? (
           <p className="loading-center">Loading Stages.</p>
@@ -351,29 +380,75 @@ const StagePanel = () => {
                 <th data-tooltip="รหัสอ้างอิงด่าน (ใช้ผูกข้อมูล)">ID</th>
                 <th data-tooltip="ลำดับของด่าน">Order</th>
                 <th data-tooltip="ชื่อด่าน">Name</th>
-                <th data-tooltip="เงินรางวัล / ระยะทางเป้าหมาย">Reward/Goal</th>
+                <th data-tooltip="เงินรางวัล / ระยะทางเป้าหมาย">
+                  Reward/Goal
+                </th>
                 <th data-tooltip="คำอธิบายรายละเอียดด่าน">Description</th>
                 <th data-tooltip="ปุ่มจัดการข้อมูล">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {stages.map((s) => (
-                <tr key={s.id}>
-                  <td><MapThumb id={s.id} /></td>
-                  <td className="stage-id mono">{s.id}</td>
-                  <td>{s.orderNo}</td>
-                  <td><strong>{s.name}</strong></td>
-                  <td className="cell-dim">
-                    💰 {s.money_reward ?? "-"} | 🎯 {s.distant_goal ?? "-"}
-                  </td>
-                  <td className="desc-cell w260">{s.description ?? "-"}</td>
-                  <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEdit(s)} data-tooltip="แก้ไขข้อมูลด่านนี้">Edit</button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(s.id)} data-tooltip="ลบด่านและมอนสเตอร์ที่เกิดในด่านนี้ทั้งหมด">Del</button>
-                    <button className="btn btn-green" onClick={() => openSpawn(s.id)} data-tooltip="จัดการจุดเกิดมอนสเตอร์ (Spawns) ในด่านนี้">Spawns</button>
-                  </td>
-                </tr>
+              {sortedStages.map((s) => (
+                <React.Fragment key={s.id}>
+                  <tr>
+                    <td>
+                      <MapThumb id={s.id} />
+                    </td>
+                    <td className="stage-id mono">{s.id}</td>
+                    <td>{s.orderNo}</td>
+                    <td>
+                      <strong>{s.name}</strong>
+                    </td>
+                    <td className="cell-dim">
+                      💰 {s.money_reward ?? "-"} | 🎯 {s.distant_goal ?? "-"}
+                    </td>
+                    <td className="desc-cell w260">{s.description ?? "-"}</td>
+                    <td className="actions-cell stage-actions-cell">
+                      <div className="action-buttons stage-action-buttons">
+                        <button
+                          type="button"
+                          className="btn btn-edit"
+                          onClick={() => handleEdit(s)}
+                          data-tooltip="แก้ไขข้อมูลด่านนี้"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-delete"
+                          onClick={() => handleDelete(s.id)}
+                          data-tooltip="ลบด่านและมอนสเตอร์ที่เกิดในด่านนี้ทั้งหมด"
+                        >
+                          Del
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-green btn-spawns"
+                          onClick={() => openSpawn(s.id)}
+                          data-tooltip="จัดการจุดเกิดมอนสเตอร์ (Spawns) ในด่านนี้"
+                        >
+                          {showSpawn && selectedStageId === s.id
+                            ? "Close"
+                            : "Spawns"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {showSpawn && selectedStageId === s.id && (
+                    <tr id={`spawn-inline-${s.id}`}>
+                      <td colSpan="7" className="stage-inline-spawn-cell">
+                        <SpawnPanel
+                          stageId={selectedStageId}
+                          onClose={closeSpawn}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
 
               {stages.length === 0 && (
@@ -387,24 +462,16 @@ const StagePanel = () => {
           </table>
         )}
       </div>
-
-      {/* ===== Spawn Panel ===== */}
-      {showSpawn && selectedStageId && (
-        <div id="spawn-panel" style={{ marginTop: 18 }}>
-          <SpawnPanel stageId={selectedStageId} />
-        </div>
-      )}
     </div>
   );
 };
 
-const SpawnPanel = ({ stageId }) => {
+const SpawnPanel = ({ stageId, onClose }) => {
   const [spawns, setSpawns] = useState([]);
   const [monsters, setMonsters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // spawn form
   const [formData, setFormData] = useState({
     id: "",
     monster_id: "",
@@ -414,7 +481,7 @@ const SpawnPanel = ({ stageId }) => {
 
   const fetchMonsters = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/monster`);
+      const res = await fetch(`/api/monster`);
       if (!res.ok) throw new Error("Failed to fetch monsters");
       const data = await res.json();
       setMonsters(data);
@@ -430,7 +497,9 @@ const SpawnPanel = ({ stageId }) => {
   const fetchSpawns = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/spawn?stage_id=${encodeURIComponent(stageId)}`);
+      const res = await fetch(
+        `/api/spawn?stage_id=${encodeURIComponent(stageId)}`
+      );
       if (!res.ok) throw new Error("Failed to fetch spawns");
       const data = await res.json();
       setSpawns(data);
@@ -473,10 +542,10 @@ const SpawnPanel = ({ stageId }) => {
     };
 
     try {
-      let url = `${API_URL}/spawn`;
+      let url = `/api/spawn`;
       let method = "POST";
       if (isEditing) {
-        url = `${API_URL}/spawn/${formData.id}`;
+        url = `/api/spawn/${formData.id}`;
         method = "PUT";
       }
 
@@ -508,13 +577,15 @@ const SpawnPanel = ({ stageId }) => {
       level: sp.level ?? "A1",
       distant_spawn: sp.distant_spawn ?? "",
     });
-    document.getElementById("spawn-form")?.scrollIntoView({ behavior: "smooth" });
+    document
+      .getElementById("spawn-form")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Spawn ID: ${id}?`)) return;
     try {
-      const res = await fetch(`${API_URL}/spawn/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/spawn/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete spawn failed");
@@ -532,27 +603,74 @@ const SpawnPanel = ({ stageId }) => {
   };
 
   return (
-    <div style={{ border: "1px solid #333", borderRadius: 10, padding: 12, background: "#0f1012" }}>
-      <h3 style={{ margin: "0 0 10px 0", color: "#68d391", fontFamily: '"Press Start 2P"', fontSize: 12 }}>
-        MONSTER SPAWNS — STAGE: {stageId}
-      </h3>
+    <div
+      style={{
+        border: "1px solid #333",
+        borderRadius: 10,
+        padding: 12,
+        background: "#0f1012",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 10,
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            color: "#68d391",
+            fontFamily: '"Press Start 2P"',
+            fontSize: 12,
+          }}
+        >
+          MONSTER SPAWNS — STAGE: {stageId}
+        </h3>
 
-      {/* Spawn Form */}
-      <form id="spawn-form" onSubmit={handleSubmit} className="form-box" style={{ borderColor: "#68d391" }}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn"
+          style={{
+            minWidth: "34px",
+            height: "30px",
+            padding: "0 10px",
+            background: "#2d3748",
+            color: "#fff",
+            lineHeight: 1,
+          }}
+          data-tooltip="ปิดหน้าต่างจัดการ Spawn"
+        >
+          ✕
+        </button>
+      </div>
+
+      <form
+        id="spawn-form"
+        onSubmit={handleSubmit}
+        className="form-box"
+        style={{ borderColor: "#68d391" }}
+      >
         <div style={{ width: "100%", color: "#aaa", fontSize: 12, marginBottom: 8 }}>
           {isEditing ? `Editing Spawn ID: ${formData.id}` : "Add Spawn"}
         </div>
 
         <div style={{ display: "flex", gap: 10, width: "100%", flexWrap: "wrap" }}>
-          <select 
-            className="input-field" 
-            name="monster_id" 
-            value={formData.monster_id} 
-            onChange={handleChange} 
+          <select
+            className="input-field"
+            name="monster_id"
+            value={formData.monster_id}
+            onChange={handleChange}
             style={{ flex: 2, minWidth: 240 }}
             data-tooltip="เลือกมอนสเตอร์ที่จะให้เกิดในด่านนี้"
           >
-            <option value="" disabled>-- select monster --</option>
+            <option value="" disabled>
+              -- select monster --
+            </option>
             {monsters.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name} ({m.id})
@@ -560,13 +678,13 @@ const SpawnPanel = ({ stageId }) => {
             ))}
           </select>
 
-          <input 
-            className="input-field" 
-            name="level" 
-            placeholder="level (e.g. A1)" 
-            value={formData.level} 
-            onChange={handleChange} 
-            style={{ flex: 1, minWidth: 140 }} 
+          <input
+            className="input-field"
+            name="level"
+            placeholder="level (e.g. A1)"
+            value={formData.level}
+            onChange={handleChange}
+            style={{ flex: 1, minWidth: 140 }}
             data-tooltip="ระดับความยากหรือรูปแบบสเตตัสของมอนสเตอร์ (เช่น A1)"
           />
 
@@ -582,20 +700,29 @@ const SpawnPanel = ({ stageId }) => {
           />
         </div>
 
-        <div style={{ width: "100%", display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
-          <button 
-            type="submit" 
-            className={`btn ${isEditing ? "btn-edit" : "btn-add"}`} 
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            gap: 10,
+            justifyContent: "center",
+            marginTop: 14,
+          }}
+        >
+          <button
+            type="submit"
+            className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
             style={{ flex: 1 }}
             data-tooltip={isEditing ? "บันทึกการแก้ไขจุดเกิด" : "เพิ่มจุดเกิดมอนสเตอร์"}
           >
             {isEditing ? "UPDATE SPAWN" : "ADD SPAWN"}
           </button>
+
           {isEditing && (
-            <button 
-              type="button" 
-              className="btn" 
-              onClick={resetForm} 
+            <button
+              type="button"
+              className="btn"
+              onClick={resetForm}
               style={{ background: "#555", flex: 1 }}
               data-tooltip="ยกเลิกการแก้ไข"
             >
@@ -605,7 +732,6 @@ const SpawnPanel = ({ stageId }) => {
         </div>
       </form>
 
-      {/* Spawn Table */}
       <div className="table-wrapper">
         {loading ? (
           <p style={{ textAlign: "center" }}>Loading Spawns...</p>
@@ -616,25 +742,52 @@ const SpawnPanel = ({ stageId }) => {
                 <th data-tooltip="รหัสอ้างอิงของจุดเกิด (สร้างอัตโนมัติ)">ID</th>
                 <th data-tooltip="ชื่อและรหัสของมอนสเตอร์">Monster</th>
                 <th data-tooltip="ระดับของมอนสเตอร์ (Level)">Level</th>
-                <th data-tooltip="ระยะทางที่มอนสเตอร์ตัวนี้จะเกิดในด่าน">distant_spawn</th>
+                <th data-tooltip="ระยะทางที่มอนสเตอร์ตัวนี้จะเกิดในด่าน">
+                  distant_spawn
+                </th>
                 <th data-tooltip="ปุ่มจัดการข้อมูลจุดเกิด">Actions</th>
               </tr>
             </thead>
             <tbody>
               {spawns.map((sp) => (
                 <tr key={sp.id}>
-                  <td style={{ fontFamily: "monospace", color: "#9ad0ff" }}>{sp.id}</td>
-                  <td style={{ fontSize: 12, color: "#ddd" }}>{monsterNameById(sp.monster_id)}</td>
+                  <td style={{ fontFamily: "monospace", color: "#9ad0ff" }}>
+                    {sp.id}
+                  </td>
+                  <td style={{ fontSize: 12, color: "#ddd" }}>
+                    {monsterNameById(sp.monster_id)}
+                  </td>
                   <td>{sp.level}</td>
                   <td>{sp.distant_spawn}</td>
-                  <td className="action-buttons">
-                    <button className="btn btn-edit" onClick={() => handleEdit(sp)} data-tooltip="แก้ไขจุดเกิดมอนสเตอร์นี้">Edit</button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(sp.id)} data-tooltip="ลบจุดเกิดมอนสเตอร์นี้">Del</button>
+                  <td className="actions-cell spawn-actions-cell">
+                    <div className="action-buttons spawn-action-buttons">
+                      <button
+                        type="button"
+                        className="btn btn-edit"
+                        onClick={() => handleEdit(sp)}
+                        data-tooltip="แก้ไขจุดเกิดมอนสเตอร์นี้"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-delete"
+                        onClick={() => handleDelete(sp.id)}
+                        data-tooltip="ลบจุดเกิดมอนสเตอร์นี้"
+                      >
+                        Del
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {spawns.length === 0 && (
-                <tr><td colSpan="5" style={{ textAlign: "center", padding: 16 }}>No Spawns in this Stage.</td></tr>
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: 16 }}>
+                    No Spawns in this Stage.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

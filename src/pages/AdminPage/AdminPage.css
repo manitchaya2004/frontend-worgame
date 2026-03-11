@@ -307,17 +307,21 @@
 /* -------------------------
    TABLES
 -------------------------- */
-.table-wrapper{ overflow-x:auto; }
+.table-wrapper{
+  overflow-x: auto;
+  overflow-y: visible;
+}
 
 .dict-table{
   width:100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 
   background:
     linear-gradient(180deg, rgba(26,29,34,.92), rgba(16,18,22,.92));
   border: 1px solid rgba(215,180,106,.18);
   border-radius: 16px;
-  overflow:hidden;
+  overflow: visible;
   box-shadow: var(--shadow);
 }
 
@@ -622,54 +626,63 @@
 }
 
 /* --- RPG STYLE TOOLTIP --- */
+/* ===== TOOLTIP FIX: ไม่ให้ไปอยู่หลัง panel/table ข้าง ๆ ===== */
+/* ===== TOOLTIP FIX: ไม่ให้ไปอยู่หลัง panel/table ข้าง ๆ ===== */
 [data-tooltip] {
   position: relative;
   cursor: pointer;
 }
 
+/* ตัวข้อความ tooltip */
 [data-tooltip]::after {
   content: attr(data-tooltip);
-  position: absolute;
-  bottom: 125%;
+  position: fixed;
   left: 50%;
-  transform: translateX(-50%) translateY(5px);
-  
-  background: rgba(15, 13, 11, 0.95);
+  top: auto;
+  bottom: auto;
+  transform: translateX(-50%) translateY(0);
+
+  background: rgba(15, 13, 11, 0.98);
   color: var(--gold);
   border: 1px solid var(--gold2);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 11px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   white-space: nowrap;
-  z-index: 1000;
-  
+
   opacity: 0;
   pointer-events: none;
-  transition: all 0.2s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
   box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+
+  z-index: 999999 !important;
 }
 
-/* สามเหลี่ยมชี้ลง */
+/* ลูกศร tooltip */
 [data-tooltip]::before {
   content: "";
-  position: absolute;
-  bottom: 110%;
+  position: fixed;
   left: 50%;
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
   border-color: var(--gold2) transparent transparent transparent;
+
   opacity: 0;
-  transition: all 0.2s ease;
-  z-index: 1000;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+
+  z-index: 999999 !important;
 }
 
+/* แสดงผล */
 [data-tooltip]:hover::after,
 [data-tooltip]:hover::before {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
 }
+
+
 
 /* =========================================
    RESPONSIVE STYLES (ADDED FOR MOBILE/TABLET)
@@ -988,13 +1001,13 @@ html, body {
 
 /* สำหรับ MacBook Pro 16", iMac หรือต่อจอมอนิเตอร์ใหญ่ (1441px ขึ้นไป) */
 @media (min-width: 1441px) {
-  /* ล็อคความกว้างสูงสุดของ Content ไม่ให้ยืดออกไปไม่มีที่สิ้นสุด */
   .pokedex-header, 
   .content-area {
     width: 100%;
-    max-width: 1600px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
   }
+}
 
   /* ใส่พื้นหลังสีดำทึบด้านข้างถ้าจอกว้างกว่า 1600px */
   .admin-container {
@@ -1036,7 +1049,7 @@ html, body {
     font-size: 15px;
     padding: 12px 16px;
   }
-}
+
 
 /* =========================================
    RESPONSIVE STYLES (iPhone / Mobile)
@@ -2469,4 +2482,1429 @@ select option:checked{
     margin-left: 0;
     text-align: center;
   }
+}
+
+/* =========================================================
+   ✅ GLOBAL RESPONSIVE PATCH (AdminPage + All Panels)
+   วางท้ายไฟล์ AdminPage.css
+========================================================= */
+
+/* กัน layout ล้นจอแนวนอน */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.admin-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.content-area {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* wrapper ของตารางให้เลื่อนแนวนอนได้บนจอเล็ก */
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* ตารางไม่บีบจนอ่านไม่ได้ */
+.dict-table {
+  min-width: 720px; /* fallback สำหรับจอเล็ก */
+}
+
+/* ป้องกันข้อความ/รูปทำให้คอลัมน์พัง */
+.dict-table th,
+.dict-table td {
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+/* รูปในตารางย่อได้ */
+.dict-table img,
+.dict-table canvas,
+.dict-table video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* form ต่าง ๆ ไม่ให้ของด้านในดันออกนอกกรอบ */
+.form-box,
+.form-field,
+.input-field,
+.search-input,
+.filter-select,
+textarea,
+select,
+button {
+  min-width: 0;
+}
+
+/* ปุ่มใน action row ให้ห่อบรรทัดได้ */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ปุ่มทั่วไป */
+.btn,
+.tab-btn {
+  white-space: nowrap;
+}
+
+/* -------------------------
+   ✅ Large Desktop / Monitor
+-------------------------- */
+@media (min-width: 1441px) {
+  .pokedex-header,
+  .content-area {
+    width: 100%;
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .content-area {
+    padding: 28px 34px;
+  }
+}
+
+/* -------------------------
+   ✅ Laptop / Small Desktop
+-------------------------- */
+@media (max-width: 1200px) {
+  .pokedex-header {
+    padding: 12px 16px;
+  }
+
+  .content-area {
+    padding: 16px;
+  }
+
+  .pixel-title-small {
+    font-size: 18px;
+  }
+
+  .tab-group {
+    gap: 8px;
+  }
+
+  .tab-btn {
+    font-size: 11px;
+    padding: 9px 12px;
+  }
+
+  .form-box {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 14px;
+  }
+}
+
+/* -------------------------
+   ✅ Tablet (landscape/portrait)
+-------------------------- */
+@media (max-width: 992px) {
+  .pokedex-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .header-left,
+  .header-right,
+  .header-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .header-left {
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .header-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .tab-group {
+    width: 100%;
+    max-width: 100% !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+
+  .tab-group .tab-btn {
+    flex: 0 0 auto;
+  }
+
+  .content-area {
+    padding: 14px;
+  }
+
+  .form-box {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  /* player toolbar */
+  .form-box.player-toolbar {
+    align-items: stretch !important;
+  }
+
+  .player-toolbar-left {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .player-search-field {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .player-reload-btn {
+    width: 100%;
+  }
+
+  .player-toolbar-total {
+    width: 100%;
+    margin-left: 0 !important;
+    text-align: center;
+  }
+}
+
+/* -------------------------
+   ✅ Mobile / Small Tablet
+-------------------------- */
+@media (max-width: 768px) {
+  .pixel-title-small {
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .header-left {
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ถ้าฝั่งซ้ายมีหลาย widget ให้ขึ้นบรรทัดใหม่ */
+  .header-left > * {
+    min-width: 0;
+  }
+
+  .content-area {
+    padding: 12px;
+  }
+
+  .tab-btn {
+    font-size: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+  }
+
+  .tab-btn.logout-tab,
+  .tab-btn.play-tab {
+    height: auto;
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+
+  .form-box {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    border-radius: 14px;
+  }
+
+  .form-box .form-field,
+  .form-box label,
+  .form-box .input-field,
+  .form-box select,
+  .form-box textarea {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .input-field,
+  .search-input,
+  .filter-select {
+    width: 100% !important;
+  }
+
+  textarea.input-field,
+  textarea {
+    min-height: 90px;
+    resize: vertical;
+  }
+
+  /* search/filter blocks */
+  .search-controls,
+  .filter-section {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch !important;
+  }
+
+  .search-controls > *,
+  .filter-section > * {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  /* alphabet grid */
+  .alphabet-grid {
+    grid-template-columns: repeat(auto-fit, minmax(34px, 1fr)) !important;
+    gap: 6px;
+  }
+
+  /* table typography */
+  .dict-table th,
+  .dict-table td {
+    padding: 8px 7px;
+    font-size: 12px;
+  }
+
+  .dict-table th {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  /* action buttons ใน cell ให้กดง่ายขึ้น */
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 110px;
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  /* ปุ่มทั่วไปให้แตะง่าย */
+  .btn {
+    min-height: 40px;
+  }
+
+  /* Hero/Monster/Stage ที่มี flex-row จำนวนมาก */
+  .flex-row {
+    flex-wrap: wrap !important;
+    gap: 8px;
+  }
+
+  .flex-row > * {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* inline-grid style ในบาง panel (เช่น sprite upload) */
+  div[style*="grid-template-columns: repeat(4"],
+  div[style*="grid-template-columns: repeat(3"],
+  div[style*="grid-template-columns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* -------------------------
+   ✅ Small Mobile
+-------------------------- */
+@media (max-width: 480px) {
+  .pokedex-header {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  .content-area {
+    padding: 10px;
+  }
+
+  .pixel-title-small {
+    font-size: 13px;
+  }
+
+  .tab-group {
+    gap: 6px;
+  }
+
+  .tab-btn {
+    font-size: 9px;
+    padding: 8px 9px;
+    border-radius: 9px;
+  }
+
+  .tab-btn.active::after {
+    bottom: -5px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .form-box {
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .dict-table {
+    min-width: 640px;
+  }
+
+  .dict-table th,
+  .dict-table td {
+    padding: 7px 6px;
+    font-size: 11px;
+  }
+
+  .btn {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+}
+
+/* -------------------------
+   ✅ Extra tiny phones
+-------------------------- */
+@media (max-width: 360px) {
+  .pixel-title-small {
+    font-size: 12px;
+  }
+
+  .tab-btn {
+    font-size: 8px;
+    padding: 7px 8px;
+  }
+
+  .dict-table {
+    min-width: 600px;
+  }
+}
+
+/* =========================
+   Action buttons ให้ขนาดเท่ากัน
+========================= */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons .btn,
+.action-buttons button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+
+  /* ✅ ขนาดให้เท่ากัน */
+  min-width: 46px;
+  height: 28px;
+  padding: 0 10px;
+
+  /* ✅ ตัวอักษร */
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+
+  /* ✅ ขอบ/มุม */
+  border-width: 1px !important;
+  border-style: solid;
+  border-radius: 8px;
+
+  /* กันปุ่มเด้งขึ้นลง */
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* ถ้ามี class เฉพาะ edit/delete จะช่วยให้เส้นเท่ากันมากขึ้น */
+.action-buttons .btn-edit,
+.action-buttons .btn-delete {
+  height: 28px;
+  min-width: 46px;
+  padding: 0 10px;
+  line-height: 1;
+}
+
+/* รีเซ็ต style ปุ่มใน Actions ให้เหมือนกันก่อน */
+.action-buttons button {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+/* ปุ่ม GAME PAGE ข้าง server */
+.header-server{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.server-mini-btn{
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(215,180,106,.25);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(80,86,96,.95), rgba(58,63,72,.95));
+  color: #f1efe9;
+  cursor: pointer;
+
+  font-family: "Press Start 2P", cursive;
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  transition: all .15s ease;
+}
+
+.server-mini-btn:hover{
+  transform: translateY(-1px);
+  color: #ffcc66;
+  border-color: rgba(215,180,106,.45);
+  background: linear-gradient(180deg, rgba(92,98,108,.98), rgba(62,67,76,.98));
+}
+
+.server-mini-btn:active{
+  transform: translateY(0);
+}
+
+/* =========================================
+   HEADER LAYOUT TUNE
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+.pokedex-header{
+  display: grid !important;
+  grid-template-columns: auto auto 1fr;
+  align-items: center !important;
+  column-gap: 26px;
+  padding: 14px 26px !important;
+}
+
+.header-brand{
+  display: flex;
+  align-items: center;
+  min-width: max-content;
+}
+
+.pixel-title-small{
+  margin: 0;
+  font-size: 20px !important;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.header-server{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: max-content;
+}
+
+.header-right{
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.header-actions{
+  width: 100%;
+  display: flex !important;
+  justify-content: flex-end;
+  align-items: center !important;
+}
+
+.tab-group{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  min-width: 0;
+  max-width: 100% !important;
+  overflow-x: auto;
+  padding-bottom: 0 !important;
+}
+
+/* ปุ่มเมนูให้เล็กลงนิด จะได้ไม่อึดอัด */
+.tab-btn{
+  height: 36px;
+  padding: 0 12px !important;
+  font-size: 10px !important;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.tab-btn.logout-tab{
+  height: 36px !important;
+  padding: 0 14px !important;
+  margin-left: 6px;
+}
+
+/* game ปุ่มเล็กฝั่ง server */
+.server-mini-btn{
+  height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 8px !important;
+  border-radius: 6px !important;
+  flex: 0 0 auto;
+}
+
+/* server control ไม่ให้บวมเกิน */
+.server-control{
+  transform: scale(0.96);
+  transform-origin: left center;
+}
+
+/* ถ้าจอแคบลงนิด ให้ช่องกลางกับขวาแน่นขึ้น */
+@media (max-width: 1400px){
+  .pokedex-header{
+    grid-template-columns: auto auto 1fr;
+    column-gap: 18px;
+    padding: 12px 18px !important;
+  }
+
+  .pixel-title-small{
+    font-size: 18px !important;
+  }
+
+  .tab-btn{
+    padding: 0 10px !important;
+    font-size: 9px !important;
+  }
+
+  .tab-btn.logout-tab{
+    padding: 0 12px !important;
+  }
+}
+
+/* =========================================
+   SERVER TOGGLE BUTTON
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+.server-btn{
+  min-width: 118px;
+  height: 28px;
+  padding: 0 10px;
+
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Press Start 2P", cursive;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .2px;
+  white-space: nowrap;
+
+  color: #f5f1e8;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 2px 8px rgba(0,0,0,.18);
+
+  transition:
+    transform .14s ease,
+    filter .14s ease,
+    box-shadow .14s ease,
+    border-color .14s ease;
+}
+
+/* ตอน server ปิด -> ปุ่มเปิด */
+.server-btn.open{
+  background: linear-gradient(180deg, #4fd486 0%, #2c9b5d 100%);
+  border-color: rgba(116,255,176,.28);
+  color: #f6fff9;
+}
+
+/* ตอน server เปิด -> ปุ่มปิด */
+.server-btn.close{
+  background: linear-gradient(180deg, #8d929c 0%, #666b74 100%);
+  border-color: rgba(255,255,255,.14);
+  color: #ffffff;
+}
+
+.server-btn:hover:not(:disabled){
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 4px 12px rgba(0,0,0,.24);
+}
+
+.server-btn.open:hover:not(:disabled){
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 4px 12px rgba(44,155,93,.28);
+}
+
+.server-btn.close:hover:not(:disabled){
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 4px 12px rgba(0,0,0,.24);
+}
+
+.server-btn:active:not(:disabled){
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.22),
+    0 1px 5px rgba(0,0,0,.18);
+}
+
+.server-btn:disabled{
+  opacity: .55;
+  cursor: not-allowed;
+  filter: grayscale(.15);
+}
+
+/* =========================================
+   SERVER INFO PANEL
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+.server-control{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(215, 180, 106, 0.22);
+
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    linear-gradient(135deg, rgba(46,52,64,0.96), rgba(33,38,48,0.96));
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 6px 16px rgba(0,0,0,0.22);
+}
+
+/* จุดสถานะ */
+.server-dot{
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.server-dot.on{
+  background: #54ff9f;
+  box-shadow:
+    0 0 8px rgba(84,255,159,0.45),
+    0 0 14px rgba(84,255,159,0.18);
+}
+
+.server-dot.off{
+  background: #ff6b6b;
+  box-shadow:
+    0 0 8px rgba(255,107,107,0.40),
+    0 0 14px rgba(255,107,107,0.16);
+}
+
+/* กลุ่มข้อความ */
+.server-meta{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+/* แถวบน */
+.server-title-row{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+}
+
+.server-label{
+  color: #f3dd9a;
+  font-size: 10px;
+  letter-spacing: .5px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+
+.server-id{
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+
+/* แถวล่าง */
+.server-sub-row{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1;
+}
+
+/* online */
+.server-online{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(84,255,159,0.18);
+
+  background: rgba(84,255,159,0.08);
+  color: #dfffea;
+  font-size: 9px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.3);
+}
+
+.server-online-count{
+  color: #7dffb0;
+  font-weight: 700;
+}
+
+/* badge open / closed */
+.server-badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 8px;
+  letter-spacing: .4px;
+  border: 1px solid transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+
+.badge-on{
+  color: #dfffea;
+  background: rgba(84,255,159,0.10);
+  border-color: rgba(84,255,159,0.20);
+}
+
+.badge-off{
+  color: #ffd9d9;
+  background: rgba(255,107,107,0.10);
+  border-color: rgba(255,107,107,0.20);
+}
+
+/* ================================
+   ✅ Dictionary action cell fix
+   แก้บัคปุ่ม Action เวลาความหมายยาว
+================================ */
+
+/* ให้ทุก cell ในตารางจัดแนวกลางแนวตั้ง */
+.dict-table td {
+  vertical-align: middle;
+}
+
+/* คอลัมน์ meaning ให้ตัดบรรทัดสวย ๆ */
+.dict-table .meaning-cell {
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+/* td ของ action อย่าเอา display flex ไปใส่ตรงนี้ */
+.dict-table td.actions-cell {
+  white-space: nowrap;
+  vertical-align: middle;
+  width: 160px;
+  min-width: 160px;
+}
+
+/* ใช้ div ข้างในเป็นตัวจัดปุ่มแทน */
+.dict-table .action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+/* ปุ่มใน action ให้ขนาดคงที่ ไม่ยืด/ไม่เบียด */
+.dict-table .action-buttons .btn {
+  flex: 0 0 auto;
+  min-width: 58px;
+  text-align: center;
+}
+
+/* ถ้า meaning ยาวมาก แถวจะสูงขึ้น แต่ปุ่มยังอยู่กลางสวย */
+.dict-table tr td {
+  height: auto;
+}
+
+/* มือถือค่อยเรียงลง */
+@media (max-width: 768px) {
+  .dict-table td.actions-cell {
+    width: 110px;
+    min-width: 110px;
+  }
+
+  .dict-table .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .dict-table .action-buttons .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* =========================================
+   ✅ MONSTER TABLE ACTIONS FIX
+   แก้ปุ่ม Actions เบี้ยว/เส้นคั่นเพี้ยนเวลา Deck ยาว
+========================================= */
+
+/* ให้ cell ทุกช่องอยู่กึ่งกลางแนวตั้ง */
+.dict-table.monster-theme td {
+  vertical-align: middle;
+}
+
+/* คอลัมน์ deck ตัดบรรทัดได้ดี และไม่ดัน action เพี้ยน */
+.dict-table.monster-theme td:nth-child(10) {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+/* td ของ actions ต้องเป็น table-cell ปกติ */
+.dict-table.monster-theme td.actions-cell,
+.dict-table.monster-theme td.monster-actions-cell {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  padding: 10px 8px !important;
+}
+
+/* ใช้ div ข้างในเป็นตัวจัด layout ของปุ่มแทน */
+.dict-table.monster-theme .monster-action-buttons {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* ปุ่มในคอลัมน์ action ขนาดนิ่ง */
+.dict-table.monster-theme .monster-action-buttons .btn {
+  width: 100%;
+  min-width: 0;
+  max-width: 92px;
+  text-align: center;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* ปุ่ม Del Sprites ให้กว้างกว่าปุ่มอื่นนิดหน่อย */
+.dict-table.monster-theme .monster-action-buttons .btn-sprites {
+  max-width: 110px;
+  background: linear-gradient(180deg, rgba(120,120,120,.22), rgba(0,0,0,.42));
+  border-color: rgba(255,255,255,.18);
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* กัน rule เก่าที่ไปบังคับ .action-buttons ทั้งระบบ */
+.dict-table.monster-theme td .action-buttons.monster-action-buttons {
+  flex-direction: column !important;
+}
+
+/* ถ้า deck ยาวมาก ให้มี scroll ภายในแบบเนียน */
+.monster-deck-scroll {
+  margin-top: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.monster-deck-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.monster-deck-scroll::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.04);
+  border-radius: 999px;
+}
+.monster-deck-scroll::-webkit-scrollbar-thumb {
+  background: rgba(215,180,106,.35);
+  border-radius: 999px;
+}
+
+/* =========================================
+   ✅ HERO TABLE ACTIONS / DECK FIX
+========================================= */
+
+/* ทุก cell ใน hero table อยู่กลางแนวตั้ง */
+.dict-table.hero-theme td {
+  vertical-align: middle;
+}
+
+/* Deck column */
+.dict-table.hero-theme .hero-deck-cell {
+  font-size: 13px;
+  line-height: 1.35;
+  padding: 10px 12px !important;
+  min-width: 250px;
+  max-width: 320px;
+  vertical-align: top !important;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* scroll เฉพาะรายการ deck */
+.dict-table.hero-theme .hero-deck-scroll {
+  margin-top: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.dict-table.hero-theme .hero-deck-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.dict-table.hero-theme .hero-deck-scroll::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.04);
+  border-radius: 999px;
+}
+.dict-table.hero-theme .hero-deck-scroll::-webkit-scrollbar-thumb {
+  background: rgba(215,180,106,.35);
+  border-radius: 999px;
+}
+
+/* Description column */
+.dict-table.hero-theme .hero-desc-cell {
+  font-size: 12px;
+  color: #ccc;
+  max-width: 220px;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+/* td actions ต้องเป็น table-cell ปกติ */
+.dict-table.hero-theme td.actions-cell,
+.dict-table.hero-theme td.hero-actions-cell {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+  padding: 10px 8px !important;
+}
+
+/* ใช้ div ข้างในจัดปุ่มแทน */
+.dict-table.hero-theme .hero-action-buttons {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* ขนาดปุ่มให้คงที่ */
+.dict-table.hero-theme .hero-action-buttons .btn {
+  width: 100%;
+  min-width: 0;
+  max-width: 96px;
+  text-align: center;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* ปุ่มลบ sprites */
+.dict-table.hero-theme .hero-action-buttons .btn-sprites {
+  max-width: 110px;
+  background: linear-gradient(180deg, rgba(120,120,120,.22), rgba(0,0,0,.42));
+  border-color: rgba(255,255,255,.18);
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* กัน rule เก่าที่ไปแตะ .action-buttons */
+.dict-table.hero-theme td .action-buttons.hero-action-buttons {
+  flex-direction: column !important;
+}
+
+/* มือถือ */
+@media (max-width: 768px) {
+  .dict-table.hero-theme .hero-deck-cell {
+    min-width: 220px;
+    max-width: 260px;
+  }
+
+  .dict-table.hero-theme td.hero-actions-cell {
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+  }
+
+  .dict-table.hero-theme .hero-action-buttons .btn {
+    max-width: 100%;
+  }
+}
+
+/* =========================================
+   ✅ STAGE / SPAWN ACTIONS FIX
+========================================= */
+
+/* ตาราง stage ให้นิ่ง */
+.dict-table td {
+  vertical-align: middle;
+}
+
+/* description stage ตัดบรรทัดได้ */
+.dict-table .desc-cell,
+.dict-table .w260 {
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+/* reward/goal อย่าแตกมั่ว */
+.dict-table .cell-dim {
+  white-space: nowrap;
+}
+
+/* -------------------------
+   Stage actions
+-------------------------- */
+.dict-table td.actions-cell.stage-actions-cell {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  padding: 10px 8px !important;
+}
+
+.dict-table .stage-action-buttons {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.dict-table .stage-action-buttons .btn {
+  width: 100%;
+  min-width: 0;
+  max-width: 92px;
+  text-align: center;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.dict-table .stage-action-buttons .btn-spawns {
+  max-width: 100px;
+  border-color: rgba(57,255,136,.25);
+  background: linear-gradient(180deg, rgba(57,255,136,.14), rgba(0,0,0,.40));
+  color: #fff;
+}
+
+/* -------------------------
+   Spawn actions
+-------------------------- */
+.dict-table td.actions-cell.spawn-actions-cell {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  width: 110px !important;
+  min-width: 110px !important;
+  max-width: 110px !important;
+  padding: 10px 8px !important;
+}
+
+.dict-table .spawn-action-buttons {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.dict-table .spawn-action-buttons .btn {
+  width: 100%;
+  min-width: 0;
+  max-width: 88px;
+  text-align: center;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* กัน CSS เก่าที่จับ .action-buttons ทั้งระบบ */
+.dict-table td .action-buttons.stage-action-buttons,
+.dict-table td .action-buttons.spawn-action-buttons {
+  flex-direction: column !important;
+}
+
+/* stage table คอลัมน์ map ให้คงที่ */
+.dict-table th:first-child,
+.dict-table td:first-child {
+  vertical-align: middle;
+}
+
+/* ถ้าจอแคบ */
+@media (max-width: 768px) {
+  .dict-table td.actions-cell.stage-actions-cell {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+  }
+
+  .dict-table td.actions-cell.spawn-actions-cell {
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+  }
+
+  .dict-table .stage-action-buttons .btn,
+  .dict-table .spawn-action-buttons .btn {
+    max-width: 100%;
+  }
+}
+
+.stage-inline-spawn-cell {
+  padding: 14px 10px 18px !important;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.spawn-close-btn {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 10px;
+  background: #2d3748;
+  color: #fff;
+  line-height: 1;
+}
+
+/* ===== Dictionary form: Oxford + Text File layout fix ===== */
+.form-box {
+  align-items: end;
+}
+
+.dict-upload-group {
+  min-width: 180px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+.dict-oxford-check {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #ddd;
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: none;
+  margin: 0;
+}
+
+.dict-oxford-check input[type="checkbox"] {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.dict-text-upload-btn {
+  min-width: 74px;
+  height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ให้ช่อง add word กว้างพอดี */
+.form-box .btn-add,
+.form-box .btn-edit {
+  min-width: 150px;
+}
+
+/* responsive */
+@media (max-width: 1100px) {
+  .dict-upload-group {
+    min-width: 100%;
+    justify-content: flex-start;
+    padding: 4px 0;
+  }
+}
+
+/* กัน panel / table บางตัวตัด tooltip */
+.form-box,
+.filter-section,
+.table-wrapper,
+.dict-table,
+.dict-table th,
+.dict-table td,
+.action-buttons,
+.actions-cell {
+  overflow: visible !important;
+}
+
+/* แต่ยังให้ content-area เลื่อนตามเดิม */
+.content-area {
+  overflow: auto;
+}
+
+/* =========================================
+   ✅ ACTION TOOLTIP FIX
+   แก้ tooltip ปุ่มฝั่งขวาไม่ให้โดนตัด
+========================================= */
+
+/* คอลัมน์ action และปุ่มด้านในต้องปล่อยให้ tooltip ลอยออกมาได้ */
+.actions-cell,
+.action-buttons,
+.actions-cell .btn,
+.action-buttons .btn {
+  overflow: visible !important;
+  position: relative;
+}
+
+/* tooltip ปกติ */
+[data-tooltip]::after,
+[data-tooltip]::before {
+  z-index: 999999 !important;
+}
+
+/* แต่ถ้าอยู่ใน actions column ให้โชว์ทางซ้ายของปุ่มแทน */
+.actions-cell [data-tooltip]::after,
+.action-buttons [data-tooltip]::after {
+  left: auto !important;
+  right: calc(100% + 10px) !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+.actions-cell [data-tooltip]::before,
+.action-buttons [data-tooltip]::before {
+  left: auto !important;
+  right: calc(100% + 1px) !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+  border-width: 6px !important;
+  border-style: solid !important;
+  border-color: transparent transparent transparent var(--gold2) !important;
+}
+
+/* ถ้าปุ่มอยู่ชิดซ้ายจริง ๆ ค่อย fallback กลับมาแสดงด้านบน */
+@media (max-width: 768px) {
+  .actions-cell [data-tooltip]::after,
+  .action-buttons [data-tooltip]::after {
+    right: auto !important;
+    left: 50% !important;
+    top: auto !important;
+    bottom: calc(100% + 8px) !important;
+    transform: translateX(-50%) !important;
+    white-space: normal;
+    width: max-content;
+    max-width: 220px;
+    text-align: center;
+  }
+
+  .actions-cell [data-tooltip]::before,
+  .action-buttons [data-tooltip]::before {
+    right: auto !important;
+    left: 50% !important;
+    top: auto !important;
+    bottom: calc(100% - 2px) !important;
+    transform: translateX(-50%) !important;
+    border-color: var(--gold2) transparent transparent transparent !important;
+  }
+}
+
+.admin-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.pokedex-header,
+.content-area {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.content-area {
+  padding: 22px 30px;
 }

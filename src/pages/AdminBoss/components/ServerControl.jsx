@@ -8,7 +8,7 @@ const ServerControl = ({ serverId = "hell" }) => {
   const fetchServer = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/server/${serverId}`);
+      const res = await fetch(`/api/server/${serverId}`);
       if (!res.ok) throw new Error("Failed to fetch server");
       const json = await res.json();
       setData(json);
@@ -29,7 +29,7 @@ const ServerControl = ({ serverId = "hell" }) => {
   const toggleServer = async () => {
     if (!data) return;
     try {
-      const res = await fetch(`${API_URL}/server/${serverId}/toggle`, {
+      const res = await fetch(`/api/server/${serverId}/toggle`, {
         method: "PATCH",
       });
 
@@ -48,18 +48,24 @@ const ServerControl = ({ serverId = "hell" }) => {
   const isClose = !!data?.is_close;
 
   return (
-    <div className="server-control">
+    <div className={`server-control ${isClose ? "is-closed" : "is-open"} ${loading ? "is-loading" : ""}`}>
       <div className={`server-dot ${isClose ? "off" : "on"}`} />
 
       <div className="server-meta">
-        <div className="server-title">
-          SERVER: <span className="mono">{serverId}</span>
+        <div className="server-title-row">
+          <span className="server-label">SERVER</span>
+          <span className="server-id mono">{serverId}</span>
         </div>
 
-        <div className="server-sub">
-          online: <span className="mono">{data?.online_count ?? 0}</span>
+        <div className="server-sub-row">
+          <span className="server-online">
+            online {data?.online_count > 0 && (
+              <span className="mono server-online-count">{data.online_count}</span>
+            )}
+          </span>
+
           <span className={`server-badge ${isClose ? "badge-off" : "badge-on"}`}>
-            {loading && !data ? "..." : isClose ? "CLOSED" : "OPEN"}
+            {loading && !data ? "LOADING" : isClose ? "CLOSED" : "OPEN"}
           </span>
         </div>
       </div>
@@ -68,7 +74,7 @@ const ServerControl = ({ serverId = "hell" }) => {
         className={`server-btn ${isClose ? "open" : "close"}`}
         onClick={toggleServer}
         disabled={!data}
-        title="สลับสถานะ true/false เท่านั้น"
+        title="สลับสถานะ server"
       >
         {isClose ? "OPEN SERVER" : "CLOSE SERVER"}
       </button>

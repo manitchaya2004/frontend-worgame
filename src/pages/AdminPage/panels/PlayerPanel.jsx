@@ -1,15 +1,15 @@
 // src/pages/AdminPage/panels/PlayerPanel.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { API_URL } from "../config"; // <- อยู่ที่ src/pages/config.js
+import { API_URL } from "../config";
 
 export default function PlayerPanel() {
   const [players, setPlayers] = useState([]);
-  const [editedRoles, setEditedRoles] = useState({}); // { username: role }
+  const [editedRoles, setEditedRoles] = useState({});
   const [loading, setLoading] = useState(false);
   const [savingUser, setSavingUser] = useState(null);
   const [search, setSearch] = useState("");
-  const [msg, setMsg] = useState({ type: "", text: "" }); // type: success|error|info
+  const [msg, setMsg] = useState({ type: "", text: "" });
 
   const fetchPlayers = async () => {
     setLoading(true);
@@ -46,13 +46,15 @@ export default function PlayerPanel() {
     });
   }, [players, search]);
 
-  const getRoleValue = (username, currentRole) => editedRoles[username] ?? currentRole ?? "player";
+  const getRoleValue = (username, currentRole) =>
+    editedRoles[username] ?? currentRole ?? "player";
 
   const onChangeRole = (username, role) => {
     setEditedRoles((prev) => ({ ...prev, [username]: role }));
   };
 
-  const hasEdit = (username, currentRole) => editedRoles[username] && editedRoles[username] !== currentRole;
+  const hasEdit = (username, currentRole) =>
+    editedRoles[username] && editedRoles[username] !== currentRole;
 
   const saveRole = async (username) => {
     const p = players.find((x) => x.username === username);
@@ -62,13 +64,18 @@ export default function PlayerPanel() {
     setMsg({ type: "", text: "" });
 
     try {
-      const res = await axios.patch(`${API_URL}/player-role`, { username, role: newRole });
+      const res = await axios.patch(`${API_URL}/player-role`, {
+        username,
+        role: newRole,
+      });
 
       if (res.data?.isSuccess) {
         const updatedRole = res.data?.data?.role ?? newRole;
 
         setPlayers((prev) =>
-          prev.map((x) => (x.username === username ? { ...x, role: updatedRole } : x))
+          prev.map((x) =>
+            x.username === username ? { ...x, role: updatedRole } : x
+          )
         );
 
         setEditedRoles((prev) => {
@@ -77,7 +84,10 @@ export default function PlayerPanel() {
           return copy;
         });
 
-        setMsg({ type: "success", text: `อัปเดต role ของ ${username} เป็น ${updatedRole} แล้ว` });
+        setMsg({
+          type: "success",
+          text: `อัปเดต role ของ ${username} เป็น ${updatedRole} แล้ว`,
+        });
       } else {
         setMsg({ type: "error", text: res.data?.message || "อัปเดตไม่สำเร็จ" });
       }
@@ -99,7 +109,10 @@ export default function PlayerPanel() {
       {/* TOOLBAR */}
       <div className="form-box player-toolbar">
         <div className="player-toolbar-left">
-          <div className="form-field player-search-field">
+          <div
+            className="form-field player-search-field"
+            data-tooltip="ค้นหาจาก username, email หรือ role"
+          >
             <label className="form-label">ค้นหา</label>
             <input
               className="input-field"
@@ -109,19 +122,32 @@ export default function PlayerPanel() {
             />
           </div>
 
-          <button className="btn btn-add player-reload-btn" onClick={fetchPlayers} disabled={loading}>
+          <button
+            className="btn btn-add player-reload-btn"
+            onClick={fetchPlayers}
+            disabled={loading}
+            type="button"
+            data-tooltip="โหลดข้อมูลผู้เล่นใหม่อีกครั้ง"
+          >
             {loading ? "Loading..." : "Reload"}
           </button>
         </div>
 
-        <div className="player-toolbar-total">
+        <div
+          className="player-toolbar-total"
+          data-tooltip="จำนวนผู้เล่นที่แสดงตามผลการค้นหา"
+        >
           ทั้งหมด: <b>{filtered.length}</b>
         </div>
       </div>
 
       {/* MESSAGE */}
       {msg.text ? (
-        <div className={`alert ${msg.type || "info"}`} style={{ marginBottom: 14 }}>
+        <div
+          className={`alert ${msg.type || "info"}`}
+          style={{ marginBottom: 14 }}
+          data-tooltip="ข้อความแจ้งผลการทำงาน"
+        >
           {msg.text}
         </div>
       ) : null}
@@ -131,11 +157,13 @@ export default function PlayerPanel() {
         <table className="dict-table">
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Created</th>
-              <th style={{ width: 160 }}>Action</th>
+              <th data-tooltip="ชื่อผู้ใช้ของผู้เล่น">Username</th>
+              <th data-tooltip="อีเมลของผู้เล่น">Email</th>
+              <th data-tooltip="สิทธิ์การใช้งานของผู้เล่น">Role</th>
+              <th data-tooltip="วันและเวลาที่สร้างบัญชี">Created</th>
+              <th style={{ width: 160 }} data-tooltip="บันทึกการเปลี่ยนแปลง role">
+                Action
+              </th>
             </tr>
           </thead>
 
@@ -147,17 +175,40 @@ export default function PlayerPanel() {
 
               return (
                 <tr key={p.username}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <td data-tooltip={`Username: ${p.username}`}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <b>{p.username}</b>
-                      <span className={roleBadgeClass(currentRole)}>{currentRole}</span>
-                      {edited ? <span className="edit-pill">edited</span> : null}
+
+                      <span
+                        className={roleBadgeClass(currentRole)}
+                        data-tooltip={`Role ปัจจุบัน: ${currentRole}`}
+                      >
+                        {currentRole}
+                      </span>
+
+                      {edited ? (
+                        <span
+                          className="edit-pill"
+                          data-tooltip="มีการแก้ไข role แต่ยังไม่ได้บันทึก"
+                        >
+                          edited
+                        </span>
+                      ) : null}
                     </div>
                   </td>
 
-                  <td>{p.email || "-"}</td>
+                  <td data-tooltip={p.email || "ไม่มีอีเมล"}>
+                    {p.email || "-"}
+                  </td>
 
-                  <td>
+                  <td data-tooltip="เลือก role ใหม่ให้ผู้เล่น">
                     <select
                       className="input-field role-select"
                       value={selectedRole}
@@ -168,14 +219,30 @@ export default function PlayerPanel() {
                     </select>
                   </td>
 
-                  <td>{p.created_at ? new Date(p.created_at).toLocaleString() : "-"}</td>
+                  <td
+                    data-tooltip={
+                      p.created_at
+                        ? `สร้างเมื่อ: ${new Date(p.created_at).toLocaleString()}`
+                        : "ไม่มีข้อมูลเวลา"
+                    }
+                  >
+                    {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
+                  </td>
 
-                  <td>
+                  <td data-tooltip="กดเพื่อบันทึก role ที่เปลี่ยนไว้">
                     <button
                       className={`btn ${edited ? "btn-edit" : ""}`}
                       onClick={() => saveRole(p.username)}
                       disabled={!edited || savingUser === p.username}
                       style={{ width: "100%" }}
+                      type="button"
+                      data-tooltip={
+                        savingUser === p.username
+                          ? "กำลังบันทึกข้อมูล..."
+                          : edited
+                          ? `บันทึก role ใหม่ของ ${p.username}`
+                          : "ยังไม่มีการเปลี่ยนแปลง"
+                      }
                     >
                       {savingUser === p.username ? "Saving..." : "Save"}
                     </button>
@@ -186,7 +253,11 @@ export default function PlayerPanel() {
 
             {!loading && filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", padding: 18, color: "var(--muted)" }}>
+                <td
+                  colSpan={5}
+                  style={{ textAlign: "center", padding: 18, color: "var(--muted)" }}
+                  data-tooltip="ไม่พบผู้เล่นที่ตรงกับคำค้นหา"
+                >
                   ไม่พบข้อมูล
                 </td>
               </tr>

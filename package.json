@@ -19,6 +19,7 @@
     "axios": "^1.13.5",
     "cors": "^2.8.5",
     "framer-motion": "^12.24.2",
+    "howler": "^2.2.4",
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
