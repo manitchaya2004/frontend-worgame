@@ -1,9 +1,22 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { API_URL } from "../config";
+
+const VALID_TYPES = [
+  "noun",
+  "verb",
+  "adjective",
+  "adverb",
+  "preposition",
+  "conjunction",
+  "pronoun",
+];
+
+const VALID_LEVELS = ["A1", "A2", "B1", "B2"];
 
 const DictionaryPanel = () => {
   const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [bulkUploading, setBulkUploading] = useState(false);
 
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -17,11 +30,12 @@ const DictionaryPanel = () => {
     word: "",
     type: "",
     meaning: "",
-    level: "", // ✅ "" = No Level ใน UI
+    level: "",
     is_oxford: false,
   });
   const [isEditing, setIsEditing] = useState(false);
 
+  const fileInputRef = useRef(null);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
   const fetchWordsQuery = useCallback(async () => {
@@ -35,14 +49,17 @@ const DictionaryPanel = () => {
       if (filterLength) payload.length = Number(filterLength);
       if (onlyOxford) payload.onlyOxford = true;
 
-      const res = await fetch(`${API_URL}/dict/query`, {
+      const res = await fetch(`/api/dict/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const responseData = await res.json();
-      const resultData = Array.isArray(responseData) ? responseData : responseData.data || [];
+      const resultData = Array.isArray(responseData)
+        ? responseData
+        : responseData.data || [];
+
       setWords(resultData);
     } catch (error) {
       console.error("Error fetching words:", error);
@@ -65,32 +82,186 @@ const DictionaryPanel = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
   };
 
   const resetForm = () => {
-    setFormData({ id: "", word: "", type: "", meaning: "", level: "", is_oxford: false });
+    setFormData({
+      id: "",
+      word: "",
+      type: "",
+      meaning: "",
+      level: "",
+      is_oxford: false,
+    });
     setIsEditing(false);
   };
 
   const normalizeLevelForApi = (lv) => {
-    if (lv === "" || lv === undefined) return null; // ✅ "" => null
+    if (lv === "" || lv === undefined || lv === null) return null;
     return lv;
+  };
+
+  const normalizeWord = (text = "") => String(text).trim().toLowerCase();
+  const normalizeType = (text = "") => String(text).trim().toLowerCase();
+
+  const normalizeBoolean = (value) => {
+    const v = String(value ?? "")
+      .trim()
+      .toLowerCase();
+
+    if (["true", "1", "yes", "y", "on"].includes(v)) return true;
+    if (["false", "0", "no", "n", "off", ""].includes(v)) return false;
+    return false;
+  };
+
+  const normalizeTypeSafe = (value) => {
+    const v = normalizeType(value);
+    return VALID_TYPES.includes(v) ? v : "";
+  };
+
+  const normalizeLevelSafe = (value) => {
+    const raw = String(value ?? "").trim().toUpperCase();
+    if (!raw || raw === "NULL" || raw === "NONE" || raw === "-") return "";
+    return VALID_LEVELS.includes(raw) ? raw : "";
+  };
+
+  const splitLooseLine = (line) => {
+    const rawParts = line.split(",").map((part) => part.trim());
+
+    if (rawParts.length >= 5) {
+      return {
+        word: rawParts[0] ?? "",
+        type: rawParts[1] ?? "",
+        meaning: rawParts.slice(2, rawParts.length - 2).join(", ").trim(),
+        level: rawParts[rawParts.length - 2] ?? "",
+        isOxford: rawParts[rawParts.length - 1] ?? "",
+      };
+    }
+
+    if (rawParts.length === 4) {
+      return {
+        word: rawParts[0] ?? "",
+        type: rawParts[1] ?? "",
+        meaning: rawParts[2] ?? "",
+        level: "",
+        isOxford: rawParts[3] ?? "",
+      };
+    }
+
+    if (rawParts.length === 3) {
+      return {
+        word: rawParts[0] ?? "",
+        type: rawParts[1] ?? "",
+        meaning: rawParts[2] ?? "",
+        level: "",
+        isOxford: "",
+      };
+    }
+
+    if (rawParts.length === 2) {
+      const first = rawParts[0] ?? "";
+      const second = rawParts[1] ?? "";
+
+      const firstTokens = first.split(/\s+/).filter(Boolean);
+      let word = firstTokens[0] ?? "";
+      let type = firstTokens[1] ?? "";
+      let meaning = "";
+
+      const remainingFromFirst = firstTokens.slice(2).join(" ").trim();
+      const secondTokens = second.split(/\s+/).filter(Boolean);
+
+      let level = "";
+      let isOxford = "";
+
+      if (secondTokens.length > 0) {
+        const lastToken = secondTokens[secondTokens.length - 1];
+        const secondLastToken =
+          secondTokens.length > 1 ? secondTokens[secondTokens.length - 2] : "";
+
+        if (
+          ["true", "false", "1", "0", "yes", "no", "y", "n", "on", "off"].includes(
+            String(lastToken).toLowerCase()
+          )
+        ) {
+          isOxford = lastToken;
+          if (VALID_LEVELS.includes(String(secondLastToken).toUpperCase())) {
+            level = secondLastToken;
+            meaning = secondTokens.slice(0, -2).join(" ");
+          } else {
+            meaning = secondTokens.slice(0, -1).join(" ");
+          }
+        } else {
+          meaning = second;
+        }
+      }
+
+      if (remainingFromFirst) {
+        meaning = `${remainingFromFirst} ${meaning}`.trim();
+      }
+
+      return { word, type, meaning, level, isOxford };
+    }
+
+    return {
+      word: "",
+      type: "",
+      meaning: "",
+      level: "",
+      isOxford: "",
+    };
+  };
+
+  const sanitizeParsedEntry = (raw) => {
+    const cleanWord = String(raw.word ?? "").trim();
+    const cleanType = normalizeTypeSafe(raw.type);
+    const cleanMeaning = String(raw.meaning ?? "").trim();
+    const cleanLevel = normalizeLevelSafe(raw.level);
+    const cleanOxford = normalizeBoolean(raw.isOxford);
+
+    return {
+      word: cleanWord,
+      type: cleanType,
+      meaning: cleanMeaning,
+      level: cleanLevel,
+      is_oxford: cleanOxford,
+    };
+  };
+
+  const isDuplicateWordType = (targetWord = formData.word, targetType = formData.type) => {
+    const currentWord = normalizeWord(targetWord);
+    const currentType = normalizeType(targetType);
+
+    return words.some((item) => {
+      const sameWord = normalizeWord(item.word) === currentWord;
+      const sameType = normalizeType(item.type) === currentType;
+      const isSameRow = isEditing && String(item.id) === String(formData.id);
+
+      return sameWord && sameType && !isSameRow;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isDuplicateWordType()) {
+      alert(`มีคำว่า "${formData.word}" ใน type "${formData.type}" อยู่แล้ว`);
+      return;
+    }
+
     try {
       const method = isEditing ? "PUT" : "POST";
-      const url = isEditing ? `${API_URL}/dict/${formData.id}` : `${API_URL}/dict`;
+      const url = isEditing
+        ? `${API_URL}/dict/${formData.id}`
+        : `${API_URL}/dict`;
 
       const payload = {
-        word: formData.word,
-        type: formData.type,
-        meaning: formData.meaning,
+        word: formData.word.trim(),
+        type: formData.type.trim(),
+        meaning: formData.meaning.trim(),
         level: normalizeLevelForApi(formData.level),
         is_oxford: Boolean(formData.is_oxford),
       };
@@ -110,6 +281,149 @@ const DictionaryPanel = () => {
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       console.error(error);
     }
+  };
+
+  const handleBulkUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+const handleTextFileUpload = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  try {
+    setBulkUploading(true);
+    const text = await file.text();
+
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#"));
+
+    if (lines.length === 0) {
+      alert("อัปโหลดไม่สำเร็จ: ไฟล์ว่าง หรือไม่มีข้อมูลที่ใช้เพิ่มคำศัพท์");
+      return;
+    }
+
+    const existingSet = new Set(
+      words.map((item) => `${normalizeWord(item.word)}__${normalizeType(item.type)}`)
+    );
+
+    const localSeen = new Set();
+    const rowsToCreate = [];
+    const skippedReasons = [];
+
+    lines.forEach((line, index) => {
+      const rowNo = index + 1;
+      const parsed = sanitizeParsedEntry(splitLooseLine(line));
+
+      const safeWord = parsed.word?.trim() || "";
+      const safeType = parsed.type || "";
+      const safeMeaning = parsed.meaning?.trim() || "";
+      const safeLevel = parsed.level || "";
+      const safeOxford = Boolean(parsed.is_oxford);
+
+      if (!safeWord) {
+        skippedReasons.push(`บรรทัด ${rowNo}: ไม่มี word`);
+        return;
+      }
+
+      if (!safeType) {
+        skippedReasons.push(
+          `บรรทัด ${rowNo}: type ไม่ถูกต้องหรือไม่มีค่า (ต้องเป็น noun, verb, adjective, adverb, preposition, conjunction, pronoun)`
+        );
+        return;
+      }
+
+      if (!safeMeaning) {
+        skippedReasons.push(`บรรทัด ${rowNo}: meaning ว่าง`);
+        return;
+      }
+
+      if (safeLevel && !VALID_LEVELS.includes(String(safeLevel).toUpperCase())) {
+        skippedReasons.push(`บรรทัด ${rowNo}: level ไม่ถูกต้อง (${safeLevel})`);
+        return;
+      }
+
+      const dedupeKey = `${normalizeWord(safeWord)}__${normalizeType(safeType)}`;
+
+      if (existingSet.has(dedupeKey)) {
+        skippedReasons.push(`บรรทัด ${rowNo}: คำซ้ำในระบบ (${safeWord} / ${safeType})`);
+        return;
+      }
+
+      if (localSeen.has(dedupeKey)) {
+        skippedReasons.push(`บรรทัด ${rowNo}: คำซ้ำภายในไฟล์ (${safeWord} / ${safeType})`);
+        return;
+      }
+
+      localSeen.add(dedupeKey);
+      rowsToCreate.push({
+        rowNo,
+        payload: {
+          word: safeWord,
+          type: safeType,
+          meaning: safeMeaning,
+          level: normalizeLevelForApi(safeLevel),
+          is_oxford: safeOxford,
+        },
+      });
+    });
+
+    if (rowsToCreate.length === 0) {
+      alert(
+        `อัปโหลดไม่สำเร็จ: ไม่มีข้อมูลที่เพิ่มได้\n\nเหตุผล:\n- ${skippedReasons.join("\n- ")}`
+      );
+      return;
+    }
+
+    let successCount = 0;
+    const failedReasons = [...skippedReasons];
+
+    for (const row of rowsToCreate) {
+      try {
+        const res = await fetch(`${API_URL}/dict`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(row.payload),
+        });
+
+        if (res.ok) {
+          successCount += 1;
+        } else {
+          let serverMessage = "บันทึกข้อมูลไม่สำเร็จ";
+          try {
+            const errData = await res.json();
+            serverMessage = errData?.message || serverMessage;
+          } catch {
+            // ignore
+          }
+          failedReasons.push(`บรรทัด ${row.rowNo}: ${serverMessage}`);
+        }
+      } catch (err) {
+        console.error("Bulk insert failed:", err);
+        failedReasons.push(`บรรทัด ${row.rowNo}: ${err.message || "เชื่อมต่อ server ไม่สำเร็จ"}`);
+      }
+    }
+
+    await fetchWordsQuery();
+
+    if (failedReasons.length > 0) {
+      alert(
+        `อัปโหลดเสร็จ: เพิ่มสำเร็จ ${successCount} รายการ\nไม่สำเร็จ ${failedReasons.length} รายการ\n\nสาเหตุ:\n- ${failedReasons.join(
+          "\n- "
+        )}`
+      );
+    } else {
+      alert(`อัปโหลดเสร็จ: เพิ่มสำเร็จ ${successCount} รายการ`);
+    }
+  } catch (error) {
+    console.error(error);
+    alert(`เกิดข้อผิดพลาดในการอ่านไฟล์ข้อความ: ${error.message || "unknown error"}`);
+  } finally {
+    setBulkUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
   };
 
   const handleEditClick = (row) => {
@@ -141,14 +455,26 @@ const DictionaryPanel = () => {
 
   const filteredWords = words.filter((w) => !filterType || w.type === filterType);
 
-// ... (ส่วนบนของไฟล์เหมือนเดิมทุกประการ)
-
   return (
     <div>
       <form className="form-box" onSubmit={handleSubmit}>
-        {/* ... (Input Word, Type, Meaning เหมือนเดิม) */}
-        <input className="input-field" type="text" name="word" placeholder="Word" value={formData.word} onChange={handleChange} required />
-        <select className="input-field" name="type" value={formData.type} onChange={handleChange} required>
+        <input
+          className="input-field"
+          type="text"
+          name="word"
+          placeholder="Word"
+          value={formData.word}
+          onChange={handleChange}
+          required
+        />
+
+        <select
+          className="input-field"
+          name="type"
+          value={formData.type}
+          onChange={handleChange}
+          required
+        >
           <option value="" disabled>Select Type...</option>
           <option value="noun">noun</option>
           <option value="verb">verb</option>
@@ -158,11 +484,24 @@ const DictionaryPanel = () => {
           <option value="conjunction">conjunction</option>
           <option value="pronoun">pronoun</option>
         </select>
-        <input className="input-field" type="text" name="meaning" placeholder="Meaning" value={formData.meaning} onChange={handleChange} required />
 
-        {/* ✅ Tooltip สำหรับ Select Level */}
+        <input
+          className="input-field"
+          type="text"
+          name="meaning"
+          placeholder="Meaning"
+          value={formData.meaning}
+          onChange={handleChange}
+          required
+        />
+
         <div data-tooltip="Select language difficulty level">
-          <select className="input-field" name="level" value={formData.level ?? ""} onChange={handleChange}>
+          <select
+            className="input-field"
+            name="level"
+            value={formData.level ?? ""}
+            onChange={handleChange}
+          >
             <option value="">No Level</option>
             <option value="A1">A1</option>
             <option value="A2">A2</option>
@@ -171,14 +510,48 @@ const DictionaryPanel = () => {
           </select>
         </div>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }} data-tooltip="Check if this is an Oxford 3000 word">
-          <input type="checkbox" name="is_oxford" checked={Boolean(formData.is_oxford)} onChange={handleChange} />
-          Oxford
-        </label>
+        <div className="dict-upload-group">
+          <label
+            className="dict-oxford-check"
+            data-tooltip="Check if this is an Oxford 3000 word"
+          >
+            <input
+              type="checkbox"
+              name="is_oxford"
+              checked={Boolean(formData.is_oxford)}
+              onChange={handleChange}
+            />
+            <span>Oxford</span>
+          </label>
 
-        {/* ✅ Tooltip สำหรับปุ่ม Add/Update */}
-        <button 
-          type="submit" 
+          <button
+            type="button"
+            className="btn dict-text-upload-btn dict-help-tooltip"
+            onClick={handleBulkUploadClick}
+            disabled={bulkUploading || isEditing}
+            data-tooltip={`รูปแบบ:
+          word, type, meaning, level, is_oxford
+
+          ตัวอย่าง:
+          apple, noun, แอปเปิล, A1, true
+          book, noun, หนังสือ, , false
+
+          ถ้าว่างให้ปล่อยว่างได้`}
+          >
+            {bulkUploading ? "..." : "Text File"}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,text/plain"
+            onChange={handleTextFileUpload}
+            style={{ display: "none" }}
+          />
+        </div>
+
+        <button
+          type="submit"
           className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
           data-tooltip={isEditing ? "Save changes to database" : "Create new word entry"}
         >
@@ -186,10 +559,10 @@ const DictionaryPanel = () => {
         </button>
 
         {isEditing && (
-          <button 
-            type="button" 
-            className="btn" 
-            onClick={resetForm} 
+          <button
+            type="button"
+            className="btn"
+            onClick={resetForm}
             style={{ backgroundColor: "#666" }}
             data-tooltip="Discard all changes"
           >
@@ -224,10 +597,20 @@ const DictionaryPanel = () => {
 
         <div className="search-controls">
           <span className="search-icon">🔍</span>
-          <input type="text" className="search-input" placeholder="Search word..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search word..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
 
           <div data-tooltip="Filter by Part of Speech">
-            <select className="filter-select" onChange={(e) => setFilterType(e.target.value)} value={filterType}>
+            <select
+              className="filter-select"
+              onChange={(e) => setFilterType(e.target.value)}
+              value={filterType}
+            >
               <option value="">All Types</option>
               <option value="noun">noun</option>
               <option value="verb">verb</option>
@@ -240,7 +623,11 @@ const DictionaryPanel = () => {
           </div>
 
           <div data-tooltip="Filter by CEFR Level">
-            <select className="filter-select" onChange={(e) => setFilterLevel(e.target.value)} value={filterLevel}>
+            <select
+              className="filter-select"
+              onChange={(e) => setFilterLevel(e.target.value)}
+              value={filterLevel}
+            >
               <option value="">All Levels</option>
               <option value="A1">Level A1</option>
               <option value="A2">Level A2</option>
@@ -250,7 +637,11 @@ const DictionaryPanel = () => {
           </div>
 
           <div data-tooltip="Filter by number of characters">
-            <select className="filter-select" onChange={(e) => setFilterLength(e.target.value)} value={filterLength}>
+            <select
+              className="filter-select"
+              onChange={(e) => setFilterLength(e.target.value)}
+              value={filterLength}
+            >
               <option value="">Any Length</option>
               <option value="3">3 Chars</option>
               <option value="4">4 Chars</option>
@@ -260,8 +651,15 @@ const DictionaryPanel = () => {
             </select>
           </div>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }} data-tooltip="Show only Oxford 3000 vocabulary">
-            <input type="checkbox" checked={onlyOxford} onChange={(e) => setOnlyOxford(e.target.checked)} />
+          <label
+            style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }}
+            data-tooltip="Show only Oxford 3000 vocabulary"
+          >
+            <input
+              type="checkbox"
+              checked={onlyOxford}
+              onChange={(e) => setOnlyOxford(e.target.checked)}
+            />
             Oxford only
           </label>
         </div>
@@ -284,36 +682,44 @@ const DictionaryPanel = () => {
             </thead>
 
             <tbody>
-              {filteredWords.map((item) => (
-                <tr key={item.id}>
-                  {/* ... (ข้อมูลในตารางคงเดิม) */}
-                  <td><strong>{item.word}</strong></td>
-                  <td><span style={{ color: "#aaa" }}>{item.type}</span></td>
-                  <td>{item.meaning}</td>
-                  <td>{item.level && String(item.level).trim() !== "" ? item.level : "-"}</td>
-                  <td style={{ textAlign: "center" }}>{item.is_oxford ? "✅" : "-"}</td>
-                  
-                  <td className="action-buttons">
-                    <button 
-                      className="btn btn-edit" 
-                      onClick={() => handleEditClick(item)} 
-                      type="button"
-                      data-tooltip="Edit this word entry"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="btn btn-delete" 
-                      onClick={() => handleDelete(item)} 
-                      type="button"
-                      data-tooltip="Delete this word permanently"
-                    >
-                      Delete
-                    </button>
+              {filteredWords.length > 0 ? (
+                filteredWords.map((item) => (
+                  <tr key={item.id}>
+                    <td><strong>{item.word}</strong></td>
+                    <td><span style={{ color: "#aaa" }}>{item.type}</span></td>
+                    <td className="meaning-cell">{item.meaning}</td>
+                    <td>{item.level && String(item.level).trim() !== "" ? item.level : "-"}</td>
+                    <td style={{ textAlign: "center" }}>{item.is_oxford ? "✅" : "-"}</td>
+
+                    <td className="actions-cell">
+                      <div className="action-buttons">
+                        <button
+                          className="btn btn-edit"
+                          onClick={() => handleEditClick(item)}
+                          type="button"
+                          data-tooltip="Edit this word entry"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-delete"
+                          onClick={() => handleDelete(item)}
+                          type="button"
+                          data-tooltip="Delete this word permanently"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "20px", color: "#aaa" }}>
+                    No words found
                   </td>
                 </tr>
-              ))}
-              {/* ... (No words found case) */}
+              )}
             </tbody>
           </table>
         )}

@@ -5,44 +5,45 @@ import { HeroSpriteLoop } from "../components/SpriteLoops";
 
 // ✅ UI แบบในไฟล์เกม (dropdown + animation + icon)
 import { AnimatePresence, motion } from "framer-motion";
-import { GiBroadsword, GiShield, GiWaterDrop, GiTrident } from "react-icons/gi";
+import {
+  GiBroadsword,
+  GiShield,
+  GiWaterDrop,
+  GiTrident,
+  GiBowieKnife,
+  GiFangs,
+} from "react-icons/gi";
+import { FaBolt, FaCloud, FaEyeSlash, FaPlus } from "react-icons/fa";
 
-// รายชื่อ Effect อ้างอิงจากระบบเกม
+// ✅ รายชื่อ Effect สำหรับ Deck (id ล้วน) — ให้เหมือน MonsterPanel
 const DECK_EFFECTS = [
   "double-dmg",
-  "double-guard",
   "double-shield",
   "mana-plus",
   "shield-plus",
+  "add_bleed",
+  "add_poison",
+  "add_stun",
+  "add_blind",
+  "heal",
+  "bless",
+  "vampire_fang",
 ];
 
-// ✅ meta สำหรับทำ UI ให้เหมือนในไฟล์เกม (icon + สี + label)
+// ✅ meta สำหรับทำ UI ให้เหมือนในไฟล์เกม (icon + สี + label) — ให้เหมือน MonsterPanel
 const EFFECT_META = {
-  "double-dmg": {
-    label: "Double Damage",
-    icon: <GiBroadsword />,
-    color: "#c0392b",
-  },
-  "double-guard": {
-    label: "Double Guard",
-    icon: <GiShield />,
-    color: "#2980b9",
-  },
-  "double-shield": {
-    label: "Double Shield",
-    icon: <GiShield />,
-    color: "#2980b9",
-  },
-  "mana-plus": {
-    label: "Mana Plus",
-    icon: <GiWaterDrop />,
-    color: "#00bcd4",
-  },
-  "shield-plus": {
-    label: "Shield Plus",
-    icon: <GiTrident />,
-    color: "#e67e22",
-  },
+  "double-dmg": { label: "Double Damage", icon: <GiBroadsword />, color: "#c0392b" },
+  "double-shield": { label: "Double Shield", icon: <GiShield />, color: "#2980b9" },
+  "mana-plus": { label: "Mana Plus", icon: <GiWaterDrop />, color: "#00bcd4" },
+  "shield-plus": { label: "Shield Plus", icon: <GiTrident />, color: "#e67e22" },
+
+  "add_bleed": { label: "Add Bleed", icon: <GiBowieKnife />, color: "#8b0000" },
+  "add_poison": { label: "Add Poison", icon: <FaCloud />, color: "#27ae60" },
+  "add_stun": { label: "Add Stun", icon: <FaBolt />, color: "#f39c12" },
+  "add_blind": { label: "Add Blind", icon: <FaEyeSlash />, color: "#8e44ad" },
+  "heal": { label: "Heal", icon: <FaPlus />, color: "#2ecc71" },
+  "bless": { label: "Bless", icon: <FaPlus />, color: "#f1c40f" },
+  "vampire_fang": { label: "Vampire Fang", icon: <GiFangs />, color: "#8b0000" },
 };
 
 // ✅ Effect dropdown แบบเดียวกับไฟล์เกม: badge + icon + popup list + motion
@@ -247,7 +248,7 @@ const HeroPanel = () => {
   const fetchHeroes = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/hero`);
+      const res = await fetch(`/api/hero`);
       if (!res.ok) throw new Error("Failed to fetch heroes");
       const data = await res.json();
       setHeroes(Array.isArray(data) ? data : []);
@@ -388,7 +389,7 @@ const HeroPanel = () => {
     fd.append("walk2", spriteFiles.walk2);
     fd.append("guard1", spriteFiles.guard1);
 
-    const up = await fetch(`${API_URL}/hero/${heroId}/sprites`, {
+    const up = await fetch(`/api/hero/${heroId}/sprites`, {
       method: "POST",
       body: fd,
     });
@@ -417,10 +418,10 @@ const HeroPanel = () => {
     };
 
     try {
-      let url = `${API_URL}/hero`;
+      let url = `/api/hero`;
       let method = "POST";
       if (isEditing) {
-        url = `${API_URL}/hero/${formData.id}`;
+        url = `/api/hero/${formData.id}`;
         method = "PUT";
       }
 
@@ -483,11 +484,12 @@ const HeroPanel = () => {
       speed: h.speed ?? "",
       ability_cost: h.ability_cost ?? "",
       description: h.description ?? "",
-      hero_deck: h.hero_deck || [],
+      hero_deck: Array.isArray(h.hero_deck) ? h.hero_deck : [],
     });
+
     resetSpriteFiles();
     setIsEditing(true);
-    document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
+
   };
 
   const handleDelete = async (id) => {
@@ -837,16 +839,7 @@ const HeroPanel = () => {
                   <td className="mono">{h.ability_cost ?? "-"}</td>
 
                   {/* ✅ Deck ให้ใหญ่ขึ้น + แสดงรายการการ์ด */}
-                  <td
-                    style={{
-                      fontSize: 14,
-                      lineHeight: 1.35,
-                      padding: "10px 12px",
-                      minWidth: 280,
-                      maxWidth: 360,
-                      verticalAlign: "top",
-                    }}
-                  >
+                  <td className="hero-deck-cell">
                     <div
                       style={{
                         color: "#48bb78",
@@ -863,49 +856,56 @@ const HeroPanel = () => {
                     </div>
 
                     {Array.isArray(h.hero_deck) && h.hero_deck.length > 0 && (
-                      <div style={{ maxHeight: 120, overflowY: "auto", paddingRight: 6 }}>
-                        {h.hero_deck.map((card, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              color: "#ddd",
-                              fontSize: 13,
-                              lineHeight: 1.3,
-                              padding: "3px 0",
-                              whiteSpace: "normal",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {card.effect} (x{card.size})
-                          </div>
-                        ))}
+                      <div className="hero-deck-scroll">
+                        {h.hero_deck.map((card, idx) => {
+                          const meta = EFFECT_META[card.effect];
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                color: "#ddd",
+                                fontSize: 13,
+                                lineHeight: 1.3,
+                                padding: "3px 0",
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {meta ? meta.label : card.effect} (x{card.size})
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </td>
 
-                  <td style={{ fontSize: 12, color: "#ccc", maxWidth: 220 }}>
+                  <td className="hero-desc-cell">
                     {h.description ?? "-"}
                   </td>
 
-                  <td className="action-buttons">
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "6px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button className="btn btn-edit" onClick={() => handleEdit(h)} data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้">
+                  <td className="actions-cell hero-actions-cell">
+                    <div className="action-buttons hero-action-buttons">
+                      <button
+                        type="button"
+                        className="btn btn-edit"
+                        onClick={() => handleEdit(h)}
+                        data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้"
+                      >
                         Edit
                       </button>
-                      <button className="btn btn-delete" onClick={() => handleDelete(h.id)} data-tooltip="ลบฮีโร่ถาวร">
+
+                      <button
+                        type="button"
+                        className="btn btn-delete"
+                        onClick={() => handleDelete(h.id)}
+                        data-tooltip="ลบฮีโร่ถาวร"
+                      >
                         Del
                       </button>
+
                       <button
-                        className="btn"
-                        style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }}
+                        type="button"
+                        className="btn btn-sprites"
                         onClick={() => handleDeleteSprites(h.id)}
                         data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites"
                       >

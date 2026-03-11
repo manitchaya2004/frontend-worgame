@@ -31,11 +31,22 @@ const AdminBoss = () => {
 
   return (
     <div className="admin-container">
-      {/* --- HEADER --- */}
       <div className="pokedex-header">
-        <div className="header-left">
+        <div className="header-brand">
           <h1 className="pixel-title-small">ADMIN BOSS</h1>
+        </div>
+
+        <div className="header-server">
           <ServerControl serverId="hell" />
+
+          <button
+            className="server-mini-btn"
+            onClick={handleGoGamePage}
+            type="button"
+            title="Go to Game Page"
+          >
+            🎮 GAME
+          </button>
         </div>
 
         <div className="header-right">
@@ -77,15 +88,6 @@ const AdminBoss = () => {
               </button>
 
               <button
-                className="tab-btn play-tab"
-                onClick={handleGoGamePage}
-                type="button"
-                title="Go to Game Page"
-              >
-                🎮 GAME PAGE
-              </button>
-
-              <button
                 className="tab-btn logout-tab"
                 onClick={handleLogout}
                 type="button"
@@ -99,7 +101,6 @@ const AdminBoss = () => {
         </div>
       </div>
 
-      {/* --- CONTENT AREA --- */}
       <div className="content-area">
         {activeTab === "dictionary" ? (
           <DictionaryPanel />

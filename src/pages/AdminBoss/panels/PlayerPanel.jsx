@@ -1,28 +1,30 @@
+// src/pages/AdminPage/panels/PlayerPanel.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { API_URL } from "../config"; // ถ้า path ไม่ตรงโปรเจกต์ทิว ให้แก้ให้ถูก
+import { API_URL } from "../config";
 
 export default function PlayerPanel() {
   const [players, setPlayers] = useState([]);
-  const [editedRoles, setEditedRoles] = useState({}); // { username: role }
+  const [editedRoles, setEditedRoles] = useState({});
   const [loading, setLoading] = useState(false);
   const [savingUser, setSavingUser] = useState(null);
   const [search, setSearch] = useState("");
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState({ type: "", text: "" });
 
   const fetchPlayers = async () => {
     setLoading(true);
-    setMsg("");
+    setMsg({ type: "", text: "" });
+
     try {
       const res = await axios.get(`${API_URL}/getplayer`);
       if (res.data?.isSuccess) {
         setPlayers(res.data.data || []);
         setEditedRoles({});
       } else {
-        setMsg(res.data?.message || "โหลดข้อมูลไม่สำเร็จ");
+        setMsg({ type: "error", text: res.data?.message || "โหลดข้อมูลไม่สำเร็จ" });
       }
     } catch (err) {
-      setMsg(err.response?.data?.message || err.message);
+      setMsg({ type: "error", text: err.response?.data?.message || err.message });
     } finally {
       setLoading(false);
     }
@@ -44,24 +46,23 @@ export default function PlayerPanel() {
     });
   }, [players, search]);
 
-  const getRoleValue = (username, currentRole) => {
-    return editedRoles[username] ?? currentRole ?? "player";
-  };
+  const getRoleValue = (username, currentRole) =>
+    editedRoles[username] ?? currentRole ?? "player";
 
   const onChangeRole = (username, role) => {
     setEditedRoles((prev) => ({ ...prev, [username]: role }));
   };
 
-  const hasEdit = (username, currentRole) => {
-    return editedRoles[username] && editedRoles[username] !== currentRole;
-  };
+  const hasEdit = (username, currentRole) =>
+    editedRoles[username] && editedRoles[username] !== currentRole;
 
   const saveRole = async (username) => {
     const p = players.find((x) => x.username === username);
     const newRole = getRoleValue(username, p?.role);
 
     setSavingUser(username);
-    setMsg("");
+    setMsg({ type: "", text: "" });
+
     try {
       const res = await axios.patch(`${API_URL}/player-role`, {
         username,
@@ -69,9 +70,11 @@ export default function PlayerPanel() {
       });
 
       if (res.data?.isSuccess) {
+        const updatedRole = res.data?.data?.role ?? newRole;
+
         setPlayers((prev) =>
           prev.map((x) =>
-            x.username === username ? { ...x, role: res.data.data.role } : x
+            x.username === username ? { ...x, role: updatedRole } : x
           )
         );
 
@@ -81,102 +84,181 @@ export default function PlayerPanel() {
           return copy;
         });
 
-        setMsg(`อัปเดต role ของ ${username} เป็น ${newRole} แล้ว`);
+        setMsg({
+          type: "success",
+          text: `อัปเดต role ของ ${username} เป็น ${updatedRole} แล้ว`,
+        });
       } else {
-        setMsg(res.data?.message || "อัปเดตไม่สำเร็จ");
+        setMsg({ type: "error", text: res.data?.message || "อัปเดตไม่สำเร็จ" });
       }
     } catch (err) {
-      setMsg(err.response?.data?.message || err.message);
+      setMsg({ type: "error", text: err.response?.data?.message || err.message });
     } finally {
       setSavingUser(null);
     }
   };
 
+  const roleBadgeClass = (role) => {
+    if (role === "adminBoss") return "role-badge boss";
+    if (role === "admin") return "role-badge admin";
+    return "role-badge player";
+  };
+
   return (
     <div>
-      {/* แถบค้นหา / รีโหลด (ใช้สไตล์เดียวกับ filter-section) */}
-      <div className="filter-section">
-        <div className="search-controls">
-          <span className="search-icon">🔍</span>
+      {/* TOOLBAR */}
+      <div className="form-box player-toolbar">
+        <div className="player-toolbar-left">
+          <div
+            className="form-field player-search-field"
+            data-tooltip="ค้นหาจาก username, email หรือ role"
+          >
+            <label className="form-label">ค้นหา</label>
+            <input
+              className="input-field"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="username / email / role"
+            />
+          </div>
 
-          <input
-            className="search-input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหา username / email / role"
-          />
-
-          <button className="btn btn-neutral" onClick={fetchPlayers} disabled={loading}>
+          <button
+            className="btn btn-add player-reload-btn"
+            onClick={fetchPlayers}
+            disabled={loading}
+            type="button"
+            data-tooltip="โหลดข้อมูลผู้เล่นใหม่อีกครั้ง"
+          >
             {loading ? "Loading..." : "Reload"}
           </button>
         </div>
 
-        {msg ? (
-          <div className="mt-14 muted" style={{ whiteSpace: "pre-wrap" }}>
-            {msg}
-          </div>
-        ) : null}
+        <div
+          className="player-toolbar-total"
+          data-tooltip="จำนวนผู้เล่นที่แสดงตามผลการค้นหา"
+        >
+          ทั้งหมด: <b>{filtered.length}</b>
+        </div>
       </div>
 
-      {/* ตาราง (ใช้ dict-table + table-wrapper เหมือน DictionaryPanel) */}
+      {/* MESSAGE */}
+      {msg.text ? (
+        <div
+          className={`alert ${msg.type || "info"}`}
+          style={{ marginBottom: 14 }}
+          data-tooltip="ข้อความแจ้งผลการทำงาน"
+        >
+          {msg.text}
+        </div>
+      ) : null}
+
+      {/* TABLE */}
       <div className="table-wrapper">
         <table className="dict-table">
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Created</th>
-              <th>Action</th>
+              <th data-tooltip="ชื่อผู้ใช้ของผู้เล่น">Username</th>
+              <th data-tooltip="อีเมลของผู้เล่น">Email</th>
+              <th data-tooltip="สิทธิ์การใช้งานของผู้เล่น">Role</th>
+              <th data-tooltip="วันและเวลาที่สร้างบัญชี">Created</th>
+              <th style={{ width: 160 }} data-tooltip="บันทึกการเปลี่ยนแปลง role">
+                Action
+              </th>
             </tr>
           </thead>
 
           <tbody>
-            {filtered.map((p) => (
-              <tr key={p.username}>
-                <td className="mono">{p.username}</td>
-                <td>{p.email}</td>
+            {filtered.map((p) => {
+              const edited = hasEdit(p.username, p.role);
+              const currentRole = p.role || "player";
+              const selectedRole = getRoleValue(p.username, currentRole);
 
-                <td>
-                  <div className="flex-row align-center">
+              return (
+                <tr key={p.username}>
+                  <td data-tooltip={`Username: ${p.username}`}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <b>{p.username}</b>
+
+                      <span
+                        className={roleBadgeClass(currentRole)}
+                        data-tooltip={`Role ปัจจุบัน: ${currentRole}`}
+                      >
+                        {currentRole}
+                      </span>
+
+                      {edited ? (
+                        <span
+                          className="edit-pill"
+                          data-tooltip="มีการแก้ไข role แต่ยังไม่ได้บันทึก"
+                        >
+                          edited
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+
+                  <td data-tooltip={p.email || "ไม่มีอีเมล"}>
+                    {p.email || "-"}
+                  </td>
+
+                  <td data-tooltip="เลือก role ใหม่ให้ผู้เล่น">
                     <select
-                      className="input-field minw-140"
-                      value={getRoleValue(p.username, p.role)}
+                      className="input-field role-select"
+                      value={selectedRole}
                       onChange={(e) => onChangeRole(p.username, e.target.value)}
                     >
                       <option value="player">player</option>
                       <option value="admin">admin</option>
                       <option value="adminBoss">adminBoss</option>
                     </select>
+                  </td>
 
-                    {hasEdit(p.username, p.role) ? (
-                      <span className="muted small">*edited</span>
-                    ) : null}
-                  </div>
-                </td>
+                  <td
+                    data-tooltip={
+                      p.created_at
+                        ? `สร้างเมื่อ: ${new Date(p.created_at).toLocaleString()}`
+                        : "ไม่มีข้อมูลเวลา"
+                    }
+                  >
+                    {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
+                  </td>
 
-                <td className="cell-dim">
-                  {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
-                </td>
-
-                <td>
-                  <div className="action-buttons">
+                  <td data-tooltip="กดเพื่อบันทึก role ที่เปลี่ยนไว้">
                     <button
-                      className="btn btn-edit"
+                      className={`btn ${edited ? "btn-edit" : ""}`}
                       onClick={() => saveRole(p.username)}
-                      disabled={savingUser === p.username || !hasEdit(p.username, p.role)}
-                      title="บันทึก role"
+                      disabled={!edited || savingUser === p.username}
+                      style={{ width: "100%" }}
+                      type="button"
+                      data-tooltip={
+                        savingUser === p.username
+                          ? "กำลังบันทึกข้อมูล..."
+                          : edited
+                          ? `บันทึก role ใหม่ของ ${p.username}`
+                          : "ยังไม่มีการเปลี่ยนแปลง"
+                      }
                     >
                       {savingUser === p.username ? "Saving..." : "Save"}
                     </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
 
             {!loading && filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="loading-center muted">
+                <td
+                  colSpan={5}
+                  style={{ textAlign: "center", padding: 18, color: "var(--muted)" }}
+                  data-tooltip="ไม่พบผู้เล่นที่ตรงกับคำค้นหา"
+                >
                   ไม่พบข้อมูล
                 </td>
               </tr>
