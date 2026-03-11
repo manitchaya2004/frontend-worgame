@@ -94,7 +94,6 @@ export const findBestWordFromLetters = (letters, dictionary, maxLetters) => {
   return { bestWord, usedItems };
 };
 
-// 🌟 ฟังก์ชันคำนวณตำแหน่งการแจกบัฟแบบล่วงหน้า (ระบบ Draw Pile & Reshuffle ของจริง)
 export const calculateZoneBuffs = (
   inventory,
   deckList,
@@ -108,7 +107,6 @@ export const calculateZoneBuffs = (
   let drawPile = [...currentDrawPile];
   let currentIndex = 0;
 
-  // 1️⃣ ดึง ID ของการ์ดบัฟที่กำลัง "แปะอยู่บนกระดาน" ออกมา
   let activeCardIds = inventory
     .filter((item) => item && item.buffId)
     .map((item) => item.buffId);
@@ -116,14 +114,11 @@ export const calculateZoneBuffs = (
   while (currentIndex < unlockedSlots) {
     let remainingSpace = unlockedSlots - currentIndex;
 
-    // 2️⃣ ถ้ากองจั่วหมด ให้เอากองทิ้งมาสับใหม่
     if (drawPile.length === 0) {
-      // 🛡️ กองทิ้ง = การ์ดทั้งหมดในเด็ค ลบด้วย การ์ดที่กำลังใช้อยู่บนกระดาน
       let availableToReshuffle = deckList.filter(
         (c) => !activeCardIds.includes(c.id),
       );
 
-      // ถ้าไม่มีการ์ดให้สับแล้ว (การ์ดทุกใบอยู่บนกระดานหมด) ให้หยุดจั่ว
       if (availableToReshuffle.length === 0) {
         break;
       }
@@ -131,25 +126,20 @@ export const calculateZoneBuffs = (
       drawPile = [...availableToReshuffle].sort(() => 0.5 - Math.random());
     }
 
-    // 3️⃣ หาการ์ดใบถัดไปที่ size ใส่ลงในพื้นที่ที่เหลือได้
     let validInPile = drawPile.filter((c) => (c.size || 10) <= remainingSpace);
 
-    // ถ้าไม่มีการ์ดใบไหนในกองที่ใส่ได้ (เพราะ size ใหญ่เกิน) ถือว่าจบการแจกบัฟโซนนี้ ข้ามไปเลย
     if (validInPile.length === 0) {
       break;
     }
 
-    // หยิบการ์ดใบบนสุดที่ใส่ได้
     const targetCard = validInPile[validInPile.length - 1];
     const cardIndex = drawPile.lastIndexOf(targetCard);
 
-    // ดึงการ์ดออกจากกองจั่ว
     const card = drawPile.splice(cardIndex, 1)[0];
 
     const size = card.size || 10;
     const endIndex = currentIndex + size;
 
-    // หา Slot ว่างในช่วง Index ที่การ์ดครอบคลุม
     let availableInZone = [];
     for (let i = currentIndex; i < endIndex; i++) {
       if (
@@ -161,25 +151,20 @@ export const calculateZoneBuffs = (
       }
     }
 
-    // สุ่มแปะบัพใน Slot ว่างที่หาเจอ
     if (availableInZone.length > 0) {
       const targetIdx =
         availableInZone[Math.floor(Math.random() * availableInZone.length)];
       placements.push({ targetIdx, effect: card.effect, buffId: card.id });
-      // บันทึกไว้ว่าการ์ดใบนี้โดนแปะแล้ว ห้ามเอาไปสับใหม่ในลูปนี้
       activeCardIds.push(card.id);
     }
 
-    // เลื่อน Index ไปยัง zone ถัดไป
     currentIndex += size;
   }
 
-  // ส่ง placements และกองจั่วที่เหลือกลับไป
   return { placements, newDrawPile: drawPile };
 };
 
 export const applyRandomBuffs = (inventory, deckList = [], drawPile = []) => {
-  // ล้างบัฟเก่าออกให้หมด รวมถึง buffId ด้วย
   const newItems = inventory.map((item) =>
     item ? { ...item, buff: null, buffId: null } : null,
   );
@@ -198,7 +183,7 @@ export const applyRandomBuffs = (inventory, deckList = [], drawPile = []) => {
     );
     result.placements.forEach((p) => {
       newItems[p.targetIdx].buff = p.effect;
-      newItems[p.targetIdx].buffId = p.buffId; // เซฟไอดีการ์ด
+      newItems[p.targetIdx].buffId = p.buffId;
     });
     updatedDrawPile = result.newDrawPile;
   } else if (validIndices.length > 0) {
@@ -219,17 +204,13 @@ export const applyRandomBuffs = (inventory, deckList = [], drawPile = []) => {
 export const useGameStore = create((set, get) => ({
   isMenuOpen: false,
 
-  // 💡 ให้ค่าเริ่มต้นอิงจาก useAuthStore (สลับจาก Mute -> On)
   isBgmOn: !useAuthStore.getState().isMuted,
   isSfxOn: !useAuthStore.getState().isSfxMuted,
 
   setMenuOpen: (isOpen) => set({ isMenuOpen: isOpen }),
 
   toggleBgm: () => {
-    // 💡 สั่งหัวหน้าใหญ่ให้สลับเสียง
     useAuthStore.getState().toggleMute();
-
-    // 💡 อัปเดตตัวเองให้ตรงกัน
     const isMutedNow = useAuthStore.getState().isMuted;
     set({ isBgmOn: !isMutedNow });
 
@@ -241,10 +222,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   toggleSfx: () => {
-    // 💡 สั่งหัวหน้าใหญ่ให้สลับเอฟเฟกต์
     useAuthStore.getState().toggleSfxMute();
-
-    // 💡 อัปเดตตัวเองให้ตรงกัน
     const isSfxMutedNow = useAuthStore.getState().isSfxMuted;
     set({ isSfxOn: !isSfxMutedNow });
   },
@@ -296,7 +274,7 @@ export const useGameStore = create((set, get) => ({
       }
 
       newItem.buff = null;
-      newItem.buffId = null; // 🛡️ เคลียร์การ์ดบัฟ
+      newItem.buffId = null;
       return newItem;
     });
 
@@ -364,7 +342,7 @@ export const useGameStore = create((set, get) => ({
         },
       });
       if (get().isSfxOn && sfx.playHeal) sfx.playHeal();
-      await delay(200); // ⚡ ปรับเป็น 200 ตามสั่ง
+      await delay(200);
     }
   },
 
@@ -619,7 +597,6 @@ export const useGameStore = create((set, get) => ({
       DeckManager.init();
       await delay(500);
 
-      // 💡 ดึงสถานะจาก Store แทนการเรียก get().isBgmOn แบบตรงๆ
       const isMutedNow = useAuthStore.getState().isMuted;
       if (!isMutedNow) bgm.playAdvanture();
 
@@ -744,7 +721,7 @@ export const useGameStore = create((set, get) => ({
         currentStep: 1,
         selectedPattern: 1,
         savedStatuses: [],
-        isResting: false,
+        nextAction: "strike", // 🌟 เริ่มมาให้โจมตีก่อน
       };
     });
 
@@ -770,7 +747,7 @@ export const useGameStore = create((set, get) => ({
     const newPlayerMana = Math.min(playerData.max_mana, playerData.mana + 5);
     const updatedEnemies = store.enemies.map((e) => {
       if (e.hp <= 0) return e;
-      return { ...e, shield: 0, mana: Math.min(e.quiz_move_cost, e.mana + 5) };
+      return { ...e, mana: Math.min(e.quiz_move_cost, e.mana + 5) };
     });
 
     const existingSavedStatuses = playerData.savedEffects?.statuses || [];
@@ -920,9 +897,9 @@ export const useGameStore = create((set, get) => ({
             color: "#33ff00",
           });
           if (store.isSfxOn) sfx.playPoison();
-          await delay(800); // ⏱️ รอให้พิษเด้ง
+          await delay(800);
           get().damagePlayer(totalPoisonDmg, true);
-          await delay(600); // ⏱️ รอให้ดาเมจพิษเด้งเสร็จ
+          await delay(600);
         }
         if (isBleedExploding) {
           const bleedDmg = Math.floor(store.playerData.max_hp * 0.3);
@@ -935,9 +912,9 @@ export const useGameStore = create((set, get) => ({
             fontSize: "20px",
           });
           if (store.isSfxOn) sfx.playHit();
-          await delay(800); // ⏱️ รอให้ระเบิดเลือดเด้ง
+          await delay(800);
           get().damagePlayer(bleedDmg, true);
-          await delay(600); // ⏱️ รอให้ดาเมจระเบิดเลือดเด้งเสร็จ
+          await delay(600);
         }
       }
       if (get().playerData.hp <= 0) return;
@@ -990,7 +967,6 @@ export const useGameStore = create((set, get) => ({
     try {
       const token = localStorage.getItem("token");
       const currentStageId = store.stageData.id;
-      // 🌟 FIX: ป้องกันค่า NaN
       const monsterMoney = Number(store.receivedCoin) || 0;
       const stageRecord = store.userStageHistory.find(
         (s) => s.stage_id === currentStageId,
@@ -1007,19 +983,16 @@ export const useGameStore = create((set, get) => ({
         Authorization: `Bearer ${token}`,
       };
 
-      // 1. บันทึกเงินที่ได้
       const resMoney = await fetch(`/api/update-money`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify({ amount: totalMoney }),
       });
-      // 🌟 FIX: ไม่ใช้ค่า totalMoney เดี่ยวๆ มาอัปเดตตรงๆ ให้ยึดค่าที่ Backend ตอบกลับมา (currentMoney)
       const resMoneyData = await resMoney.json();
       if (resMoneyData.isSuccess) {
         set({ currentCoin: resMoneyData.currentMoney });
       }
 
-      // 2. ถ้าเป็นการผ่านด่านครั้งแรก ให้บวก Potion Slot เพิ่ม 1 ช่อง
       if (isFirstClear) {
         try {
           await fetch(`/api/upgrade-potion-slot`, {
@@ -1031,7 +1004,6 @@ export const useGameStore = create((set, get) => ({
         }
       }
 
-      // 3. ปลดล็อกด่านถัดไปและอัปเดตสถานะด่านปัจจุบัน
       const unlockRes = await fetch(`/api/complete-stage`, {
         method: "POST",
         headers: headers,
@@ -1050,7 +1022,6 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     try {
       const token = localStorage.getItem("token");
-      // 🌟 FIX: ป้องกันค่า NaN ตอนกดยอมแพ้ด้วย || 0
       const totalMoney = Number(earnedAmount) || 0;
       const headers = {
         "Content-Type": "application/json",
@@ -1061,7 +1032,6 @@ export const useGameStore = create((set, get) => ({
         headers: headers,
         body: JSON.stringify({ amount: totalMoney }),
       });
-      // 🌟 FIX: รับค่าที่อัปเดตแล้วจาก Server มาเซ็ต state (ปลอดภัยกว่า)
       const resMoneyData = await resMoney.json();
       if (resMoneyData.isSuccess) {
         set({ currentCoin: resMoneyData.currentMoney });
@@ -1092,9 +1062,9 @@ export const useGameStore = create((set, get) => ({
         x: PLAYER_X_POS,
         y: FIXED_Y - 60,
         value: `-${lostShield} SHIELD`,
-        color: "#95a5a6", // ใช้สีเทาให้เหมาะกับการเสียเกราะ
+        color: "#95a5a6",
       });
-      await delay(500); // รอให้ popup แสดงผลนิดนึงก่อนโชว์บัฟ
+      await delay(500);
     }
 
     await get().revealEffects();
@@ -1152,7 +1122,6 @@ export const useGameStore = create((set, get) => ({
 
     const totalDmg = chanceRound(totalDmgRaw);
 
-    // 💥 Recoil โดนดาเมจตามจำนวนตัวอักษรที่ใส่เกินค่า power มา
     let recoilDamage = 0;
     const excessLetters = wordLength - playerPower;
     if (excessLetters > 0) {
@@ -1215,7 +1184,7 @@ export const useGameStore = create((set, get) => ({
         value: `BLESSED!`,
         color: "#f1c40f",
       });
-      await delay(600); // ⏱️ รอให้โชว์คำว่า BLESSED เสร็จก่อน
+      await delay(600);
     }
 
     usedIndices.forEach((idx) => {
@@ -1250,7 +1219,7 @@ export const useGameStore = create((set, get) => ({
         value: `+${bonusMana} MANA`,
         color: "#9b59b6",
       });
-      await delay(500); // ⏱️ รอให้มานาเด้ง
+      await delay(500);
     }
 
     if (actionType === "Guard") {
@@ -1268,7 +1237,7 @@ export const useGameStore = create((set, get) => ({
           color: "#2ecc71",
         });
         if (isSfxOn && sfx.playHeal) sfx.playHeal();
-        await delay(600); // ⏱️ รอให้ฮีลเด้ง
+        await delay(600);
       }
 
       set({
@@ -1288,7 +1257,7 @@ export const useGameStore = create((set, get) => ({
         color: "#2e75cc",
       });
       get().gainMana(5);
-      await delay(800); // ⏱️ รอให้กางโล่เสร็จ
+      await delay(800);
     } else if (actionType === "Strike") {
       const target = enemies.find((e) => e.id === targetId);
       if (target) {
@@ -1300,7 +1269,7 @@ export const useGameStore = create((set, get) => ({
         set({ playerVisual: "attack-2" });
 
         get().damageEnemy(targetId, totalDmg);
-        await delay(500); // ⏱️ รอให้ดาเมจตีเด้ง
+        await delay(500);
 
         if (vampireFangCount > 0) {
           const vChance = 50 + (vampireFangCount - 1) * 25;
@@ -1314,13 +1283,13 @@ export const useGameStore = create((set, get) => ({
               set({ playerData: { ...get().playerData, hp: newHp } });
               get().addPopup({
                 id: Math.random(),
-                x: PLAYER_X_POS,
+                x: get().playerX,
                 y: FIXED_Y - 80,
                 value: `+${stealAmount} HP`,
                 color: "#2ecc71",
               });
               if (isSfxOn && sfx.playHeal) sfx.playHeal();
-              await delay(600); // ⏱️ รอให้ฮีลเด้ง
+              await delay(600);
             }
           }
         }
@@ -1349,7 +1318,7 @@ export const useGameStore = create((set, get) => ({
               value: "POISONED!",
               color: "#2ecc71",
             });
-            await delay(500); // ⏱️ รอดดามเมจพิษโชว์
+            await delay(500);
           }
 
           if (bleedCount > 0) {
@@ -1369,7 +1338,7 @@ export const useGameStore = create((set, get) => ({
                 value: "BLEEDING!",
                 color: "#e74c3c",
               });
-              await delay(500); // ⏱️ รอเลือดออกโชว์
+              await delay(500);
             }
           }
 
@@ -1394,7 +1363,7 @@ export const useGameStore = create((set, get) => ({
                 value: "STUNNED!",
                 color: "#f1c40f",
               });
-              await delay(500); // ⏱️ รอสตันโชว์
+              await delay(500);
             }
           }
 
@@ -1419,7 +1388,7 @@ export const useGameStore = create((set, get) => ({
                 value: "BLINDED!",
                 color: "#8e44ad",
               });
-              await delay(500); // ⏱️ รอตาบอดโชว์
+              await delay(500);
             }
           }
         }
@@ -1433,12 +1402,12 @@ export const useGameStore = create((set, get) => ({
           });
           get().addPopup({
             id: Math.random(),
-            x: PLAYER_X_POS,
+            x: get().playerX,
             y: FIXED_Y - 60,
             value: `+${bonusShield} SHIELD`,
             color: "#2e75cc",
           });
-          await delay(500); // ⏱️ รอโล่เด้ง
+          await delay(500);
         }
 
         get().gainMana(5);
@@ -1458,7 +1427,7 @@ export const useGameStore = create((set, get) => ({
       });
       if (isSfxOn && sfx.playHit) sfx.playHit();
       get().damagePlayer(recoilDamage, true);
-      await delay(800); // ⏱️ รอให้ดาเมจ recoil เด้งก่อนจบเทิร์น
+      await delay(800);
 
       if (get().playerData.hp <= 0) return;
     }
@@ -1718,7 +1687,6 @@ export const useGameStore = create((set, get) => ({
     });
     if (newHp <= 0)
       set((state) => ({
-        // 🌟 FIX: กันเหนียวตอนมอนสเตอร์ตายไม่ให้เกิด NaN
         receivedCoin: Number(state.receivedCoin || 0) + Number(target.exp || 0),
       }));
   },
@@ -1831,7 +1799,23 @@ export const useGameStore = create((set, get) => ({
       get().endTurn();
       return;
     }
-    get().updateEnemy(en.id, { shield: 0 });
+
+    // === 🛡️ ระบบลดเกราะศัตรูตอนเริ่มเทิร์น ===
+    const currentShield = en.shield || 0;
+    const newShield = Math.floor(currentShield / 2);
+    const lostShield = currentShield - newShield;
+
+    if (lostShield > 0) {
+      get().addPopup({
+        id: Math.random(),
+        x: en.x,
+        y: FIXED_Y - 60,
+        value: `-${lostShield} SHIELD`,
+        color: "#95a5a6",
+      });
+      await delay(500);
+    }
+    get().updateEnemy(en.id, { shield: newShield });
 
     let currentInv = [...get().playerData.inventory];
     let eSavedStatuses = [...(en.savedStatuses || [])];
@@ -1858,257 +1842,268 @@ export const useGameStore = create((set, get) => ({
     set({ playerData: { ...get().playerData, inventory: currentInv } });
     await delay(600);
 
-    // 🛑 ระบบพัก 1 เทิร์น (สลับกันตี)
-    if (en.isResting) {
-      get().updateEnemy(en.id, { shoutText: "...", isResting: false });
-      await delay(1200);
-      get().updateEnemy(en.id, { shoutText: "" });
-    } else {
-      // เซ็ตให้เทิร์นถัดไปพัก
-      get().updateEnemy(en.id, { isResting: true });
+    // === ⚔️🛡️ ระบบสลับ Action ระหว่าง โจมตี และ ป้องกัน ===
+    const actionType = en.nextAction || "strike";
+    get().updateEnemy(en.id, { nextAction: actionType === "strike" ? "guard" : "strike" });
 
-      if (en.mana >= en.quiz_move_cost) {
-        await get().performEnemySkill(en.id);
-        if (get().playerData.hp <= 0) {
-          bgm.stop();
-          set({ gameState: "OVER" });
-          return;
-        }
-        en = get().enemies.find((e) => e.id === enemyId);
-        if (!en || en.hp <= 0) {
-          get().endTurn();
-          return;
-        }
+    if (en.mana >= en.quiz_move_cost) {
+      await get().performEnemySkill(en.id);
+      if (get().playerData.hp <= 0) {
+        bgm.stop();
+        set({ gameState: "OVER" });
+        return;
       }
+      en = get().enemies.find((e) => e.id === enemyId);
+      if (!en || en.hp <= 0) {
+        get().endTurn();
+        return;
+      }
+    }
 
-      const { placements, newDrawPile } = calculateZoneBuffs(
-        currentInv,
-        en.deck_list,
-        get().playerData.unlockedSlots,
-        en.draw_pile,
-      );
+    const { placements, newDrawPile } = calculateZoneBuffs(
+      currentInv,
+      en.deck_list,
+      get().playerData.unlockedSlots,
+      en.draw_pile,
+    );
 
-      get().updateEnemy(en.id, { draw_pile: newDrawPile });
+    get().updateEnemy(en.id, { draw_pile: newDrawPile });
 
-      if (placements.length > 0) {
-        for (const p of placements) {
-          currentInv[p.targetIdx] = {
-            ...currentInv[p.targetIdx],
-            buff: p.effect,
+    if (placements.length > 0) {
+      for (const p of placements) {
+        currentInv[p.targetIdx] = {
+          ...currentInv[p.targetIdx],
+          buff: p.effect,
+        };
+        set({
+          playerData: { ...get().playerData, inventory: [...currentInv] },
+        });
+        if (store.isSfxOn && sfx.playHeal) sfx.playHeal();
+        await delay(300);
+      }
+    }
+
+    const availableItems = currentInv.filter((item) => {
+      if (item === null || !item.char) return false;
+      if (item.status === "stun") return false;
+      if (item.status === "blind") {
+        return Math.random() < 0.25;
+      }
+      return true;
+    });
+
+    const oxfordDictionary = store.dictionary.filter(
+      (d) => d.is_oxford === true,
+    );
+    const targetDict =
+      oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
+    const { bestWord, usedItems } = findBestWordFromLetters(
+      availableItems,
+      targetDict,
+      en.power,
+    );
+
+    if (bestWord) {
+      get().updateEnemy(en.id, { shoutText: actionType === "guard" ? "GUARD!" : "STRIKE!" });
+      await delay(600);
+      get().updateEnemy(en.id, { shoutText: "" });
+      
+      let enemySelectedArea = new Array(get().playerData.unlockedSlots).fill(null);
+      let wordDamageRaw = 0;
+      let bonusMana = 0;
+      let bonusShield = 0;
+
+      let enemyPoisonCount = 0;
+      let enemyBleedCount = 0;
+      let enemyStunCount = 0;
+      let enemyBlindCount = 0;
+      let enemyVampireCount = 0;
+
+      let enemyHealAmount = 0;
+      let enemyBlessCount = 0;
+
+      for (let i = 0; i < usedItems.length; i++) {
+        const targetItem = usedItems[i];
+        const invIdx = currentInv.findIndex(
+          (item) => item?.id === targetItem.id,
+        );
+        if (invIdx !== -1) {
+          let letterDmg = getLetterDamage(targetItem.char);
+
+          if (targetItem.buff === "double-dmg" && actionType === "strike") letterDmg *= 2;
+          if ((targetItem.buff === "double-guard" || targetItem.buff === "double-shield") && actionType === "guard") letterDmg *= 2;
+
+          if (targetItem.buff === "mana-plus") bonusMana += 5;
+          if (targetItem.buff === "shield-plus" && actionType === "strike") bonusShield += 1;
+
+          if (targetItem.buff === "add_poison" || targetItem.buff === "add_posion") enemyPoisonCount++;
+          if (targetItem.buff === "add_bleed") enemyBleedCount++;
+          if (targetItem.buff === "add_stun") enemyStunCount++;
+          if (targetItem.buff === "add_blind") enemyBlindCount++;
+          if (targetItem.buff === "vampire_fang" && actionType === "strike") enemyVampireCount++;
+
+          if (targetItem.buff === "heal" && actionType === "guard") enemyHealAmount += Math.ceil(letterDmg);
+          if (targetItem.buff === "bless" && actionType === "guard") enemyBlessCount++;
+
+          wordDamageRaw += letterDmg;
+          enemySelectedArea[i] = {
+            ...currentInv[invIdx],
+            originalIndex: invIdx,
           };
+          currentInv[invIdx] = null;
+
           set({
+            selectedLetters: [...enemySelectedArea],
             playerData: { ...get().playerData, inventory: [...currentInv] },
           });
-          if (store.isSfxOn && sfx.playHeal) sfx.playHeal();
-          await delay(300); // ⏱️ รอการแจกบัฟ
+          if (store.isSfxOn) sfx.playWalk();
+          await delay(400);
         }
       }
 
-      const availableItems = currentInv.filter((item) => {
-        if (item === null || !item.char) return false;
-        if (item.status === "stun") return false;
-        if (item.status === "blind") {
-          return Math.random() < 0.25;
-        }
-        return true;
-      });
+      get().checkCurrentWord(enemySelectedArea);
+      await delay(1500);
+      set({ validWordInfo: null, wordScore: { raw: 0, min: 0, max: 0 } });
+      get().initSelectedLetters();
+      get().updateEnemy(en.id, { shoutText: bestWord.toUpperCase() });
+      await delay(800);
+      get().updateEnemy(en.id, { shoutText: "" });
 
-      const oxfordDictionary = store.dictionary.filter(
-        (d) => d.is_oxford === true,
-      );
-      const targetDict =
-        oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
-      const { bestWord, usedItems } = findBestWordFromLetters(
-        availableItems,
-        targetDict,
-        en.power,
-      );
+      const originalX = en.x;
+      const finalValue = chanceRound(wordDamageRaw);
+      let currentActionShieldBonus = 0;
 
-      if (bestWord) {
-        get().updateEnemy(en.id, { shoutText: "STRIKE!" });
+      if (actionType === "guard") {
+        // === 🌟 ดาเมจจากคำศัพท์ทั้งหมดจะถูกเปลี่ยนเป็น Shield เมื่อเลือก Guard 🌟 ===
+        currentActionShieldBonus = finalValue;
+        get().addPopup({
+          id: Math.random(),
+          x: en.x,
+          y: FIXED_Y - 60,
+          value: `+${finalValue} SHIELD`,
+          color: "#2e75cc",
+        });
         await delay(600);
-        get().updateEnemy(en.id, { shoutText: "" });
-        let enemySelectedArea = new Array(get().playerData.unlockedSlots).fill(
-          null,
-        );
-        let wordDamageRaw = 0;
-        let bonusMana = 0;
-        let bonusShield = 0;
-
-        let enemyPoisonCount = 0;
-        let enemyBleedCount = 0;
-        let enemyStunCount = 0;
-        let enemyBlindCount = 0;
-        let enemyVampireCount = 0;
-
-        let enemyHealAmount = 0;
-        let enemyBlessCount = 0;
-
-        for (let i = 0; i < usedItems.length; i++) {
-          const targetItem = usedItems[i];
-          const invIdx = currentInv.findIndex(
-            (item) => item?.id === targetItem.id,
-          );
-          if (invIdx !== -1) {
-            let letterDmg = getLetterDamage(targetItem.char);
-
-            if (targetItem.buff === "double-dmg") letterDmg *= 2;
-            if (targetItem.buff === "mana-plus") bonusMana += 5;
-            if (targetItem.buff === "shield-plus") bonusShield += 1;
-
-            if (
-              targetItem.buff === "add_poison" ||
-              targetItem.buff === "add_posion"
-            )
-              enemyPoisonCount++;
-            if (targetItem.buff === "add_bleed") enemyBleedCount++;
-            if (targetItem.buff === "add_stun") enemyStunCount++;
-            if (targetItem.buff === "add_blind") enemyBlindCount++;
-            if (targetItem.buff === "vampire_fang") enemyVampireCount++;
-
-            if (targetItem.buff === "heal")
-              enemyHealAmount += Math.ceil(letterDmg);
-            if (targetItem.buff === "bless") enemyBlessCount++;
-
-            wordDamageRaw += letterDmg;
-            enemySelectedArea[i] = {
-              ...currentInv[invIdx],
-              originalIndex: invIdx,
-            };
-            currentInv[invIdx] = null;
-
-            set({
-              selectedLetters: [...enemySelectedArea],
-              playerData: { ...get().playerData, inventory: [...currentInv] },
-            });
-            if (store.isSfxOn) sfx.playWalk();
-            await delay(400);
-          }
-        }
-
-        get().checkCurrentWord(enemySelectedArea);
-        await delay(1500);
-        set({ validWordInfo: null, wordScore: { raw: 0, min: 0, max: 0 } });
-        get().initSelectedLetters();
-        get().updateEnemy(en.id, { shoutText: bestWord.toUpperCase() });
-        await delay(800);
-        get().updateEnemy(en.id, { shoutText: "" });
-
+      } else {
         const atkX = en.isBoss ? PLAYER_X_POS + 15 : PLAYER_X_POS + 10;
-        const originalX = en.x;
         get().updateEnemy(en.id, { x: atkX, atkFrame: 1 });
         await delay(400);
-        const finalValue = chanceRound(wordDamageRaw);
         get().updateEnemy(en.id, { atkFrame: 2 });
 
         if (finalValue > 0) {
           get().damagePlayer(finalValue);
           if (store.isSfxOn) sfx.playHit();
           en = get().enemies.find((e) => e.id === enemyId);
-          await delay(600); // ⏱️ รอดาเมจศัตรูโชว์
+          await delay(600);
+        }
+      }
 
-          let newEnHp = en.hp;
-          if (enemyHealAmount > 0) {
-            newEnHp = Math.min(en.max_hp, newEnHp + enemyHealAmount);
+      let newEnHp = en.hp;
+      if (enemyHealAmount > 0) {
+        newEnHp = Math.min(en.max_hp, newEnHp + enemyHealAmount);
+        get().addPopup({
+          id: Math.random(),
+          x: en.x,
+          y: FIXED_Y - 80,
+          value: `+${enemyHealAmount} HP`,
+          color: "#2ecc71",
+        });
+        await delay(500);
+      }
+      
+      if (enemyVampireCount > 0 && actionType === "strike") {
+        const vChance = 50 + (enemyVampireCount - 1) * 25;
+        if (Math.random() * 100 < vChance) {
+          const stealAmount = Math.ceil(finalValue / 2);
+          if (stealAmount > 0) {
+            newEnHp = Math.min(en.max_hp, newEnHp + stealAmount);
             get().addPopup({
               id: Math.random(),
               x: en.x,
               y: FIXED_Y - 80,
-              value: `+${enemyHealAmount} HP`,
+              value: `+${stealAmount} HP`,
               color: "#2ecc71",
             });
-            await delay(500); // ⏱️ รอฮีลศัตรู
-          }
-          if (enemyVampireCount > 0) {
-            const vChance = 50 + (enemyVampireCount - 1) * 25;
-            if (Math.random() * 100 < vChance) {
-              const stealAmount = Math.ceil(finalValue / 2);
-              if (stealAmount > 0) {
-                newEnHp = Math.min(en.max_hp, newEnHp + stealAmount);
-                get().addPopup({
-                  id: Math.random(),
-                  x: en.x,
-                  y: FIXED_Y - 80,
-                  value: `+${stealAmount} HP`,
-                  color: "#2ecc71",
-                });
-                await delay(500); // ⏱️ รอเลือดดูดศัตรู
-              }
-            }
-          }
-
-          get().updateEnemy(en.id, {
-            hp: newEnHp,
-            mana: Math.min(en.quiz_move_cost, en.mana + bonusMana + 10),
-            shield: (en.shield || 0) + bonusShield,
-          });
-
-          if (enemyBlessCount > 0) {
-            let eSavedStatuses = [...(en.savedStatuses || [])];
-            for (let i = 0; i < enemyBlessCount; i++) {
-              const infectedIndices = currentInv
-                .map((item, idx) => (item?.status ? idx : -1))
-                .filter((idx) => idx !== -1);
-              if (infectedIndices.length > 0) {
-                const rIdx =
-                  infectedIndices[
-                    Math.floor(Math.random() * infectedIndices.length)
-                  ];
-                currentInv[rIdx].status = null;
-                currentInv[rIdx].statusDuration = 0;
-              } else if (eSavedStatuses.length > 0) {
-                eSavedStatuses.shift();
-              }
-            }
-            get().updateEnemy(en.id, { savedStatuses: eSavedStatuses });
-            get().addPopup({
-              id: Math.random(),
-              x: en.x,
-              y: FIXED_Y - 110,
-              value: `BLESSED!`,
-              color: "#f1c40f",
-            });
-            await delay(600); // ⏱️ รอ Bless ศัตรู
-          }
-
-          if (enemyPoisonCount > 0) {
-            get().applyStatusToPlayer("poison", 100, enemyPoisonCount, 3);
             await delay(500);
           }
-          if (enemyBleedCount > 0) {
-            const bChance = 50 + (enemyBleedCount - 1) * 25;
-            if (Math.random() * 100 < bChance) {
-              get().applyStatusToPlayer("bleed", 100, 1, 3);
-              await delay(500);
-            }
-          }
-          if (enemyStunCount > 0) {
-            let successStunCount = 0;
-            for (let k = 0; k < enemyStunCount; k++) {
-              if (Math.random() * 100 < 75) successStunCount++;
-            }
-            if (successStunCount > 0) {
-              get().applyStatusToPlayer("stun", 100, successStunCount, 1);
-              await delay(500);
-            }
-          }
-          if (enemyBlindCount > 0) {
-            let successBlindCount = 0;
-            for (let k = 0; k < enemyBlindCount; k++) {
-              if (Math.random() * 100 < 75) successBlindCount++;
-            }
-            if (successBlindCount > 0) {
-              get().applyStatusToPlayer("blind", 100, successBlindCount, 2);
-              await delay(500);
-            }
+        }
+      }
+
+      get().updateEnemy(en.id, {
+        hp: newEnHp,
+        mana: Math.min(en.quiz_move_cost, en.mana + bonusMana + 10),
+        shield: (en.shield || 0) + bonusShield + currentActionShieldBonus,
+      });
+
+      if (enemyBlessCount > 0) {
+        let eSavedStatuses = [...(en.savedStatuses || [])];
+        for (let i = 0; i < enemyBlessCount; i++) {
+          const infectedIndices = currentInv
+            .map((item, idx) => (item?.status ? idx : -1))
+            .filter((idx) => idx !== -1);
+          if (infectedIndices.length > 0) {
+            const rIdx =
+              infectedIndices[
+                Math.floor(Math.random() * infectedIndices.length)
+              ];
+            currentInv[rIdx].status = null;
+            currentInv[rIdx].statusDuration = 0;
+          } else if (eSavedStatuses.length > 0) {
+            eSavedStatuses.shift();
           }
         }
-        await delay(500);
-        get().updateEnemy(en.id, { x: originalX, atkFrame: 0 });
-      } else {
-        get().updateEnemy(en.id, { shoutText: "PASS..." });
-        await delay(1000);
+        get().updateEnemy(en.id, { savedStatuses: eSavedStatuses });
+        get().addPopup({
+          id: Math.random(),
+          x: en.x,
+          y: FIXED_Y - 110,
+          value: `BLESSED!`,
+          color: "#f1c40f",
+        });
+        await delay(600);
       }
+
+      if (actionType === "strike") {
+        if (enemyPoisonCount > 0) {
+          get().applyStatusToPlayer("poison", 100, enemyPoisonCount, 3);
+          await delay(500);
+        }
+        if (enemyBleedCount > 0) {
+          const bChance = 50 + (enemyBleedCount - 1) * 25;
+          if (Math.random() * 100 < bChance) {
+            get().applyStatusToPlayer("bleed", 100, 1, 3);
+            await delay(500);
+          }
+        }
+        if (enemyStunCount > 0) {
+          let successStunCount = 0;
+          for (let k = 0; k < enemyStunCount; k++) {
+            if (Math.random() * 100 < 75) successStunCount++;
+          }
+          if (successStunCount > 0) {
+            get().applyStatusToPlayer("stun", 100, successStunCount, 1);
+            await delay(500);
+          }
+        }
+        if (enemyBlindCount > 0) {
+          let successBlindCount = 0;
+          for (let k = 0; k < enemyBlindCount; k++) {
+            if (Math.random() * 100 < 75) successBlindCount++;
+          }
+          if (successBlindCount > 0) {
+            get().applyStatusToPlayer("blind", 100, successBlindCount, 2);
+            await delay(500);
+          }
+        }
+      }
+
+      await delay(500);
+      if (actionType === "strike") {
+        get().updateEnemy(en.id, { x: originalX, atkFrame: 0 });
+      }
+    } else {
+      get().updateEnemy(en.id, { shoutText: "PASS..." });
+      await delay(1000);
     }
 
     let poisonDmg = 0;
@@ -2151,7 +2146,7 @@ export const useGameStore = create((set, get) => ({
           color: "#2ecc71",
         });
         get().damageEnemy(en.id, poisonDmg);
-        await delay(800); // ⏱️ รอพิษศัตรู
+        await delay(800);
       }
       if (bleedExplode) {
         const bDmg = Math.max(1, Math.floor(en.max_hp * 0.3));
@@ -2163,7 +2158,7 @@ export const useGameStore = create((set, get) => ({
           color: "#c0392b",
         });
         get().damageEnemy(en.id, bDmg);
-        await delay(800); // ⏱️ รอระเบิดเลือดศัตรู
+        await delay(800);
       }
     }
 
@@ -2208,15 +2203,12 @@ export const useGameStore = create((set, get) => ({
   handleQuizMove: async (en, penaltyDmg) => {
     const store = get();
 
-    // 1️⃣ ดึงคำศัพท์ที่เป็น oxford ออกมาก่อน
     const oxfordDictionary = store.dictionary.filter(
       (d) => d.is_oxford === true,
     );
 
-    // 2️⃣ กรองคำศัพท์ให้ตรงกับ Level ของศัตรูตัวนั้น (เช่น 'A1')
     let vocabList = oxfordDictionary.filter((d) => d.level === en.level);
 
-    // 🛡️ Fallback: ถ้าหาคำตรง Level ไม่เจอเลย ให้ใช้คำ oxford ทั้งหมดแทน (กันแครช)
     if (vocabList.length === 0) {
       vocabList =
         oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
@@ -2230,12 +2222,10 @@ export const useGameStore = create((set, get) => ({
         ? correctEntry.meaning.split(/,(?![^()]*\))/)[0].trim()
         : correctEntry.meaning;
 
-    // กรองเอาคำที่ ไม่ซ้ำกับคำตอบที่ถูกต้อง
     const filteredVocab = vocabList.filter(
       (v) => v.word.toLowerCase() !== correctEntry.word.toLowerCase(),
     );
 
-    // ทำให้คำศัพท์ในลิสต์ทั้งหมด Unique (ไม่ให้มีคำซ้ำในตัวเลือกหลอก)
     const uniqueVocabMap = new Map();
     filteredVocab.forEach((v) => {
       const lowerWord = v.word.toLowerCase();
@@ -2246,7 +2236,6 @@ export const useGameStore = create((set, get) => ({
 
     const uniqueVocabList = Array.from(uniqueVocabMap.values());
 
-    // นำไปคำนวณ Levenshtein Distance และจัดเรียง
     const choices = uniqueVocabList
       .map((v) => ({
         ...v,
