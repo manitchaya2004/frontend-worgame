@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { PLAYER_X_POS, FIXED_Y, ipAddress } from "../const/index";
 import { sfx, bgm } from "../utils/sfx";
 import { DeckManager, WordSystem } from "../utils/gameSystem";
-
+import { useAuthStore } from "./useAuthStore";
 // ==========================================
 // 📊 GLOBAL POWER SETTINGS
 // ==========================================
@@ -95,17 +95,23 @@ export const findBestWordFromLetters = (letters, dictionary, maxLetters) => {
 };
 
 // 🌟 ฟังก์ชันคำนวณตำแหน่งการแจกบัฟแบบล่วงหน้า (ระบบ Draw Pile & Reshuffle ของจริง)
-export const calculateZoneBuffs = (inventory, deckList, unlockedSlots, currentDrawPile = []) => {
+export const calculateZoneBuffs = (
+  inventory,
+  deckList,
+  unlockedSlots,
+  currentDrawPile = [],
+) => {
   let placements = [];
-  if (!deckList || deckList.length === 0) return { placements, newDrawPile: [] };
+  if (!deckList || deckList.length === 0)
+    return { placements, newDrawPile: [] };
 
   let drawPile = [...currentDrawPile];
   let currentIndex = 0;
 
   // 1️⃣ ดึง ID ของการ์ดบัฟที่กำลัง "แปะอยู่บนกระดาน" ออกมา
   let activeCardIds = inventory
-    .filter(item => item && item.buffId)
-    .map(item => item.buffId);
+    .filter((item) => item && item.buffId)
+    .map((item) => item.buffId);
 
   while (currentIndex < unlockedSlots) {
     let remainingSpace = unlockedSlots - currentIndex;
@@ -113,13 +119,15 @@ export const calculateZoneBuffs = (inventory, deckList, unlockedSlots, currentDr
     // 2️⃣ ถ้ากองจั่วหมด ให้เอากองทิ้งมาสับใหม่
     if (drawPile.length === 0) {
       // 🛡️ กองทิ้ง = การ์ดทั้งหมดในเด็ค ลบด้วย การ์ดที่กำลังใช้อยู่บนกระดาน
-      let availableToReshuffle = deckList.filter(c => !activeCardIds.includes(c.id));
-      
+      let availableToReshuffle = deckList.filter(
+        (c) => !activeCardIds.includes(c.id),
+      );
+
       // ถ้าไม่มีการ์ดให้สับแล้ว (การ์ดทุกใบอยู่บนกระดานหมด) ให้หยุดจั่ว
       if (availableToReshuffle.length === 0) {
-        break; 
+        break;
       }
-      
+
       drawPile = [...availableToReshuffle].sort(() => 0.5 - Math.random());
     }
 
@@ -128,13 +136,13 @@ export const calculateZoneBuffs = (inventory, deckList, unlockedSlots, currentDr
 
     // ถ้าไม่มีการ์ดใบไหนในกองที่ใส่ได้ (เพราะ size ใหญ่เกิน) ถือว่าจบการแจกบัฟโซนนี้ ข้ามไปเลย
     if (validInPile.length === 0) {
-      break; 
+      break;
     }
 
     // หยิบการ์ดใบบนสุดที่ใส่ได้
     const targetCard = validInPile[validInPile.length - 1];
     const cardIndex = drawPile.lastIndexOf(targetCard);
-    
+
     // ดึงการ์ดออกจากกองจั่ว
     const card = drawPile.splice(cardIndex, 1)[0];
 
@@ -155,7 +163,8 @@ export const calculateZoneBuffs = (inventory, deckList, unlockedSlots, currentDr
 
     // สุ่มแปะบัพใน Slot ว่างที่หาเจอ
     if (availableInZone.length > 0) {
-      const targetIdx = availableInZone[Math.floor(Math.random() * availableInZone.length)];
+      const targetIdx =
+        availableInZone[Math.floor(Math.random() * availableInZone.length)];
       placements.push({ targetIdx, effect: card.effect, buffId: card.id });
       // บันทึกไว้ว่าการ์ดใบนี้โดนแปะแล้ว ห้ามเอาไปสับใหม่ในลูปนี้
       activeCardIds.push(card.id);
@@ -181,7 +190,12 @@ export const applyRandomBuffs = (inventory, deckList = [], drawPile = []) => {
   let updatedDrawPile = [...drawPile];
 
   if (validIndices.length > 0 && deckList.length > 0) {
-    let result = calculateZoneBuffs(newItems, deckList, newItems.length, drawPile);
+    let result = calculateZoneBuffs(
+      newItems,
+      deckList,
+      newItems.length,
+      drawPile,
+    );
     result.placements.forEach((p) => {
       newItems[p.targetIdx].buff = p.effect;
       newItems[p.targetIdx].buffId = p.buffId; // เซฟไอดีการ์ด
@@ -204,23 +218,36 @@ export const applyRandomBuffs = (inventory, deckList = [], drawPile = []) => {
 
 export const useGameStore = create((set, get) => ({
   isMenuOpen: false,
-  isBgmOn: true,
-  isSfxOn: true,
+
+  // 💡 ให้ค่าเริ่มต้นอิงจาก useAuthStore (สลับจาก Mute -> On)
+  isBgmOn: !useAuthStore.getState().isMuted,
+  isSfxOn: !useAuthStore.getState().isSfxMuted,
 
   setMenuOpen: (isOpen) => set({ isMenuOpen: isOpen }),
 
   toggleBgm: () => {
-    const { isBgmOn, gameState } = get();
-    if (isBgmOn) {
+    // 💡 สั่งหัวหน้าใหญ่ให้สลับเสียง
+    useAuthStore.getState().toggleMute();
+
+    // 💡 อัปเดตตัวเองให้ตรงกัน
+    const isMutedNow = useAuthStore.getState().isMuted;
+    set({ isBgmOn: !isMutedNow });
+
+    if (isMutedNow) {
       bgm.stop();
-      set({ isBgmOn: false });
     } else {
-      set({ isBgmOn: true });
       bgm.playAdvanture();
     }
   },
 
-  toggleSfx: () => set((state) => ({ isSfxOn: !state.isSfxOn })),
+  toggleSfx: () => {
+    // 💡 สั่งหัวหน้าใหญ่ให้สลับเอฟเฟกต์
+    useAuthStore.getState().toggleSfxMute();
+
+    // 💡 อัปเดตตัวเองให้ตรงกัน
+    const isSfxMutedNow = useAuthStore.getState().isSfxMuted;
+    set({ isSfxOn: !isSfxMutedNow });
+  },
 
   gameState: "LOADING",
   dictionary: [],
@@ -320,16 +347,20 @@ export const useGameStore = create((set, get) => ({
       currentInv,
       store.playerData.deck_list,
       store.playerData.unlockedSlots,
-      store.playerData.draw_pile
+      store.playerData.draw_pile,
     );
 
     for (const p of placements) {
-      currentInv[p.targetIdx] = { ...currentInv[p.targetIdx], buff: p.effect, buffId: p.buffId };
+      currentInv[p.targetIdx] = {
+        ...currentInv[p.targetIdx],
+        buff: p.effect,
+        buffId: p.buffId,
+      };
       set({
-        playerData: { 
-          ...get().playerData, 
+        playerData: {
+          ...get().playerData,
           inventory: [...currentInv],
-          draw_pile: newDrawPile 
+          draw_pile: newDrawPile,
         },
       });
       if (get().isSfxOn && sfx.playHeal) sfx.playHeal();
@@ -588,6 +619,10 @@ export const useGameStore = create((set, get) => ({
       DeckManager.init();
       await delay(500);
 
+      // 💡 ดึงสถานะจาก Store แทนการเรียก get().isBgmOn แบบตรงๆ
+      const isMutedNow = useAuthStore.getState().isMuted;
+      if (!isMutedNow) bgm.playAdvanture();
+
       if (get().isBgmOn) bgm.playAdvanture();
       set({
         dictionary: dictData,
@@ -704,12 +739,12 @@ export const useGameStore = create((set, get) => ({
         mana: 0,
         quiz_move_cost: e.quiz_move_cost || 100,
         deck_list: e.deck_list || [],
-        draw_pile: [], 
+        draw_pile: [],
         shield: 0,
         currentStep: 1,
         selectedPattern: 1,
         savedStatuses: [],
-        isResting: false, 
+        isResting: false,
       };
     });
 
@@ -727,8 +762,8 @@ export const useGameStore = create((set, get) => ({
 
     const { playerData } = get();
     let currentInv = [...playerData.inventory];
-    
-    while(currentInv.length < playerData.unlockedSlots) {
+
+    while (currentInv.length < playerData.unlockedSlots) {
       currentInv.push(null);
     }
 
@@ -745,7 +780,7 @@ export const useGameStore = create((set, get) => ({
       playerData: {
         ...playerData,
         mana: newPlayerMana,
-        inventory: currentInv, 
+        inventory: currentInv,
         savedEffects: {
           buffs: [],
           statuses: existingSavedStatuses,
@@ -765,24 +800,28 @@ export const useGameStore = create((set, get) => ({
     let hasDrawn = false;
     for (let i = 0; i < playerData.unlockedSlots; i++) {
       if (currentInv[i] === null) {
-        currentInv[i] = DeckManager.createItem(i, currentInv, playerData.unlockedSlots);
-        
+        currentInv[i] = DeckManager.createItem(
+          i,
+          currentInv,
+          playerData.unlockedSlots,
+        );
+
         set((state) => ({
           playerData: {
             ...state.playerData,
             inventory: [...currentInv],
           },
         }));
-        
-        if (get().isSfxOn && sfx.playWalk) sfx.playWalk(); 
-        
+
+        if (get().isSfxOn && sfx.playWalk) sfx.playWalk();
+
         hasDrawn = true;
-        await delay(100); 
+        await delay(100);
       }
     }
 
     if (hasDrawn) {
-      await delay(300); 
+      await delay(300);
     }
 
     const playerInit = Math.max(1, get().playerData.speed);
@@ -932,7 +971,7 @@ export const useGameStore = create((set, get) => ({
         inventory: [],
         mana: 0,
         shield: 0,
-        draw_pile: [], 
+        draw_pile: [],
         savedEffects: { buffs: [], statuses: [] },
       },
     }));
@@ -951,14 +990,14 @@ export const useGameStore = create((set, get) => ({
     try {
       const token = localStorage.getItem("token");
       const currentStageId = store.stageData.id;
-      // 🌟 FIX: ป้องกันค่า NaN 
+      // 🌟 FIX: ป้องกันค่า NaN
       const monsterMoney = Number(store.receivedCoin) || 0;
       const stageRecord = store.userStageHistory.find(
         (s) => s.stage_id === currentStageId,
       );
-      
+
       const isFirstClear = !stageRecord || !stageRecord.is_completed;
-      
+
       const stageReward = isFirstClear
         ? Number(store.stageData.money_reward) || 0
         : 0;
@@ -976,7 +1015,7 @@ export const useGameStore = create((set, get) => ({
       });
       // 🌟 FIX: ไม่ใช้ค่า totalMoney เดี่ยวๆ มาอัปเดตตรงๆ ให้ยึดค่าที่ Backend ตอบกลับมา (currentMoney)
       const resMoneyData = await resMoney.json();
-      if(resMoneyData.isSuccess) {
+      if (resMoneyData.isSuccess) {
         set({ currentCoin: resMoneyData.currentMoney });
       }
 
@@ -999,7 +1038,7 @@ export const useGameStore = create((set, get) => ({
         body: JSON.stringify({ currentStageId: currentStageId }),
       });
       if (!unlockRes.ok) throw new Error("Failed to unlock stage");
-      
+
       set({ gameState: "GAME_CLEARED" });
     } catch (error) {
       console.error("Save Game Error:", error);
@@ -1024,7 +1063,7 @@ export const useGameStore = create((set, get) => ({
       });
       // 🌟 FIX: รับค่าที่อัปเดตแล้วจาก Server มาเซ็ต state (ปลอดภัยกว่า)
       const resMoneyData = await resMoney.json();
-      if(resMoneyData.isSuccess) {
+      if (resMoneyData.isSuccess) {
         set({ currentCoin: resMoneyData.currentMoney });
       }
     } catch (error) {
@@ -1117,7 +1156,7 @@ export const useGameStore = create((set, get) => ({
     let recoilDamage = 0;
     const excessLetters = wordLength - playerPower;
     if (excessLetters > 0) {
-      recoilDamage = excessLetters; 
+      recoilDamage = excessLetters;
     }
 
     if (validWordInfo) {
@@ -1503,11 +1542,12 @@ export const useGameStore = create((set, get) => ({
       ).length;
       if (itemsToRerollCount > 0) {
         const rawItems = DeckManager.generateList(itemsToRerollCount);
-        const { newItems: freshItemsWithBuffs, updatedDrawPile } = applyRandomBuffs(
-          rawItems,
-          playerData.deck_list,
-          playerData.draw_pile
-        );
+        const { newItems: freshItemsWithBuffs, updatedDrawPile } =
+          applyRandomBuffs(
+            rawItems,
+            playerData.deck_list,
+            playerData.draw_pile,
+          );
         let generatedIndex = 0;
         const newInv = currentInv.map((oldItem) => {
           if (!oldItem) return null;
@@ -1563,7 +1603,7 @@ export const useGameStore = create((set, get) => ({
     const { ability, mana } = playerData;
     const abilityCodeStr = "SKILL";
 
-    if (!ability ) return;
+    if (!ability) return;
 
     if (mana < ability.cost) {
       get().addPopup({
@@ -1845,7 +1885,7 @@ export const useGameStore = create((set, get) => ({
         currentInv,
         en.deck_list,
         get().playerData.unlockedSlots,
-        en.draw_pile
+        en.draw_pile,
       );
 
       get().updateEnemy(en.id, { draw_pile: newDrawPile });
@@ -2167,24 +2207,24 @@ export const useGameStore = create((set, get) => ({
 
   handleQuizMove: async (en, penaltyDmg) => {
     const store = get();
-    
+
     // 1️⃣ ดึงคำศัพท์ที่เป็น oxford ออกมาก่อน
     const oxfordDictionary = store.dictionary.filter(
-      (d) => d.is_oxford === true
+      (d) => d.is_oxford === true,
     );
-    
+
     // 2️⃣ กรองคำศัพท์ให้ตรงกับ Level ของศัตรูตัวนั้น (เช่น 'A1')
-    let vocabList = oxfordDictionary.filter(
-      (d) => d.level === en.level
-    );
+    let vocabList = oxfordDictionary.filter((d) => d.level === en.level);
 
     // 🛡️ Fallback: ถ้าหาคำตรง Level ไม่เจอเลย ให้ใช้คำ oxford ทั้งหมดแทน (กันแครช)
     if (vocabList.length === 0) {
-      vocabList = oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
+      vocabList =
+        oxfordDictionary.length > 0 ? oxfordDictionary : store.dictionary;
     }
-      
-    const correctEntry = vocabList[Math.floor(Math.random() * vocabList.length)];
-    
+
+    const correctEntry =
+      vocabList[Math.floor(Math.random() * vocabList.length)];
+
     const singleMeaning =
       typeof correctEntry.meaning === "string"
         ? correctEntry.meaning.split(/,(?![^()]*\))/)[0].trim()
@@ -2192,7 +2232,7 @@ export const useGameStore = create((set, get) => ({
 
     // กรองเอาคำที่ ไม่ซ้ำกับคำตอบที่ถูกต้อง
     const filteredVocab = vocabList.filter(
-      (v) => v.word.toLowerCase() !== correctEntry.word.toLowerCase()
+      (v) => v.word.toLowerCase() !== correctEntry.word.toLowerCase(),
     );
 
     // ทำให้คำศัพท์ในลิสต์ทั้งหมด Unique (ไม่ให้มีคำซ้ำในตัวเลือกหลอก)
@@ -2203,7 +2243,7 @@ export const useGameStore = create((set, get) => ({
         uniqueVocabMap.set(lowerWord, v);
       }
     });
-    
+
     const uniqueVocabList = Array.from(uniqueVocabMap.values());
 
     // นำไปคำนวณ Levenshtein Distance และจัดเรียง
@@ -2215,11 +2255,11 @@ export const useGameStore = create((set, get) => ({
       .sort((a, b) => a.score - b.score)
       .slice(0, 3)
       .map((w) => w.word);
-      
+
     const finalChoices = [correctEntry.word, ...choices].sort(
       () => 0.5 - Math.random(),
     );
-    
+
     get().updateEnemy(en.id, { shoutText: singleMeaning });
     await delay(600);
     set({
@@ -2230,13 +2270,13 @@ export const useGameStore = create((set, get) => ({
         choices: finalChoices,
         enemyId: en.id,
         timeLimit: 10000,
-    },
+      },
     });
-    
+
     const isCorrect = await new Promise((resolve) =>
       set({ quizResolver: resolve }),
     );
-    
+
     set({ gameState: "ENEMYTURN" });
     if (isCorrect) {
       get().updateEnemy(en.id, { atkFrame: 2, shoutText: "MISSED!" });
@@ -2261,3 +2301,10 @@ export const useGameStore = create((set, get) => ({
   setInventory: (items) =>
     set({ playerData: { ...get().playerData, inventory: items } }),
 }));
+
+useAuthStore.subscribe((state) => {
+  useGameStore.setState({
+    isBgmOn: !state.isMuted,
+    isSfxOn: !state.isSfxMuted,
+  });
+});

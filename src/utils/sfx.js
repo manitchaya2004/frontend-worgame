@@ -16,12 +16,17 @@ import gameOver from "../assets/sound/game-over.mp3";
 // ✅ Import ไฟล์เพลงใหม่ตรงนี้ (ตรวจสอบ path ให้ชัวร์ว่าไฟล์อยู่ที่นี่จริง)
 import advantureUrl from "../assets/music/advanture.mp3"; 
 
+import { useAuthStore } from "../store/useAuthStore";
 // =========================================================
 // 2. SFX SYSTEM (เสียงเอฟเฟกต์)
 // =========================================================
 const playSound = (audioUrl, volume = 0.5) => {
+  const { sfxVolume, isSfxMuted } = useAuthStore.getState();
+  
+  if (isSfxMuted) return; // ถ้า Mute อยู่ ไม่ต้องเล่นเสียงเลย
+
   const audio = new Audio(audioUrl); 
-  audio.volume = volume;
+  audio.volume = sfxVolume * volume;
   audio.play().catch(e => {
     // console.warn("SFX blocked", e);
   });
@@ -41,39 +46,35 @@ export const sfx = {
 // =========================================================
 
 let currentBgmAudio = null; // ตัวแปรเก็บเพลงปัจจุบัน
+let currentBaseVolume = 0.1; // จำค่าความดังมาตรฐานของเพลงนั้นๆ
 
 export const bgm = {
-  /**
-   * เล่นเพลง (จะหยุดเพลงเก่าให้อัตโนมัติ)
-   * @param {string} url - URL ของไฟล์เพลง
-   * @param {number} volume - ความดัง (0.0 - 1.0)
-   */
   play: (url, volume = 0.1) => {
-    // 1. เช็คว่ามีเพลงเดิมเล่นอยู่ไหม
+    // 💡 ดึงสถานะปัจจุบันจาก Store
+    const { volume: globalVolume, isMuted } = useAuthStore.getState();
+
     if (currentBgmAudio) {
-      // ถ้าสั่งเล่นเพลงเดิมซ้ำ -> ไม่ทำอะไร (เล่นต่อเลย)
-      if (currentBgmAudio.src.includes(url)) return;
-      
-      // ถ้าเป็นเพลงใหม่ -> หยุดเพลงเก่า
+      if (currentBgmAudio.src.includes(url)) {
+        // ถ้าเป็นเพลงเดิมที่เล่นอยู่ ให้เล่นต่อและปรับแค่ความดัง
+        currentBgmAudio.volume = isMuted ? 0 : (globalVolume * volume);
+        return;
+      }
       currentBgmAudio.pause();
       currentBgmAudio.currentTime = 0;
     }
 
-    // 2. สร้าง Audio ใหม่
+    currentBaseVolume = volume;
     const audio = new Audio(url);
-    audio.volume = volume;
-    audio.loop = true; // ✅ สั่งให้เล่นวนซ้ำ
+    audio.volume = isMuted ? 0 : (globalVolume * volume);
+    audio.loop = true;
 
-    // 3. เล่นเพลง
     audio.play().catch(e => {
       console.warn("BGM Autoplay blocked by browser. User needs to click first.");
     });
 
-    // 4. จำไว้ในตัวแปร global
     currentBgmAudio = audio;
   },
 
-  /** หยุดเพลงทั้งหมด */
   stop: () => {
     if (currentBgmAudio) {
       currentBgmAudio.pause();
@@ -82,13 +83,17 @@ export const bgm = {
     }
   },
 
-  /** ปรับความดัง */
   setVolume: (vol) => {
     if (currentBgmAudio) currentBgmAudio.volume = vol;
   },
 
-  // ------------------------------------
-  // ✅ PRESETS: เรียกใช้ง่ายๆ
-  // ------------------------------------
-  playAdvanture: () => bgm.play(advantureUrl, 0.2), // ปรับความดังตรงนี้ (0.2 = 20%)
+  // 💡 ฟังก์ชันใหม่สำหรับอัปเดตเสียงแบบเรียลไทม์เมื่อกดจาก AppBar
+  updateLiveVolume: () => {
+    const { volume: globalVolume, isMuted } = useAuthStore.getState();
+    if (currentBgmAudio) {
+      currentBgmAudio.volume = isMuted ? 0 : (globalVolume * currentBaseVolume);
+    }
+  },
+
+  playAdvanture: () => bgm.play(advantureUrl, 0.2),
 };

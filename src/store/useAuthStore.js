@@ -37,8 +37,14 @@ export const useAuthStore = create(
 
       /* ================= ACTIONS ================= */
 
-      setVolume: (newVolume) => set({ volume: newVolume }),
-      toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+      setVolume: (newVolume) => {
+        set({ volume: newVolume });
+        import("../utils/sfx").then((m) => m.bgm.updateLiveVolume());
+      },
+      toggleMute: () => {
+        set((state) => ({ isMuted: !state.isMuted }));
+        import("../utils/sfx").then(m => m.bgm.updateLiveVolume());
+      },
       setSfxVolume: (newVolume) => set({ sfxVolume: newVolume }),
       toggleSfxMute: () => set((state) => ({ isSfxMuted: !state.isSfxMuted })),
 
@@ -77,11 +83,11 @@ export const useAuthStore = create(
 
           set({
             registerState: LOADED,
-            currentUser: data.user ?? null, 
+            currentUser: data.user ?? null,
             errorRegister: false,
           });
 
-          return data; 
+          return data;
         } catch (err) {
           const message =
             err instanceof Error ? err.message : "Register failed";
@@ -92,7 +98,7 @@ export const useAuthStore = create(
             errorRegister: true,
           });
 
-          throw err; 
+          throw err;
         }
       },
 
@@ -248,7 +254,7 @@ export const useAuthStore = create(
             isFirstTime: data.firstTime,
           });
 
-          return data.firstTime; 
+          return data.firstTime;
         } catch (error) {
           console.error("checkFirstTime error:", error);
           set({
@@ -327,7 +333,7 @@ export const useAuthStore = create(
             throw new Error("Server returned non-JSON. Possible 404 or Crash.");
           }
 
-          const data = await res.json(); 
+          const data = await res.json();
 
           if (!res.ok || !data.isSuccess) {
             throw new Error(data.message || "buy hero failed");
@@ -436,10 +442,10 @@ export const useAuthStore = create(
           const data = await res.json();
           if (!res.ok || !data.isSuccess) throw new Error(data.message);
 
-          const { hero } = data; 
+          const { hero } = data;
 
           set((state) => ({
-            upgradeStatus: LOADED, 
+            upgradeStatus: LOADED,
             currentUser: {
               ...state.currentUser,
               heroes: state.currentUser.heroes.map((h) =>
@@ -483,8 +489,8 @@ export const useAuthStore = create(
           if (!res.ok || !data.isSuccess) throw new Error(data.message);
 
           set({
-            previewData: data.data, 
-            upgradeStatus: LOADED, 
+            previewData: data.data,
+            upgradeStatus: LOADED,
           });
         } catch (err) {
           console.error("fetchPreviewData error:", err);
@@ -528,7 +534,7 @@ export const useAuthStore = create(
                 ...state.currentUser.stamina,
                 current: data.stamina.current,
                 max: data.stamina.max,
-                timeToNext: data.stamina.timeToNext, 
+                timeToNext: data.stamina.timeToNext,
               },
             },
           }));
@@ -554,7 +560,7 @@ export const useAuthStore = create(
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ minutes }), 
+            body: JSON.stringify({ minutes }),
           });
 
           // ... (ส่วนตรวจเช็ค error เหมือนเดิม) ...
@@ -574,15 +580,15 @@ export const useAuthStore = create(
                 ...state.currentUser.stamina,
                 current: currentStamina,
                 max: data.stamina.max,
-                timeToNext: data.stamina.timeToNext, 
+                timeToNext: data.stamina.timeToNext,
               },
             },
           }));
 
-          return { 
-             success: true, 
-             currentStamina: currentStamina,
-             earnedStamina: earnedStamina // 💡 ส่งค่านี้กลับไปให้ MiniGame.jsx รู้ 
+          return {
+            success: true,
+            currentStamina: currentStamina,
+            earnedStamina: earnedStamina, // 💡 ส่งค่านี้กลับไปให้ MiniGame.jsx รู้
           };
         } catch (err) {
           console.error("reduceStaminaTimer error:", err);
