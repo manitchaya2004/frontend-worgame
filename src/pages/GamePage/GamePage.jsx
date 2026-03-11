@@ -9,7 +9,7 @@ import React, {
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ipAddress } from "../../const";
-
+import { bgm } from "../../utils/sfx";
 // --- Icons ---
 import {
   GiTatteredBanner,
@@ -457,7 +457,7 @@ export default function GameApp() {
 
   const handleExit = useCallback(async () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    if (store.isBgmOn && store.toggleBgm) store.toggleBgm();
+    bgm.stop();
     const halfCoins = Math.floor((store.receivedCoin || 0) / 2);
     await store.saveQuitGame(halfCoins);
     navigate("/summary", {
