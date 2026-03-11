@@ -790,7 +790,7 @@ export const useGameStore = create((set, get) => ({
           },
         }));
 
-        if (get().isSfxOn && sfx.playWalk) sfx.playWalk();
+        if (get().isSfxOn && sfx.playHeal) sfx.playHeal(); // 🔊 เปลี่ยนเป็นเสียงจั่วหรือเสียงเดิน
 
         hasDrawn = true;
         await delay(100);
@@ -1044,8 +1044,10 @@ export const useGameStore = create((set, get) => ({
   startPlayerTurn: async () => {
     const store = get();
     const currentShield = store.playerData.shield || 0;
-    const newShield = Math.floor(currentShield / 2); // ลดเกราะเหลือครึ่งนึง ปัดลง
-    const lostShield = currentShield - newShield;
+    
+    // 🛡️ เริ่มเทิร์นผู้เล่น: เกราะหายไปทั้งหมด (เหลือ 0)
+    const newShield = 0; 
+    const lostShield = currentShield;
 
     set((state) => ({
       gameState: "ACTION",
@@ -1800,10 +1802,10 @@ export const useGameStore = create((set, get) => ({
       return;
     }
 
-    // === 🛡️ ระบบลดเกราะศัตรูตอนเริ่มเทิร์น ===
+    // === 🛡️ เริ่มเทิร์นศัตรู: เกราะถูกรีเซ็ตเป็น 0 ===
     const currentShield = en.shield || 0;
-    const newShield = Math.floor(currentShield / 2);
-    const lostShield = currentShield - newShield;
+    const newShield = 0; 
+    const lostShield = currentShield;
 
     if (lostShield > 0) {
       get().addPopup({
@@ -1974,7 +1976,6 @@ export const useGameStore = create((set, get) => ({
       let currentActionShieldBonus = 0;
 
       if (actionType === "guard") {
-        // === 🌟 ดาเมจจากคำศัพท์ทั้งหมดจะถูกเปลี่ยนเป็น Shield เมื่อเลือก Guard 🌟 ===
         currentActionShieldBonus = finalValue;
         get().addPopup({
           id: Math.random(),
