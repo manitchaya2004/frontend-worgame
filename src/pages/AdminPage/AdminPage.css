@@ -1001,13 +1001,13 @@ html, body {
 
 /* สำหรับ MacBook Pro 16", iMac หรือต่อจอมอนิเตอร์ใหญ่ (1441px ขึ้นไป) */
 @media (min-width: 1441px) {
-  /* ล็อคความกว้างสูงสุดของ Content ไม่ให้ยืดออกไปไม่มีที่สิ้นสุด */
   .pokedex-header, 
   .content-area {
     width: 100%;
-    max-width: 1600px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
   }
+}
 
   /* ใส่พื้นหลังสีดำทึบด้านข้างถ้าจอกว้างกว่า 1600px */
   .admin-container {
@@ -1049,7 +1049,7 @@ html, body {
     font-size: 15px;
     padding: 12px 16px;
   }
-}
+
 
 /* =========================================
    RESPONSIVE STYLES (iPhone / Mobile)
@@ -3890,4 +3890,21 @@ button {
     transform: translateX(-50%) !important;
     border-color: var(--gold2) transparent transparent transparent !important;
   }
+}
+
+.admin-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.pokedex-header,
+.content-area {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.content-area {
+  padding: 22px 30px;
 }
