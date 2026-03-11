@@ -97,26 +97,25 @@ export default function PlayerPanel() {
   return (
     <div>
       {/* TOOLBAR */}
-      <div className="form-box" style={{ justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <div className="form-field">
+      <div className="form-box player-toolbar">
+        <div className="player-toolbar-left">
+          <div className="form-field player-search-field">
             <label className="form-label">ค้นหา</label>
             <input
               className="input-field"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="username / email / role"
-              style={{ minWidth: 260 }}
             />
           </div>
 
-          <button className="btn btn-add" onClick={fetchPlayers} disabled={loading}>
+          <button className="btn btn-add player-reload-btn" onClick={fetchPlayers} disabled={loading}>
             {loading ? "Loading..." : "Reload"}
           </button>
         </div>
 
-        <div style={{ color: "var(--muted)", fontSize: 12 }}>
-          ทั้งหมด: <b style={{ color: "var(--text)" }}>{filtered.length}</b>
+        <div className="player-toolbar-total">
+          ทั้งหมด: <b>{filtered.length}</b>
         </div>
       </div>
 

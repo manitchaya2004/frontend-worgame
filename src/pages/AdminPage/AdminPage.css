@@ -5,25 +5,26 @@
    THEME TOKENS (RPG DARK)
 -------------------------- */
 :root{
-  --bg0:#0b0a08;
-  --bg1:#14110d;
-  --panel:#17130f;
-  --panel2:#0f0d0b;
+  /* Slightly brighter “dark RPG” (less crushed blacks) */
+  --bg0:#0f1012;
+  --bg1:#17191d;
+  --panel:#1c1f24;
+  --panel2:#15171b;
 
-  --line:#2a241d;
-  --line2:#3a2f24;
+  --line:#2a2d33;
+  --line2:#3a3f48;
 
   --gold:#d7b46a;
   --gold2:#a77b2f;
   --gold3:#5a3e18;
 
-  --text:#e9e3d6;
-  --muted:#a9a295;
+  --text:#f1efe9;
+  --muted:#b9b2a6;
 
   --danger:#ff4d4d;
   --ok:#39ff88;
 
-  --shadow: 0 18px 50px rgba(0,0,0,.55);
+  --shadow: 0 18px 50px rgba(0,0,0,.45);
 }
 
 /* -------------------------
@@ -36,11 +37,11 @@
   color:var(--text);
   font-family: "Courier New", Courier, monospace;
 
-  /* dark textured background */
+    /* softer background (less dark vignette) */
   background:
-    radial-gradient(1200px 600px at 15% 30%, rgba(215,180,106,.12), transparent 60%),
-    radial-gradient(900px 500px at 85% 20%, rgba(215,180,106,.08), transparent 55%),
-    radial-gradient(900px 700px at 50% 90%, rgba(0,0,0,.55), transparent 60%),
+    radial-gradient(1100px 600px at 18% 28%, rgba(215,180,106,.10), transparent 58%),
+    radial-gradient(900px 520px at 82% 18%, rgba(215,180,106,.07), transparent 56%),
+    radial-gradient(900px 700px at 50% 92%, rgba(0,0,0,.35), transparent 62%),
     linear-gradient(180deg, var(--bg1), var(--bg0));
   overflow:hidden; /* scroll อยู่ที่ content-area */
 }
@@ -59,7 +60,7 @@
   padding:14px 22px;
 
   background:
-    linear-gradient(180deg, #2b2b2d, #232325);
+    linear-gradient(180deg, #34383e, #2b2f35);
   border-bottom: 3px solid var(--gold2);
   box-shadow: 0 10px 24px rgba(0,0,0,.45);
 }
@@ -173,6 +174,7 @@
   flex:1;
   overflow:auto;
   padding: 22px;
+  background: radial-gradient(900px 600px at 50% 0%, rgba(255,255,255,.03), transparent 60%);
 }
 
 /* custom scrollbar (content only) */
@@ -192,20 +194,34 @@
 -------------------------- */
 .form-box{
   background:
-    radial-gradient(900px 420px at 20% 10%, rgba(215,180,106,.08), transparent 55%),
-    linear-gradient(180deg, rgba(23,19,15,.92), rgba(13,11,9,.92));
-  border: 1px solid rgba(215,180,106,.24);
-  border-radius: 16px;
+    radial-gradient(900px 420px at 20% 10%, rgba(215,180,106,.07), transparent 55%),
+    linear-gradient(180deg, rgba(28,31,36,.92), rgba(18,20,24,.92));
+  border: 1px solid rgba(215,180,106,.22);
+  border-radius: 18px;
   box-shadow: var(--shadow);
 
   padding: 18px;
   margin-bottom: 18px;
 
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
+  /* ✅ Fix “UI แปลกๆ”: ใช้ grid แทน flex-wrap เพื่อกันช่องลอย/ชนกัน */
+  display:grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items:start;
 }
+.form-box > *{ min-width:0; }
+.form-box label{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:12px;
+  color: rgba(241,239,233,.85);
+}
+.form-box small,
+.form-box .hint{
+  color: rgba(185,178,166,.85);
+}
+
 
 .form-box.monster-mode{
   border-color: rgba(255,77,77,.35);
@@ -219,13 +235,18 @@
 .search-input,
 .move-row input,
 .move-row select{
-  background: linear-gradient(180deg, rgba(15,13,11,.95), rgba(10,9,8,.95));
+  background: linear-gradient(180deg, rgba(24,27,32,.92), rgba(15,16,19,.92));
   color: var(--text);
-  border: 1px solid rgba(215,180,106,.18);
-  border-radius: 10px;
+  border: 1px solid rgba(215,180,106,.20);
+  border-radius: 12px;
   padding: 10px 12px;
   outline:none;
 }
+.input-field::placeholder,
+.search-input::placeholder{
+  color: rgba(185,178,166,.70);
+}
+
 
 .input-field:focus,
 .search-input:focus,
@@ -293,7 +314,7 @@
   border-collapse: collapse;
 
   background:
-    linear-gradient(180deg, rgba(17,14,11,.92), rgba(12,10,8,.92));
+    linear-gradient(180deg, rgba(26,29,34,.92), rgba(16,18,22,.92));
   border: 1px solid rgba(215,180,106,.18);
   border-radius: 16px;
   overflow:hidden;
@@ -329,8 +350,10 @@
 }
 
 .dict-table tr:hover{
-  background: rgba(215,180,106,.06);
+  background: rgba(215,180,106,.10);
 }
+.dict-table td{ color: rgba(241,239,233,.92); }
+.dict-table td small{ color: rgba(185,178,166,.85); }
 
 /* -------------------------
    FILTER SECTION
@@ -338,7 +361,7 @@
 .filter-section{
   background:
     radial-gradient(700px 300px at 10% 10%, rgba(215,180,106,.08), transparent 60%),
-    linear-gradient(180deg, rgba(20,16,12,.92), rgba(10,9,8,.92));
+    linear-gradient(180deg, rgba(28,31,36,.92), rgba(18,20,24,.92));
   border: 1px solid rgba(215,180,106,.22);
   border-radius: 16px;
   box-shadow: var(--shadow);
@@ -391,7 +414,7 @@
 .pattern-card{
   background:
     radial-gradient(900px 420px at 15% 10%, rgba(255,77,77,.06), transparent 60%),
-    linear-gradient(180deg, rgba(20,16,12,.92), rgba(10,9,8,.92));
+    linear-gradient(180deg, rgba(28,31,36,.92), rgba(18,20,24,.92));
   border: 1px solid rgba(215,180,106,.18);
   border-left: 4px solid rgba(255,77,77,.65);
   border-radius: 16px;
@@ -895,14 +918,6 @@ html, body {
   overflow-x: hidden;
 }
 
-/* 2. บังคับ File Input ให้ไม่ดัน Layout จนพัง (สำคัญมากสำหรับหน้า Hero) */
-input[type="file"] {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* 3. จัดการ Table Wrapper ให้เลื่อนซ้ายขวาได้สมูทบน iPad */
 .table-wrapper {
   max-width: 100vw;
@@ -1131,5 +1146,1327 @@ input[type="file"] {
   /* ทำให้ปุ่มตัวอักษร A-Z เล็กลงไปอีกเพื่อไม่ให้ตกบรรทัดเยอะ */
   .alphabet-grid {
     grid-template-columns: repeat(auto-fill, minmax(24px, 1fr));
+  }
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Make form controls fill their grid cell nicely */
+.form-box .input-field,
+.form-box select,
+.form-box textarea{ width:100%; box-sizing:border-box; }
+
+/* File input (sprite/map upload) – make it fit theme */
+.form-box input[type="file"]{
+  width:100%;
+  color: rgba(241,239,233,.85);
+  font-size: 12px;
+}
+.form-box input[type="file"]::file-selector-button{
+  margin-right:10px;
+  border:1px solid rgba(215,180,106,.28);
+  border-radius:10px;
+  padding:8px 10px;
+  background: linear-gradient(180deg, rgba(215,180,106,.18), rgba(0,0,0,.28));
+  color: var(--text);
+  cursor:pointer;
+}
+.form-box input[type="file"]::file-selector-button:hover{
+  filter: brightness(1.08);
+}
+
+/* ================================
+   ✅ FORM GRID LAYOUT (copy-paste)
+   ทำให้จัดเรียงเหมือนรูป: 2 ช่องบน / 3 ช่อง stat / ที่เหลือเต็มบรรทัด
+   ================================ */
+
+.form-box{
+  /* คงสไตล์เดิมได้ แต่กันเละด้วย alignment ที่นิ่งขึ้น */
+  align-items: start;
+}
+
+/* grid wrapper สำหรับฟอร์ม */
+.form-grid{
+  width: 100%;
+  display: grid;
+  gap: 12px;
+
+  /* เดสก์ท็อป: 12 คอลัมน์ */
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+/* helper span */
+.span-12{ grid-column: span 12; }
+.span-8{ grid-column: span 8; }
+.span-6{ grid-column: span 6; }
+.span-4{ grid-column: span 4; }
+.span-3{ grid-column: span 3; }
+
+/* ให้ form-field เป็นบล็อกเรียง label->input */
+.form-field{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* บล็อกพิเศษ */
+.deck-zone{
+  border: 1px dashed rgba(255,255,255,0.18);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(0,0,0,0.12);
+}
+
+.form-submit{
+  display: flex;
+  justify-content: center;
+}
+
+/* Sprite upload ให้เป็นกริดนิ่ง ๆ */
+.sprite-upload{
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.sprite-upload .hint{
+  grid-column: 1 / -1;
+}
+
+/* ปุ่ม Create ให้เต็มบรรทัดและสวยขึ้น */
+.form-submit .btn,
+.form-submit button{
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Responsive: จอเล็กให้เรียง 1 คอลัมน์ */
+@media (max-width: 900px){
+  .form-grid{ grid-template-columns: 1fr; }
+  .span-12,.span-8,.span-6,.span-4,.span-3{ grid-column: 1 / -1; }
+  .sprite-upload{ grid-template-columns: 1fr; }
+}
+
+/* ================================
+   ✅ DICTIONARY: SEARCH CONTROLS (ROW)
+   วางท้ายไฟล์เพื่อ override ของเดิม
+================================ */
+
+/* แถวค้นหา: ไอคอน + ช่องค้นหา + dropdown + oxford ต่อกัน */
+.search-controls{
+  display:flex !important;
+  align-items:center;
+  gap: 12px;
+  flex-wrap: wrap;          /* จอแคบค่อยตกบรรทัด */
+  width: 100%;
+}
+
+/* ช่องค้นหายืดได้ */
+.search-controls .search-input{
+  flex: 1 1 420px;
+  min-width: 260px;
+  height: 40px;
+}
+
+/* wrapper tooltip ที่ครอบ select อย่าให้เป็น block ยาว */
+.search-controls > div[data-tooltip]{
+  display: inline-flex;
+  align-items: center;
+}
+
+/* select ต่อกัน */
+.search-controls .filter-select{
+  min-width: 150px;
+  height: 40px;
+}
+
+/* oxford only เป็น pill ชิ้นเดียว */
+.search-controls label{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(215,180,106,.18);
+  background: rgba(0,0,0,.14);
+  white-space: nowrap;
+}
+
+/* ✅ สำคัญ: ยกเลิกที่ media query เคยบังคับให้เป็น column */
+@media (max-width: 768px){
+  .search-controls{
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
+  /* ให้ช่อง search ลงบรรทัดใหม่ได้ แต่ dropdown ยังต่อกันสวย */
+  .search-controls .search-input{
+    flex-basis: 100% !important;
+  }
+}
+
+/* ================================
+   ✅ FIX: SELECT DROPDOWN (options) WHITE BACKGROUND
+   (ทำงานได้ดีใน Firefox / บางกรณีใน Chrome)
+================================ */
+
+/* ตัว select (ตอนยังไม่กดเปิด) */
+select,
+.input-field[type="select"],
+.input-field select,
+.filter-select{
+  background: linear-gradient(180deg, rgba(24,27,32,.92), rgba(15,16,19,.92)) !important;
+  color: var(--text) !important;
+}
+
+/* รายการใน dropdown */
+select option{
+  background: #14161a !important;
+  color: var(--text) !important;
+}
+
+/* option ตอน hover/เลือก (บาง browser จะไม่ยอม) */
+select option:checked{
+  background: rgba(215,180,106,.25) !important;
+  color: var(--text) !important;
+}
+
+/* =========================================
+   ✅ MONSTER PANEL LAYOUT (STAGES-LIKE)
+   วางท้ายไฟล์ AdminPage.css เพื่อ override
+========================================= */
+
+/* ทำให้ native dropdown / form control เป็นธีมมืด (ช่วยลดอาการ dropdown ขาวในบาง browser) */
+.admin-container { color-scheme: dark; }
+.admin-container select { color-scheme: dark; }
+
+/* ---------- MONSTER FORM: เปลี่ยนจาก grid auto-fit ให้เป็นฟอร์มแบบ STAGES ---------- */
+.form-box.monster-mode{
+  display:block !important;          /* ทับ grid auto-fit เดิม */
+  padding: 22px !important;
+  border-radius: 18px;
+}
+
+/* หัวข้อ NEW MONSTER ให้เหมือนหน้า STAGES */
+.form-title.monster{
+  margin: 0 0 16px 0 !important;
+  text-align: left;
+  font-family: "Press Start 2P", cursive;
+  letter-spacing: .5px;
+}
+
+/* ใช้ GRID 12 คอลัมน์แทน flex-row ให้คุมระเบียบ */
+.form-box.monster-mode .flex-row{
+  width: 100%;
+  display:grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  align-items:start;
+  margin-bottom: 12px;
+}
+
+/* flex-1 / flex-2 ที่อยู่ใน MonsterPanel ให้กินคอลัมน์แบบนิ่งๆ */
+.form-box.monster-mode .flex-row .flex-1{ grid-column: span 3; min-width:0; }
+.form-box.monster-mode .flex-row .flex-2{ grid-column: span 6; min-width:0; }
+
+/* แถว stats (hp/power/speed/exp/isBoss) ให้เป็น 5 ช่องเรียงสวย */
+.form-box.monster-mode .flex-row.flex-wrap .form-field{
+  grid-column: span 3;
+  min-width:0;
+}
+.form-box.monster-mode .flex-row.flex-wrap .form-field:last-child{
+  grid-column: span 3;  /* isBoss */
+}
+
+/* description เต็มบรรทัด */
+.form-box.monster-mode .form-field.full{
+  width: 100%;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+/* label/hint จัดระเบียบ */
+.form-box.monster-mode .form-label{
+  display:block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: rgba(241,239,233,.85);
+}
+.form-box.monster-mode .form-hint,
+.form-box.monster-mode .hint,
+.form-box.monster-mode .subhint{
+  font-size: 11px;
+  color: rgba(185,178,166,.78);
+  line-height: 1.35;
+}
+
+/* input ให้สูงเท่ากันและเต็มช่อง */
+.form-box.monster-mode .input-field,
+.form-box.monster-mode input[type="number"],
+.form-box.monster-mode input[type="text"],
+.form-box.monster-mode select{
+  width: 100% !important;
+  box-sizing: border-box;
+  height: 40px;
+}
+
+/* ---------- MONSTER DECK + SPRITES: จัดเป็น 2 คอลัมน์เหมือนแผงด้านขวา แต่ไม่ลอย ---------- */
+/* กล่อง Monster Deck (div ที่มี border dashed) -> ทำให้ดูเป็นการ์ดเหมือน STAGES */
+.form-box.monster-mode > div[style*="border: \"1px dashed"],
+.form-box.monster-mode > div[style*="border: '1px dashed"],
+.form-box.monster-mode > div[style*="border: 1px dashed"]{
+  margin-top: 10px !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(700px 260px at 10% 10%, rgba(255,77,77,.06), transparent 60%),
+    linear-gradient(180deg, rgba(28,31,36,.86), rgba(18,20,24,.86)) !important;
+  border: 1px solid rgba(215,180,106,.18) !important;
+  box-shadow: 0 14px 36px rgba(0,0,0,.35);
+}
+
+/* ปุ่ม + Add Card ให้ไม่หลุดธีม */
+.form-box.monster-mode button.btn[style*="background: \"#c53030\""],
+.form-box.monster-mode button.btn[style*="background: '#c53030'"],
+.form-box.monster-mode button.btn[style*="background: #c53030"]{
+  border-color: rgba(255,77,77,.35) !important;
+  background: linear-gradient(180deg, rgba(255,77,77,.18), rgba(0,0,0,.45)) !important;
+}
+
+/* sprite-upload ทำให้เป็นการ์ดอีกใบ และกริด 2x2 แบบนิ่ง */
+.form-box.monster-mode .sprite-upload{
+  margin-top: 12px !important;
+  padding: 14px !important;
+  border-radius: 14px;
+  border: 1px solid rgba(215,180,106,.18);
+  background:
+    radial-gradient(700px 260px at 90% 10%, rgba(215,180,106,.08), transparent 60%),
+    linear-gradient(180deg, rgba(28,31,36,.86), rgba(18,20,24,.86));
+  box-shadow: 0 14px 36px rgba(0,0,0,.35);
+}
+
+/* กล่องเลือกไฟล์ 4 ช่อง: ให้เป็นกริด 2 คอลัมน์ (attack1 attack2 / idle1 idle2) */
+.form-box.monster-mode .sprite-upload > div[style*="display: \"flex\""]{
+  display:grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px !important;
+}
+
+/* กล่องไฟล์แต่ละช่องให้เต็มกริด */
+.form-box.monster-mode .sprite-upload > div[style*="display: \"flex\""] > div{
+  width: 100% !important;
+  box-sizing:border-box;
+  border-radius: 12px !important;
+  background: rgba(0,0,0,.12);
+}
+
+/* ---------- ปุ่ม Submit / Cancel ให้เหมือน STAGES: ปุ่มใหญ่เต็มบรรทัด ---------- */
+.form-box.monster-mode > div[style*="justify-content: \"center\""]{
+  width: 100% !important;
+  margin-top: 16px !important;
+}
+
+.form-box.monster-mode > div[style*="justify-content: \"center\""] > button{
+  height: 44px;
+  font-family: "Press Start 2P", cursive;
+  font-size: 11px;
+  letter-spacing: .3px;
+}
+
+.form-box.monster-mode .btn-cancel{
+  border-color: rgba(255,255,255,.18);
+  background: linear-gradient(180deg, rgba(120,120,120,.20), rgba(0,0,0,.40));
+}
+
+/* ---------- Responsive: จอแคบให้เรียง 1 คอลัมน์ ---------- */
+@media (max-width: 1100px){
+  .form-box.monster-mode .flex-row .flex-1{ grid-column: span 6; }
+  .form-box.monster-mode .flex-row .flex-2{ grid-column: span 12; }
+
+  .form-box.monster-mode .flex-row.flex-wrap .form-field{ grid-column: span 6; }
+  .form-box.monster-mode .sprite-upload > div[style*="display: \"flex\""]{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================
+   ✅ MONSTER SPRITES: ให้เรียง "แถวเดียว" 4 ช่อง
+   Attack1 / Attack2 / Idle1 / Idle2
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+/* ทำให้กรอบ sprite-upload เป็น grid 4 คอลัมน์ */
+.form-box.monster-mode .sprite-upload{
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(180px, 1fr)) !important;
+  gap: 12px !important;
+  align-items: start;
+}
+
+/* ตัวอักษรหัวข้อ/คำอธิบาย ให้กินเต็มบรรทัด (ไม่ไปเป็น 1 ช่องใน grid) */
+.form-box.monster-mode .sprite-upload :is(h1,h2,h3,h4,p,small,span,.hint){
+  grid-column: 1 / -1;
+}
+
+/* กล่องเลือกไฟล์แต่ละอัน ให้เต็มช่อง */
+.form-box.monster-mode .sprite-upload > div{
+  width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* กันเคสที่ใน JSX มี div ครอบอีกชั้น (บางทีเป็น flex/column) */
+.form-box.monster-mode .sprite-upload > div[style*="display: flex"],
+.form-box.monster-mode .sprite-upload > div[style*="display:flex"]{
+  display: contents !important; /* แตกกล่องลูกออกมาเป็น item ใน grid */
+}
+
+/* Responsive: จอแคบค่อยลด */
+@media (max-width: 1100px){
+  .form-box.monster-mode .sprite-upload{
+    grid-template-columns: repeat(2, minmax(180px, 1fr)) !important;
+  }
+}
+@media (max-width: 650px){
+  .form-box.monster-mode .sprite-upload{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================
+   ✅ HERO PANEL LAYOUT (เหมือน Monster ที่จัดใหม่แล้ว)
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+/* ถ้ามี hero-mode ใช้ตัวนี้ก่อน */
+.form-box.hero-mode{
+  display: block !important;
+  padding: 22px !important;
+  border-radius: 18px;
+  border-color: rgba(80,160,255,.20);
+  box-shadow:
+    0 18px 50px rgba(0,0,0,.50),
+    0 0 16px rgba(80,160,255,.06);
+}
+
+/* fallback: ถ้า Hero ไม่ได้ใส่ hero-mode แต่มีข้อความ NEW HERO */
+.form-box:has(.form-title.hero),
+.form-box:has(.form-title:not(.monster)){
+  /* ไม่บังคับทั้งหมด เดี๋ยว selector ด้านล่างคุมเฉพาะ hero อีกที */
+}
+
+/* หัวข้อ */
+.form-title.hero{
+  margin: 0 0 16px 0 !important;
+  text-align: left;
+  font-family: "Press Start 2P", cursive;
+  letter-spacing: .5px;
+}
+
+/* ---------- จัดแถวฟอร์มบนให้เป็น grid ---------- */
+.form-box.hero-mode .flex-row{
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+/* fallback (กรณีไม่มี .hero-mode แต่ใช้ Hero panel ใน form-box เดียวกัน) */
+.form-box .flex-row{
+  /* ไม่แตะ global มากเกินไป */
+}
+
+/* hero field width */
+.form-box.hero-mode .flex-row .flex-1{ grid-column: span 3; min-width: 0; }
+.form-box.hero-mode .flex-row .flex-2{ grid-column: span 6; min-width: 0; }
+
+/* แถว stat ของ hero */
+.form-box.hero-mode .flex-row.flex-wrap .form-field{
+  grid-column: span 3;
+  min-width: 0;
+}
+
+/* description เต็มบรรทัด */
+.form-box.hero-mode .form-field.full{
+  width: 100%;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+/* label/hint */
+.form-box.hero-mode .form-label{
+  display:block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: rgba(241,239,233,.85);
+}
+.form-box.hero-mode .form-hint,
+.form-box.hero-mode .hint,
+.form-box.hero-mode .subhint{
+  font-size: 11px;
+  color: rgba(185,178,166,.78);
+  line-height: 1.35;
+}
+
+/* input ให้เท่ากัน */
+.form-box.hero-mode .input-field,
+.form-box.hero-mode input[type="number"],
+.form-box.hero-mode input[type="text"],
+.form-box.hero-mode select{
+  width: 100% !important;
+  box-sizing: border-box;
+  height: 40px;
+}
+
+/* ---------- HERO DECK: ให้เป็นการ์ดเต็มบรรทัด ---------- */
+.form-box.hero-mode > div[style*="border: \"1px dashed"],
+.form-box.hero-mode > div[style*="border: '1px dashed"],
+.form-box.hero-mode > div[style*="border: 1px dashed"]{
+  margin-top: 10px !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(700px 260px at 10% 10%, rgba(80,160,255,.08), transparent 60%),
+    linear-gradient(180deg, rgba(28,31,36,.86), rgba(18,20,24,.86)) !important;
+  border: 1px solid rgba(215,180,106,.18) !important;
+  box-shadow: 0 14px 36px rgba(0,0,0,.35);
+}
+
+/* ปุ่ม Add Card (สีน้ำเงินของ Hero) */
+.form-box.hero-mode button.btn[style*="#2b6cb0"],
+.form-box.hero-mode button.btn[style*="#3182ce"]{
+  border-color: rgba(80,160,255,.35) !important;
+  background: linear-gradient(180deg, rgba(80,160,255,.20), rgba(0,0,0,.45)) !important;
+}
+
+/* ---------- HERO SPRITES: เรียงต่อกันเป็นแถว ---------- */
+.form-box.hero-mode .sprite-upload{
+  margin-top: 12px !important;
+  padding: 14px !important;
+  border-radius: 14px;
+  border: 1px solid rgba(215,180,106,.18);
+  background:
+    radial-gradient(700px 260px at 90% 10%, rgba(80,160,255,.08), transparent 60%),
+    linear-gradient(180deg, rgba(28,31,36,.86), rgba(18,20,24,.86));
+  box-shadow: 0 14px 36px rgba(0,0,0,.35);
+
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(180px, 1fr)) !important; /* แถวเดียว 4 ช่องก่อน */
+  gap: 12px !important;
+  align-items: start;
+}
+
+/* หัวข้อ/คำอธิบายของ Hero Sprites ให้กินเต็มบรรทัด */
+.form-box.hero-mode .sprite-upload :is(h1,h2,h3,h4,p,small,span,.hint){
+  grid-column: 1 / -1;
+}
+
+/* ถ้ามี div ครอบเป็น flex ใน JSX ให้แตกออกมาเป็น grid item */
+.form-box.hero-mode .sprite-upload > div[style*="display: flex"],
+.form-box.hero-mode .sprite-upload > div[style*="display:flex"]{
+  display: contents !important;
+}
+
+/* กล่อง file แต่ละช่อง */
+.form-box.hero-mode .sprite-upload > div{
+  width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: 12px !important;
+  background: rgba(0,0,0,.12);
+}
+
+/* ---------- ปุ่ม CREATE HERO ให้อยู่ล่างสุดเต็มบรรทัด ---------- */
+.form-box.hero-mode > div[style*="justify-content: \"center\""],
+.form-box.hero-mode > div[style*="justify-content:'center'"],
+.form-box.hero-mode > div[style*="justify-content: center"]{
+  width: 100% !important;
+  margin-top: 16px !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.form-box.hero-mode > div[style*="justify-content"] > button{
+  width: 100% !important;
+  height: 44px;
+  font-family: "Press Start 2P", cursive;
+  font-size: 11px;
+  letter-spacing: .3px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1200px){
+  .form-box.hero-mode .sprite-upload{
+    grid-template-columns: repeat(3, minmax(180px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 980px){
+  .form-box.hero-mode .flex-row .flex-1{ grid-column: span 6; }
+  .form-box.hero-mode .flex-row .flex-2{ grid-column: span 12; }
+  .form-box.hero-mode .flex-row.flex-wrap .form-field{ grid-column: span 6; }
+
+  .form-box.hero-mode .sprite-upload{
+    grid-template-columns: repeat(2, minmax(180px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px){
+  .form-box.hero-mode .sprite-upload{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================
+   ✅ STAGE PANEL LAYOUT (ให้คล้าย HERO PANEL)
+   + ลดรูปในตารางเพื่อลด horizontal scrollbar ขาว
+   วางท้ายสุดของ AdminPage.css
+========================================= */
+
+/* -------------------------
+   Stage form (ด้านบน) ให้หน้าตาคล้าย Hero
+-------------------------- */
+.form-box.stage-mode{
+  display: block !important;
+  padding: 18px !important;
+  border-radius: 14px;
+  border: 1px solid rgba(80,160,255,.22) !important;
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.35),
+    0 0 12px rgba(80,160,255,.05);
+}
+
+/* ถ้าหน้า Stage ไม่ได้ใส่ stage-mode แต่มี form-box ปกติ ก็ทำ fallback แบบนุ่ม ๆ */
+.form-box:has(.form-title.stage){
+  display: block !important;
+}
+
+/* หัวข้อ NEW STAGE */
+.form-title.stage{
+  margin: 0 0 12px 0 !important;
+  font-family: "Press Start 2P", cursive;
+  font-size: 13px;
+  letter-spacing: .4px;
+  text-align: left;
+}
+
+/* แถวฟอร์มใน Stage ให้กลายเป็นกริด 12 คอลัมน์ */
+.form-box.stage-mode .flex-row{
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+/* ขนาดคอลัมน์มาตรฐาน */
+.form-box.stage-mode .flex-row .flex-1{ grid-column: span 3; min-width: 0; }
+.form-box.stage-mode .flex-row .flex-2{ grid-column: span 6; min-width: 0; }
+
+/* field แบบเต็มบรรทัด */
+.form-box.stage-mode .form-field.full{
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+/* label / hint / input ให้ดู compact เหมือน hero */
+.form-box.stage-mode .form-label{
+  display:block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: rgba(241,239,233,.85);
+}
+.form-box.stage-mode .form-hint,
+.form-box.stage-mode .hint,
+.form-box.stage-mode .subhint,
+.form-box.stage-mode small{
+  font-size: 10px;
+  color: rgba(185,178,166,.78);
+  line-height: 1.3;
+}
+
+.form-box.stage-mode .input-field,
+.form-box.stage-mode input[type="text"],
+.form-box.stage-mode input[type="number"],
+.form-box.stage-mode textarea{
+  width: 100% !important;
+  box-sizing: border-box;
+  min-height: 34px;
+  height: 34px;
+  padding: 7px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* textarea ของ stage */
+.form-box.stage-mode textarea.input-field,
+.form-box.stage-mode textarea{
+  height: 58px !important;
+  min-height: 58px !important;
+  resize: vertical;
+}
+
+/* กล่อง file upload ของ stage ให้ compact */
+.form-box.stage-mode input[type="file"]{
+  font-size: 11px;
+}
+
+/* ปุ่ม CREATE STAGE เต็มบรรทัดเหมือน Hero */
+.form-box.stage-mode .form-submit,
+.form-box.stage-mode > div[style*="justify-content: center"]{
+  width: 100% !important;
+  margin-top: 10px !important;
+  display:flex !important;
+  justify-content:center !important;
+}
+.form-box.stage-mode .form-submit .btn,
+.form-box.stage-mode .form-submit button,
+.form-box.stage-mode > div[style*="justify-content"] > button{
+  width: 100% !important;
+  height: 38px;
+  font-family: "Press Start 2P", cursive;
+  font-size: 10px;
+  letter-spacing: .3px;
+}
+
+/* -------------------------
+   Stage table (ด้านล่าง)
+-------------------------- */
+
+/* ลดโอกาสล้นแนวนอน */
+.table-wrapper{
+  overflow-x: hidden !important;   /* ซ่อนแถบเลื่อนขาว */
+  max-width: 100%;
+}
+
+/* แต่ถ้ายังมี element ด้านในล้น ให้บีบในตารางแทน */
+.dict-table,
+.stage-table{
+  width: 100% !important;
+  table-layout: fixed;             /* สำคัญ: บังคับให้คอลัมน์ไม่ดันเกิน */
+}
+
+/* padding/font ให้ compact แบบหน้า hero */
+.dict-table.stage-theme th,
+.dict-table.stage-theme td,
+.stage-table th,
+.stage-table td{
+  padding: 8px 8px !important;
+  font-size: 10px !important;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* หัวตาราง stage ให้คล้าย hero (ทองเข้ม) */
+.stage-table th,
+.dict-table.stage-theme th{
+  font-size: 10px !important;
+  white-space: nowrap;
+}
+
+/* คอลัมน์รูปภาพ (Map) — ลดขนาดรูปให้เล็กลง */
+.stage-table td img,
+.dict-table td img{
+  display: block;
+  width: 100% !important;
+  max-width: 220px !important;   /* ✅ ลดจากเดิมเยอะ */
+  height: auto !important;
+  max-height: 90px !important;   /* ✅ จำกัดความสูง */
+  object-fit: cover;
+  border-radius: 6px;
+  margin: 0 auto;
+}
+
+/* ถ้าคอลัมน์รูปกว้างเกิน ให้บังคับความกว้างคอลัมน์แรก */
+.stage-table th:first-child,
+.stage-table td:first-child,
+.dict-table th:first-child,
+.dict-table td:first-child{
+  width: 240px !important;       /* พอให้รูปไม่ดันทั้งตาราง */
+  max-width: 240px !important;
+}
+
+/* คอลัมน์ Actions ให้ปุ่มเล็กลงและไม่ดันตาราง */
+.stage-table td:last-child,
+.dict-table td:last-child{
+  white-space: nowrap;
+}
+
+.stage-table .btn,
+.dict-table .btn{
+  padding: 5px 7px;
+  font-size: 10px;
+  min-height: 26px;
+  border-radius: 8px;
+}
+
+/* =========================
+   Monster table: ลดขนาดช่อง Sprite ให้เล็กลง
+   (ให้ใกล้ขนาดรูปจริงมากขึ้น)
+========================= */
+
+/* ลดความกว้างคอลัมน์ Sprite เฉพาะ monster table */
+.dict-table.monster-theme th:first-child,
+.dict-table.monster-theme td:first-child {
+  width: 130px !important;
+  max-width: 130px !important;
+  min-width: 130px !important;
+  text-align: center;
+  padding: 8px 6px !important;
+}
+
+/* ย่อทุกอย่างที่อยู่ในช่อง sprite (เช่น MonsterSpriteLoop) */
+.dict-table.monster-theme td:first-child > * {
+  transform: scale(0.90);
+  transform-origin: center center;
+  display: inline-block;
+}
+
+/* กันแถวสูงเกินเพราะ element ที่ถูก scale */
+.dict-table.monster-theme td:first-child {
+  height: 68px !important;
+  overflow: hidden;
+}
+
+/* ถ้ามี img/canvas/video อยู่ใน sprite loop ให้ไม่ล้น */
+.dict-table.monster-theme td:first-child img,
+.dict-table.monster-theme td:first-child canvas,
+.dict-table.monster-theme td:first-child video {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
+/* (สำคัญ) override rule ด้านล่างที่เคยบังคับ first-column = 240px ทุก dict-table */
+.dict-table.monster-theme th:first-child,
+.dict-table.monster-theme td:first-child {
+  width: 130px !important;
+  max-width: 130px !important;
+}
+
+/* =========================
+   Hero table: ปรับขนาดช่อง Sprite ให้เล็กลงพอดี
+========================= */
+
+/* ลดความกว้างคอลัมน์ Sprite เฉพาะ hero table */
+.dict-table.hero-theme th:first-child,
+.dict-table.hero-theme td:first-child {
+  width: 145px !important;
+  max-width: 145px !important;
+  min-width: 145px !important;
+  text-align: center;
+  padding: 8px 6px !important;
+}
+
+/* ย่อ sprite ในช่องแรก (HeroSpriteLoop / img / canvas) */
+.dict-table.hero-theme td:first-child > * {
+  transform: scale(1.20);
+  transform-origin: center center;
+  display: inline-block;
+}
+
+/* กันแถวสูงเกิน / กันล้น */
+.dict-table.hero-theme td:first-child {
+  height: 78px !important;
+  overflow: hidden;
+}
+
+/* กัน media ล้น */
+.dict-table.hero-theme td:first-child img,
+.dict-table.hero-theme td:first-child canvas,
+.dict-table.hero-theme td:first-child video {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
+/* override rule เดิมที่อาจบังคับคอลัมน์แรกกว้างเกิน */
+.dict-table.hero-theme th:first-child,
+.dict-table.hero-theme td:first-child {
+  width: 145px !important;
+  max-width: 145px !important;
+  min-width: 145px !important;
+}
+
+/* =========================================
+   STAGE CREATE FORM → ให้ขนาด/สไตล์เหมือน HERO CREATE
+   (วางท้ายสุดของ AdminPage.css)
+========================================= */
+
+/* กล่องฟอร์มหลัก */
+.form-box.stage-mode{
+  display: block !important;
+  padding: 22px !important;                 /* เท่า hero */
+  border-radius: 18px !important;           /* เท่า hero */
+  border: 1px solid rgba(80,160,255,.20) !important;
+  box-shadow:
+    0 18px 50px rgba(0,0,0,.50),
+    0 0 16px rgba(80,160,255,.06) !important;
+  background:
+    radial-gradient(900px 420px at 20% 10%, rgba(215,180,106,.07), transparent 55%),
+    linear-gradient(180deg, rgba(28,31,36,.92), rgba(18,20,24,.92)) !important;
+}
+
+/* หัวข้อ NEW STAGE ให้ฟีลเดียวกับ NEW HERO */
+.form-title.stage{
+  margin: 0 0 16px 0 !important;
+  text-align: left;
+  font-family: "Press Start 2P", cursive;
+  font-size: 13px !important;
+  letter-spacing: .5px;
+}
+
+/* แถวฟอร์มใช้กริด 12 คอลัมน์เหมือน hero */
+.form-box.stage-mode .flex-row{
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px !important;                     /* เท่า hero */
+  align-items: start;
+  margin-bottom: 12px !important;
+}
+
+/* ค่า default */
+.form-box.stage-mode .flex-row .flex-1{ grid-column: span 4; min-width: 0; }
+.form-box.stage-mode .flex-row .flex-2{ grid-column: span 8; min-width: 0; }
+
+/* แถว Reward / Goal (อยู่ใน flex-wrap) ให้ครึ่ง-ครึ่ง แบบ hero stats */
+.form-box.stage-mode .flex-row.flex-wrap .form-field{
+  grid-column: span 6 !important;
+  min-width: 0;
+}
+
+/* field เต็มบรรทัด */
+.form-box.stage-mode .form-field.full{
+  width: 100%;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+/* label/hint ให้โทนเดียวกับ hero */
+.form-box.stage-mode .form-label{
+  display: block;
+  margin-bottom: 6px !important;
+  font-size: 12px !important;
+  color: rgba(241,239,233,.85);
+}
+
+.form-box.stage-mode .form-hint,
+.form-box.stage-mode .hint,
+.form-box.stage-mode .subhint,
+.form-box.stage-mode small{
+  font-size: 11px !important;
+  color: rgba(185,178,166,.78);
+  line-height: 1.35;
+}
+
+/* อินพุตให้สูง/ทรงเดียวกับ hero */
+.form-box.stage-mode .input-field,
+.form-box.stage-mode input[type="text"],
+.form-box.stage-mode input[type="number"],
+.form-box.stage-mode textarea{
+  width: 100% !important;
+  box-sizing: border-box;
+  height: 40px !important;                  /* เท่า hero */
+  min-height: 40px !important;
+  padding: 10px 12px !important;
+  font-size: 12px;
+  border-radius: 12px !important;
+}
+
+/* description ถ้าเปลี่ยนเป็น textarea ในอนาคต */
+.form-box.stage-mode textarea.input-field,
+.form-box.stage-mode textarea{
+  min-height: 72px !important;
+  height: 72px !important;
+  resize: vertical;
+}
+
+/* กล่องอัปโหลดไฟล์ map ให้เป็นการ์ดแบบ hero deck/sprite */
+.form-box.stage-mode .form-field.full.mt-10{
+  margin-top: 12px !important;
+  padding: 14px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(215,180,106,.18) !important;
+  background:
+    radial-gradient(700px 260px at 90% 10%, rgba(80,160,255,.08), transparent 60%),
+    linear-gradient(180deg, rgba(28,31,36,.86), rgba(18,20,24,.86)) !important;
+  box-shadow: 0 14px 36px rgba(0,0,0,.35);
+}
+
+/* file input ให้ดูเข้าธีม */
+.form-box.stage-mode input[type="file"]{
+  font-size: 12px !important;
+  color: var(--text);
+}
+
+/* ปุ่ม CREATE STAGE เต็มบรรทัดเหมือน CREATE HERO */
+.form-box.stage-mode > div[style*="justify-content: \"center\""],
+.form-box.stage-mode > div[style*="justify-content:'center'"],
+.form-box.stage-mode > div[style*="justify-content: center"]{
+  width: 100% !important;
+  margin-top: 16px !important;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 10px;
+}
+
+/* ปุ่มในแถว submit */
+.form-box.stage-mode > div[style*="justify-content"] > button{
+  height: 44px !important;                  /* เท่า hero */
+  font-family: "Press Start 2P", cursive;
+  font-size: 11px !important;
+  letter-spacing: .3px;
+}
+
+/* ให้ปุ่มหลักกินเต็มบรรทัดเหมือน hero */
+.form-box.stage-mode > div[style*="justify-content"] > button[type="submit"]{
+  flex: 1 1 auto !important;
+  width: 100% !important;
+}
+
+/* ปุ่ม cancel ตอน edit ไม่ให้ยืดเต็ม */
+.form-box.stage-mode > div[style*="justify-content"] > .btn-cancel{
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 120px;
+}
+
+/* Responsive ให้คล้าย hero */
+@media (max-width: 980px){
+  .form-box.stage-mode .flex-row .flex-1{ grid-column: span 6; }
+  .form-box.stage-mode .flex-row .flex-2{ grid-column: span 12; }
+  .form-box.stage-mode .flex-row.flex-wrap .form-field{ grid-column: span 12 !important; }
+}
+
+/* =========================================
+   STAGE CREATE BUTTON → ให้เหมือน HERO
+========================================= */
+
+/* จับ wrapper ปุ่ม submit ของ stage ให้กินเต็มแถว */
+.form-box.stage-mode .stage-submit-row,
+.form-box.stage-mode .submit-row,
+.form-box.stage-mode .form-actions,
+.form-box.stage-mode > div:last-child {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+/* ปุ่ม submit ของ Stage ให้เป็นปุ่มยาวเหมือน Create Hero */
+.form-box.stage-mode button[type="submit"],
+.form-box.stage-mode .btn-create-stage,
+.form-box.stage-mode .btn-create {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Press Start 2P", cursive !important;
+  font-size: 11px !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1.1;
+
+  padding: 0 14px !important;
+
+  border: 1px solid rgba(30, 255, 150, 0.35) !important;
+  background:
+    radial-gradient(120% 180% at 50% 0%, rgba(30,255,150,.14), transparent 45%),
+    linear-gradient(180deg, rgba(6,50,36,.95), rgba(4,24,18,.98)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(120,255,200,.10),
+    0 8px 20px rgba(0,0,0,.35) !important;
+  color: #f5fff9 !important;
+  text-transform: uppercase;
+}
+
+/* hover / active ให้ฟีลเดียวกับ hero */
+.form-box.stage-mode button[type="submit"]:hover,
+.form-box.stage-mode .btn-create-stage:hover,
+.form-box.stage-mode .btn-create:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(120,255,200,.16),
+    0 10px 24px rgba(0,0,0,.42),
+    0 0 0 1px rgba(30,255,150,.12) !important;
+}
+
+.form-box.stage-mode button[type="submit"]:active,
+.form-box.stage-mode .btn-create-stage:active,
+.form-box.stage-mode .btn-create:active {
+  transform: translateY(0);
+}
+
+/* ถ้ามีปุ่ม cancel ตอน edit stage ไม่ให้ยืดเต็ม */
+.form-box.stage-mode .btn-cancel,
+.form-box.stage-mode button[type="button"] {
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: 120px;
+}
+
+/* =========================================
+   Player Panel - Top bar / Search row (จัดให้ดูบาลานซ์ขึ้น)
+========================================= */
+
+/* กล่องด้านบนของหน้า player */
+.player-toolbar,
+.player-topbar,
+.player-header-controls,
+.player-filter-bar {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  flex-wrap: wrap !important;
+
+  padding: 16px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(215, 180, 106, 0.18) !important;
+  background:
+    radial-gradient(700px 220px at 20% 0%, rgba(215,180,106,.06), transparent 55%),
+    radial-gradient(700px 220px at 80% 0%, rgba(80,160,255,.06), transparent 55%),
+    linear-gradient(180deg, rgba(25,28,33,.9), rgba(16,18,22,.92)) !important;
+}
+
+/* ฝั่งซ้าย (label + search + reload) */
+.player-toolbar .left,
+.player-topbar .left,
+.player-header-controls .left,
+.player-filter-bar .left,
+.player-toolbar .search-group,
+.player-topbar .search-group,
+.player-header-controls .search-group,
+.player-filter-bar .search-group {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  min-width: 0;
+}
+
+/* ช่องค้นหา */
+.player-toolbar input[type="text"],
+.player-toolbar input[type="search"],
+.player-topbar input[type="text"],
+.player-topbar input[type="search"],
+.player-header-controls input[type="text"],
+.player-header-controls input[type="search"],
+.player-filter-bar input[type="text"],
+.player-filter-bar input[type="search"] {
+  width: 260px !important;
+  max-width: 100%;
+  height: 42px !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  font-size: 12px !important;
+}
+
+/* ปุ่ม Reload */
+.player-toolbar button,
+.player-topbar button,
+.player-header-controls button,
+.player-filter-bar button {
+  height: 42px !important;
+  min-width: 72px;
+  border-radius: 12px !important;
+  padding: 0 14px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ฝั่งขวา (ตัวนับทั้งหมด) */
+.player-toolbar .total,
+.player-toolbar .count,
+.player-toolbar .summary,
+.player-topbar .total,
+.player-topbar .count,
+.player-topbar .summary,
+.player-header-controls .total,
+.player-header-controls .count,
+.player-header-controls .summary,
+.player-filter-bar .total,
+.player-filter-bar .count,
+.player-filter-bar .summary {
+  margin-left: auto !important;
+  white-space: nowrap;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(80,160,255,.16);
+  background: rgba(80,160,255,.05);
+  color: #f3f6ff;
+  font-size: 12px;
+}
+
+/* ถ้า "ทั้งหมด: xx" เป็น text ธรรมดาอยู่ใน div ตัวท้าย */
+.player-toolbar > :last-child:not(button):not(input),
+.player-topbar > :last-child:not(button):not(input),
+.player-header-controls > :last-child:not(button):not(input),
+.player-filter-bar > :last-child:not(button):not(input) {
+  margin-left: auto !important;
+  white-space: nowrap;
+}
+
+/* responsive */
+@media (max-width: 768px) {
+  .player-toolbar,
+  .player-topbar,
+  .player-header-controls,
+  .player-filter-bar {
+    align-items: stretch !important;
+  }
+
+  .player-toolbar input[type="text"],
+  .player-toolbar input[type="search"],
+  .player-topbar input[type="text"],
+  .player-topbar input[type="search"],
+  .player-header-controls input[type="text"],
+  .player-header-controls input[type="search"],
+  .player-filter-bar input[type="text"],
+  .player-filter-bar input[type="search"] {
+    width: 100% !important;
+  }
+
+  .player-toolbar .total,
+  .player-toolbar .count,
+  .player-toolbar .summary,
+  .player-topbar .total,
+  .player-topbar .count,
+  .player-topbar .summary,
+  .player-header-controls .total,
+  .player-header-controls .count,
+  .player-header-controls .summary,
+  .player-filter-bar .total,
+  .player-filter-bar .count,
+  .player-filter-bar .summary {
+    margin-left: 0 !important;
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* =========================================
+   PLAYER TOOLBAR (ใช้กับ PlayerPanel.jsx class ใหม่)
+========================================= */
+
+/* override form-box เฉพาะ toolbar ของ player */
+.form-box.player-toolbar {
+  display: flex !important;
+  grid-template-columns: none !important; /* กันโดน common .form-box แบบ grid */
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+
+  padding: 16px 18px !important;
+  border-radius: 18px !important;
+}
+
+/* ฝั่งซ้าย */
+.player-toolbar-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* search field */
+.player-search-field {
+  margin: 0 !important;
+  min-width: 280px;
+  max-width: 360px;
+  flex: 0 1 320px;
+}
+
+.player-search-field .input-field {
+  width: 100% !important;
+  min-width: 0 !important; /* override inline เดิม */
+  height: 42px !important;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+}
+
+/* ปุ่ม reload */
+.player-reload-btn {
+  height: 42px !important;
+  min-width: 86px !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* ฝั่งขวา total */
+.player-toolbar-total {
+  margin-left: auto;
+  align-self: center;
+  white-space: nowrap;
+
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(215,180,106,.16);
+  background: rgba(215,180,106,.04);
+}
+
+.player-toolbar-total b {
+  color: var(--text);
+}
+
+/* mobile */
+@media (max-width: 768px) {
+  .form-box.player-toolbar {
+    align-items: stretch !important;
+  }
+
+  .player-toolbar-left {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .player-search-field {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .player-reload-btn {
+    width: 100%;
+  }
+
+  .player-toolbar-total {
+    width: 100%;
+    margin-left: 0;
+    text-align: center;
   }
 }
