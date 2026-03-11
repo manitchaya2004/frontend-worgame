@@ -817,17 +817,29 @@ const MonsterPanel = () => {
                     )}
                   </td>
 
-                  <td className="action-buttons">
-                    <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
-                      <button className="btn btn-edit" onClick={() => handleEdit(m)} data-tooltip="แก้ไขข้อมูลมอนสเตอร์ตัวนี้">
+                  <td className="actions-cell monster-actions-cell">
+                    <div className="action-buttons monster-action-buttons">
+                      <button
+                        type="button"
+                        className="btn btn-edit"
+                        onClick={() => handleEdit(m)}
+                        data-tooltip="แก้ไขข้อมูลมอนสเตอร์ตัวนี้"
+                      >
                         Edit
                       </button>
-                      <button className="btn btn-delete" onClick={() => handleDelete(m.id)} data-tooltip="ลบมอนสเตอร์ถาวร">
+
+                      <button
+                        type="button"
+                        className="btn btn-delete"
+                        onClick={() => handleDelete(m.id)}
+                        data-tooltip="ลบมอนสเตอร์ถาวร"
+                      >
                         Del
                       </button>
+
                       <button
-                        className="btn"
-                        style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }}
+                        type="button"
+                        className="btn btn-sprites"
                         onClick={() => handleDeleteSprites(m.id)}
                         data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites"
                       >
