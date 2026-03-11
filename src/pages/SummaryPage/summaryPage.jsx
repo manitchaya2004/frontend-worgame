@@ -6,6 +6,8 @@ import {
 import {AnimatePresence } from "framer-motion";
 import WordLog from "./WordLog";
 import RewardMoney from "./RewardMoney";
+import { useGameSfx } from "../../hook/useGameSfx";
+import clickSfx from "../../assets/sound/click1.ogg"
 
 export default function SummaryPage() {
   const navigate = useNavigate();
@@ -16,7 +18,10 @@ export default function SummaryPage() {
   const [step, setStep] = useState(1); // 1 = Money, 2 = Log
   const isWin = result === "WIN";
 
+  const playClickSound = useGameSfx(clickSfx)
+
   const handleExit = () => {
+    playClickSound();
     if (isWin && stageId) {
       navigate("/home", { state: { completedStageId: stageId } });
     } else {
