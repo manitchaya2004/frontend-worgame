@@ -8,15 +8,16 @@ export function MpBar({ mp, max, color = "#3b82f6" }) {
     <div
       style={{
         position: "relative",
-        width: "70px",       // ปรับให้เท่ากับความกว้างของ HpBar
-        height: "3px",       // ความสูงที่ต้องการ (บางกว่า HP)
-        background: "#333",
-        border: "2px solid #000",
-        borderRadius: "0 0 4px 4px", // ให้ขอบล่างมน รับกับหลอด HP
+        width: "70px",       // เท่ากับความกว้างของ HpBar
+        height: "8px",       // ✅ เพิ่มความสูงจาก 3px เป็น 8px ให้มองเห็นชัดขึ้น
+        background: "rgba(0, 0, 0, 0.5)", // พื้นหลังจางลงหน่อยเพื่อให้หลอดเด่น
+        border: "1.5px solid #000",      // ลดความหนาเส้นขอบลงเล็กน้อย
+        borderRadius: "4px",             // ✅ ปรับให้มนรอบด้านเพื่อความสวยงาม
         overflow: "hidden",
-        boxShadow: "0 1px 0 rgba(0,0,0,0.3)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.5)",
       }}
     >
+      {/* ส่วนของแถบสีมานา */}
       <div
         style={{
           position: "absolute",
@@ -25,8 +26,19 @@ export function MpBar({ mp, max, color = "#3b82f6" }) {
           height: "100%",
           width: `${percent}%`,
           background: color,
-          transition: "width 0.3s ease-out",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
+          transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)", // ปรับ Transition ให้สมูทขึ้น
+          boxShadow: "inset 0 1px 2px rgba(255,255,255,0.4)",   // เพิ่มแสงสะท้อนด้านบนหลอด
+        }}
+      />
+      
+      {/* เพิ่มเส้นขีดจางๆ เพื่อให้ดูเป็นหลอดเกม (Optional) */}
+      <div 
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)",
+          backgroundSize: "20% 100%",
+          pointerEvents: "none"
         }}
       />
     </div>

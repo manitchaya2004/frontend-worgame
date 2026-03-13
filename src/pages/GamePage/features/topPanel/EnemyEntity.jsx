@@ -298,11 +298,11 @@ export const EnemyEntity = memo(
 
               {!isBoss && (
                 <>
-                  {/* สถานะดีบัฟ */}
+                  {/* สถานะดีบัฟ (ปรับ top ให้สูงขึ้นเล็กน้อย -24px เป็น -28px เพื่อเลี่ยงหลอดที่ขยับลง) */}
                   <div
                     style={{
                       position: "absolute",
-                      top: "-24px",
+                      top: "-28px",
                       display: "flex",
                       gap: "4px",
                       zIndex: 20,
