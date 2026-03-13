@@ -1,5 +1,65 @@
-import React, { useEffect, useState } from "react";
-import { API_URL } from "../config";
+import React, { useEffect, useState, useRef, memo } from "react";
+
+// --- Sub-Component สำหรับจัดการการโหลดรูปทีละเฟรมพร้อม Bypass ngrok ---
+const SpriteFrame = memo(({ url, className, alt, onError }) => {
+  const [displayUrl, setDisplayUrl] = useState("");
+  const cache = useRef({}); // ใช้เก็บ Blob URL ที่โหลดแล้ว
+  const loadingPath = useRef("");
+
+  useEffect(() => {
+    // 1. ถ้ามีใน Cache แล้ว ใช้ทันที (กันรูปวาร์ป)
+    if (cache.current[url]) {
+      setDisplayUrl(cache.current[url]);
+      return;
+    }
+
+    // 2. ป้องกันการโหลดซ้ำถ้ากำลังโหลดอยู่
+    if (loadingPath.current === url) return;
+
+    let isMounted = true;
+    loadingPath.current = url;
+
+    const fetchSprite = async () => {
+      try {
+        const response = await fetch(url, {
+          headers: { "ngrok-skip-browser-warning": "69420" },
+        });
+        if (!response.ok) throw new Error("Fetch failed");
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        if (isMounted) {
+          cache.current[url] = objectUrl;
+          // สลับรูปเมื่อโหลดเสร็จเท่านั้น
+          setDisplayUrl(objectUrl);
+          loadingPath.current = "";
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Sprite load error:", err);
+          onError();
+        }
+      }
+    };
+
+    fetchSprite();
+    return () => {
+      isMounted = false;
+    };
+  }, [url, onError]);
+
+  // ล้าง Memory เมื่อ Component หายไป
+  useEffect(() => {
+    return () => {
+      Object.values(cache.current).forEach(u => URL.revokeObjectURL(u));
+    };
+  }, []);
+
+  if (!displayUrl) return null;
+
+  return <img className={className} src={displayUrl} alt={alt} />;
+});
 
 export const MonsterSpriteLoop = ({ id }) => {
   const frames = [
@@ -25,9 +85,9 @@ export const MonsterSpriteLoop = ({ id }) => {
   if (hide) return <span className="no-sprite">No Sprite</span>;
 
   return (
-    <img
+    <SpriteFrame
+      url={frames[idx]}
       className="sprite"
-      src={frames[idx]}
       alt={`${id} sprite`}
       onError={() => setHide(true)}
     />
@@ -61,9 +121,9 @@ export const HeroSpriteLoop = ({ id }) => {
   if (hide) return <span className="no-sprite">No Sprite</span>;
 
   return (
-    <img
+    <SpriteFrame
+      url={frames[idx]}
       className="sprite"
-      src={frames[idx]}
       alt={`${id} hero sprite`}
       onError={() => setHide(true)}
     />

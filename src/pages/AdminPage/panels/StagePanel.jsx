@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { API_URL } from "../config";
 
 const StagePanel = () => {
@@ -26,7 +26,9 @@ const StagePanel = () => {
   const fetchStages = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/getAllStage`);
+      const res = await fetch(`/api/getAllStage`, {
+        headers: { "ngrok-skip-browser-warning": "69420" } // 🌟 Added
+      });
       if (!res.ok) throw new Error("Failed to fetch stages");
       const data = await res.json();
       setStages(data);
@@ -73,6 +75,7 @@ const StagePanel = () => {
     const up = await fetch(`/api/stage/${stageId}/map`, {
       method: "POST",
       body: fd,
+      headers: { "ngrok-skip-browser-warning": "69420" } // 🌟 Added
     });
 
     if (!up.ok) {
@@ -109,7 +112,10 @@ const StagePanel = () => {
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "69420" // 🌟 Added
+        },
         body: JSON.stringify(payload),
       });
 
@@ -150,7 +156,10 @@ const StagePanel = () => {
       return;
 
     try {
-      const res = await fetch(`/api/stage/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/stage/${id}`, { 
+        method: "DELETE",
+        headers: { "ngrok-skip-browser-warning": "69420" } // 🌟 Added
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete stage failed");
@@ -184,18 +193,45 @@ const StagePanel = () => {
     }, 80);
   };
 
-  // Thumbnail map image: /img_map/{id}.png
+  // 🌟 แก้ไข MapThumb: โหลดผ่าน Fetch เพื่อเลี่ยง ngrok warning
   const MapThumb = ({ id }) => {
     const url = `/api/img_map/${id}.png`;
+    const [displayUrl, setDisplayUrl] = useState("");
     const [hide, setHide] = useState(false);
+    const cache = useRef({});
+
+    useEffect(() => {
+      if (cache.current[url]) {
+        setDisplayUrl(cache.current[url]);
+        return;
+      }
+      let isMounted = true;
+      const fetchThumb = async () => {
+        try {
+          const res = await fetch(url, {
+            headers: { "ngrok-skip-browser-warning": "69420" }
+          });
+          if (!res.ok) throw new Error();
+          const blob = await res.blob();
+          const bUrl = URL.createObjectURL(blob);
+          if (isMounted) {
+            cache.current[url] = bUrl;
+            setDisplayUrl(bUrl);
+          }
+        } catch (e) {
+          if (isMounted) setHide(true);
+        }
+      };
+      fetchThumb();
+      return () => { isMounted = false; };
+    }, [url]);
 
     if (hide) return <span className="no-sprite">No Map</span>;
     return (
       <img
         className="map-thumb"
-        src={url}
+        src={displayUrl}
         alt={`${id} map`}
-        onError={() => setHide(true)}
       />
     );
   };
@@ -481,7 +517,9 @@ const SpawnPanel = ({ stageId, onClose }) => {
 
   const fetchMonsters = useCallback(async () => {
     try {
-      const res = await fetch(`/api/monster`);
+      const res = await fetch(`/api/monster`, {
+        headers: { "ngrok-skip-browser-warning": "69420" }
+      });
       if (!res.ok) throw new Error("Failed to fetch monsters");
       const data = await res.json();
       setMonsters(data);
@@ -498,7 +536,8 @@ const SpawnPanel = ({ stageId, onClose }) => {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/spawn?stage_id=${encodeURIComponent(stageId)}`
+        `/api/spawn?stage_id=${encodeURIComponent(stageId)}`,
+        { headers: { "ngrok-skip-browser-warning": "69420" } }
       );
       if (!res.ok) throw new Error("Failed to fetch spawns");
       const data = await res.json();
@@ -551,7 +590,10 @@ const SpawnPanel = ({ stageId, onClose }) => {
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "69420"
+        },
         body: JSON.stringify(payload),
       });
 
@@ -585,7 +627,10 @@ const SpawnPanel = ({ stageId, onClose }) => {
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Spawn ID: ${id}?`)) return;
     try {
-      const res = await fetch(`/api/spawn/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/spawn/${id}`, { 
+        method: "DELETE",
+        headers: { "ngrok-skip-browser-warning": "69420" }
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete spawn failed");

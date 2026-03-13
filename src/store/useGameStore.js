@@ -1324,7 +1324,7 @@ export const useGameStore = create((set, get) => ({
             const currentStatuses = mainTarget.savedStatuses || [];
             const newDebuffs = Array(poisonCount).fill({
               status: "poison",
-              duration: 3,
+              duration: 10,
             });
             get().updateEnemy(mainTarget.id, {
               savedStatuses: [...currentStatuses, ...newDebuffs],
@@ -1346,7 +1346,7 @@ export const useGameStore = create((set, get) => ({
               get().updateEnemy(mainTarget.id, {
                 savedStatuses: [
                   ...currentStatuses,
-                  { status: "bleed", duration: 3 },
+                  { status: "bleed", duration: 6 }, 
                 ],
               });
               get().addPopup({
