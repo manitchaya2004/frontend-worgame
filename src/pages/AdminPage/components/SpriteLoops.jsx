@@ -6,14 +6,20 @@ const SpriteFrame = memo(({ url, className, alt, onError }) => {
   const cache = useRef({}); // ใช้เก็บ Blob URL ที่โหลดแล้ว
   const loadingPath = useRef("");
 
+  // 🌟 ฟังก์ชันเติม Parameter Bypass ngrok เข้าไปใน URL
+  const withBypass = (targetUrl) => {
+    const connector = targetUrl.includes("?") ? "&" : "?";
+    return `${targetUrl}${connector}ngrok-skip-browser-warning=69420`;
+  };
+
   useEffect(() => {
-    // 1. ถ้ามีใน Cache แล้ว ใช้ทันที (กันรูปวาร์ป)
+    // 1. ถ้ามีใน Cache แล้ว ใช้จาก Cache ทันที (แก้รูปวาร์ป)
     if (cache.current[url]) {
       setDisplayUrl(cache.current[url]);
       return;
     }
 
-    // 2. ป้องกันการโหลดซ้ำถ้ากำลังโหลดอยู่
+    // 2. ป้องกันการโหลดซ้ำถ้ากำลังโหลด Path นี้อยู่
     if (loadingPath.current === url) return;
 
     let isMounted = true;
@@ -21,9 +27,9 @@ const SpriteFrame = memo(({ url, className, alt, onError }) => {
 
     const fetchSprite = async () => {
       try {
-        const response = await fetch(url, {
-          headers: { "ngrok-skip-browser-warning": "69420" },
-        });
+        // 🌟 แก้ไข: ใช้ URL Parameter แทนการใส่ Header ใน fetch
+        const response = await fetch(withBypass(url));
+        
         if (!response.ok) throw new Error("Fetch failed");
         
         const blob = await response.blob();
@@ -31,13 +37,14 @@ const SpriteFrame = memo(({ url, className, alt, onError }) => {
 
         if (isMounted) {
           cache.current[url] = objectUrl;
-          // สลับรูปเมื่อโหลดเสร็จเท่านั้น
+          // สลับรูปใหม่เมื่อโหลดเสร็จสมบูรณ์เท่านั้น เพื่อให้รูปเก่าค้างไว้ก่อน (ป้องกันกะพริบ)
           setDisplayUrl(objectUrl);
           loadingPath.current = "";
         }
       } catch (err) {
         if (isMounted) {
           console.error("Sprite load error:", err);
+          loadingPath.current = "";
           onError();
         }
       }
@@ -49,14 +56,15 @@ const SpriteFrame = memo(({ url, className, alt, onError }) => {
     };
   }, [url, onError]);
 
-  // ล้าง Memory เมื่อ Component หายไป
+  // ล้าง Memory เมื่อ Component ถูกทำลาย
   useEffect(() => {
     return () => {
       Object.values(cache.current).forEach(u => URL.revokeObjectURL(u));
     };
   }, []);
 
-  if (!displayUrl) return null;
+  // ถ้ายังไม่มี URL แสดงผล ให้คืนค่าว่างไปก่อน (หรือจะใส่ Placeholder เล็กๆ ก็ได้)
+  if (!displayUrl) return <div className={className} style={{ visibility: 'hidden' }} />;
 
   return <img className={className} src={displayUrl} alt={alt} />;
 });

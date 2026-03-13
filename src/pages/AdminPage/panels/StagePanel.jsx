@@ -23,12 +23,17 @@ const StagePanel = () => {
     distant_goal: "",
   });
 
+  // 🌟 Helper function สำหรับต่อท้าย URL เพื่อ Bypass ngrok
+  const withBypass = (url) => {
+    const connector = url.includes("?") ? "&" : "?";
+    return `${url}${connector}ngrok-skip-browser-warning=69420`;
+  };
+
   const fetchStages = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/getAllStage`, {
-        headers: { "ngrok-skip-browser-warning": "69420" } // 🌟 Added
-      });
+      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
+      const res = await fetch(withBypass(`/api/getAllStage`));
       if (!res.ok) throw new Error("Failed to fetch stages");
       const data = await res.json();
       setStages(data);
@@ -72,10 +77,10 @@ const StagePanel = () => {
     const fd = new FormData();
     fd.append("map", mapFile);
 
-    const up = await fetch(`/api/stage/${stageId}/map`, {
+    // 🌟 แก้ไข: เพิ่ม Parameter Bypass
+    const up = await fetch(withBypass(`/api/stage/${stageId}/map`), {
       method: "POST",
       body: fd,
-      headers: { "ngrok-skip-browser-warning": "69420" } // 🌟 Added
     });
 
     if (!up.ok) {
@@ -110,12 +115,10 @@ const StagePanel = () => {
         method = "PUT";
       }
 
-      const res = await fetch(url, {
+      // 🌟 แก้ไข: เพิ่ม Parameter Bypass ใน URL
+      const res = await fetch(withBypass(url), {
         method,
-        headers: { 
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "69420" // 🌟 Added
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -156,10 +159,8 @@ const StagePanel = () => {
       return;
 
     try {
-      const res = await fetch(`/api/stage/${id}`, { 
-        method: "DELETE",
-        headers: { "ngrok-skip-browser-warning": "69420" } // 🌟 Added
-      });
+      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
+      const res = await fetch(withBypass(`/api/stage/${id}`), { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete stage failed");
@@ -208,9 +209,7 @@ const StagePanel = () => {
       let isMounted = true;
       const fetchThumb = async () => {
         try {
-          const res = await fetch(url, {
-            headers: { "ngrok-skip-browser-warning": "69420" }
-          });
+          const res = await fetch(withBypass(url));
           if (!res.ok) throw new Error();
           const blob = await res.blob();
           const bUrl = URL.createObjectURL(blob);
@@ -515,11 +514,15 @@ const SpawnPanel = ({ stageId, onClose }) => {
     distant_spawn: "",
   });
 
+  const withBypass = (url) => {
+    const connector = url.includes("?") ? "&" : "?";
+    return `${url}${connector}ngrok-skip-browser-warning=69420`;
+  };
+
   const fetchMonsters = useCallback(async () => {
     try {
-      const res = await fetch(`/api/monster`, {
-        headers: { "ngrok-skip-browser-warning": "69420" }
-      });
+      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
+      const res = await fetch(withBypass(`/api/monster`));
       if (!res.ok) throw new Error("Failed to fetch monsters");
       const data = await res.json();
       setMonsters(data);
@@ -535,9 +538,9 @@ const SpawnPanel = ({ stageId, onClose }) => {
   const fetchSpawns = useCallback(async () => {
     setLoading(true);
     try {
+      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
       const res = await fetch(
-        `/api/spawn?stage_id=${encodeURIComponent(stageId)}`,
-        { headers: { "ngrok-skip-browser-warning": "69420" } }
+        withBypass(`/api/spawn?stage_id=${encodeURIComponent(stageId)}`)
       );
       if (!res.ok) throw new Error("Failed to fetch spawns");
       const data = await res.json();
@@ -588,12 +591,10 @@ const SpawnPanel = ({ stageId, onClose }) => {
         method = "PUT";
       }
 
-      const res = await fetch(url, {
+      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
+      const res = await fetch(withBypass(url), {
         method,
-        headers: { 
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "69420"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -627,10 +628,8 @@ const SpawnPanel = ({ stageId, onClose }) => {
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Spawn ID: ${id}?`)) return;
     try {
-      const res = await fetch(`/api/spawn/${id}`, { 
-        method: "DELETE",
-        headers: { "ngrok-skip-browser-warning": "69420" }
-      });
+      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
+      const res = await fetch(withBypass(`/api/spawn/${id}`), { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete spawn failed");

@@ -5,15 +5,10 @@ const StagePanel = () => {
   const [stages, setStages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Spawn panel state
   const [selectedStageId, setSelectedStageId] = useState("");
   const [showSpawn, setShowSpawn] = useState(false);
-
-  // ✅ Map file (png)
   const [mapFile, setMapFile] = useState(null);
 
-  // Stage form state
   const [formData, setFormData] = useState({
     id: "",
     orderNo: "",
@@ -23,13 +18,17 @@ const StagePanel = () => {
     distant_goal: "",
   });
 
+  // 🌟 ฟังก์ชันช่วยเติม Parameter Bypass ngrok
+  const withBypass = (url) => {
+    const connector = url.includes("?") ? "&" : "?";
+    return `${url}${connector}ngrok-skip-browser-warning=69420`;
+  };
+
   const fetchStages = useCallback(async () => {
     setLoading(true);
     try {
-      // 🌟 เพิ่ม Header Bypass ngrok
-      const res = await fetch(`/api/getAllStage`, {
-        headers: { "ngrok-skip-browser-warning": "69420" },
-      });
+      // 🌟 แก้ไข: ใช้ URL Parameter แทน Header เพื่อความชัวร์
+      const res = await fetch(withBypass(`/api/getAllStage`));
       if (!res.ok) throw new Error("Failed to fetch stages");
       const data = await res.json();
       setStages(data);
@@ -66,18 +65,15 @@ const StagePanel = () => {
     setShowSpawn(false);
   };
 
-  // ✅ upload map
   const uploadMap = async (stageId) => {
     if (!mapFile) return;
-
     const fd = new FormData();
     fd.append("map", mapFile);
 
-    const up = await fetch(`/api/stage/${stageId}/map`, {
+    // 🌟 แก้ไข: ใส่ Bypass ใน URL
+    const up = await fetch(withBypass(`/api/stage/${stageId}/map`), {
       method: "POST",
       body: fd,
-      // 🌟 สำหรับ POST FormData ปกติ Browser จัดการ Header ให้ แต่ใส่เผื่อไว้ถ้าติด
-      headers: { "ngrok-skip-browser-warning": "69420" },
     });
 
     if (!up.ok) {
@@ -88,7 +84,6 @@ const StagePanel = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!formData.id?.trim()) return alert("Stage ID is required");
     if (formData.orderNo === "" || formData.orderNo == null)
       return alert("OrderNo is required");
@@ -112,29 +107,20 @@ const StagePanel = () => {
         method = "PUT";
       }
 
-      const res = await fetch(url, {
+      // 🌟 แก้ไข: ใส่ Bypass ใน URL
+      const res = await fetch(withBypass(url), {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "69420", // 🌟 เพิ่ม Header
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Save stage failed");
-      }
-
-      if (mapFile) {
-        await uploadMap(formData.id.trim());
-      }
+      if (!res.ok) throw new Error("Save stage failed");
+      if (mapFile) await uploadMap(formData.id.trim());
 
       alert(isEditing ? "Stage Updated!" : "Stage Created!");
       resetForm();
       fetchStages();
     } catch (err) {
-      console.error(err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -154,27 +140,17 @@ const StagePanel = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(`Delete Stage: ${id} ?\n(จะลบ spawn ในด่านนี้ด้วย)`))
-      return;
-
+    if (!window.confirm(`Delete Stage: ${id} ?`)) return;
     try {
-      const res = await fetch(`/api/stage/${id}`, {
+      // 🌟 แก้ไข: ใส่ Bypass ใน URL
+      const res = await fetch(withBypass(`/api/stage/${id}`), {
         method: "DELETE",
-        headers: { "ngrok-skip-browser-warning": "69420" },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Delete stage failed");
-      }
-
-      if (selectedStageId === id) {
-        closeSpawn();
-      }
-
+      if (!res.ok) throw new Error("Delete stage failed");
+      if (selectedStageId === id) closeSpawn();
       alert("Stage Deleted!");
       fetchStages();
     } catch (err) {
-      console.error(err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -186,7 +162,6 @@ const StagePanel = () => {
     }
     setSelectedStageId(stageId);
     setShowSpawn(true);
-
     setTimeout(() => {
       document
         .getElementById(`spawn-inline-${stageId}`)
@@ -194,7 +169,6 @@ const StagePanel = () => {
     }, 80);
   };
 
-  // 🌟 Thumbnail map image แบบ Bypass ngrok
   const MapThumb = ({ id }) => {
     const url = `/api/img_map/${id}.png`;
     const [displayUrl, setDisplayUrl] = useState("");
@@ -209,9 +183,8 @@ const StagePanel = () => {
       let isMounted = true;
       const fetchThumb = async () => {
         try {
-          const res = await fetch(url, {
-            headers: { "ngrok-skip-browser-warning": "69420" },
-          });
+          // 🌟 แก้ไข: ใช้ URL Parameter (วิธีที่ชัวร์ที่สุดสำหรับหน้าบ้าน)
+          const res = await fetch(withBypass(url));
           if (!res.ok) throw new Error();
           const blob = await res.blob();
           const bUrl = URL.createObjectURL(blob);
@@ -237,12 +210,10 @@ const StagePanel = () => {
 
   return (
     <div className="admin-container">
-      {/* ... (ส่วน Form เหมือนเดิม) ... */}
       <form className="form-box stage-mode" onSubmit={handleSubmit}>
         <h3 className="form-title stage">
           {isEditing ? `EDITING STAGE: ${formData.id}` : "NEW STAGE"}
         </h3>
-        {/* ... (Input Fields ต่างๆ เหมือนเดิม) ... */}
         <div className="flex-row flex-wrap">
           <div className="form-field flex-2 minw-220">
             <label className="form-label required">Stage ID</label>
@@ -439,7 +410,6 @@ const SpawnPanel = ({ stageId, onClose }) => {
   const [monsters, setMonsters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
   const [formData, setFormData] = useState({
     id: "",
     monster_id: "",
@@ -447,17 +417,19 @@ const SpawnPanel = ({ stageId, onClose }) => {
     distant_spawn: "",
   });
 
+  const withBypass = (url) => {
+    const connector = url.includes("?") ? "&" : "?";
+    return `${url}${connector}ngrok-skip-browser-warning=69420`;
+  };
+
   const fetchMonsters = useCallback(async () => {
     try {
-      const res = await fetch(`/api/monster`, {
-        headers: { "ngrok-skip-browser-warning": "69420" },
-      });
+      const res = await fetch(withBypass(`/api/monster`));
       if (!res.ok) throw new Error("Failed to fetch monsters");
       const data = await res.json();
       setMonsters(data);
-      if (!formData.monster_id && data?.[0]?.id) {
+      if (!formData.monster_id && data?.[0]?.id)
         setFormData((p) => ({ ...p, monster_id: data[0].id }));
-      }
     } catch (e) {
       console.error(e);
     }
@@ -467,12 +439,8 @@ const SpawnPanel = ({ stageId, onClose }) => {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/spawn?stage_id=${encodeURIComponent(stageId)}`,
-        {
-          headers: { "ngrok-skip-browser-warning": "69420" },
-        },
+        withBypass(`/api/spawn?stage_id=${encodeURIComponent(stageId)}`),
       );
-      if (!res.ok) throw new Error("Failed to fetch spawns");
       const data = await res.json();
       setSpawns(data);
     } catch (e) {
@@ -507,12 +475,9 @@ const SpawnPanel = ({ stageId, onClose }) => {
         url = `/api/spawn/${formData.id}`;
         method = "PUT";
       }
-      const res = await fetch(url, {
+      const res = await fetch(withBypass(url), {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "69420",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Save spawn failed");
@@ -528,10 +493,7 @@ const SpawnPanel = ({ stageId, onClose }) => {
   const handleDelete = async (id) => {
     if (!window.confirm("Delete?")) return;
     try {
-      await fetch(`/api/spawn/${id}`, {
-        method: "DELETE",
-        headers: { "ngrok-skip-browser-warning": "69420" },
-      });
+      await fetch(withBypass(`/api/spawn/${id}`), { method: "DELETE" });
       fetchSpawns();
     } catch (err) {
       console.error(err);
@@ -547,6 +509,7 @@ const SpawnPanel = ({ stageId, onClose }) => {
         background: "#0f1012",
       }}
     >
+      {/* ... (UI เหมือนเดิม) ... */}
       <div
         style={{
           display: "flex",
@@ -574,7 +537,6 @@ const SpawnPanel = ({ stageId, onClose }) => {
           ✕
         </button>
       </div>
-
       <form
         onSubmit={handleSubmit}
         className="form-box"
@@ -625,7 +587,6 @@ const SpawnPanel = ({ stageId, onClose }) => {
           {isEditing ? "UPDATE SPAWN" : "ADD SPAWN"}
         </button>
       </form>
-
       <div className="table-wrapper">
         <table className="dict-table">
           <thead>
