@@ -175,7 +175,7 @@ const ItemFeature = () => {
             0 0 0 4px #1a120b,
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
-          width: { xs: "90%", sm: "80%", md: "80%", lg: "65%" },
+          width: { xs: "90%", sm: "80%", md: "80%", lg: "65%", xl: "65%" },
           height: { xs: "80%", sm: "80%", md: "80%", lg: "90%", xl: "80%" },
           p: 1,
           display: "flex",
@@ -403,18 +403,22 @@ const ItemFeature = () => {
             mt: 1,
             width: "100%",
             height: "100%",
+            alignContent:'center',
+            
           }}
         >
           <Box
             sx={{
-              gap: { xs: 1, sm: 5 },
+              gap: { xs: 1, sm: 5,xl:2 },
               alignItems: "center",
               justifyContent: "center",
               display: "flex",
-              mr: 2,
-              ml: 2,
+              
               flexDirection: { xs: "column", sm: "row" },
-              width: "100%",
+              // width: "100%",
+              height: "95%",
+              mx:2
+              
             }}
           >
             <ItemCard

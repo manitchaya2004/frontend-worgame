@@ -3,7 +3,7 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"; // เพิ่ม icon info
 
-// sound 
+// sound
 import { useGameSfx } from "../../../../hook/useGameSfx";
 import equipSfx from "../../../../assets/sound/click3.ogg";
 
@@ -41,8 +41,8 @@ const ItemCard = ({
   return (
     <Box
       sx={{
-        width: { xs: 200, sm: 250 },
-        height: 250,
+        width: { xs: 200, sm: 250, xl: "100%" },
+        height: {  xs: "-webkit-fill-available" },
         backgroundColor: "#2b1d14",
         border: `3px solid ${color}`,
         borderRadius: "12px",
@@ -53,6 +53,7 @@ const ItemCard = ({
         boxShadow: "0 4px 0 rgba(0,0,0,0.5)",
         position: "relative",
         overflow: "hidden",
+        // alignItems:'center'
       }}
     >
       {/* Background Effect */}
@@ -76,6 +77,9 @@ const ItemCard = ({
           alignItems: "center",
           gap: 2,
           flexDirection: "column",
+          backgroundColor:'pink',
+          height:'100%',
+          justifyContent:''
         }}
       >
         <Box
@@ -84,13 +88,14 @@ const ItemCard = ({
             alignItems: "center",
             gap: 1,
             flexDirection: { xs: "column", sm: "row" },
+            
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: { xs: 10, sm: 16 },
+                fontSize: { xs: 10, sm: 16, xl: 18 },
                 color: color,
                 textTransform: "uppercase",
               }}
@@ -99,46 +104,48 @@ const ItemCard = ({
             </Typography>
 
             {/* Tooltip section */}
-            <Tooltip 
-              title={description} 
-              arrow 
+            <Tooltip
+              title={description}
+              arrow
               placement="top"
               enterTouchDelay={0} // สำหรับมือถือให้กดแล้วขึ้นเลย
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    fontSize: {sm:"12px",xl:"16px"},
+                    fontFamily: "'Verdana', sans-serif",
+                    backgroundColor: "#2a160f",
+                    border: `1px solid black`,
+                    color: "gray",
+                  },
+                },
+                arrow: { sx: { color: "#000000" } },
+              }}
             >
-              <InfoOutlinedIcon 
-                sx={{ 
-                  fontSize: { xs: 14, sm: 18 }, 
-                  color: "#aaa", 
+              <InfoOutlinedIcon
+                sx={{
+                  fontSize: { xs: 14, sm: 18, xl: 22 },
+                  color: "#aaa",
                   cursor: "help",
-                  "&:hover": { color: color } 
-                }} 
+                  "&:hover": { color: color },
+                }}
               />
             </Tooltip>
           </Box>
-
-          {/* <Typography
-            sx={{
-              fontFamily: "'Press Start 2P'",
-              fontSize: 8,
-              color: "#aaa",
-              mt: 0.5,
-            }}
-          >
-            Lv.{level}
-          </Typography> */}
         </Box>
-        
+
         <Box
           sx={{
             width: { xs: 120, sm: 140 },
-            height: { xs: 120, sm: 140 },
+            height: "70%",
             backgroundColor: "rgba(0,0,0,0.3)",
             borderRadius: "8px",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             color: color,
-            "& svg": { fontSize: { xs: 50, sm: 100 } },
+            "& svg": { fontSize: { xs: 50, sm: 100,xl:150 } },
+            
           }}
         >
           {icon}
