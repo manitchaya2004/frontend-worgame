@@ -602,6 +602,10 @@ const SpawnPanel = ({ stageId, onClose }) => {
     return m ? `${m.name} (${m.id})` : id;
   };
 
+  const sortedSpawns = [...spawns].sort(
+  (a, b) => Number(a.distant_spawn) - Number(b.distant_spawn)
+  );
+
   return (
     <div
       style={{
@@ -739,7 +743,7 @@ const SpawnPanel = ({ stageId, onClose }) => {
           <table className="dict-table">
             <thead>
               <tr>
-                <th data-tooltip="รหัสอ้างอิงของจุดเกิด (สร้างอัตโนมัติ)">ID</th>
+                <th data-tooltip="ลำดับการแสดงผลตามระยะทางเกิด">No.</th>
                 <th data-tooltip="ชื่อและรหัสของมอนสเตอร์">Monster</th>
                 <th data-tooltip="ระดับของมอนสเตอร์ (Level)">Level</th>
                 <th data-tooltip="ระยะทางที่มอนสเตอร์ตัวนี้จะเกิดในด่าน">
@@ -748,12 +752,11 @@ const SpawnPanel = ({ stageId, onClose }) => {
                 <th data-tooltip="ปุ่มจัดการข้อมูลจุดเกิด">Actions</th>
               </tr>
             </thead>
+
             <tbody>
-              {spawns.map((sp) => (
+              {sortedSpawns.map((sp, index) => (
                 <tr key={sp.id}>
-                  <td className="spawn-id-cell">
-                    {sp.id}
-                  </td>
+                  <td>{index + 1}</td>
                   <td className="spawn-monster-cell">
                     {monsterNameById(sp.monster_id)}
                   </td>
@@ -782,7 +785,8 @@ const SpawnPanel = ({ stageId, onClose }) => {
                   </td>
                 </tr>
               ))}
-              {spawns.length === 0 && (
+
+              {sortedSpawns.length === 0 && (
                 <tr>
                   <td colSpan="5" style={{ textAlign: "center", padding: 16 }}>
                     No Spawns in this Stage.
