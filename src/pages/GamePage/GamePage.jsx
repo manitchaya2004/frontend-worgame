@@ -80,7 +80,7 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
               borderRadius: "6px",
               padding: "8px 10px",
               minWidth: "150px",
-              zIndex: 1000,
+              zIndex: 9999, // 🌟 ปรับเป็น 9999 เพื่อให้อยู่หน้าสุดเสมอ
               pointerEvents: "none",
               boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
               display: "flex",
@@ -761,7 +761,7 @@ export default function GameApp() {
             {/* 🌟 Prediction UI (Guard / Shield & Heal) */}
             <AnimatePresence>
               {store.validWordInfo && (prediction.guard.max > 0 || prediction.heal > 0) && (
-                <div style={{ position: "absolute", bottom: "170px", right: `calc(50% + ${centerOffset}px)`, zIndex: 900, pointerEvents: "none", display: "flex", gap: "8px" }}>
+                <div style={{ position: "absolute", bottom: "170px", right: `calc(50% + ${centerOffset}px)`, zIndex: 9999 /* 🌟 ปรับเป็น 9999 */, pointerEvents: "none", display: "flex", gap: "8px" }}>
                   {/* บล็อก Heal */}
                   {prediction.heal > 0 && (
                     <TopHudTooltipWrapper title="Predicted Healing" desc="Amount of HP restored when using this word." align="center">
@@ -781,7 +781,7 @@ export default function GameApp() {
             {/* 🌟 Prediction UI (Strike / Damage & Overload Recoil) */}
             <AnimatePresence>
               {store.validWordInfo && (prediction.strike.max > 0 || prediction.recoil > 0) && (
-                <div style={{ position: "absolute", bottom: "170px", left: `calc(50% + ${centerOffset}px)`, zIndex: 900, pointerEvents: "none", display: "flex", gap: "8px", flexDirection: "row-reverse" }}>
+                <div style={{ position: "absolute", bottom: "170px", left: `calc(50% + ${centerOffset}px)`, zIndex: 9999 /* 🌟 ปรับเป็น 9999 */, pointerEvents: "none", display: "flex", gap: "8px", flexDirection: "row-reverse" }}>
                   {/* บล็อก Recoil */}
                   {prediction.recoil > 0 && (
                     <TopHudTooltipWrapper title="Overload Recoil" desc="Damage taken due to exceeding your power capacity." align="center">
