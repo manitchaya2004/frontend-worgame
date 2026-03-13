@@ -24,6 +24,7 @@ export const EnemyEntity = memo(
     const [showIntentTooltip, setShowIntentTooltip] = useState(false);
     const [displayUrl, setDisplayUrl] = useState("");
     const cache = useRef({});
+    const loadingPath = useRef(""); // 🌟 เพิ่มตัวแปรเช็คสถานะการโหลด
 
     const isBoss = enemy.isBoss;
     const isAttack = enemy.atkFrame > 0;
@@ -35,26 +36,37 @@ export const EnemyEntity = memo(
     }, [enemy.monster_id, actionName, frameNum]);
 
     useEffect(() => {
+      // 🌟 ถ้ามีใน Cache แล้ว ให้สลับรูปทันที (กันกระพริบ)
       if (cache.current[imagePath]) {
         setDisplayUrl(cache.current[imagePath]);
         return;
       }
 
+      // 🌟 ถ้า Path นี้กำลังโหลดอยู่แล้ว ไม่ต้องสั่ง Fetch ซ้ำ
+      if (loadingPath.current === imagePath) return;
+
       let isMounted = true;
+      loadingPath.current = imagePath;
+
       const fetchMonsterImage = async () => {
         try {
           const response = await fetch(imagePath, {
             headers: { "ngrok-skip-browser-warning": "69420" },
           });
+          if (!response.ok) throw new Error("Monster image fetch failed");
+
           const blob = await response.blob();
           const objectUrl = URL.createObjectURL(blob);
 
           if (isMounted) {
             cache.current[imagePath] = objectUrl;
+            // 🌟 สำคัญ: setDisplayUrl หลังจากโหลดเสร็จเท่านั้น เพื่อให้รูปเก่าคาไว้ก่อน
             setDisplayUrl(objectUrl);
+            loadingPath.current = "";
           }
         } catch (err) {
           console.error("Failed to load monster image:", err);
+          if (isMounted) loadingPath.current = "";
         }
       };
 
@@ -380,7 +392,7 @@ export const EnemyEntity = memo(
               bottom: isBoss ? -10 : 0,
               left: "50%",
               x: "-50%",
-              backgroundImage: `url(${displayUrl})`, // ✅ ใช้ displayUrl จาก Cache
+              backgroundImage: `url(${displayUrl})`,
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "bottom center",

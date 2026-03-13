@@ -1,180 +1,170 @@
 import React, { useMemo, memo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS
+} from "../../../../const/index";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
-import { DISPLAY_NORMAL, FIXED_Y } from "../../../../const/index";
 
 // ✅ Icons
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
-import { GiBroadsword, GiShield } from "react-icons/gi";
+import { GiBroadsword, GiShield, GiStarShuriken, GiTrident } from "react-icons/gi";
 
-export const EnemyEntity = memo(
-  ({
-    enemy,
-    index,
-    animFrame,
-    isTargeted,
-    gameState,
-    onSelect,
-    style,
-    onHover,
-    selectionCount = 0,
-  }) => {
-    const [showIntentTooltip, setShowIntentTooltip] = useState(false);
-    const [displayUrl, setDisplayUrl] = useState("");
-    const cache = useRef({});
-    const loadingPath = useRef(""); // 🌟 เพิ่มตัวแปรเช็คสถานะการโหลด
+export const PlayerEntity = memo(({ store }) => {
+  const { 
+    gameState, playerX, playerData, playerVisual, 
+    animFrame , playerShoutText
+  } = store;
 
-    const isBoss = enemy.isBoss;
-    const isAttack = enemy.atkFrame > 0;
-    const actionName = isAttack ? "attack" : "idle";
-    const frameNum = isAttack ? enemy.atkFrame : (animFrame % 2) + 1;
+  // --- State & Ref สำหรับจัดการรูปภาพ ---
+  const [displayUrl, setDisplayUrl] = useState("");
+  const cache = useRef({}); // เก็บ Blob URL เพื่อป้องกันการโหลดซ้ำ
+  const loadingPath = useRef(""); // 🌟 เก็บ Path ที่กำลังดำเนินการโหลดอยู่
 
-    const imagePath = useMemo(() => {
-      return `/api/img_monster/${enemy.monster_id}-${actionName}-${frameNum}.png`;
-    }, [enemy.monster_id, actionName, frameNum]);
+  // 1. คำนวณ Path รูปภาพตาม Action และ Frame
+  const imagePath = useMemo(() => {
+    let currentAction = "idle";
+    let targetFrame = 1;
 
-    useEffect(() => {
-      // 🌟 ถ้ามีใน Cache แล้ว ให้สลับรูปทันที (กันกระพริบ)
-      if (cache.current[imagePath]) {
-        setDisplayUrl(cache.current[imagePath]);
-        return;
+    if (gameState === "ADVANTURE") {
+      currentAction = "walk";
+      targetFrame = (animFrame % 2) + 1;
+    } else {
+      const visualState = playerVisual || "idle";
+      const split = visualState.split("-");
+      currentAction = split[0];
+      
+      if (currentAction === "idle") {
+        targetFrame = (animFrame % 2) + 1;
+      } else {
+        targetFrame = split[1] ? parseInt(split[1]) : 1;
       }
+    }
 
-      // 🌟 ถ้า Path นี้กำลังโหลดอยู่แล้ว ไม่ต้องสั่ง Fetch ซ้ำ
-      if (loadingPath.current === imagePath) return;
+    if (currentAction === "guard") targetFrame = 1;
 
-      let isMounted = true;
-      loadingPath.current = imagePath;
+    return `/api/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
+  }, [gameState, animFrame, playerVisual, playerData.img_path]);
 
-      const fetchMonsterImage = async () => {
-        try {
-          const response = await fetch(imagePath, {
-            headers: { "ngrok-skip-browser-warning": "69420" },
-          });
-          if (!response.ok) throw new Error("Monster image fetch failed");
-          
-          const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
+  // 2. Hook สำหรับ Fetch รูปภาพพร้อมระบบ Cache (ป้องกันรูปวาร์ป)
+  useEffect(() => {
+    // 🌟 กฎที่ 1: ถ้ามีใน Cache แล้ว ให้เปลี่ยนรูปแสดงผลทันที
+    if (cache.current[imagePath]) {
+      setDisplayUrl(cache.current[imagePath]);
+      return;
+    }
 
-          if (isMounted) {
-            cache.current[imagePath] = objectUrl;
-            // 🌟 สำคัญ: setDisplayUrl หลังจากโหลดเสร็จเท่านั้น เพื่อให้รูปเก่าคาไว้ก่อน
-            setDisplayUrl(objectUrl);
-            loadingPath.current = ""; 
-          }
-        } catch (err) {
-          console.error("Failed to load monster image:", err);
-          if (isMounted) loadingPath.current = "";
+    // 🌟 กฎที่ 2: ถ้า Path นี้กำลังโหลดอยู่แล้ว ไม่ต้องสั่งซ้ำ
+    if (loadingPath.current === imagePath) return;
+
+    let isMounted = true;
+    loadingPath.current = imagePath;
+
+    const fetchImage = async () => {
+      try {
+        const response = await fetch(imagePath, {
+          headers: { "ngrok-skip-browser-warning": "69420" },
+        });
+        if (!response.ok) throw new Error("Image fetch failed");
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        if (isMounted) {
+          cache.current[imagePath] = objectUrl;
+          // 🌟 หัวใจสำคัญ: setDisplayUrl หลังจากโหลดเสร็จเท่านั้น เพื่อให้รูปเก่าคาไว้ก่อน
+          setDisplayUrl(objectUrl);
+          loadingPath.current = ""; 
         }
-      };
-
-      fetchMonsterImage();
-      return () => { isMounted = false; };
-    }, [imagePath]);
-
-    useEffect(() => {
-      return () => {
-        Object.values(cache.current).forEach((url) => URL.revokeObjectURL(url));
-      };
-    }, []);
-
-    const statuses = enemy?.statuses || [];
-    const getEffectData = (type) => {
-      switch (type) {
-        case "stun": return { icon: <FaLock />, bgColor: "#34495e" };
-        case "poison": return { icon: <FaSkullCrossbones />, bgColor: "#2ecc71" };
-        case "blind": return { icon: <FaEyeSlash />, bgColor: "#8e44ad" };
-        case "bleed": return { icon: <FaTint />, bgColor: "#c0392b" };
-        default: return null;
+      } catch (err) {
+        console.error("Failed to load hero image:", err);
+        if (isMounted) loadingPath.current = "";
       }
     };
 
-    const movementTransition =
-      gameState === "QUIZ_MODE"
-        ? { duration: 5, ease: "linear" }
-        : { type: "spring", stiffness: 300, damping: 25 };
+    fetchImage();
+    return () => { isMounted = false; };
+  }, [imagePath]);
 
-    return (
-      <motion.div
-        initial={{ left: `${enemy.x}%`, x: "-50%", y: "-100%", scale: 0, opacity: 0 }}
-        animate={{ left: `${enemy.x}%`, x: "-50%", y: "-100%", scale: 1, opacity: 1 }}
-        transition={{ default: { type: "spring", stiffness: 300, damping: 15 }, left: movementTransition }}
-        exit={{ x: 500, y: -1000, rotate: 1800, scale: 1, opacity: 1, transition: { duration: 0.2 } }}
-        onClick={(e) => { e.stopPropagation(); onSelect(enemy.id); }}
-        onMouseEnter={() => onHover && onHover(true)}
-        onMouseLeave={() => onHover && onHover(false)}
-        style={{
-          position: "absolute", top: FIXED_Y, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL,
-          zIndex: isBoss ? (isAttack ? 2000 : 50 - index) : (isAttack ? 2000 : 100 - index),
-          display: "flex", flexDirection: "column", justifyContent: "center", cursor: "pointer", ...style,
-        }}
-      >
-        {enemy.hp > 0 && (
-          <div style={{ position: "absolute", bottom: "55px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%", pointerEvents: "none" }}>
-            {(isTargeted || selectionCount > 0) && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 200 }}>
-                <div style={{ width: "60px", height: "60px", border: "4px solid red", borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center", background: "rgba(255, 0, 0, 0.2)", boxShadow: "0 0 15px red" }}>
-                  {selectionCount > 0 && <span style={{ color: "white", fontWeight: "bold", fontSize: "24px", textShadow: "2px 2px 0 #000" }}>{selectionCount > 1 ? `x${selectionCount}` : "TARGET"}</span>}
-                </div>
-              </motion.div>
-            )}
+  // ล้าง Memory เมื่อปิด Component
+  useEffect(() => {
+    return () => {
+      Object.values(cache.current).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
 
-            <div style={{ marginBottom: isBoss ? "200px" : "10px", height: "20px", zIndex: 100000 }}>
-              <ShoutBubble text={enemy.shoutText} />
-            </div>
+  // --- LOGIC: Status & Buffs ---
+  const statuses = playerData?.statuses || [];
+  const buffs = playerData?.buffs || [];
+  if (statuses.length === 0 && playerData?.status) {
+    statuses.push({ type: playerData.status, duration: playerData.statusDuration || 0 });
+  }
+  if (buffs.length === 0 && playerData?.buff) {
+    buffs.push({ type: playerData.buff, duration: playerData.buffDuration || 0 });
+  }
+  const allEffects = [...statuses, ...buffs];
 
-            <div style={{ position: "relative", width: isBoss ? "1000px" : "100px", marginBottom: isBoss ? "-130px" : "35px", marginRight: isBoss ? "780px" : "0px", zIndex: 15, display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <AnimatePresence>
-                {enemy.hp > 0 && gameState === "PLAYERTURN" && (
-                  <motion.div onMouseEnter={() => setShowIntentTooltip(true)} onMouseLeave={() => setShowIntentTooltip(false)} initial={{ opacity: 0, scale: 0.5, x: "-50%" }} animate={{ opacity: 1, scale: 1, y: [0, -4, 0], x: "-50%" }} exit={{ opacity: 0, scale: 0.5, x: "-50%" }} transition={{ y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }} style={{ position: "absolute", top: "-52px", left: "50%", zIndex: 110, pointerEvents: "auto", cursor: "help", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div style={{ width: "28px", height: "28px", background: "rgba(20, 15, 10, 0.95)", borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center", border: `2px solid ${enemy.nextAction === "guard" ? "#3498db" : "#e74c3c"}`, boxShadow: `0 0 10px ${enemy.nextAction === "guard" ? "rgba(52, 152, 219, 0.4)" : "rgba(231, 76, 60, 0.4)"}` }}>
-                      {enemy.nextAction === "guard" ? <GiShield size={18} color="#3498db" /> : <GiBroadsword size={18} color="#e74c3c" />}
-                    </div>
+  const getEffectData = (type) => {
+    switch (type) {
+      case "stun": return { icon: <FaLock />, bgColor: "#34495e" };
+      case "poison": return { icon: <FaSkullCrossbones />, bgColor: "#2ecc71" };
+      case "blind": return { icon: <FaEyeSlash />, bgColor: "#8e44ad" };
+      case "bleed": return { icon: <FaTint />, bgColor: "#c0392b" };
+      case "double-dmg": return { icon: <GiBroadsword />, bgColor: "#c0392b" };
+      case "double-guard":
+      case "double-shield": return { icon: <GiShield />, bgColor: "#2980b9" };
+      case "mana-plus": return { icon: <GiStarShuriken />, bgColor: "#8e44ad" };
+      case "shield-plus": return { icon: <GiTrident />, bgColor: "#e67e22" };
+      default: return null;
+    }
+  };
+
+  return (
+    <motion.div
+      animate={{ left: `${playerX ?? PLAYER_X_POS}%` }}
+      transition={gameState === "ADVANTURE" ? { duration: 2.0, ease: "linear" } : { type: "spring", stiffness: 300, damping: 30 }}
+      style={{ position: "absolute", top: FIXED_Y, transform: "translateY(-100%)", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "center" }}
+    >
+      <motion.div transition={{ type: "spring", stiffness: 400, damping: 25 }} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+        
+        <div style={{ zIndex: 20, marginBottom: "10px", height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ShoutBubble text={playerShoutText} />
+        </div>
+        
+        <div style={{ position: "relative", width: "100px", marginBottom: "35px", zIndex: 15, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "absolute", top: "-32px", display: "flex", gap: "6px", justifyContent: "center", width: "100%", zIndex: 20 }}>
+            <AnimatePresence>
+              {allEffects.map((effect, idx) => {
+                const data = getEffectData(effect.type);
+                if (!data) return null;
+                return (
+                  <motion.div key={`${effect.type}-${idx}`} initial={{ scale: 0, opacity: 0, y: 5 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0, opacity: 0, y: 5 }} style={{ width: "20px", height: "20px", background: data.bgColor, borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center", border: "1.5px solid #fff", fontSize: "11px", color: "#fff", position: "relative", boxShadow: "0 2px 5px rgba(0,0,0,0.6)" }}>
+                    {data.icon}
+                    {effect.duration > 0 && <div style={{ position: "absolute", bottom: "-6px", right: "-6px", background: "#000", fontSize: "9px", fontWeight: "900", padding: "1px 4px", borderRadius: "4px", border: "1px solid #fff", lineHeight: 1 }}>{effect.duration}</div>}
                   </motion.div>
-                )}
-              </AnimatePresence>
-
-              {!isBoss && (
-                <>
-                  <div style={{ position: "absolute", top: "-28px", display: "flex", gap: "4px", zIndex: 20 }}>
-                    <AnimatePresence>
-                      {statuses.map((effect, idx) => {
-                        const data = getEffectData(effect.type);
-                        if (!data) return null;
-                        return (
-                          <motion.div key={idx} initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ width: "18px", height: "18px", background: data.bgColor, borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center", border: "1px solid #fff", fontSize: "10px", color: "#fff", position: "relative" }}>
-                            {data.icon}
-                            {effect.duration > 0 && <div style={{ position: "absolute", bottom: "-5px", right: "-5px", background: "#000", fontSize: "8px", padding: "0 3px", borderRadius: "3px", border: "1px solid #fff" }}>{effect.duration}</div>}
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-                  <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
-                  <MpBar mp={enemy.mana} max={enemy.quiz_move_cost} color="#3b82f6" />
-                  <div style={{ position: "absolute", right: "8px", top: "-18px", display: "flex", alignItems: "center", gap: "2px", zIndex: 20 }}>
-                    <span style={{ fontSize: "11px", color: enemy.shield > 0 ? "#ff9800" : "#888" }}>🛡</span>
-                    <span style={{ fontSize: "11px", fontWeight: "bold", color: "#fff", textShadow: "1px 1px 0 #000" }}>{enemy.shield || 0}</span>
-                  </div>
-                </>
-              )}
-            </div>
+                );
+              })}
+            </AnimatePresence>
           </div>
-        )}
+          <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
+          <MpBar mp={playerData.mana} max={playerData.max_mana} color="#3b82f6" />
+          <div style={{ position: "absolute", right: "10px", top: "-20px", color: playerData.shield > 0 ? "#00bcd4" : "#888", fontWeight: 'bold', fontSize: "12px", display: "flex", gap: "2px" }}>
+              🛡 <span style={{ color: "#fff", textShadow: "1px 1px 0 #000" }}>{playerData.shield}</span>
+          </div>
+        </div>
 
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
-          <motion.div
-            key={imagePath}
-            style={{
-              scale: isBoss ? 4.0 : 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL, position: "absolute", bottom: isBoss ? -10 : 0, left: "50%", x: "-50%",
-              backgroundImage: `url(${displayUrl})`, 
-              backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "bottom center", imageRendering: "pixelated", transformOrigin: "bottom center",
-            }}
-          />
+           <motion.div
+             key={imagePath} 
+             style={{
+               scale: 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL, position: "absolute", bottom: 0, left: "50%", x: "-50%",
+               backgroundImage: `url(${displayUrl})`, 
+               backgroundSize: "auto 100%", backgroundRepeat: "no-repeat", backgroundPosition: "center bottom 0px", imageRendering: "pixelated", transformOrigin: "bottom center",
+             }}
+           />
         </div>
       </motion.div>
-    );
-  }
-);
+    </motion.div>
+  );
+});
