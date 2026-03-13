@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { API_URL } from "../config";
+import { MonsterSpriteLoop } from "../components/SpriteLoops";
 
 const StagePanel = () => {
   const [stages, setStages] = useState([]);
@@ -606,6 +607,8 @@ const SpawnPanel = ({ stageId, onClose }) => {
   (a, b) => Number(a.distant_spawn) - Number(b.distant_spawn)
   );
 
+  const selectedMonster = monsters.find((m) => m.id === formData.monster_id);
+
   return (
     <div
       style={{
@@ -660,48 +663,106 @@ const SpawnPanel = ({ stageId, onClose }) => {
         style={{ borderColor: "#68d391" }}
       >
         <div style={{ width: "100%", color: "#aaa", fontSize: 12, marginBottom: 8 }}>
-          {isEditing ? `Editing Spawn ID: ${formData.id}` : "Add Spawn"}
+          {isEditing ? "Editing Spawn" : "Add Spawn"}
         </div>
 
-        <div style={{ display: "flex", gap: 10, width: "100%", flexWrap: "wrap" }}>
-          <select
-            className="input-field"
-            name="monster_id"
-            value={formData.monster_id}
-            onChange={handleChange}
-            style={{ flex: 2, minWidth: 240 }}
-            data-tooltip="เลือกมอนสเตอร์ที่จะให้เกิดในด่านนี้"
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            width: "100%",
+            alignItems: "stretch",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* preview monster */}
+          <div
+            style={{
+              width: 120,
+              minWidth: 120,
+              minHeight: 110,
+              border: "1px solid rgba(212,175,55,0.35)",
+              borderRadius: 10,
+              background: "rgba(0,0,0,0.28)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 8,
+              gap: 6,
+            }}
+            data-tooltip="ภาพตัวอย่างมอนสเตอร์ที่กำลังเลือก"
           >
-            <option value="" disabled>
-              -- select monster --
-            </option>
-            {monsters.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.id})
+            {formData.monster_id ? (
+              <>
+                <MonsterSpriteLoop id={formData.monster_id} />
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "#ddd",
+                    textAlign: "center",
+                    lineHeight: 1.3,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {selectedMonster?.name || formData.monster_id}
+                </div>
+              </>
+            ) : (
+              <span style={{ color: "#888", fontSize: 12 }}>No Monster</span>
+            )}
+          </div>
+
+          {/* fields */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 280,
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignContent: "flex-start",
+            }}
+          >
+            <select
+              className="input-field"
+              name="monster_id"
+              value={formData.monster_id}
+              onChange={handleChange}
+              style={{ flex: 2, minWidth: 240 }}
+              data-tooltip="เลือกมอนสเตอร์ที่จะให้เกิดในด่านนี้"
+            >
+              <option value="" disabled>
+                -- select monster --
               </option>
-            ))}
-          </select>
+              {monsters.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.id})
+                </option>
+              ))}
+            </select>
 
-          <input
-            className="input-field"
-            name="level"
-            placeholder="level (e.g. A1)"
-            value={formData.level}
-            onChange={handleChange}
-            style={{ flex: 1, minWidth: 140 }}
-            data-tooltip="ระดับความยากหรือรูปแบบสเตตัสของมอนสเตอร์ (เช่น A1)"
-          />
+            <input
+              className="input-field"
+              name="level"
+              placeholder="level (e.g. A1)"
+              value={formData.level}
+              onChange={handleChange}
+              style={{ flex: 1, minWidth: 140 }}
+              data-tooltip="ระดับความยากหรือรูปแบบสเตตัสของมอนสเตอร์ (เช่น A1)"
+            />
 
-          <input
-            className="input-field"
-            type="number"
-            name="distant_spawn"
-            placeholder="distant_spawn"
-            value={formData.distant_spawn}
-            onChange={handleChange}
-            style={{ flex: 1, minWidth: 180 }}
-            data-tooltip="ระยะทางในด่านที่ผู้เล่นเดินไปถึง แล้วมอนสเตอร์ตัวนี้จะเกิด"
-          />
+            <input
+              className="input-field"
+              type="number"
+              name="distant_spawn"
+              placeholder="distant_spawn"
+              value={formData.distant_spawn}
+              onChange={handleChange}
+              style={{ flex: 1, minWidth: 180 }}
+              data-tooltip="ระยะทางในด่านที่ผู้เล่นเดินไปถึง แล้วมอนสเตอร์ตัวนี้จะเกิด"
+            />
+          </div>
         </div>
 
         <div
