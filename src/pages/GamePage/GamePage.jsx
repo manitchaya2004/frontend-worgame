@@ -27,7 +27,7 @@ import { DeckManager } from "../../utils/gameSystem";
 // --- Components ---
 import { InventorySlot } from "./features/downPanel/InventorySlot";
 import { PlayerEntity } from "./features/topPanel/PlayerEntity";
-import { EnemyEntity } from "./features/TopPanel/EnemyEntity";
+import { EnemyEntity } from "./features/topPanel/EnemyEntity";
 import { BossHpBar } from "./features/topPanel/BossHpBar";
 import { SelectedLetterArea } from "./features/topPanel/SelectedLetterArea";
 import { MeaningPopup } from "./features/TopPanel/MeaningPopup";
