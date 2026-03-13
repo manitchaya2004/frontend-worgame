@@ -751,10 +751,10 @@ const SpawnPanel = ({ stageId, onClose }) => {
             <tbody>
               {spawns.map((sp) => (
                 <tr key={sp.id}>
-                  <td style={{ fontFamily: "monospace", color: "#9ad0ff" }}>
+                  <td className="spawn-id-cell">
                     {sp.id}
                   </td>
-                  <td style={{ fontSize: 12, color: "#ddd" }}>
+                  <td className="spawn-monster-cell">
                     {monsterNameById(sp.monster_id)}
                   </td>
                   <td>{sp.level}</td>
