@@ -1,4 +1,4 @@
-import React, { useMemo, memo, useState } from "react";
+import React, { useMemo, memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
@@ -22,8 +22,9 @@ export const EnemyEntity = memo(
     onHover,
     selectionCount = 0,
   }) => {
-    // --- State สำหรับ Tooltip ของ Intent ---
+    // --- State สำหรับ Tooltip และรูปภาพ ---
     const [showIntentTooltip, setShowIntentTooltip] = useState(false);
+    const [blobUrl, setBlobUrl] = useState("");
 
     // -------------------------------------------------------------
     // ✅ 1. Logic รูปภาพ
@@ -33,19 +34,43 @@ export const EnemyEntity = memo(
     const actionName = isAttack ? "attack" : "idle";
     const frameNum = isAttack ? enemy.atkFrame : (animFrame % 2) + 1;
 
-    const monsterFrames = usePreloadFrames(
-      "img_monster",
-      enemy.monster_id,
-      2,
-      actionName,
-    );
-
-    const currentSpriteUrl = useMemo(() => {
-      if (monsterFrames[frameNum - 1]?.src) {
-        return monsterFrames[frameNum - 1].src;
-      }
+    // สร้าง Path ดั้งเดิม
+    const imagePath = useMemo(() => {
       return `/api/img_monster/${enemy.monster_id}-${actionName}-${frameNum}.png`;
-    }, [enemy.monster_id, actionName, frameNum, monsterFrames]);
+    }, [enemy.monster_id, actionName, frameNum]);
+
+    // 🌟 2. Fetch รูปภาพพร้อมใส่ Header Bypass ngrok
+    useEffect(() => {
+      let isMounted = true;
+
+      const fetchMonsterImage = async () => {
+        try {
+          const response = await fetch(imagePath, {
+            headers: {
+              "ngrok-skip-browser-warning": "69420",
+            },
+          });
+          if (!response.ok) throw new Error("Monster image fetch failed");
+
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+
+          if (isMounted) {
+            if (blobUrl) URL.revokeObjectURL(blobUrl);
+            setBlobUrl(objectUrl);
+          }
+        } catch (err) {
+          console.error("Failed to load monster image:", err);
+        }
+      };
+
+      fetchMonsterImage();
+
+      return () => {
+        isMounted = false;
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+      };
+    }, [imagePath]);
 
     // -------------------------------------------------------------
     // 🔮 LOGIC: สถานะ
@@ -203,7 +228,7 @@ export const EnemyEntity = memo(
                 alignItems: "center",
               }}
             >
-              {/* 🌟 Intent Icon (วงกลม, อยู่กลาง, แสดงเฉพาะ PLAYERTURN) */}
+              {/* 🌟 Intent Icon */}
               <AnimatePresence>
                 {enemy.hp > 0 && gameState === "PLAYERTURN" && (
                   <motion.div
@@ -246,8 +271,7 @@ export const EnemyEntity = memo(
                         <GiBroadsword size={18} color="#e74c3c" />
                       )}
                     </div>
-
-                    {/* 💬 Tooltip ตรงกลางไอคอนพอดีพร้อมติ่งชี้ */}
+                    {/* Tooltip */}
                     <AnimatePresence>
                       {showIntentTooltip && (
                         <motion.div
@@ -274,8 +298,6 @@ export const EnemyEntity = memo(
                           {enemy.nextAction === "guard"
                             ? "Planning to Defend"
                             : "Preparing to Attack"}
-
-                          {/* ติ่งแหลมชี้ลงกลางไอคอน */}
                           <div
                             style={{
                               position: "absolute",
@@ -298,7 +320,6 @@ export const EnemyEntity = memo(
 
               {!isBoss && (
                 <>
-                  {/* สถานะดีบัฟ (ปรับ top ให้สูงขึ้นเล็กน้อย -24px เป็น -28px เพื่อเลี่ยงหลอดที่ขยับลง) */}
                   <div
                     style={{
                       position: "absolute",
@@ -353,14 +374,12 @@ export const EnemyEntity = memo(
                       })}
                     </AnimatePresence>
                   </div>
-
                   <HpBar hp={enemy.hp} max={enemy.max_hp} color="#ff4d4d" />
                   <MpBar
                     mp={enemy.mana}
                     max={enemy.quiz_move_cost}
                     color="#3b82f6"
                   />
-
                   <div
                     style={{
                       position: "absolute",
@@ -406,7 +425,7 @@ export const EnemyEntity = memo(
           }}
         >
           <motion.div
-            key={currentSpriteUrl}
+            key={imagePath}
             initial={{ opacity: 0.9 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.05 }}
@@ -418,7 +437,7 @@ export const EnemyEntity = memo(
               bottom: isBoss ? -10 : 0,
               left: "50%",
               x: "-50%",
-              backgroundImage: `url(${currentSpriteUrl})`,
+              backgroundImage: `url(${blobUrl})`,
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "bottom center",

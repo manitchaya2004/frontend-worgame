@@ -7,18 +7,6 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
-    },
-    {
-      "source": "/api/img_hero/:path*",
-      "destination": "https://6cda-1-47-131-5.ngrok-free.app/img_hero/:path*"
-    },
-    {
-      "source": "/api/img_enemy/:path*",
-      "destination": "https://6cda-1-47-131-5.ngrok-free.app/img_enemy/:path*"
-    },
-    {
-      "source": "/api/img_map/:path*",
-      "destination": "https://6cda-1-47-131-5.ngrok-free.app/img_map/:path*"
     }
   ]
 }

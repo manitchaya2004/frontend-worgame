@@ -1,4 +1,4 @@
-import React, { useMemo, memo } from "react";
+import React, { useMemo, memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS
@@ -8,75 +8,83 @@ import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
 
-// ✅ นำเข้าไอคอนสถานะและบัฟตามแบบที่ใช้ใน SingleSlot
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
 import { GiBroadsword, GiShield, GiStarShuriken, GiTrident } from "react-icons/gi";
 
 export const PlayerEntity = memo(({ store }) => {
-  // 1. ดึงค่าทั้งหมดจาก Store
   const { 
     gameState, playerX, playerData, playerVisual, 
     animFrame , playerShoutText
   } = store;
 
-  // =========================================================
-  // 🧠 LOGIC: แปลงคำสั่งจาก Store เป็น Action และ URL (แก้ไขให้ Idle ขยับตอนสู้)
-  // =========================================================
-  
-  const currentSrc = useMemo(() => {
+  const [blobUrl, setBlobUrl] = useState("");
+
+  // คำนวณ URL ของรูปภาพ
+  const imagePath = useMemo(() => {
     let currentAction = "idle";
     let targetFrame = 1;
 
-    // กรณี 1: เดินในฉากแผนที่
     if (gameState === "ADVANTURE") {
       currentAction = "walk";
-      targetFrame = (animFrame % 2) + 1; // สลับ 1-2
-    } 
-    // กรณี 2: ฉากต่อสู้
-    else {
+      targetFrame = (animFrame % 2) + 1;
+    } else {
       const visualState = playerVisual || "idle";
       const split = visualState.split("-");
       currentAction = split[0];
-      
-      // ✅ LOGIC ใหม่: ถ้ากำลัง Idle (ยืนเฉยๆ ตอนสู้) ให้สลับเฟรม 1-2 ตาม animFrame
       if (currentAction === "idle") {
         targetFrame = (animFrame % 2) + 1;
-      } 
-      // ถ้าเป็นท่าทางอื่น (เช่น attack-3) ให้ใช้เฟรมที่ระบุมา หรือ fallback ไปที่เฟรม 1
-      else {
+      } else {
         targetFrame = split[1] ? parseInt(split[1]) : 1;
       }
     }
 
-    // 🛑 แก้ไขปัญหา 404: ถ้าเป็นท่า guard ให้บังคับใช้เฟรม 1 เสมอ
-    if (currentAction === "guard") {
-      targetFrame = 1;
-    }
+    if (currentAction === "guard") targetFrame = 1;
 
-    // สร้าง URL หรือดึงจาก Preload
     return `/api/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
   }, [gameState, animFrame, playerVisual, playerData.img_path]);
 
-  // 🛑 แก้ไขปัญหาพรีโหลด: ถ้าเป็น guard ให้โหลดแค่ 1 ภาพ นอกนั้นโหลด 2 ภาพตามปกติ
-  const currentActionBase = (playerVisual || "idle").split("-")[0];
-  const preloadFrameCount = (currentActionBase === "guard") ? 1 : 2;
-  
-  usePreloadFrames("img_hero", playerData.img_path, preloadFrameCount, gameState === "ADVANTURE" ? "walk" : currentActionBase);
+  // Hook สำหรับ Fetch รูปภาพพร้อมใส่ Header Bypass ngrok
+  useEffect(() => {
+    let isMounted = true;
 
-  // =========================================================
-  // 🔮 LOGIC: จัดการไอคอนสถานะ (Debuff / Buff)
-  // =========================================================
-  
+    const fetchImage = async () => {
+      try {
+        const response = await fetch(imagePath, {
+          headers: {
+            "ngrok-skip-browser-warning": "69420",
+          },
+        });
+        if (!response.ok) throw new Error("Image fetch failed");
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        if (isMounted) {
+          if (blobUrl) URL.revokeObjectURL(blobUrl);
+          setBlobUrl(objectUrl);
+        }
+      } catch (err) {
+        console.error("Failed to load hero image:", err);
+      }
+    };
+
+    fetchImage();
+
+    return () => {
+      isMounted = false;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [imagePath]);
+
+  // Logic บัฟ/เดบบัฟ
   const statuses = playerData?.statuses || [];
   const buffs = playerData?.buffs || [];
-  
   if (statuses.length === 0 && playerData?.status) {
     statuses.push({ type: playerData.status, duration: playerData.statusDuration || 0 });
   }
   if (buffs.length === 0 && playerData?.buff) {
     buffs.push({ type: playerData.buff, duration: playerData.buffDuration || 0 });
   }
-
   const allEffects = [...statuses, ...buffs];
 
   const getEffectData = (type) => {
@@ -112,24 +120,11 @@ export const PlayerEntity = memo(({ store }) => {
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}
       >
-        {/* UI Elements */}
         <div style={{ zIndex: 20, marginBottom: "10px", height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ShoutBubble text={playerShoutText} />
         </div>
         
-        {/* --- HUD ZONE --- */}
-        <div 
-          style={{ 
-            position: "relative", 
-            width: "100px", 
-            marginBottom: "35px", 
-            zIndex: 15, 
-            display: "flex", 
-            flexDirection: "column", 
-            alignItems: "center", 
-            justifyContent: "center",
-          }}
-        >
+        <div style={{ position: "relative", width: "100px", marginBottom: "35px", zIndex: 15, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           <div style={{ position: "absolute", top: "-32px", display: "flex", gap: "6px", justifyContent: "center", width: "100%", zIndex: 20 }}>
             <AnimatePresence>
               {allEffects.map((effect, idx) => {
@@ -141,7 +136,6 @@ export const PlayerEntity = memo(({ store }) => {
                     initial={{ scale: 0, opacity: 0, y: 5 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0, opacity: 0, y: 5 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     style={{
                       width: "20px", height: "20px", background: data.bgColor,
                       borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center",
@@ -151,11 +145,7 @@ export const PlayerEntity = memo(({ store }) => {
                   >
                     {data.icon}
                     {effect.duration > 0 && (
-                      <div style={{
-                        position: "absolute", bottom: "-6px", right: "-6px", background: "#000",
-                        fontSize: "9px", fontWeight: "900", padding: "1px 4px", borderRadius: "4px",
-                        border: "1px solid #fff", lineHeight: 1
-                      }}>
+                      <div style={{ position: "absolute", bottom: "-6px", right: "-6px", background: "#000", fontSize: "9px", fontWeight: "900", padding: "1px 4px", borderRadius: "4px", border: "1px solid #fff", lineHeight: 1 }}>
                         {effect.duration}
                       </div>
                     )}
@@ -164,40 +154,26 @@ export const PlayerEntity = memo(({ store }) => {
               })}
             </AnimatePresence>
           </div>
-
           <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
           <MpBar mp={playerData.mana} max={playerData.max_mana} color="#3b82f6" />
-
-          <div style={{ position: "absolute", right: "10px", top: "-20px", color: playerData.shield > 0 ? "#00bcd4" : "#888", fontWeight: 'bold', fontSize: "12px", display: "flex", gap: "2px" }}>
-              🛡 <span style={{ color: "#fff", textShadow: "1px 1px 0 #000" }}>{playerData.shield}</span>
-          </div>
         </div>
 
-        {/* CHARACTER SPRITE */}
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
            <motion.div
-             key={currentSrc} 
+             key={imagePath} 
              initial={{ opacity: 0.9 }}
              animate={{ opacity: 1 }}
              transition={{ duration: 0.05 }}
              style={{
-               scale: 2.0,
-               width: DISPLAY_NORMAL,
-               height: DISPLAY_NORMAL,
-               position: "absolute",
-               bottom: 0,
-               left: "50%",
-               x: "-50%",
-               backgroundImage: `url(${currentSrc})`,
-               backgroundSize: "auto 100%",
-               backgroundRepeat: "no-repeat",
-               backgroundPosition: "center bottom 0px",
-               imageRendering: "pixelated",
+               scale: 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL,
+               position: "absolute", bottom: 0, left: "50%", x: "-50%",
+               backgroundImage: `url(${blobUrl})`, 
+               backgroundSize: "auto 100%", backgroundRepeat: "no-repeat",
+               backgroundPosition: "center bottom 0px", imageRendering: "pixelated",
                transformOrigin: "bottom center",
              }}
            />
         </div>
-
       </motion.div>
     </motion.div>
     </>
