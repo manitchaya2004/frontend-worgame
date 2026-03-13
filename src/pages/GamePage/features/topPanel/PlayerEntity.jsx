@@ -19,7 +19,8 @@ export const PlayerEntity = memo(({ store }) => {
 
   // --- State & Ref สำหรับจัดการรูปภาพ ---
   const [displayUrl, setDisplayUrl] = useState("");
-  const cache = useRef({}); // เก็บ Blob URL เพื่อป้องกันการโหลดซ้ำ (แก้รูปวาร์ป)
+  const cache = useRef({}); // เก็บ Blob URL เพื่อป้องกันการโหลดซ้ำ
+  const loadingPath = useRef(""); // 🌟 เก็บ Path ที่กำลังดำเนินการโหลดอยู่
 
   // 1. คำนวณ Path รูปภาพตาม Action และ Frame
   const imagePath = useMemo(() => {
@@ -46,15 +47,20 @@ export const PlayerEntity = memo(({ store }) => {
     return `/api/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
   }, [gameState, animFrame, playerVisual, playerData.img_path]);
 
-  // 2. Hook สำหรับ Fetch รูปภาพพร้อมระบบ Cache
+  // 2. Hook สำหรับ Fetch รูปภาพพร้อมระบบ Cache (ป้องกันรูปวาร์ป)
   useEffect(() => {
-    // ถ้ามีใน Cache แล้ว ให้ใช้ทันที ไม่ต้อง Fetch ใหม่ (ลดอาการกระพริบ)
+    // 🌟 กฎที่ 1: ถ้ามีใน Cache แล้ว ให้เปลี่ยนรูปแสดงผลทันที
     if (cache.current[imagePath]) {
       setDisplayUrl(cache.current[imagePath]);
       return;
     }
 
+    // 🌟 กฎที่ 2: ถ้า Path นี้กำลังโหลดอยู่แล้ว ไม่ต้องสั่งซ้ำ
+    if (loadingPath.current === imagePath) return;
+
     let isMounted = true;
+    loadingPath.current = imagePath;
+
     const fetchImage = async () => {
       try {
         const response = await fetch(imagePath, {
@@ -67,10 +73,13 @@ export const PlayerEntity = memo(({ store }) => {
 
         if (isMounted) {
           cache.current[imagePath] = objectUrl;
+          // 🌟 หัวใจสำคัญ: setDisplayUrl หลังจากโหลดเสร็จเท่านั้น เพื่อให้รูปเก่าคาไว้ก่อน
           setDisplayUrl(objectUrl);
+          loadingPath.current = ""; 
         }
       } catch (err) {
         console.error("Failed to load hero image:", err);
+        if (isMounted) loadingPath.current = "";
       }
     };
 
@@ -150,7 +159,7 @@ export const PlayerEntity = memo(({ store }) => {
              key={imagePath} 
              style={{
                scale: 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL, position: "absolute", bottom: 0, left: "50%", x: "-50%",
-               backgroundImage: `url(${displayUrl})`, // ✅ ใช้ displayUrl จาก Cache
+               backgroundImage: `url(${displayUrl})`, 
                backgroundSize: "auto 100%", backgroundRepeat: "no-repeat", backgroundPosition: "center bottom 0px", imageRendering: "pixelated", transformOrigin: "bottom center",
              }}
            />
