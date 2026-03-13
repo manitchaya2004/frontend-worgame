@@ -231,51 +231,98 @@ export const EnemyEntity = memo(
                 alignItems: "center",
               }}
             >
-              <AnimatePresence>
-                {enemy.hp > 0 && gameState === "PLAYERTURN" && (
-                  <motion.div
-                    onMouseEnter={() => setShowIntentTooltip(true)}
-                    onMouseLeave={() => setShowIntentTooltip(false)}
-                    initial={{ opacity: 0, scale: 0.5, x: "-50%" }}
-                    animate={{ opacity: 1, scale: 1, y: [0, -4, 0], x: "-50%" }}
-                    exit={{ opacity: 0, scale: 0.5, x: "-50%" }}
-                    transition={{
-                      y: { repeat: Infinity, duration: 2, ease: "easeInOut" },
-                    }}
+            <AnimatePresence>
+              {enemy.hp > 0 && gameState === "PLAYERTURN" && (
+                <motion.div
+                  onMouseEnter={() => setShowIntentTooltip(true)}
+                  onMouseLeave={() => setShowIntentTooltip(false)}
+                  initial={{ opacity: 0, scale: 0.5, x: "-50%" }}
+                  animate={{ opacity: 1, scale: 1, y: [0, -4, 0], x: "-50%" }}
+                  exit={{ opacity: 0, scale: 0.5, x: "-50%" }}
+                  transition={{
+                    y: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: "-45px",
+                    left: "50%",
+                    zIndex: 110,
+                    pointerEvents: "auto",
+                    cursor: "help",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {/* 🛡/⚔️ ตัวไอคอนวงกลม */}
+                  <div
                     style={{
-                      position: "absolute",
-                      top: "-52px",
-                      left: "50%",
-                      zIndex: 110,
-                      pointerEvents: "auto",
-                      cursor: "help",
+                      width: "28px",
+                      height: "28px",
+                      background: "rgba(20, 15, 10, 0.95)",
+                      borderRadius: "50%",
                       display: "flex",
-                      flexDirection: "column",
+                      justifyContent: "center",
                       alignItems: "center",
+                      border: `2px solid ${enemy.nextAction === "guard" ? "#3498db" : "#e74c3c"}`,
+                      boxShadow: `0 0 10px ${enemy.nextAction === "guard" ? "rgba(52, 152, 219, 0.4)" : "rgba(231, 76, 60, 0.4)"}`,
                     }}
                   >
-                    <div
-                      style={{
-                        width: "28px",
-                        height: "28px",
-                        background: "rgba(20, 15, 10, 0.95)",
-                        borderRadius: "50%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        border: `2px solid ${enemy.nextAction === "guard" ? "#3498db" : "#e74c3c"}`,
-                        boxShadow: `0 0 10px ${enemy.nextAction === "guard" ? "rgba(52, 152, 219, 0.4)" : "rgba(231, 76, 60, 0.4)"}`,
-                      }}
-                    >
-                      {enemy.nextAction === "guard" ? (
-                        <GiShield size={18} color="#3498db" />
-                      ) : (
-                        <GiBroadsword size={18} color="#e74c3c" />
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    {enemy.nextAction === "guard" ? (
+                      <GiShield size={18} color="#3498db" />
+                    ) : (
+                      <GiBroadsword size={18} color="#e74c3c" />
+                    )}
+                  </div>
+
+                  {/* 💬 ส่วนที่หายไป: กล่อง Tooltip ข้อความอธิบาย */}
+                  <AnimatePresence>
+                    {showIntentTooltip && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5, x: "-50%" }}
+                        animate={{ opacity: 1, y: 0, x: "-50%" }}
+                        exit={{ opacity: 0, y: 5, x: "-50%" }}
+                        style={{
+                          position: "absolute",
+                          bottom: "120%", // ให้ลอยอยู่เหนือไอคอน
+                          left: "50%",
+                          padding: "4px 10px",
+                          background: "rgba(0, 0, 0, 0.95)",
+                          color: "#fff",
+                          fontSize: "11px",
+                          fontWeight: "bold",
+                          borderRadius: "4px",
+                          whiteSpace: "nowrap",
+                          border: `1px solid ${enemy.nextAction === "guard" ? "#3498db" : "#e74c3c"}`,
+                          zIndex: 1001,
+                          boxShadow: "0 4px 15px rgba(0,0,0,0.5)",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        {enemy.nextAction === "guard"
+                          ? "Planning to GUARD"
+                          : "Preparing to STRIKE"}
+
+                        {/* ▽ ติ่งแหลมชี้ลง */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            width: "0",
+                            height: "0",
+                            borderLeft: "5px solid transparent",
+                            borderRight: "5px solid transparent",
+                            borderTop: `5px solid ${enemy.nextAction === "guard" ? "#3498db" : "#e74c3c"}`,
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
               {!isBoss && (
                 <>
