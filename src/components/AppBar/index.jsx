@@ -38,6 +38,9 @@ import { useStaminaTimer } from "../../hook/useStaminaTimer";
 import { useGameSfx } from "../../hook/useGameSfx";
 import clickSfx from "../../assets/sound/click1.ogg";
 
+//style admin
+import "../../pages/AdminBoss/AdminBoss.css";
+
 const THEME = {
   bgMain: "#E8E9CD",
   bgDark: "#2b1d14",
@@ -136,14 +139,14 @@ const EnergyBar = React.memo(
 
     const { timeLeft, isFull, timerStatus } = useStaminaTimer(staminaObj);
     const controls = useAnimation();
-    
+
     // 💡 THE FIX: เปลี่ยนมาใช้ useRef แทน State เพื่อไม่ให้เกิด Render loop กวนใจ
     const hasTriggeredRef = useRef(false);
 
     useEffect(() => {
       if (timerStatus === "reduced") {
         controls.start({
-          scale: [1, 1.3, 1], 
+          scale: [1, 1.3, 1],
           transition: { duration: 0.5 },
         });
       }
@@ -152,7 +155,7 @@ const EnergyBar = React.memo(
     // 💡 THE FIX: ลอจิกจับเวลาหมดที่ปรับปรุงใหม่ (ป้องกันค้างที่ 0:00)
     useEffect(() => {
       let retryTimer;
-      
+
       if (timeLeft > 0) {
         // เมื่อเวลามีมากกว่า 0 (คือเวลายังเดินอยู่ หรือเพิ่งได้สายฟ้ามาใหม่)
         hasTriggeredRef.current = false;
@@ -164,7 +167,7 @@ const EnergyBar = React.memo(
             onTimerEnd(); // เรียกฟังก์ชัน refreshUser() ขอสายฟ้าจาก Backend!
           }
         }
-        
+
         // 💡 THE FIX: Retry Mechanism!
         // ถ้า UI ค้างที่ 0:00 นานเกิน 2.5 วินาที แสดงว่า Backend ตอบกลับมาไม่ทันเวลา
         // ให้ปลดล็อคเพื่อยิง API ขอเช็คสายฟ้าอีกรอบอัตโนมัติ!
@@ -338,6 +341,8 @@ const GameAppBar = () => {
     refreshUser,
   } = useAuthStore();
 
+  const navigate = useNavigate();
+  const location = useLocation();
   const muiTheme = useMuiTheme();
   const playClickSound = useGameSfx(clickSfx);
 
@@ -359,8 +364,8 @@ const GameAppBar = () => {
   const heroId = activeHero?.hero_id;
   const currentLevel = activeHero?.level || 1;
 
-  const navigate = useNavigate();
-  const location = useLocation();
+  const isAdmin =
+    currentUser?.role === "admin" || currentUser?.role === "adminBoss";
 
   const [openSettings, setOpenSettings] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -804,26 +809,42 @@ const GameAppBar = () => {
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Logout" arrow>
-              <IconButton
-                onClick={() => {
-                  playClickSound();
-                  setConfirmLogout(true);
-                }}
-                sx={{
-                  color: "#d7ccc8",
-                  p: { xs: 0.5, sm: 1 },
-                  "&:hover": { color: "#ff1744", transform: "translateX(2px)" },
-                  transition: "all 0.3s",
-                }}
-              >
-                <LogoutIcon
-                  sx={{
-                    fontSize: !isLandscapeMobile ? { xs: 20, sm: 24 } : 18,
+            {!isAdmin ? (
+              <Tooltip title="Logout" arrow>
+                <IconButton
+                  onClick={() => {
+                    playClickSound();
+                    setConfirmLogout(true);
                   }}
-                />
-              </IconButton>
-            </Tooltip>
+                  sx={{
+                    color: "#d7ccc8",
+                    p: { xs: 0.5, sm: 1 },
+                    "&:hover": {
+                      color: "#ff1744",
+                      transform: "translateX(2px)",
+                    },
+                    transition: "all 0.3s",
+                  }}
+                >
+                  <LogoutIcon
+                    sx={{
+                      fontSize: !isLandscapeMobile ? { xs: 20, sm: 24 } : 18,
+                    }}
+                  />
+                </IconButton>
+              </Tooltip>
+            ) : (
+
+                <button
+                  className="server-mini-btn"
+                  onClick={()=> navigate("/")}
+                  type="button"
+                  title="Go to Game Page"
+                >
+                  Admin
+                </button>
+             
+            )}
           </Box>
         </Toolbar>
       </AppBar>
