@@ -12,7 +12,13 @@ export const useMonsterStore = create((set) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`/api/monster`);
+      // แก้ไขจุดที่ 1: เพิ่ม Header เพื่อข้ามหน้า ngrok warning
+      const res = await fetch(`/api/monster`, {
+        headers: {
+          "ngrok-skip-browser-warning": "69420",
+        },
+      });
+
       if (!res.ok) throw new Error("Failed to fetch monsters");
 
       const data = await res.json();
@@ -35,7 +41,13 @@ export const useMonsterStore = create((set) => ({
       // ยิง API getStageById ของทุกด่านพร้อมกัน
       const fetchPromises = userStages.map(async (stage) => {
         try {
-          const res = await fetch(`/api/getStageById/${stage.stage_id}`);
+          // แก้ไขจุดที่ 2: เพิ่ม Header เพื่อข้ามหน้า ngrok warning ใน loop
+          const res = await fetch(`/api/getStageById/${stage.stage_id}`, {
+            headers: {
+              "ngrok-skip-browser-warning": "69420",
+            },
+          });
+          
           if (!res.ok) return; // ถ้าดึงด่านไหนไม่ผ่าน ก็ข้ามไป
           const stageData = await res.json();
 

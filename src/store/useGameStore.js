@@ -645,9 +645,20 @@ export const useGameStore = create((set, get) => ({
         }));
       }
 
-      const dictRes = await fetch(`/api/dict`);
+      // แก้ไขจุดที่ 1: เพิ่ม Header เพื่อข้ามหน้า ngrok warning สำหรับ get dictionary
+      const dictRes = await fetch(`/api/dict`, {
+        headers: {
+          "ngrok-skip-browser-warning": "69420",
+        },
+      });
       const dictData = await dictRes.json();
-      const stageRes = await fetch(`/api/getStageById/${stageId}`);
+
+      // แก้ไขจุดที่ 2: เพิ่ม Header เพื่อข้ามหน้า ngrok warning สำหรับ get stage by id
+      const stageRes = await fetch(`/api/getStageById/${stageId}`, {
+        headers: {
+          "ngrok-skip-browser-warning": "69420",
+        },
+      });
       const stageData = await stageRes.json();
 
       DeckManager.init();

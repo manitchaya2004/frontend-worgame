@@ -13,7 +13,13 @@ export const useHeroStore = create((set) => ({
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`/api/hero`);
+      // แก้ไข: เพิ่ม Header เพื่อข้ามหน้าแจ้งเตือนของ ngrok สำหรับ GET request
+      const res = await fetch(`/api/hero`, {
+        headers: {
+          "ngrok-skip-browser-warning": "69420",
+        },
+      });
+      
       if (!res.ok) throw new Error("Failed to fetch heros");
 
       const data = await res.json();
