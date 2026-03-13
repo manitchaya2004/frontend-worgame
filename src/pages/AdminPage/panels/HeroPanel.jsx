@@ -839,16 +839,7 @@ const HeroPanel = () => {
                   <td className="mono">{h.ability_cost ?? "-"}</td>
 
                   {/* ✅ Deck ให้ใหญ่ขึ้น + แสดงรายการการ์ด */}
-                  <td
-                    style={{
-                      fontSize: 14,
-                      lineHeight: 1.35,
-                      padding: "10px 12px",
-                      minWidth: 280,
-                      maxWidth: 360,
-                      verticalAlign: "top",
-                    }}
-                  >
+                  <td className="hero-deck-cell">
                     <div
                       style={{
                         color: "#48bb78",
@@ -865,7 +856,7 @@ const HeroPanel = () => {
                     </div>
 
                     {Array.isArray(h.hero_deck) && h.hero_deck.length > 0 && (
-                      <div style={{ paddingRight: 6 }}>
+                      <div className="hero-deck-scroll">
                         {h.hero_deck.map((card, idx) => {
                           const meta = EFFECT_META[card.effect];
                           return (
@@ -888,20 +879,12 @@ const HeroPanel = () => {
                     )}
                   </td>
 
-                  <td style={{ fontSize: 12, color: "#ccc", maxWidth: 220 }}>
+                  <td className="hero-desc-cell">
                     {h.description ?? "-"}
                   </td>
 
-                  <td className="action-buttons">
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "6px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                      }}
-                    >
+                  <td className="actions-cell hero-actions-cell">
+                    <div className="action-buttons hero-action-buttons">
                       <button
                         type="button"
                         className="btn btn-edit"
@@ -922,8 +905,7 @@ const HeroPanel = () => {
 
                       <button
                         type="button"
-                        className="btn"
-                        style={{ background: "#444", color: "#fff", whiteSpace: "nowrap" }}
+                        className="btn btn-sprites"
                         onClick={() => handleDeleteSprites(h.id)}
                         data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites"
                       >
