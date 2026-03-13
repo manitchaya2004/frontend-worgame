@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "http://25.16.201.205:3000/$1"
+      "destination": "https://6cda-1-47-131-5.ngrok-free.app/$1"
     },
     {
       "source": "/(.*)",
