@@ -31,7 +31,7 @@ import { EnemyEntity } from "./features/topPanel/EnemyEntity";
 import { BossHpBar } from "./features/topPanel/BossHpBar";
 import { SelectedLetterArea } from "./features/topPanel/SelectedLetterArea";
 import { MeaningPopup } from "./features/topPanel/MeaningPopup";
-import { QuizOverlay } from "./features/DownPanel/QuizOverlay";
+import { QuizOverlay } from "./features/downPanel/QuizOverlay";
 import { Tooltip } from "./features/topPanel/Tooltip";
 import { ActionControls } from "./features/downPanel/ActionControls";
 import { PlayerStatusCard } from "./features/downPanel/PlayerStatusCard";
