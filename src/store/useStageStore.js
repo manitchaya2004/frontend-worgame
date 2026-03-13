@@ -15,8 +15,14 @@ export const useStageStore = create((set) => ({
       if (!res.ok) throw new Error("Failed to fetch stages");
 
       const data = await res.json();
-      set({ stages: data, loading: LOADED });
+      console.log("Check Stage Data:", data); // ดูใน Console ว่า data เป็น Array หรือ Object
+
+      // ถ้า data ที่มาเป็น Object { data: [...] } ให้ใช้ data.data
+      const stageList = Array.isArray(data) ? data : data.data; 
+      
+      set({ stages: stageList || [], loading: LOADED });
     } catch (err) {
+      console.error("Fetch Stage Error:", err);
       set({ loading: FAILED, error: err.message });
     }
   },
