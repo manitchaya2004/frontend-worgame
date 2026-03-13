@@ -1,13 +1,13 @@
-import React, { useMemo, memo, useState, useEffect } from "react";
+import React, { useMemo, memo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS
 } from "../../../../const/index";
-import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
 
+// ✅ Icons
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
 import { GiBroadsword, GiShield, GiStarShuriken, GiTrident } from "react-icons/gi";
 
@@ -17,9 +17,11 @@ export const PlayerEntity = memo(({ store }) => {
     animFrame , playerShoutText
   } = store;
 
-  const [blobUrl, setBlobUrl] = useState("");
+  // --- State & Ref สำหรับจัดการรูปภาพ ---
+  const [displayUrl, setDisplayUrl] = useState("");
+  const cache = useRef({}); // เก็บ Blob URL เพื่อป้องกันการโหลดซ้ำ (แก้รูปวาร์ป)
 
-  // คำนวณ URL ของรูปภาพ
+  // 1. คำนวณ Path รูปภาพตาม Action และ Frame
   const imagePath = useMemo(() => {
     let currentAction = "idle";
     let targetFrame = 1;
@@ -31,6 +33,7 @@ export const PlayerEntity = memo(({ store }) => {
       const visualState = playerVisual || "idle";
       const split = visualState.split("-");
       currentAction = split[0];
+      
       if (currentAction === "idle") {
         targetFrame = (animFrame % 2) + 1;
       } else {
@@ -43,16 +46,19 @@ export const PlayerEntity = memo(({ store }) => {
     return `/api/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
   }, [gameState, animFrame, playerVisual, playerData.img_path]);
 
-  // Hook สำหรับ Fetch รูปภาพพร้อมใส่ Header Bypass ngrok
+  // 2. Hook สำหรับ Fetch รูปภาพพร้อมระบบ Cache
   useEffect(() => {
-    let isMounted = true;
+    // ถ้ามีใน Cache แล้ว ให้ใช้ทันที ไม่ต้อง Fetch ใหม่ (ลดอาการกระพริบ)
+    if (cache.current[imagePath]) {
+      setDisplayUrl(cache.current[imagePath]);
+      return;
+    }
 
+    let isMounted = true;
     const fetchImage = async () => {
       try {
         const response = await fetch(imagePath, {
-          headers: {
-            "ngrok-skip-browser-warning": "69420",
-          },
+          headers: { "ngrok-skip-browser-warning": "69420" },
         });
         if (!response.ok) throw new Error("Image fetch failed");
         
@@ -60,8 +66,8 @@ export const PlayerEntity = memo(({ store }) => {
         const objectUrl = URL.createObjectURL(blob);
 
         if (isMounted) {
-          if (blobUrl) URL.revokeObjectURL(blobUrl);
-          setBlobUrl(objectUrl);
+          cache.current[imagePath] = objectUrl;
+          setDisplayUrl(objectUrl);
         }
       } catch (err) {
         console.error("Failed to load hero image:", err);
@@ -69,14 +75,17 @@ export const PlayerEntity = memo(({ store }) => {
     };
 
     fetchImage();
-
-    return () => {
-      isMounted = false;
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-    };
+    return () => { isMounted = false; };
   }, [imagePath]);
 
-  // Logic บัฟ/เดบบัฟ
+  // ล้าง Memory เมื่อปิด Component
+  useEffect(() => {
+    return () => {
+      Object.values(cache.current).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  // --- LOGIC: Status & Buffs ---
   const statuses = playerData?.statuses || [];
   const buffs = playerData?.buffs || [];
   if (statuses.length === 0 && playerData?.status) {
@@ -103,23 +112,13 @@ export const PlayerEntity = memo(({ store }) => {
   };
 
   return (
-    <>
     <motion.div
       animate={{ left: `${playerX ?? PLAYER_X_POS}%` }}
-      transition={
-          gameState === "ADVANTURE" 
-          ? { duration: 2.0, ease: "linear" } 
-          : { type: "spring", stiffness: 300, damping: 30 }
-      }
-      style={{
-        position: "absolute", top: FIXED_Y, transform: "translateY(-100%)",
-        zIndex: 100, display: "flex", flexDirection: "column", alignItems: "center",
-      }}
+      transition={gameState === "ADVANTURE" ? { duration: 2.0, ease: "linear" } : { type: "spring", stiffness: 300, damping: 30 }}
+      style={{ position: "absolute", top: FIXED_Y, transform: "translateY(-100%)", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "center" }}
     >
-      <motion.div
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}
-      >
+      <motion.div transition={{ type: "spring", stiffness: 400, damping: 25 }} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+        
         <div style={{ zIndex: 20, marginBottom: "10px", height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ShoutBubble text={playerShoutText} />
         </div>
@@ -131,24 +130,9 @@ export const PlayerEntity = memo(({ store }) => {
                 const data = getEffectData(effect.type);
                 if (!data) return null;
                 return (
-                  <motion.div
-                    key={`${effect.type}-${idx}`}
-                    initial={{ scale: 0, opacity: 0, y: 5 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0, opacity: 0, y: 5 }}
-                    style={{
-                      width: "20px", height: "20px", background: data.bgColor,
-                      borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center",
-                      border: "1.5px solid #fff", fontSize: "11px", color: "#fff", position: "relative",
-                      boxShadow: "0 2px 5px rgba(0,0,0,0.6)"
-                    }}
-                  >
+                  <motion.div key={`${effect.type}-${idx}`} initial={{ scale: 0, opacity: 0, y: 5 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0, opacity: 0, y: 5 }} style={{ width: "20px", height: "20px", background: data.bgColor, borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center", border: "1.5px solid #fff", fontSize: "11px", color: "#fff", position: "relative", boxShadow: "0 2px 5px rgba(0,0,0,0.6)" }}>
                     {data.icon}
-                    {effect.duration > 0 && (
-                      <div style={{ position: "absolute", bottom: "-6px", right: "-6px", background: "#000", fontSize: "9px", fontWeight: "900", padding: "1px 4px", borderRadius: "4px", border: "1px solid #fff", lineHeight: 1 }}>
-                        {effect.duration}
-                      </div>
-                    )}
+                    {effect.duration > 0 && <div style={{ position: "absolute", bottom: "-6px", right: "-6px", background: "#000", fontSize: "9px", fontWeight: "900", padding: "1px 4px", borderRadius: "4px", border: "1px solid #fff", lineHeight: 1 }}>{effect.duration}</div>}
                   </motion.div>
                 );
               })}
@@ -156,26 +140,22 @@ export const PlayerEntity = memo(({ store }) => {
           </div>
           <HpBar hp={playerData.hp} max={playerData.max_hp} color="#4dff8b" />
           <MpBar mp={playerData.mana} max={playerData.max_mana} color="#3b82f6" />
+          <div style={{ position: "absolute", right: "10px", top: "-20px", color: playerData.shield > 0 ? "#00bcd4" : "#888", fontWeight: 'bold', fontSize: "12px", display: "flex", gap: "2px" }}>
+              🛡 <span style={{ color: "#fff", textShadow: "1px 1px 0 #000" }}>{playerData.shield}</span>
+          </div>
         </div>
 
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
            <motion.div
              key={imagePath} 
-             initial={{ opacity: 0.9 }}
-             animate={{ opacity: 1 }}
-             transition={{ duration: 0.05 }}
              style={{
-               scale: 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL,
-               position: "absolute", bottom: 0, left: "50%", x: "-50%",
-               backgroundImage: `url(${blobUrl})`, 
-               backgroundSize: "auto 100%", backgroundRepeat: "no-repeat",
-               backgroundPosition: "center bottom 0px", imageRendering: "pixelated",
-               transformOrigin: "bottom center",
+               scale: 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL, position: "absolute", bottom: 0, left: "50%", x: "-50%",
+               backgroundImage: `url(${displayUrl})`, // ✅ ใช้ displayUrl จาก Cache
+               backgroundSize: "auto 100%", backgroundRepeat: "no-repeat", backgroundPosition: "center bottom 0px", imageRendering: "pixelated", transformOrigin: "bottom center",
              }}
            />
         </div>
       </motion.div>
     </motion.div>
-    </>
   );
 });

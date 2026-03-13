@@ -1,10 +1,9 @@
-import React, { useMemo, memo, useState, useEffect } from "react";
+import React, { useMemo, memo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
 import { DISPLAY_NORMAL, FIXED_Y } from "../../../../const/index";
-import { usePreloadFrames } from "../../../HomePage/hook/usePreloadFrams";
 
 // ✅ Icons
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
@@ -22,42 +21,37 @@ export const EnemyEntity = memo(
     onHover,
     selectionCount = 0,
   }) => {
-    // --- State สำหรับ Tooltip และรูปภาพ ---
     const [showIntentTooltip, setShowIntentTooltip] = useState(false);
-    const [blobUrl, setBlobUrl] = useState("");
+    const [displayUrl, setDisplayUrl] = useState("");
+    const cache = useRef({});
 
-    // -------------------------------------------------------------
-    // ✅ 1. Logic รูปภาพ
-    // -------------------------------------------------------------
     const isBoss = enemy.isBoss;
     const isAttack = enemy.atkFrame > 0;
     const actionName = isAttack ? "attack" : "idle";
     const frameNum = isAttack ? enemy.atkFrame : (animFrame % 2) + 1;
 
-    // สร้าง Path ดั้งเดิม
     const imagePath = useMemo(() => {
       return `/api/img_monster/${enemy.monster_id}-${actionName}-${frameNum}.png`;
     }, [enemy.monster_id, actionName, frameNum]);
 
-    // 🌟 2. Fetch รูปภาพพร้อมใส่ Header Bypass ngrok
     useEffect(() => {
-      let isMounted = true;
+      if (cache.current[imagePath]) {
+        setDisplayUrl(cache.current[imagePath]);
+        return;
+      }
 
+      let isMounted = true;
       const fetchMonsterImage = async () => {
         try {
           const response = await fetch(imagePath, {
-            headers: {
-              "ngrok-skip-browser-warning": "69420",
-            },
+            headers: { "ngrok-skip-browser-warning": "69420" },
           });
-          if (!response.ok) throw new Error("Monster image fetch failed");
-
           const blob = await response.blob();
           const objectUrl = URL.createObjectURL(blob);
 
           if (isMounted) {
-            if (blobUrl) URL.revokeObjectURL(blobUrl);
-            setBlobUrl(objectUrl);
+            cache.current[imagePath] = objectUrl;
+            setDisplayUrl(objectUrl);
           }
         } catch (err) {
           console.error("Failed to load monster image:", err);
@@ -65,16 +59,17 @@ export const EnemyEntity = memo(
       };
 
       fetchMonsterImage();
-
       return () => {
         isMounted = false;
-        if (blobUrl) URL.revokeObjectURL(blobUrl);
       };
     }, [imagePath]);
 
-    // -------------------------------------------------------------
-    // 🔮 LOGIC: สถานะ
-    // -------------------------------------------------------------
+    useEffect(() => {
+      return () => {
+        Object.values(cache.current).forEach((url) => URL.revokeObjectURL(url));
+      };
+    }, []);
+
     const statuses = enemy?.statuses || [];
     const getEffectData = (type) => {
       switch (type) {
@@ -149,7 +144,6 @@ export const EnemyEntity = memo(
           ...style,
         }}
       >
-        {/* --- HUD --- */}
         {enemy.hp > 0 && (
           <div
             style={{
@@ -162,7 +156,6 @@ export const EnemyEntity = memo(
               pointerEvents: "none",
             }}
           >
-            {/* เป้าหมายการโจมตี */}
             {(isTargeted || selectionCount > 0) && (
               <motion.div
                 initial={{ scale: 0 }}
@@ -204,7 +197,6 @@ export const EnemyEntity = memo(
               </motion.div>
             )}
 
-            {/* คำพูดมอนสเตอร์ */}
             <div
               style={{
                 marginBottom: isBoss ? "200px" : "10px",
@@ -215,7 +207,6 @@ export const EnemyEntity = memo(
               <ShoutBubble text={enemy.shoutText} />
             </div>
 
-            {/* ZONE: HP & MP BARS */}
             <div
               style={{
                 position: "relative",
@@ -228,7 +219,6 @@ export const EnemyEntity = memo(
                 alignItems: "center",
               }}
             >
-              {/* 🌟 Intent Icon */}
               <AnimatePresence>
                 {enemy.hp > 0 && gameState === "PLAYERTURN" && (
                   <motion.div
@@ -271,49 +261,6 @@ export const EnemyEntity = memo(
                         <GiBroadsword size={18} color="#e74c3c" />
                       )}
                     </div>
-                    {/* Tooltip */}
-                    <AnimatePresence>
-                      {showIntentTooltip && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 5, x: "-50%" }}
-                          animate={{ opacity: 1, y: 0, x: "-50%" }}
-                          exit={{ opacity: 0, y: 5, x: "-50%" }}
-                          style={{
-                            position: "absolute",
-                            bottom: "120%",
-                            left: "50%",
-                            padding: "4px 10px",
-                            background: "rgba(0, 0, 0, 0.95)",
-                            color: "#fff",
-                            fontSize: "11px",
-                            fontWeight: "bold",
-                            borderRadius: "4px",
-                            whiteSpace: "nowrap",
-                            border: `1px solid ${enemy.nextAction === "guard" ? "#3498db" : "#e74c3c"}`,
-                            zIndex: 1001,
-                            boxShadow: "0 4px 15px rgba(0,0,0,0.5)",
-                            pointerEvents: "none",
-                          }}
-                        >
-                          {enemy.nextAction === "guard"
-                            ? "Planning to Defend"
-                            : "Preparing to Attack"}
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "100%",
-                              left: "50%",
-                              transform: "translateX(-50%)",
-                              width: "0",
-                              height: "0",
-                              borderLeft: "5px solid transparent",
-                              borderRight: "5px solid transparent",
-                              borderTop: `5px solid ${enemy.nextAction === "guard" ? "#3498db" : "#e74c3c"}`,
-                            }}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -416,7 +363,6 @@ export const EnemyEntity = memo(
           </div>
         )}
 
-        {/* --- CHARACTER SPRITE --- */}
         <div
           style={{
             position: "relative",
@@ -426,9 +372,6 @@ export const EnemyEntity = memo(
         >
           <motion.div
             key={imagePath}
-            initial={{ opacity: 0.9 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.05 }}
             style={{
               scale: isBoss ? 4.0 : 2.0,
               width: DISPLAY_NORMAL,
@@ -437,7 +380,7 @@ export const EnemyEntity = memo(
               bottom: isBoss ? -10 : 0,
               left: "50%",
               x: "-50%",
-              backgroundImage: `url(${blobUrl})`,
+              backgroundImage: `url(${displayUrl})`, // ✅ ใช้ displayUrl จาก Cache
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "bottom center",

@@ -8,8 +8,8 @@ import React, {
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ipAddress } from "../../const";
 import { bgm } from "../../utils/sfx";
+
 // --- Icons ---
 import {
   GiTatteredBanner,
@@ -23,6 +23,7 @@ import { MdMusicOff, MdFlag } from "react-icons/md";
 // --- Store & System ---
 import { useGameStore, getLetterDamage } from "../../store/useGameStore";
 import { DeckManager } from "../../utils/gameSystem";
+import { useAuthStore } from "../../store/useAuthStore";
 
 // --- Components ---
 import { InventorySlot } from "./features/downPanel/InventorySlot";
@@ -49,10 +50,11 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const xTransform = align === "center" ? "-50%" : "0%";
-  const leftPos = align === "center" ? "50%" : (align === "left" ? "0" : "auto");
+  const leftPos = align === "center" ? "50%" : align === "left" ? "0" : "auto";
   const rightPos = align === "right" ? "0" : "auto";
 
-  const arrowLeft = align === "center" ? "50%" : (align === "left" ? "20px" : "auto");
+  const arrowLeft =
+    align === "center" ? "50%" : align === "left" ? "20px" : "auto";
   const arrowRight = align === "right" ? "20px" : "auto";
   const arrowMarginLeft = align === "center" ? "-5px" : "0";
 
@@ -80,9 +82,10 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
               borderRadius: "6px",
               padding: "8px 10px",
               minWidth: "150px",
-              zIndex: 9999, // 🌟 ปรับเป็น 9999 เพื่อให้อยู่หน้าสุดเสมอ
+              zIndex: 9999,
               pointerEvents: "none",
-              boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
+              boxShadow:
+                "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
               display: "flex",
               flexDirection: "column",
               gap: "4px",
@@ -133,29 +136,48 @@ export default function GameApp() {
   const [showTargetPicker, setShowTargetPicker] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bgBlobUrl, setBgBlobUrl] = useState(""); // 🌟 State สำหรับรูปพื้นหลัง
+
   const requestRef = useRef(0);
   const lastTimeRef = useRef(0);
   const constraintsRef = useRef(null);
 
+  // --------------------------------------------------------------------------
+  // 🌟 Logic: Fetch Background Image (Bypass ngrok warning)
+  // --------------------------------------------------------------------------
   useEffect(() => {
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    const originalOverscroll = window.getComputedStyle(document.body).overscrollBehavior;
-    
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
-    document.body.style.touchAction = "none";
+    if (!selectedStage) return;
 
-    const preventTouchMove = (e) => e.preventDefault();
-    document.addEventListener("touchmove", preventTouchMove, { passive: false });
+    let isMounted = true;
+    const fetchBackground = async () => {
+      try {
+        const response = await fetch(`/api/img_map/${selectedStage}.png`, {
+          headers: {
+            "ngrok-skip-browser-warning": "69420",
+          },
+        });
+        if (!response.ok) throw new Error("Background fetch failed");
 
-    return () => {
-      document.body.style.overflow = originalStyle;
-      document.body.style.overscrollBehavior = originalOverscroll;
-      document.body.style.touchAction = "auto";
-      document.removeEventListener("touchmove", preventTouchMove);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        if (isMounted) {
+          if (bgBlobUrl) URL.revokeObjectURL(bgBlobUrl);
+          setBgBlobUrl(objectUrl);
+        }
+      } catch (err) {
+        console.error("Failed to load background image:", err);
+      }
     };
-  }, []);
 
+    fetchBackground();
+    return () => {
+      isMounted = false;
+      if (bgBlobUrl) URL.revokeObjectURL(bgBlobUrl);
+    };
+  }, [selectedStage]);
+
+  // --- Window Resizing ---
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 720;
   const [windowScale, setWindowScale] = useState(1);
@@ -168,63 +190,58 @@ export default function GameApp() {
     const handleResize = () => {
       const currentWidth = window.innerWidth;
       const currentHeight = window.innerHeight;
-      
       setViewportSize({ width: currentWidth, height: currentHeight });
-
       const scaleX = currentWidth / BASE_WIDTH;
       const scaleY = currentHeight / BASE_HEIGHT;
       setWindowScale(Math.min(scaleX, scaleY));
     };
-
-    handleResize(); 
+    handleResize();
     window.addEventListener("resize", handleResize);
-    window.addEventListener("orientationchange", () => setTimeout(handleResize, 100));
-    
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("orientationchange", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // --- Game Data & Logic ---
   const activeSelectedItems = useMemo(
     () => store.selectedLetters.filter((i) => i !== null),
     [store.selectedLetters],
   );
-
   const currentWord = useMemo(
     () => activeSelectedItems.map((i) => i.char).join(""),
     [activeSelectedItems],
   );
 
   const prediction = useMemo(() => {
-    let strikeTotal = 0;
-    let guardTotal = 0;
-    let healTotal = 0;
-    let recoilDmg = 0;
-
+    let strikeTotal = 0,
+      guardTotal = 0,
+      healTotal = 0,
+      recoilDmg = 0;
     const wordLength = activeSelectedItems.length;
     const playerPower = store.playerData?.power || 3;
     const excessLetters = wordLength - playerPower;
-    
-    if (excessLetters > 0) {
-        const recoilPercent = excessLetters * 0.10;
-        recoilDmg = Math.max(1, Math.floor((store.playerData?.max_hp || 0) * Math.min(recoilPercent, 1)));
-    }
 
+    if (excessLetters > 0) {
+      const recoilPercent = excessLetters * 0.1;
+      recoilDmg = Math.max(
+        1,
+        Math.floor(
+          (store.playerData?.max_hp || 0) * Math.min(recoilPercent, 1),
+        ),
+      );
+    }
     activeSelectedItems.forEach((item) => {
       const base = getLetterDamage(item.char);
       strikeTotal += item.buff === "double-dmg" ? base * 2 : base;
-      guardTotal += (item.buff === "double-guard" || item.buff === "double-shield") ? base * 2 : base;
-      if (item.buff === "heal") {
-          healTotal += Math.ceil(base);
-      }
+      guardTotal +=
+        item.buff === "double-guard" || item.buff === "double-shield"
+          ? base * 2
+          : base;
+      if (item.buff === "heal") healTotal += Math.ceil(base);
     });
-
     return {
       strike: { min: Math.floor(strikeTotal), max: Math.ceil(strikeTotal) },
       guard: { min: Math.floor(guardTotal), max: Math.ceil(guardTotal) },
       recoil: recoilDmg,
-      heal: healTotal
+      heal: healTotal,
     };
   }, [activeSelectedItems, store.playerData]);
 
@@ -232,25 +249,6 @@ export default function GameApp() {
     () => store.enemies.find((e) => e.isBoss),
     [store.enemies],
   );
-
-  const tooltipTarget = useMemo(() => {
-    if (store.hoveredEnemyId === "PLAYER") {
-      return {
-        id: "player",
-        x: store.playerX + 4.5,
-        isPlayer: true,
-        name: store.playerData.name,
-      };
-    } else if (store.hoveredEnemyId) {
-      return store.enemies.find((e) => e.id === store.hoveredEnemyId);
-    }
-    return null;
-  }, [
-    store.hoveredEnemyId,
-    store.playerX,
-    store.playerData.name,
-    store.enemies,
-  ]);
 
   const executeAction = useCallback(
     async (type, targetId) => {
@@ -267,86 +265,14 @@ export default function GameApp() {
       if (!store.validWordInfo) return;
       setPendingAction(type);
       const alive = store.enemies.filter((e) => e.hp > 0);
-      if (type === "Guard") {
-        executeAction("Guard", null);
-      } else {
+      if (type === "Guard") executeAction("Guard", null);
+      else {
         if (alive.length === 1) executeAction("Strike", alive[0].id);
         else setShowTargetPicker(true);
       }
     },
     [store.validWordInfo, store.enemies, executeAction],
   );
-
-  const handleSelectTargetFromMenu = useCallback(
-    (enemyId) => {
-      store.setHoveredEnemyId(null);
-      setShowTargetPicker(false);
-      if (pendingAction === "Strike") {
-        executeAction("Strike", enemyId);
-      } else if (pendingAction === "SKILL") {
-        store.performPlayerSkill(enemyId);
-      }
-      setPendingAction(null);
-    },
-    [
-      pendingAction,
-      executeAction,
-      store.performPlayerSkill,
-      store.setHoveredEnemyId,
-    ],
-  );
-
-  const handleSkillClick = useCallback(async () => {
-    const alive = store.enemies.filter((e) => e.hp > 0);
-    if (alive.length === 1) {
-      await store.performPlayerSkill(alive[0].id);
-    } else {
-      setPendingAction("SKILL");
-      setShowTargetPicker(true);
-    }
-  }, [store.enemies, store.performPlayerSkill]);
-
-  const handleHeal = useCallback(() => {
-    const { potions, hp, max_hp } = store.playerData;
-    if (potions.health <= 0 || hp >= max_hp) return;
-    store.usePotion("health", 30);
-  }, [store.playerData, store.usePotion]);
-
-  const handlePotionCure = useCallback(() => {
-    if (store.playerData.potions.cure <= 0) return;
-    store.usePotion("cure");
-  }, [store.playerData.potions.cure, store.usePotion]);
-
-  const handlePotionRoll = useCallback(() => {
-    if (store.playerData.potions.reroll <= 0) return;
-    store.usePotion("reroll"); 
-
-    const currentInv = store.playerData.inventory; 
-    const unlockedSlots = store.playerData.unlockedSlots;
-    let tempInvForLogic = [...currentInv];
-    const nextInv = currentInv.map((item, index) => {
-      if (!item) return null;
-      const char = DeckManager.draw(tempInvForLogic, unlockedSlots);
-      const newItem = {
-        id: Math.random(),
-        char,
-        buff: item.buff || null, 
-        status: item.status || null,
-        statusDuration: item.statusDuration || 0,
-        visible: true,
-        originalIndex: index,
-      };
-      tempInvForLogic[index] = newItem;
-      return newItem;
-    });
-    store.actionSpin(nextInv);
-  }, [
-    store.playerData.potions.reroll,
-    store.playerData.inventory,
-    store.playerData.unlockedSlots,
-    store.usePotion,
-    store.actionSpin,
-  ]);
 
   const initGameData = useCallback(async () => {
     setAppStatus("LOADING");
@@ -377,9 +303,7 @@ export default function GameApp() {
         return;
       }
       const dt = time - lastTimeRef.current;
-      if (dt > 0 && dt < 100) {
-        store.update(dt);
-      }
+      if (dt > 0 && dt < 100) store.update(dt);
       lastTimeRef.current = time;
       requestRef.current = requestAnimationFrame(animate);
     },
@@ -393,88 +317,19 @@ export default function GameApp() {
     }
   }, [appStatus, animate]);
 
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      e.preventDefault();
-      e.returnValue = "";
-      return "";
-    };
-    const handlePopState = (e) => {
-      e.preventDefault();
-      window.history.pushState(null, document.title, window.location.href);
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.history.pushState(null, document.title, window.location.href);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (store.gameState === "OVER") {
-      if (store.isBgmOn) store.toggleBgm();
-      const halfCoins = Math.floor(store.receivedCoin / 2);
-      store.saveQuitGame(halfCoins);
-      navigate("/summary", {
-        state: {
-          result: "LOSE",
-          earnedCoins: halfCoins,
-          stageCoins: 0,
-          wordLog: store.wordLog,
-        },
-      });
-    }
-    if (store.gameState === "GAME_CLEARED") {
-      if (store.isBgmOn) store.toggleBgm();
-      const currentStageId = store.stageData?.id;
-      const stageRecord = currentUser?.stages?.find(
-        (s) => s.stage_id === currentStageId,
-      );
-      const isFirstClear = !stageRecord || !stageRecord.is_completed;
-      navigate("/summary", {
-        state: {
-          result: "WIN",
-          earnedCoins: store.receivedCoin,
-          stageCoins: isFirstClear ? store.stageData?.money_reward || 0 : 0,
-          wordLog: store.wordLog,
-          hasMaxSlotUpgrade: isFirstClear,
-        },
-      });
-    }
-  }, [
-    store.gameState,
-    store.receivedCoin,
-    store.wordLog,
-    store.isBgmOn,
-    store.stageData,
-    currentUser,
-    navigate,
-    store.toggleBgm,
-    store.saveQuitGame,
-  ]);
-
   const handleExit = useCallback(async () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     bgm.stop();
     const halfCoins = Math.floor((store.receivedCoin || 0) / 2);
     await store.saveQuitGame(halfCoins);
     navigate("/summary", {
-      state: {
-        result: "LOSE",
-        earnedCoins: halfCoins,
-        stageCoins: 0,
-        wordLog: store.wordLog,
-      },
+      state: { result: "LOSE", earnedCoins: halfCoins, wordLog: store.wordLog },
     });
     setTimeout(() => {
       store.reset();
       store.resetSelection();
     }, 100);
   }, [
-    store.isBgmOn,
-    store.toggleBgm,
     store.receivedCoin,
     store.saveQuitGame,
     store.wordLog,
@@ -482,9 +337,6 @@ export default function GameApp() {
     store.resetSelection,
     navigate,
   ]);
-
-  const handleOpenDialog = useCallback(() => setIsDialogOpen(true), []);
-  const handleCloseDialog = useCallback(() => setIsDialogOpen(false), []);
 
   const commonHudStyle = useMemo(
     () => ({
@@ -498,32 +350,9 @@ export default function GameApp() {
       justifyContent: "center",
       height: "52px",
       boxSizing: "border-box",
-      transition: "all 0.1s",
     }),
     [],
   );
-
-  const hudButtonStyle = useMemo(
-    () => ({
-      ...commonHudStyle,
-      width: "52px",
-      cursor: "pointer",
-      color: "#e6c88b",
-    }),
-    [commonHudStyle],
-  );
-
-  const handleHudButtonDown = (e) => {
-    e.currentTarget.style.transform = "translateY(2px)";
-    e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.6)";
-    e.currentTarget.style.borderBottomWidth = "2px";
-  };
-
-  const handleHudButtonUp = (e) => {
-    e.currentTarget.style.transform = "translateY(0)";
-    e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.6)";
-    e.currentTarget.style.borderBottomWidth = "4px";
-  };
 
   const centerOffset = (activeSelectedItems.length * 65) / 2 + 5;
 
@@ -541,7 +370,7 @@ export default function GameApp() {
           justifyContent: "center",
           alignItems: "center",
           background: "#121212",
-          overflow: "hidden", 
+          overflow: "hidden",
           position: "fixed",
           top: 0,
           left: 0,
@@ -563,7 +392,7 @@ export default function GameApp() {
             boxShadow: "0 0 20px rgba(0,0,0,0.8)",
           }}
         >
-          {/* HUD Left */}
+          {/* HUD Left & Right (Surrender, Sound, Coins, Meters) */}
           <div
             style={{
               position: "absolute",
@@ -575,20 +404,14 @@ export default function GameApp() {
             }}
           >
             <div
-              onClick={handleOpenDialog}
-              style={hudButtonStyle}
-              onMouseDown={handleHudButtonDown}
-              onMouseUp={handleHudButtonUp}
-              title="Surrender"
+              onClick={() => setIsDialogOpen(true)}
+              style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
             >
               <MdFlag size={26} color="#e74c3c" />
             </div>
             <div
               onClick={store.toggleSfx}
-              style={hudButtonStyle}
-              onMouseDown={handleHudButtonDown}
-              onMouseUp={handleHudButtonUp}
-              title="Toggle SFX"
+              style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
             >
               {store.isSfxOn ? (
                 <GiSpeaker size={26} />
@@ -598,10 +421,7 @@ export default function GameApp() {
             </div>
             <div
               onClick={store.toggleBgm}
-              style={hudButtonStyle}
-              onMouseDown={handleHudButtonDown}
-              onMouseUp={handleHudButtonUp}
-              title="Toggle Music"
+              style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
             >
               {store.isBgmOn ? (
                 <GiMusicalNotes size={26} />
@@ -611,7 +431,6 @@ export default function GameApp() {
             </div>
           </div>
 
-          {/* HUD Right */}
           <div
             style={{
               position: "absolute",
@@ -619,39 +438,30 @@ export default function GameApp() {
               right: "20px",
               zIndex: 1000,
               display: "flex",
-              alignItems: "center",
               gap: "10px",
             }}
           >
-            <TopHudTooltipWrapper 
-              title="Gold Coins" 
+            <TopHudTooltipWrapper
+              title="Gold Coins"
               desc="Earned by defeating enemies."
               align="right"
             >
               <div style={{ ...commonHudStyle, padding: "0 16px", gap: "8px" }}>
-                <GiTwoCoins
-                  size={28}
-                  color="#ffd700"
-                  style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
-                />
+                <GiTwoCoins size={28} color="#ffd700" />
                 <span
                   style={{
                     color: "#ffd700",
                     fontWeight: "bold",
                     fontSize: "22px",
-                    fontFamily: '"Cinzel", serif',
-                    textShadow: "0 2px 4px #000",
-                    lineHeight: 1,
                   }}
                 >
                   {store.receivedCoin}
                 </span>
               </div>
             </TopHudTooltipWrapper>
-
-            <TopHudTooltipWrapper 
-              title="Distance Covered" 
-              desc="How far you have traveled in this stage."
+            <TopHudTooltipWrapper
+              title="Distance Covered"
+              desc="How far you have traveled."
               align="right"
             >
               <div
@@ -662,11 +472,7 @@ export default function GameApp() {
                   minWidth: "140px",
                 }}
               >
-                <GiTatteredBanner
-                  size={28}
-                  color="#f1c40f"
-                  style={{ filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.8))" }}
-                />
+                <GiTatteredBanner size={28} color="#f1c40f" />
                 <div
                   style={{
                     display: "flex",
@@ -680,22 +486,11 @@ export default function GameApp() {
                       color: "#f1c40f",
                       fontWeight: "bold",
                       fontSize: "20px",
-                      fontFamily: '"Cinzel", serif',
-                      textShadow: "0 2px 4px #000",
                     }}
                   >
                     {Math.floor(store.distance)}
                   </span>
-                  <span
-                    style={{
-                      color: "#8c734b",
-                      fontSize: "10px",
-                      fontFamily: "sans-serif",
-                      textTransform: "uppercase",
-                      fontWeight: "bold",
-                      letterSpacing: "1px",
-                    }}
-                  >
+                  <span style={{ color: "#8c734b", fontSize: "10px" }}>
                     METERS
                   </span>
                 </div>
@@ -711,7 +506,7 @@ export default function GameApp() {
               overflow: "hidden",
               borderBottom: "4px solid #0f0a08",
               width: "100%",
-              backgroundImage: `url(/api/img_map/${selectedStage}.png)`,
+              backgroundImage: `url(${bgBlobUrl})`, // 🌟 ใช้ Blob URL จาก Cache
               backgroundRepeat: "repeat-x",
               backgroundSize: "auto 100%",
               backgroundPositionY: "bottom",
@@ -723,6 +518,7 @@ export default function GameApp() {
               popups={store.damagePopups}
               removePopup={store.removePopup}
             />
+
             <div
               style={{
                 pointerEvents:
@@ -736,8 +532,10 @@ export default function GameApp() {
                 constraintsRef={constraintsRef}
               />
             </div>
+
             <BossHpBar boss={boss} />
-            <PlayerEntity store={store} animFrame={store.animFrame} />
+            <PlayerEntity store={store} />
+
             <AnimatePresence>
               {store.enemies
                 .filter((en) => en.hp > 0)
@@ -748,58 +546,88 @@ export default function GameApp() {
                     index={i}
                     animFrame={store.animFrame}
                     gameState={store.gameState}
-                    isTargeted={false}
                     onSelect={() => {}}
                   />
                 ))}
             </AnimatePresence>
+
             {store.validWordInfo && (
               <MeaningPopup entries={store.validWordInfo?.entries} />
             )}
-            <Tooltip target={tooltipTarget} />
 
-            {/* 🌟 Prediction UI (Guard / Shield & Heal) */}
+            {/* Prediction HUDs (Damage, Shield, Heal, Recoil) */}
             <AnimatePresence>
-              {store.validWordInfo && (prediction.guard.max > 0 || prediction.heal > 0) && (
-                <div style={{ position: "absolute", bottom: "170px", right: `calc(50% + ${centerOffset}px)`, zIndex: 9999 /* 🌟 ปรับเป็น 9999 */, pointerEvents: "none", display: "flex", gap: "8px" }}>
-                  {/* บล็อก Heal */}
-                  {prediction.heal > 0 && (
-                    <TopHudTooltipWrapper title="Predicted Healing" desc="Amount of HP restored when using this word." align="center">
-                      <PredictionBadge type="HEAL" value={prediction.heal} color="#2ecc71" side="right" />
-                    </TopHudTooltipWrapper>
-                  )}
-                  {/* บล็อก Shield */}
-                  {prediction.guard.max > 0 && (
-                    <TopHudTooltipWrapper title="Predicted Shield" desc="Defense value gained to block incoming damage." align="center">
-                      <PredictionBadge type="SHIELD" value={prediction.guard} color="#3498db" side="right" />
-                    </TopHudTooltipWrapper>
-                  )}
-                </div>
-              )}
+              {store.validWordInfo &&
+                (prediction.guard.max > 0 || prediction.heal > 0) && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "170px",
+                      right: `calc(50% + ${centerOffset}px)`,
+                      zIndex: 9999,
+                      pointerEvents: "none",
+                      display: "flex",
+                      gap: "8px",
+                    }}
+                  >
+                    {prediction.heal > 0 && (
+                      <PredictionBadge
+                        type="HEAL"
+                        value={prediction.heal}
+                        color="#2ecc71"
+                        side="right"
+                      />
+                    )}
+                    {prediction.guard.max > 0 && (
+                      <PredictionBadge
+                        type="SHIELD"
+                        value={prediction.guard}
+                        color="#3498db"
+                        side="right"
+                      />
+                    )}
+                  </div>
+                )}
             </AnimatePresence>
 
-            {/* 🌟 Prediction UI (Strike / Damage & Overload Recoil) */}
             <AnimatePresence>
-              {store.validWordInfo && (prediction.strike.max > 0 || prediction.recoil > 0) && (
-                <div style={{ position: "absolute", bottom: "170px", left: `calc(50% + ${centerOffset}px)`, zIndex: 9999 /* 🌟 ปรับเป็น 9999 */, pointerEvents: "none", display: "flex", gap: "8px", flexDirection: "row-reverse" }}>
-                  {/* บล็อก Recoil */}
-                  {prediction.recoil > 0 && (
-                    <TopHudTooltipWrapper title="Overload Recoil" desc="Damage taken due to exceeding your power capacity." align="center">
-                      <PredictionBadge type="RECOIL" value={prediction.recoil} color="#8b0000" side="left" isWarning={true} />
-                    </TopHudTooltipWrapper>
-                  )}
-                  {/* บล็อก Damage */}
-                  {prediction.strike.max > 0 && (
-                    <TopHudTooltipWrapper title="Predicted Damage" desc="Base damage dealt to the target(s)." align="center">
-                      <PredictionBadge type="DAMAGE" value={prediction.strike} color="#ff4d4d" side="left" />
-                    </TopHudTooltipWrapper>
-                  )}
-                </div>
-              )}
+              {store.validWordInfo &&
+                (prediction.strike.max > 0 || prediction.recoil > 0) && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "170px",
+                      left: `calc(50% + ${centerOffset}px)`,
+                      zIndex: 9999,
+                      pointerEvents: "none",
+                      display: "flex",
+                      gap: "8px",
+                      flexDirection: "row-reverse",
+                    }}
+                  >
+                    {prediction.recoil > 0 && (
+                      <PredictionBadge
+                        type="RECOIL"
+                        value={prediction.recoil}
+                        color="#8b0000"
+                        side="left"
+                        isWarning={true}
+                      />
+                    )}
+                    {prediction.strike.max > 0 && (
+                      <PredictionBadge
+                        type="DAMAGE"
+                        value={prediction.strike}
+                        color="#ff4d4d"
+                        side="left"
+                      />
+                    )}
+                  </div>
+                )}
             </AnimatePresence>
           </div>
 
-          {/* Bottom Panel */}
+          {/* Bottom Panel (Status, Inventory, Actions) */}
           <div
             style={{
               flex: 1,
@@ -808,7 +636,6 @@ export default function GameApp() {
               display: "flex",
               padding: "15px 0px",
               boxSizing: "border-box",
-              overflow: "hidden",
               position: "relative",
             }}
           >
@@ -822,7 +649,7 @@ export default function GameApp() {
                 alignItems: "center",
               }}
             >
-              {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
+              {store.gameState === "QUIZ_MODE" ? (
                 <QuizOverlay
                   data={store.currentQuiz}
                   onAnswer={store.resolveQuiz}
@@ -830,12 +657,11 @@ export default function GameApp() {
               ) : showTargetPicker ? (
                 <TargetPickerOverlay
                   store={store}
-                  ipAddress={ipAddress}
                   onClose={() => {
                     setShowTargetPicker(false);
                     setPendingAction(null);
                   }}
-                  onSelectTarget={handleSelectTargetFromMenu}
+                  onSelectTarget={(id) => executeAction(pendingAction, id)}
                 />
               ) : (
                 <div
@@ -848,17 +674,12 @@ export default function GameApp() {
                     height: "100%",
                   }}
                 >
-                  <PlayerStatusCard
-                    onHeal={handleHeal}
-                    onCure={handlePotionCure}
-                    onReroll={handlePotionRoll}
-                  />
+                  <PlayerStatusCard onHeal={store.usePotion} />
                   <InventorySlot />
                   <ActionControls
                     store={store}
                     onAttackClick={() => handleActionClick("Strike")}
                     onShieldClick={() => handleActionClick("Guard")}
-                    onSkillClick={handleSkillClick}
                     onEndTurnClick={store.passTurn}
                   />
                 </div>
@@ -867,68 +688,59 @@ export default function GameApp() {
           </div>
         </div>
       </div>
+
       <GameDialog
         open={isDialogOpen}
-        onCancel={handleCloseDialog}
+        onCancel={() => setIsDialogOpen(false)}
         onConfirm={handleExit}
-        confirmText="Accept"
-        cancelText="Cancel"
         title="Surrender?"
-        description="Your progress will be saved and you will receive half of your earned coins."
+        description="You will receive half of your earned coins."
       />
     </>
   );
 }
 
-// --------------------------------------------------------------------------
-// 🔲 SUB-COMPONENT: PredictionBadge
-// --------------------------------------------------------------------------
-const PredictionBadge = memo(({ type, value, color, side, isWarning = false }) => {
-  const isRight = side === "right";
-  const displayValue = typeof value === "number" ? { min: value, max: value } : value;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.8, y: 10 }}
-      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-      style={{ pointerEvents: "auto" }} // เปิด pointerEvents เพื่อให้ Hover Tooltip ทำงานได้
-    >
-      <div
-        style={{
-          background: isWarning ? "rgba(40, 10, 10, 0.95)" : "rgba(26, 18, 11, 0.95)",
-          border: `2px solid ${isWarning ? "#e74c3c" : "#5c4033"}`,
-          [isRight ? "borderLeft" : `borderRight`]: `4px solid ${color}`,
-          borderRadius: "6px",
-          padding: "6px 12px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          boxShadow: isWarning ? "0 4px 12px rgba(231,76,60,0.4)" : "0 4px 8px rgba(0,0,0,0.6)",
-        }}
+const PredictionBadge = memo(
+  ({ type, value, color, side, isWarning = false }) => {
+    const displayValue =
+      typeof value === "number" ? { min: value, max: value } : value;
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.8, y: 10 }}
       >
-        <span
+        <div
           style={{
-            color,
-            fontSize: "18px",
-            fontWeight: "bold",
-            textShadow: "0 2px 2px #000",
+            background: isWarning
+              ? "rgba(40, 10, 10, 0.95)"
+              : "rgba(26, 18, 11, 0.95)",
+            border: `2px solid ${isWarning ? "#e74c3c" : "#5c4033"}`,
+            [side === "right" ? "borderLeft" : "borderRight"]:
+              `4px solid ${color}`,
+            borderRadius: "6px",
+            padding: "6px 12px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
           }}
         >
-          {displayValue.min === displayValue.max ? displayValue.min : `${displayValue.min}-${displayValue.max}`}
-        </span>
-        <span
-          style={{
-            color: isWarning ? "#ff9999" : "#bdc3c7",
-            fontSize: "9px",
-            fontWeight: "bold",
-            letterSpacing: "1px",
-          }}
-        >
-          {type}
-        </span>
-      </div>
-    </motion.div>
-  );
-});
+          <span style={{ color, fontSize: "18px", fontWeight: "bold" }}>
+            {displayValue.min === displayValue.max
+              ? displayValue.min
+              : `${displayValue.min}-${displayValue.max}`}
+          </span>
+          <span
+            style={{
+              color: isWarning ? "#ff9999" : "#bdc3c7",
+              fontSize: "9px",
+              fontWeight: "bold",
+            }}
+          >
+            {type}
+          </span>
+        </div>
+      </motion.div>
+    );
+  },
+);
