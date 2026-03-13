@@ -20,7 +20,7 @@ export const PlayerEntity = memo(({ store }) => {
   } = store;
 
   // =========================================================
-  // 🧠 LOGIC: แปลงคำสั่งจาก Store เป็น Action และ URL (ใช้ useMemo ป้องกันรูปวาป)
+  // 🧠 LOGIC: แปลงคำสั่งจาก Store เป็น Action และ URL (แก้ไขให้ Idle ขยับตอนสู้)
   // =========================================================
   
   const currentSrc = useMemo(() => {
@@ -30,13 +30,22 @@ export const PlayerEntity = memo(({ store }) => {
     // กรณี 1: เดินในฉากแผนที่
     if (gameState === "ADVANTURE") {
       currentAction = "walk";
-      targetFrame = animFrame; 
+      targetFrame = (animFrame % 2) + 1; // สลับ 1-2
     } 
     // กรณี 2: ฉากต่อสู้
     else {
-      const split = (playerVisual || "idle").split("-");
+      const visualState = playerVisual || "idle";
+      const split = visualState.split("-");
       currentAction = split[0];
-      targetFrame = split[1] ? parseInt(split[1]) : animFrame;
+      
+      // ✅ LOGIC ใหม่: ถ้ากำลัง Idle (ยืนเฉยๆ ตอนสู้) ให้สลับเฟรม 1-2 ตาม animFrame
+      if (currentAction === "idle") {
+        targetFrame = (animFrame % 2) + 1;
+      } 
+      // ถ้าเป็นท่าทางอื่น (เช่น attack-3) ให้ใช้เฟรมที่ระบุมา หรือ fallback ไปที่เฟรม 1
+      else {
+        targetFrame = split[1] ? parseInt(split[1]) : 1;
+      }
     }
 
     // 🛑 แก้ไขปัญหา 404: ถ้าเป็นท่า guard ให้บังคับใช้เฟรม 1 เสมอ
@@ -44,26 +53,23 @@ export const PlayerEntity = memo(({ store }) => {
       targetFrame = 1;
     }
 
-    // สร้าง URL หรือดึงจาก Preload (ถ้ามี)
+    // สร้าง URL หรือดึงจาก Preload
     return `/api/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
   }, [gameState, animFrame, playerVisual, playerData.img_path]);
 
   // 🛑 แก้ไขปัญหาพรีโหลด: ถ้าเป็น guard ให้โหลดแค่ 1 ภาพ นอกนั้นโหลด 2 ภาพตามปกติ
   const currentActionBase = (playerVisual || "idle").split("-")[0];
-  const preloadFrameCount = currentActionBase === "guard" ? 1 : 2;
+  const preloadFrameCount = (currentActionBase === "guard") ? 1 : 2;
   
-  // ยังคงเรียก Hook เพื่อให้ Browser ทำการ Fetch ข้อมูลไว้ (ตามโครงสร้างเดิมของคุณ)
   usePreloadFrames("img_hero", playerData.img_path, preloadFrameCount, gameState === "ADVANTURE" ? "walk" : currentActionBase);
 
   // =========================================================
   // 🔮 LOGIC: จัดการไอคอนสถานะ (Debuff / Buff)
   // =========================================================
   
-  // ดึงค่า status และ buff ออกมาจาก playerData (รองรับทั้งแบบ Array และ Object/String)
   const statuses = playerData?.statuses || [];
   const buffs = playerData?.buffs || [];
   
-  // Fallback เผื่อใช้เก็บเป็น string เดี่ยวๆ เหมือนใน Item
   if (statuses.length === 0 && playerData?.status) {
     statuses.push({ type: playerData.status, duration: playerData.statusDuration || 0 });
   }
@@ -73,15 +79,12 @@ export const PlayerEntity = memo(({ store }) => {
 
   const allEffects = [...statuses, ...buffs];
 
-  // ฟังก์ชันหา UI ของแต่ละสถานะ (สีพื้นหลัง + ไอคอน)
   const getEffectData = (type) => {
     switch (type) {
-      // 💀 Debuffs
       case "stun": return { icon: <FaLock />, bgColor: "#34495e" };
       case "poison": return { icon: <FaSkullCrossbones />, bgColor: "#2ecc71" };
       case "blind": return { icon: <FaEyeSlash />, bgColor: "#8e44ad" };
       case "bleed": return { icon: <FaTint />, bgColor: "#c0392b" };
-      // 🛡️ Buffs
       case "double-dmg": return { icon: <GiBroadsword />, bgColor: "#c0392b" };
       case "double-guard":
       case "double-shield": return { icon: <GiShield />, bgColor: "#2980b9" };
@@ -96,9 +99,9 @@ export const PlayerEntity = memo(({ store }) => {
     <motion.div
       animate={{ left: `${playerX ?? PLAYER_X_POS}%` }}
       transition={
-         gameState === "ADVANTURE" 
-         ? { duration: 2.0, ease: "linear" } 
-         : { type: "spring", stiffness: 300, damping: 30 }
+          gameState === "ADVANTURE" 
+          ? { duration: 2.0, ease: "linear" } 
+          : { type: "spring", stiffness: 300, damping: 30 }
       }
       style={{
         position: "absolute", top: FIXED_Y, transform: "translateY(-100%)",
@@ -114,7 +117,7 @@ export const PlayerEntity = memo(({ store }) => {
           <ShoutBubble text={playerShoutText} />
         </div>
         
-        {/* --- HUD ZONE (อยู่บนหัวผู้เล่น) --- */}
+        {/* --- HUD ZONE --- */}
         <div 
           style={{ 
             position: "relative", 
@@ -124,11 +127,10 @@ export const PlayerEntity = memo(({ store }) => {
             display: "flex", 
             flexDirection: "column", 
             alignItems: "center", 
-            justifyContent: "center"
+            justifyContent: "center",
           }}
         >
-          {/* ✅ จุดแสดงไอคอนสถานะ (ลอยอยู่เหนือ HpBar) */}
-          <div style={{ position: "absolute", top: "-28px", display: "flex", gap: "6px", justifyContent: "center", width: "100%", zIndex: 20 }}>
+          <div style={{ position: "absolute", top: "-32px", display: "flex", gap: "6px", justifyContent: "center", width: "100%", zIndex: 20 }}>
             <AnimatePresence>
               {allEffects.map((effect, idx) => {
                 const data = getEffectData(effect.type);
@@ -148,7 +150,6 @@ export const PlayerEntity = memo(({ store }) => {
                     }}
                   >
                     {data.icon}
-                    {/* ป้ายบอกจำนวนเทิร์นที่เหลือ (ถ้ามี) */}
                     {effect.duration > 0 && (
                       <div style={{
                         position: "absolute", bottom: "-6px", right: "-6px", background: "#000",
@@ -175,7 +176,7 @@ export const PlayerEntity = memo(({ store }) => {
         {/* CHARACTER SPRITE */}
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
            <motion.div
-             key={currentSrc} // ✅ ใช้ key เพื่อลดอาการภาพกะพริบตอนเปลี่ยนเฟรม/ท่าทาง
+             key={currentSrc} 
              initial={{ opacity: 0.9 }}
              animate={{ opacity: 1 }}
              transition={{ duration: 0.05 }}

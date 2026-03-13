@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import { PLAYER_X_POS, FIXED_Y, ipAddress } from "../const/index";
+import { PLAYER_X_POS, FIXED_Y } from "../const/index";
 import { sfx, bgm } from "../utils/sfx";
 import { DeckManager, WordSystem } from "../utils/gameSystem";
 import { useAuthStore } from "./useAuthStore";
+
 // ==========================================
 // 📊 GLOBAL POWER SETTINGS
 // ==========================================
@@ -203,7 +204,6 @@ export const applyRandomBuffs = (inventory, deckList = [], drawPile = []) => {
 
 export const useGameStore = create((set, get) => ({
   isMenuOpen: false,
-
   isBgmOn: !useAuthStore.getState().isMuted,
   isSfxOn: !useAuthStore.getState().isSfxMuted,
 
@@ -253,6 +253,61 @@ export const useGameStore = create((set, get) => ({
   playerVisual: "idle-1",
   animFrame: 1,
   selectedLetters: [],
+
+  // 🛑 FLAG ป้องกันการประมวลผลซ้อนใน Memory
+  isProcessingUpdate: false,
+
+  update: (dt) => {
+    const state = get();
+    const updates = {};
+    const ANIM_SPEED = 300;
+    
+    // 1. Animation Frame Logic (ลดการสร้าง Object บ่อยเกินไป)
+    let newTimer = (state.animTimer || 0) + dt;
+    if (newTimer >= ANIM_SPEED) {
+      newTimer -= ANIM_SPEED;
+      updates.animFrame = state.animFrame === 1 ? 2 : 1;
+      if (state.gameState === "ADVANTURE" && state.isSfxOn) sfx.playWalk();
+    }
+    updates.animTimer = newTimer;
+
+    // 2. Adventure Progression Logic
+    if (state.gameState === "ADVANTURE") {
+      const goal = state.stageData?.distant_goal;
+      
+      if (goal && state.distance >= goal) {
+        // ฉากเดินออกจาก Stage
+        const nextX = state.playerX + dt * 0.1;
+        updates.playerX = nextX;
+        if (nextX > 180 && state.gameState !== "LOADING") {
+          get().finishStage();
+        }
+      } else {
+        // กำลังเดินในด่าน
+        const newDist = state.distance + dt * 0.005;
+        let nextTargetDist = state.stageData?.events?.[state.currentEventIndex]?.distance || Infinity;
+
+        if (newDist >= nextTargetDist) {
+          updates.distance = nextTargetDist;
+          updates.gameState = "PREPARING_COMBAT";
+          
+          // ใช้ requestAnimationFrame แทน setTimeout เพื่อป้องกัน Memory Leak
+          requestAnimationFrame(() => {
+            const store = get();
+            const initialLoot = DeckManager.generateList(store.playerData.unlockedSlots);
+            store.spawnEnemies(initialLoot, true);
+          });
+        } else {
+          updates.distance = newDist;
+        }
+      }
+    }
+
+    // ⚡ อัปเดต State ทีเดียวต่อเฟรมเพื่อลดความร้อนเครื่อง
+    if (Object.keys(updates).length > 0) {
+      set(updates);
+    }
+  },
 
   stashEffects: () => {
     const store = get();
@@ -535,6 +590,7 @@ export const useGameStore = create((set, get) => ({
       set({ validWordInfo: null });
     }
   },
+
   setWordDisplayIndex: (index) => {
     const { validWordInfo } = get();
     if (validWordInfo) {
@@ -612,63 +668,6 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  update: (dt) =>
-    set((state) => {
-      let updates = {};
-      const ANIM_SPEED = 300;
-      let newTimer = (state.animTimer || 0) + dt;
-
-      if (newTimer >= ANIM_SPEED) {
-        newTimer -= ANIM_SPEED;
-        updates.animFrame = state.animFrame === 1 ? 2 : 1;
-        if (state.gameState === "ADVANTURE" && state.isSfxOn) sfx.playWalk();
-      }
-      updates.animTimer = newTimer;
-
-      if (state.gameState === "ADVANTURE") {
-        const goal = state.stageData.distant_goal;
-        if (goal && state.distance >= goal) {
-          updates.distance = goal;
-          const walkOutSpeed = 0.1;
-          const nextX = state.playerX + dt * walkOutSpeed;
-          updates.playerX = nextX;
-          if (nextX > 180) {
-            get().finishStage();
-            return updates;
-          }
-        } else {
-          const speed = 0.005;
-          const newDist = state.distance + dt * speed;
-          updates.playerX = PLAYER_X_POS;
-          let nextTargetDist = Infinity;
-          if (
-            state.stageData &&
-            state.stageData.events[state.currentEventIndex]
-          ) {
-            nextTargetDist =
-              state.stageData.events[state.currentEventIndex].distance;
-          }
-
-          if (newDist >= nextTargetDist) {
-            setTimeout(() => {
-              const store = get();
-              if (store.gameState === "PREPARING_COMBAT") {
-                const initialLoot = DeckManager.generateList(
-                  store.playerData.unlockedSlots,
-                );
-                store.spawnEnemies(initialLoot, true);
-              }
-            }, 50);
-            updates.distance = nextTargetDist;
-            updates.gameState = "PREPARING_COMBAT";
-          } else {
-            updates.distance = newDist;
-          }
-        }
-      }
-      return updates;
-    }),
-
   reset: () => {
     set({
       gameState: "ADVANTURE",
@@ -694,11 +693,15 @@ export const useGameStore = create((set, get) => ({
       playerX: PLAYER_X_POS,
       isMenuOpen: false,
       wordLog: {},
+      hasSpawnedEnemies: false,
     });
   },
 
   spawnEnemies: (loot, autoStart = false) => {
     const store = get();
+    // ป้องกันการ Spawn ซ้อน
+    if (store.hasSpawnedEnemies && store.gameState !== "PREPARING_COMBAT") return;
+
     const currentEvent = store.stageData.events[store.currentEventIndex];
     const waveData = currentEvent ? currentEvent.monsters : [];
 
@@ -707,7 +710,7 @@ export const useGameStore = create((set, get) => ({
       if (i > 0) currentX -= e.isBoss || waveData[i - 1].isBoss ? 14 : 7;
       return {
         ...e,
-        id: e.spawn_id || `enemy_${i}_${Date.now()}`,
+        id: e.spawn_id || `en_${Date.now()}_${i}`,
         x: currentX,
         max_hp: e.hp,
         hp: e.hp,
@@ -721,12 +724,14 @@ export const useGameStore = create((set, get) => ({
         currentStep: 1,
         selectedPattern: 1,
         savedStatuses: [],
-        nextAction: "strike", // 🌟 เริ่มมาให้โจมตีก่อน
+        nextAction: "strike", 
+        atkFrame: 0,
       };
     });
 
     set({
       enemies: enemiesWithPos,
+      hasSpawnedEnemies: true,
       playerData: { ...store.playerData, inventory: loot },
     });
 
@@ -790,7 +795,7 @@ export const useGameStore = create((set, get) => ({
           },
         }));
 
-        if (get().isSfxOn && sfx.playHeal) sfx.playHeal(); // 🔊 เปลี่ยนเป็นเสียงจั่วหรือเสียงเดิน
+        if (get().isSfxOn && sfx.playHeal) sfx.playHeal(); 
 
         hasDrawn = true;
         await delay(100);
@@ -1045,7 +1050,7 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     const currentShield = store.playerData.shield || 0;
     
-    // 🛡️ เริ่มเทิร์นผู้เล่น: เกราะหายไปทั้งหมด (เหลือ 0)
+    // 🛡️ เริ่มเทิร์นผู้เล่น: เกราะหายไป
     const newShield = 0; 
     const lostShield = currentShield;
 
@@ -1802,7 +1807,7 @@ export const useGameStore = create((set, get) => ({
       return;
     }
 
-    // === 🛡️ เริ่มเทิร์นศัตรู: เกราะถูกรีเซ็ตเป็น 0 ===
+    // === 🛡️ ล้างเกราะศัตรูก่อนเริ่มตา ===
     const currentShield = en.shield || 0;
     const newShield = 0; 
     const lostShield = currentShield;
@@ -1844,7 +1849,7 @@ export const useGameStore = create((set, get) => ({
     set({ playerData: { ...get().playerData, inventory: currentInv } });
     await delay(600);
 
-    // === ⚔️🛡️ ระบบสลับ Action ระหว่าง โจมตี และ ป้องกัน ===
+    // สลับ Action
     const actionType = en.nextAction || "strike";
     get().updateEnemy(en.id, { nextAction: actionType === "strike" ? "guard" : "strike" });
 
