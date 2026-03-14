@@ -1,4 +1,4 @@
-import React, { useMemo, memo, useState, useEffect, useRef } from "react";
+import React, { useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS
@@ -17,13 +17,13 @@ export const PlayerEntity = memo(({ store }) => {
     animFrame , playerShoutText
   } = store;
 
-  // --- State & Ref สำหรับจัดการรูปภาพ ---
-  const [displayUrl, setDisplayUrl] = useState("");
-  const cache = useRef({}); // เก็บ Blob URL เพื่อป้องกันการโหลดซ้ำ
-  const loadingPath = useRef(""); // 🌟 เก็บ Path ที่กำลังดำเนินการโหลดอยู่
+  // ✅ 1. ตั้งค่า Base URL ให้ตรงกับที่ทำ Preload ไว้
+  const STORAGE_BASE_URL = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
 
-  // 1. คำนวณ Path รูปภาพตาม Action และ Frame
+  // ✅ 2. คำนวณ Path รูปภาพ (เหมือนเดิม แต่ตรวจสอบค่า null เพื่อกัน Warning)
   const imagePath = useMemo(() => {
+    if (!playerData?.img_path) return null;
+
     let currentAction = "idle";
     let targetFrame = 1;
 
@@ -44,55 +44,8 @@ export const PlayerEntity = memo(({ store }) => {
 
     if (currentAction === "guard") targetFrame = 1;
 
-    return `/api/img_hero/${playerData.img_path}-${currentAction}-${targetFrame}.png`;
-  }, [gameState, animFrame, playerVisual, playerData.img_path]);
-
-  // 2. Hook สำหรับ Fetch รูปภาพพร้อมระบบ Cache (ป้องกันรูปวาร์ป)
-  useEffect(() => {
-    // 🌟 กฎที่ 1: ถ้ามีใน Cache แล้ว ให้เปลี่ยนรูปแสดงผลทันที
-    if (cache.current[imagePath]) {
-      setDisplayUrl(cache.current[imagePath]);
-      return;
-    }
-
-    // 🌟 กฎที่ 2: ถ้า Path นี้กำลังโหลดอยู่แล้ว ไม่ต้องสั่งซ้ำ
-    if (loadingPath.current === imagePath) return;
-
-    let isMounted = true;
-    loadingPath.current = imagePath;
-
-    const fetchImage = async () => {
-      try {
-        const response = await fetch(imagePath, {
-          headers: { "ngrok-skip-browser-warning": "69420" },
-        });
-        if (!response.ok) throw new Error("Image fetch failed");
-        
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-
-        if (isMounted) {
-          cache.current[imagePath] = objectUrl;
-          // 🌟 หัวใจสำคัญ: setDisplayUrl หลังจากโหลดเสร็จเท่านั้น เพื่อให้รูปเก่าคาไว้ก่อน
-          setDisplayUrl(objectUrl);
-          loadingPath.current = ""; 
-        }
-      } catch (err) {
-        console.error("Failed to load hero image:", err);
-        if (isMounted) loadingPath.current = "";
-      }
-    };
-
-    fetchImage();
-    return () => { isMounted = false; };
-  }, [imagePath]);
-
-  // ล้าง Memory เมื่อปิด Component
-  useEffect(() => {
-    return () => {
-      Object.values(cache.current).forEach(url => URL.revokeObjectURL(url));
-    };
-  }, []);
+    return `${STORAGE_BASE_URL}${playerData.img_path}-${currentAction}-${targetFrame}.png`;
+  }, [gameState, animFrame, playerVisual, playerData?.img_path]);
 
   // --- LOGIC: Status & Buffs ---
   const statuses = playerData?.statuses || [];
@@ -155,14 +108,17 @@ export const PlayerEntity = memo(({ store }) => {
         </div>
 
         <div style={{ position: "relative", width: DISPLAY_NORMAL, height: DISPLAY_NORMAL }}>
-           <motion.div
-             key={imagePath} 
-             style={{
-               scale: 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL, position: "absolute", bottom: 0, left: "50%", x: "-50%",
-               backgroundImage: `url(${displayUrl})`, 
-               backgroundSize: "auto 100%", backgroundRepeat: "no-repeat", backgroundPosition: "center bottom 0px", imageRendering: "pixelated", transformOrigin: "bottom center",
-             }}
-           />
+           {/* ✅ 3. ใช้ imagePath ตรงๆ และเช็คค่า null เพื่อกัน Error */}
+           {imagePath && (
+             <motion.div
+               key={imagePath} 
+               style={{
+                 scale: 2.0, width: DISPLAY_NORMAL, height: DISPLAY_NORMAL, position: "absolute", bottom: 0, left: "50%", x: "-50%",
+                 backgroundImage: `url(${imagePath})`, 
+                 backgroundSize: "auto 100%", backgroundRepeat: "no-repeat", backgroundPosition: "center bottom 0px", imageRendering: "pixelated", transformOrigin: "bottom center",
+               }}
+             />
+           )}
         </div>
       </motion.div>
     </motion.div>

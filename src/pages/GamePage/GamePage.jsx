@@ -22,8 +22,6 @@ import { MdMusicOff, MdFlag } from "react-icons/md";
 
 // --- Store & System ---
 import { useGameStore, getLetterDamage } from "../../store/useGameStore";
-import { DeckManager } from "../../utils/gameSystem";
-import { useAuthStore } from "../../store/useAuthStore";
 
 // --- Components ---
 import { InventorySlot } from "./features/downPanel/InventorySlot";
@@ -136,48 +134,18 @@ export default function GameApp() {
   const [showTargetPicker, setShowTargetPicker] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [bgBlobUrl, setBgBlobUrl] = useState(""); // 🌟 State สำหรับรูปพื้นหลัง
+
+  // ✅ 1. ตั้งค่า Base URL สำหรับแผนที่ให้ตรงกับ STORAGE ใน Supabase
+  const MAP_BASE_URL =
+    "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
 
   const requestRef = useRef(0);
   const lastTimeRef = useRef(0);
   const constraintsRef = useRef(null);
 
-  // --------------------------------------------------------------------------
-  // 🌟 Logic: Fetch Background Image (Bypass ngrok warning)
-  // --------------------------------------------------------------------------
-  useEffect(() => {
-    if (!selectedStage) return;
+  // ✅ 2. ลบ Logic: Fetch Background Image เดิมออกทั้งหมด (ไม่ต้องใช้ blob แล้ว)
 
-    let isMounted = true;
-    const fetchBackground = async () => {
-      try {
-        const response = await fetch(`/api/img_map/${selectedStage}.png`, {
-          headers: {
-            "ngrok-skip-browser-warning": "69420",
-          },
-        });
-        if (!response.ok) throw new Error("Background fetch failed");
-
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-
-        if (isMounted) {
-          if (bgBlobUrl) URL.revokeObjectURL(bgBlobUrl);
-          setBgBlobUrl(objectUrl);
-        }
-      } catch (err) {
-        console.error("Failed to load background image:", err);
-      }
-    };
-
-    fetchBackground();
-    return () => {
-      isMounted = false;
-      if (bgBlobUrl) URL.revokeObjectURL(bgBlobUrl);
-    };
-  }, [selectedStage]);
-
-  // --- Window Resizing ---
+  // --- Window Resizing --- (คงเดิม)
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 720;
   const [windowScale, setWindowScale] = useState(1);
@@ -200,7 +168,7 @@ export default function GameApp() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // --- Game Data & Logic ---
+  // --- Game Data & Logic --- (คงเดิม)
   const activeSelectedItems = useMemo(
     () => store.selectedLetters.filter((i) => i !== null),
     [store.selectedLetters],
@@ -360,6 +328,11 @@ export default function GameApp() {
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
+  // ✅ 3. คำนวณพื้นหลัง URL (ส่ง null ถ้ายังไม่พร้อม)
+  const backgroundUrl = selectedStage
+    ? `${MAP_BASE_URL}${selectedStage}.png`
+    : null;
+
   return (
     <>
       <div
@@ -392,7 +365,7 @@ export default function GameApp() {
             boxShadow: "0 0 20px rgba(0,0,0,0.8)",
           }}
         >
-          {/* HUD Left & Right (Surrender, Sound, Coins, Meters) */}
+          {/* HUD Left & Right */}
           <div
             style={{
               position: "absolute",
@@ -506,7 +479,8 @@ export default function GameApp() {
               overflow: "hidden",
               borderBottom: "4px solid #0f0a08",
               width: "100%",
-              backgroundImage: `url(${bgBlobUrl})`, // 🌟 ใช้ Blob URL จาก Cache
+              // ✅ 4. ใช้ backgroundUrl ที่เตรียมไว้ และจะดึงจาก Cache ทันที
+              backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : "none",
               backgroundRepeat: "repeat-x",
               backgroundSize: "auto 100%",
               backgroundPositionY: "bottom",
@@ -555,7 +529,7 @@ export default function GameApp() {
               <MeaningPopup entries={store.validWordInfo?.entries} />
             )}
 
-            {/* Prediction HUDs (Damage, Shield, Heal, Recoil) */}
+            {/* Prediction HUDs */}
             <AnimatePresence>
               {store.validWordInfo &&
                 (prediction.guard.max > 0 || prediction.heal > 0) && (
@@ -627,7 +601,7 @@ export default function GameApp() {
             </AnimatePresence>
           </div>
 
-          {/* Bottom Panel (Status, Inventory, Actions) */}
+          {/* Bottom Panel */}
           <div
             style={{
               flex: 1,
@@ -700,6 +674,7 @@ export default function GameApp() {
   );
 }
 
+// PredictionBadge และอื่นๆ (คงเดิม)
 const PredictionBadge = memo(
   ({ type, value, color, side, isWarning = false }) => {
     const displayValue =
