@@ -1,5 +1,45 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { API_URL } from "../config";
+
+// --- Sub-Component สำหรับจัดการการโหลดรูปทีละเฟรมแบบมี Cache ---
+const SpriteFrame = ({ url, className, alt, onError }) => {
+  const [displayUrl, setDisplayUrl] = useState("");
+  const cache = useRef({});
+
+  useEffect(() => {
+    // 1. ถ้ามีใน Cache แล้ว ใช้ทันที
+    if (cache.current[url]) {
+      setDisplayUrl(cache.current[url]);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchSprite = async () => {
+      try {
+        const response = await fetch(url, {
+          headers: { "ngrok-skip-browser-warning": "69420" },
+        });
+        if (!response.ok) throw new Error("Fetch failed");
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        if (isMounted) {
+          cache.current[url] = objectUrl;
+          setDisplayUrl(objectUrl);
+        }
+      } catch (err) {
+        if (isMounted) onError();
+      }
+    };
+
+    fetchSprite();
+    return () => { isMounted = false; };
+  }, [url, onError]);
+
+  return displayUrl ? (
+    <img className={className} src={displayUrl} alt={alt} />
+  ) : null; // หรือใส่ Loading เล็กๆ ตรงนี้ได้
+};
 
 export const MonsterSpriteLoop = ({ id }) => {
   const frames = [
@@ -25,9 +65,9 @@ export const MonsterSpriteLoop = ({ id }) => {
   if (hide) return <span className="no-sprite">No Sprite</span>;
 
   return (
-    <img
+    <SpriteFrame
+      url={frames[idx]}
       className="sprite"
-      src={frames[idx]}
       alt={`${id} sprite`}
       onError={() => setHide(true)}
     />
@@ -61,9 +101,9 @@ export const HeroSpriteLoop = ({ id }) => {
   if (hide) return <span className="no-sprite">No Sprite</span>;
 
   return (
-    <img
+    <SpriteFrame
+      url={frames[idx]}
       className="sprite"
-      src={frames[idx]}
       alt={`${id} hero sprite`}
       onError={() => setHide(true)}
     />

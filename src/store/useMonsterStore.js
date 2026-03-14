@@ -1,72 +1,66 @@
 import { create } from "zustand";
-import { INITIALIZED, LOADING, LOADED, FAILED ,API_URL} from "./const";
+import { INITIALIZED, LOADING, LOADED, FAILED } from "./const";
+import { supabase } from "../service/supabaseClient";
 
-
-export const useMonsterStore = create((set) => ({
+export const useMonsterStore = create((set, get) => ({
   monsters: [],
-  unlockedMonsterIds: [], // เพิ่ม State เก็บ ID มอนสเตอร์ที่ปลดล็อคแล้ว
+  unlockedMonsterIds: [],
   loading: INITIALIZED,
   error: null,
 
+  // ✅ 1. ดึงมอนสเตอร์ทั้งหมดจากตาราง monster
   getMonsters: async () => {
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`/api/monster`);
-      if (!res.ok) throw new Error("Failed to fetch monsters");
+      const { data, error } = await supabase
+        .from('monster')
+        .select('*')
+        .order('id', { ascending: true });
 
-      const data = await res.json();
+      if (error) throw error;
+
       set({ monsters: data, loading: LOADED });
     } catch (err) {
       set({ loading: FAILED, error: err.message });
     }
   },
+
+  // ✅ 2. ดึง ID มอนสเตอร์ที่ปลดล็อคแล้ว (Logic ใหม่: ยิงทีเดียวจบ)
   fetchUnlockedMonsters: async (userStages) => {
-    // ถ้ายังไม่มีข้อมูลด่านเลย ให้หยุดทำงาน
     if (!userStages || userStages.length === 0) {
       set({ unlockedMonsterIds: [] });
       return;
     }
 
     try {
-      // ใช้ Set เพื่อไม่ให้เก็บ ID มอนสเตอร์ซ้ำกัน
-      const unlockedIds = new Set();
+      // ดึง stage_id ทั้งหมดที่ user เคยเล่น
+      const stageIds = userStages.map((s) => s.stage_id);
 
-      // ยิง API getStageById ของทุกด่านพร้อมกัน
-      const fetchPromises = userStages.map(async (stage) => {
-        try {
-          const res = await fetch(`/api/getStageById/${stage.stage_id}`);
-          if (!res.ok) return; // ถ้าดึงด่านไหนไม่ผ่าน ก็ข้ามไป
-          const stageData = await res.json();
+      // 💡 ใช้ Supabase Query: 
+      // ดึงข้อมูลจากตาราง monster_spawn เฉพาะด่านที่อยู่ใน stageIds 
+      // แล้วเอาแค่คอลัมน์ monster_id
+      const { data, error } = await supabase
+        .from('monster_spawn')
+        .select('monster_id')
+        .in('stage_id', stageIds);
 
-          // วนลูปเข้าไปดึง monster_id ใน events
-          if (stageData.events && Array.isArray(stageData.events)) {
-            stageData.events.forEach((event) => {
-              if (event.monsters && Array.isArray(event.monsters)) {
-                event.monsters.forEach((m) => {
-                  unlockedIds.add(m.monster_id);
-                });
-              }
-            });
-          }
-        } catch (e) {
-          console.error(`Failed to fetch stage: ${stage.stage_id}`, e);
-        }
-      });
+      if (error) throw error;
 
-      // รอจนกว่าจะดึงข้อมูลครบทุกด่าน
-      await Promise.all(fetchPromises);
+      // ใช้ Set เพื่อกรอง ID ที่ซ้ำกัน (เช่น มอนสเตอร์ตัวเดียวกันเกิดหลายด่าน)
+      const unlockedIds = [...new Set(data.map((item) => item.monster_id))];
 
-      // แปลง Set กลับเป็น Array แล้วเก็บลง State
-      set({ unlockedMonsterIds: Array.from(unlockedIds) });
+      set({ unlockedMonsterIds: unlockedIds });
     } catch (err) {
       console.error("Error in fetchUnlockedMonsters:", err);
     }
   },
-  clearListMonster : ()=>{
+
+  clearListMonster: () => {
     set({
-      monsters:[],
-      loading:INITIALIZED,
-    })
+      monsters: [],
+      unlockedMonsterIds: [],
+      loading: INITIALIZED,
+    });
   }
 }));

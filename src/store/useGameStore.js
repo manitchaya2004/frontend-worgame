@@ -3,6 +3,7 @@ import { PLAYER_X_POS, FIXED_Y } from "../const/index";
 import { sfx, bgm } from "../utils/sfx";
 import { DeckManager, WordSystem } from "../utils/gameSystem";
 import { useAuthStore } from "./useAuthStore";
+import { supabase } from "../service/supabaseClient";
 
 // ==========================================
 // 📊 GLOBAL POWER SETTINGS
@@ -603,8 +604,9 @@ export const useGameStore = create((set, get) => ({
     set({ gameState: "LOADING" });
 
     try {
-      const selectedHero =
-        userData?.heroes?.find((h) => h.is_selected) || userData?.heroes?.[0];
+      // --- 0. เตรียมข้อมูล Hero และ User ---
+      const selectedHero = userData?.heroes?.find((h) => h.is_selected) || userData?.heroes?.[0];
+      
       if (userData) {
         set(() => ({
           username: userData.username,
@@ -645,26 +647,158 @@ export const useGameStore = create((set, get) => ({
         }));
       }
 
-      const dictRes = await fetch(`/api/dict`);
-      const dictData = await dictRes.json();
-      const stageRes = await fetch(`/api/getStageById/${stageId}`);
-      const stageData = await stageRes.json();
+      // --- 1. ดึง Dictionary ทั้งหมด (Recursive Fetch จนครบ 30,000+ คำ) ---
+      let allDictData = [];
+      let from = 0;
+      let to = 999;
+      let hasMore = true;
+
+      console.log("⏳ Loading Dictionary (30,000+ entries)...");
+      while (hasMore) {
+        const { data: partDict, error: dictError } = await supabase
+          .from('dictionary')
+          .select('*')
+          .range(from, to);
+
+        if (dictError) throw dictError;
+        allDictData = [...allDictData, ...partDict];
+
+        if (partDict.length < 1000) {
+          hasMore = false;
+        } else {
+          from += 1000;
+          to += 1000;
+        }
+      }
+      console.log(`✅ Dictionary Loaded: ${allDictData.length} entries`);
+
+      // --- 2. ดึง Stage Data พร้อม Join ข้อมูล Monster และ Deck ---
+      const { data: rawStageData, error: stageError } = await supabase
+        .from('stage')
+        .select(`
+          *,
+          monster_spawn (
+            spawn_id:id,
+            level,
+            distant_spawn,
+            monster (
+              *,
+              monster_deck (
+                id,
+                effect,
+                size
+              )
+            )
+          )
+        `)
+        .eq('id', stageId)
+        .single();
+
+      if (stageError) throw stageError;
+
+      // --- 3. แปลง Logic (Grouping) และ Sort ระยะทาง ---
+      const groupedEvents = rawStageData.monster_spawn.reduce((acc, row) => {
+        const dist = Number(row.distant_spawn);
+        let group = acc.find(g => g.distance === dist);
+
+        const monsterData = {
+          spawn_id: row.spawn_id,
+          monster_id: row.monster.id,
+          level: row.level,
+          name: row.monster.name,
+          hp: row.monster.hp,
+          power: row.monster.power,
+          exp: row.monster.exp,
+          speed: row.monster.speed,
+          isBoss: row.monster.isBoss,
+          quiz_move_cost: row.monster.quiz_move_cost,
+          deck_list: row.monster.monster_deck ? row.monster.monster_deck.map(d => ({
+            id: d.id,
+            effect: d.effect,
+            size: d.size
+          })) : []
+        };
+
+        if (group) { group.monsters.push(monsterData); } 
+        else { acc.push({ distance: dist, monsters: [monsterData] }); }
+        return acc;
+      }, []).sort((a, b) => a.distance - b.distance); 
+
+      const finalStageData = {
+        id: rawStageData.id,
+        orderNo: rawStageData.orderNo,
+        name: rawStageData.name,
+        description: rawStageData.description,
+        money_reward: rawStageData.money_reward,
+        distant_goal: rawStageData.distant_goal,
+        max_slot: rawStageData.max_slot,
+        is_upgrade_potionn: rawStageData.is_upgrade_potionn,
+        events: groupedEvents 
+      };
+
+      // --- 4. 🚀 Asset Preloading (Player + Monster + Map) ---
+      console.log("⏳ Preloading Assets (Heroes, Monsters, and Map)...");
+      const STORAGE_HERO = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
+      const STORAGE_MONSTER = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_monster/";
+      const STORAGE_MAP = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
+      
+      const imagesToPreload = [];
+
+      // 4.1 เก็บรูป Player
+      const pPath = selectedHero?.hero_id;
+      if (pPath) {
+        ["idle", "walk", "attack", "guard"].forEach(act => {
+          [1, 2].forEach(f => imagesToPreload.push(`${STORAGE_HERO}${pPath}-${act}-${f}.png`));
+        });
+      }
+
+      // 4.2 เก็บรูป Monsters ในด่านนี้
+      finalStageData.events.forEach(ev => {
+        ev.monsters.forEach(m => {
+          ["idle", "attack"].forEach(act => {
+            [1, 2].forEach(f => imagesToPreload.push(`${STORAGE_MONSTER}${m.monster_id}-${act}-${f}.png`));
+          });
+        });
+      });
+
+      // 4.3 ✅ เพิ่มการ Preload รูปพื้นหลังแผนที่
+      if (stageId) {
+        imagesToPreload.push(`${STORAGE_MAP}${stageId}.png`);
+      }
+
+      // ดำเนินการโหลดรูปภาพเข้า Cache ของ Browser ทั้งหมด
+      const preloadPromises = [...new Set(imagesToPreload)].map(src => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = resolve;
+          img.onerror = resolve; // ข้ามถ้าหาไฟล์ไม่เจอ เพื่อไม่ให้เกมค้าง
+        });
+      });
+
+      await Promise.all(preloadPromises);
+      console.log("✅ All Assets Preloaded! Map is ready.");
+
+      // --- 5. บันทึกลง Store และเริ่มเกม ---
+      set({
+        dictionary: allDictData,
+        stageData: finalStageData, 
+        currentEventIndex: 0,
+        gameState: "ADVANTURE",
+        username: userData?.username || "",
+        currentCoin: userData?.money || 0
+      });
 
       DeckManager.init();
       await delay(500);
 
+      // --- 6. เล่นเพลงประกอบ ---
       const isMutedNow = useAuthStore.getState().isMuted;
       if (!isMutedNow) bgm.playAdvanture();
 
-      if (get().isBgmOn) bgm.playAdvanture();
-      set({
-        dictionary: dictData,
-        stageData: stageData,
-        currentEventIndex: 0,
-        gameState: "ADVANTURE",
-      });
     } catch (error) {
-      console.error("Init Failed:", error);
+      console.error("❌ Setup Failed:", error);
+      set({ gameState: "ERROR" });
     }
   },
 
@@ -965,58 +1099,69 @@ export const useGameStore = create((set, get) => ({
 
   finishStage: async () => {
     const store = get();
-    if (store.gameState === "LOADING" || store.gameState === "GAME_CLEARED")
-      return;
+    if (store.gameState === "LOADING" || store.gameState === "GAME_CLEARED") return;
+    
     bgm.stop();
     set({ gameState: "LOADING" });
+
     try {
-      const token = localStorage.getItem("token");
+      const username = store.username;
       const currentStageId = store.stageData.id;
       const monsterMoney = Number(store.receivedCoin) || 0;
-      const stageRecord = store.userStageHistory.find(
-        (s) => s.stage_id === currentStageId,
-      );
-
+      
+      const stageRecord = store.userStageHistory.find((s) => s.stage_id === currentStageId);
       const isFirstClear = !stageRecord || !stageRecord.is_completed;
+      const stageReward = isFirstClear ? (Number(store.stageData.money_reward) || 0) : 0;
+      const totalMoneyEarned = monsterMoney + stageReward;
 
-      const stageReward = isFirstClear
-        ? Number(store.stageData.money_reward) || 0
-        : 0;
-      const totalMoney = monsterMoney + stageReward;
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
+      // 1. อัปเดตเงินผู้เล่น (RPC หรือ Update ตรงๆ)
+      const { data: newResource, error: moneyErr } = await supabase
+        .from('player_resource')
+        .select('coin')
+        .eq('player_id', username)
+        .single();
+      
+      if (moneyErr) throw moneyErr;
 
-      const resMoney = await fetch(`/api/update-money`, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({ amount: totalMoney }),
-      });
-      const resMoneyData = await resMoney.json();
-      if (resMoneyData.isSuccess) {
-        set({ currentCoin: resMoneyData.currentMoney });
-      }
+      const { error: updateMoneyErr } = await supabase
+        .from('player_resource')
+        .update({ coin: newResource.coin + totalMoneyEarned })
+        .eq('player_id', username);
 
+      // 2. ถ้าเคลียร์ครั้งแรก อัปเดตช่อง Potion
       if (isFirstClear) {
-        try {
-          await fetch(`/api/upgrade-potion-slot`, {
-            method: "POST",
-            headers: headers,
-          });
-        } catch (slotErr) {
-          console.error("Failed to upgrade potion slot:", slotErr);
-        }
+        await supabase.rpc('increment_potion_slot', { p_id: username }); 
+        // หรือใช้วิธี update ธรรมดาเหมือนเงินก็ได้ครับ
       }
 
-      const unlockRes = await fetch(`/api/complete-stage`, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({ currentStageId: currentStageId }),
-      });
-      if (!unlockRes.ok) throw new Error("Failed to unlock stage");
+      // 3. ปลดล็อกด่านถัดไป (Update ข้อมูลใน player_stage_progress)
+      await supabase
+        .from('player_stage_progress')
+        .update({ is_completed: true, is_current: false })
+        .match({ player_id: username, stage_id: currentStageId });
 
-      set({ gameState: "GAME_CLEARED" });
+      // ดึง ID ด่านถัดไปมาเพื่อ insert ด่านใหม่ให้ผู้เล่น
+      const { data: nextStage } = await supabase
+        .from('stage')
+        .select('id')
+        .eq('orderNo', store.stageData.orderNo + 1)
+        .single();
+
+      if (nextStage) {
+        await supabase
+          .from('player_stage_progress')
+          .upsert({ 
+            player_id: username, 
+            stage_id: nextStage.id, 
+            is_completed: false, 
+            is_current: true 
+          });
+      }
+
+      set({ 
+        gameState: "GAME_CLEARED",
+        currentCoin: newResource.coin + totalMoneyEarned 
+      });
     } catch (error) {
       console.error("Save Game Error:", error);
       set({ gameState: "GAME_CLEARED", playerShoutText: "Error Saving!" });
@@ -1026,20 +1171,20 @@ export const useGameStore = create((set, get) => ({
   saveQuitGame: async (earnedAmount) => {
     const store = get();
     try {
-      const token = localStorage.getItem("token");
-      const totalMoney = Number(earnedAmount) || 0;
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
-      const resMoney = await fetch(`/api/update-money`, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({ amount: totalMoney }),
-      });
-      const resMoneyData = await resMoney.json();
-      if (resMoneyData.isSuccess) {
-        set({ currentCoin: resMoneyData.currentMoney });
+      const username = store.username;
+      const { data: currentRes } = await supabase
+        .from('player_resource')
+        .select('coin')
+        .eq('player_id', username)
+        .single();
+
+      const { error } = await supabase
+        .from('player_resource')
+        .update({ coin: (currentRes?.coin || 0) + Number(earnedAmount) })
+        .eq('player_id', username);
+
+      if (!error) {
+        set({ currentCoin: (currentRes?.coin || 0) + Number(earnedAmount) });
       }
     } catch (error) {
       console.error("Save Money Error:", error);
@@ -1313,7 +1458,7 @@ export const useGameStore = create((set, get) => ({
             const currentStatuses = mainTarget.savedStatuses || [];
             const newDebuffs = Array(poisonCount).fill({
               status: "poison",
-              duration: 3,
+              duration: 10,
             });
             get().updateEnemy(mainTarget.id, {
               savedStatuses: [...currentStatuses, ...newDebuffs],
@@ -1335,7 +1480,7 @@ export const useGameStore = create((set, get) => ({
               get().updateEnemy(mainTarget.id, {
                 savedStatuses: [
                   ...currentStatuses,
-                  { status: "bleed", duration: 3 },
+                  { status: "bleed", duration: 6 }, 
                 ],
               });
               get().addPopup({

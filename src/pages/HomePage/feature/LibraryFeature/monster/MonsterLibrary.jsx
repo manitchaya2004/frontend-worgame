@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, memo } from "react";
 import {
   Box,
   Button,
@@ -12,7 +12,7 @@ import {
   useMediaQuery,
   useTheme as useMuiTheme,
 } from "@mui/material";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- Icons ที่ใช้ในเกม ---
 import LockIcon from "@mui/icons-material/Lock";
@@ -35,13 +35,70 @@ import clickMouseSFX from "../../../../../assets/sound/mouserelease1.ogg";
 
 const MotionBox = motion(Box);
 
+// 🌟 ฟังก์ชันช่วยเติม Parameter Bypass ngrok เข้าไปใน URL
+const withBypass = (url) => {
+  if (!url) return "";
+  // ถ้าเป็น path แบบ /api... ให้เติมพารามิเตอร์ต่อท้าย
+  const connector = url.includes("?") ? "&" : "?";
+  return `${url}${connector}ngrok-skip-browser-warning=69420`;
+};
+
+// 🌟 Component พิเศษ: โหลดรูปภาพแบบไม่วาร์ป และ Bypass ngrok
+const SafeImageLoader = memo(({ src, alt, style, isUnlocked }) => {
+  const [displayUrl, setDisplayUrl] = useState("");
+  const cache = useRef({});
+  const loadingPath = useRef("");
+
+  useEffect(() => {
+    if (!src) return;
+    if (cache.current[src]) {
+      setDisplayUrl(cache.current[src]);
+      return;
+    }
+    if (loadingPath.current === src) return;
+
+    let isMounted = true;
+    loadingPath.current = src;
+
+    const fetchImg = async () => {
+      try {
+        const response = await fetch(withBypass(src));
+        if (!response.ok) throw new Error();
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        if (isMounted) {
+          cache.current[src] = objectUrl;
+          setDisplayUrl(objectUrl);
+          loadingPath.current = "";
+        }
+      } catch (err) {
+        if (isMounted) loadingPath.current = "";
+      }
+    };
+    fetchImg();
+    return () => {
+      isMounted = false;
+    };
+  }, [src]);
+
+  return (
+    <img
+      src={displayUrl}
+      alt={alt}
+      style={style}
+      onError={(e) => {
+        e.currentTarget.src = "/fallback/unknown-monster.png";
+      }}
+    />
+  );
+});
+
 // 3. Info Tab Content
 const InfoTab = ({ monster }) => {
   const isUnlocked = monster?.isUnlocked ?? true;
   const minCoin = monster?.exp - 1;
   const maxCoin = monster?.exp + 1;
 
-  const deck = monster?.monster_deck || [];
   return (
     <Box
       sx={{
@@ -94,7 +151,6 @@ const InfoTab = ({ monster }) => {
           {isUnlocked ? monster?.name || "Unknown" : "???"}
         </Typography>
 
-        {/* 💡 DECK MONSTER */}
         <Box
           sx={{
             display: "flex",
@@ -213,12 +269,11 @@ const InfoTab = ({ monster }) => {
   );
 };
 
-// 4. Buff Tab Content (เปลี่ยนจาก Moves Tab)
+// 4. Buff Tab Content
 const BuffTab = ({ monster }) => {
   const isUnlocked = monster?.isUnlocked ?? true;
   const deck = monster?.monster_deck || [];
 
-  // ดักกรณีมอนสเตอร์ยังไม่ปลดล็อค
   if (!isUnlocked) {
     return (
       <Box
@@ -283,18 +338,6 @@ const BuffTab = ({ monster }) => {
     );
   }
 
-  // 💡 รวม Buff ที่ซ้ำกัน และนับจำนวน เพื่อแสดงเป็น x2, x3 ประหยัดพื้นที่ได้เยอะมาก
-  const groupedDeck = deck.reduce((acc, curr) => {
-    // เช็คว่ามี effect นี้อยู่ใน acc หรือยัง
-    const existing = acc.find((item) => item.effect === curr.effect);
-    if (existing) {
-      existing.count += 1;
-    } else {
-      acc.push({ ...curr, count: 1 });
-    }
-    return acc;
-  }, []);
-
   return (
     <Box
       sx={{
@@ -311,10 +354,10 @@ const BuffTab = ({ monster }) => {
           display: "flex",
           gap: 1.5,
           p: 1,
+          flexWrap: "wrap",
         }}
       >
         {deck.map((effect, index) => {
-          // เรียกใช้ getDeckIconData เพื่อดึง icon และ color
           const deckInfo = getDeckIconData(effect.effect);
           return (
             <Tooltip
@@ -327,7 +370,6 @@ const BuffTab = ({ monster }) => {
                   sx: {
                     fontSize: "12px",
                     fontFamily: "'Verdana', sans-serif",
-                    // fontWeight: "bold",
                     backgroundColor: "#2a160f",
                     border: `1px solid ${deckInfo.color}`,
                     color: deckInfo.color,
@@ -351,9 +393,7 @@ const BuffTab = ({ monster }) => {
                   fontSize: { xs: 12, md: 14 },
                   cursor: "pointer",
                   transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "scale(1.2)",
-                  },
+                  "&:hover": { transform: "scale(1.2)" },
                   "@media (orientation: landscape) and (max-height: 450px)": {
                     width: 14,
                     height: 14,
@@ -377,14 +417,12 @@ const BuffTab = ({ monster }) => {
 
 const DetailMonster = ({ monster, playClickSound }) => {
   const [tab, setTab] = useState("info");
-
   const frames = usePreloadFrames("img_monster", monster?.id, 2);
   const frame = useIdleFrame(frames.length, 450);
 
   const isUnlocked = monster?.isUnlocked ?? true;
   const isBoss = monster?.isBoss;
 
-  // สีปรับตามสถานะ (Lock / Boss / Normal)
   const glowColor = !isUnlocked
     ? "transparent"
     : isBoss
@@ -397,21 +435,21 @@ const DetailMonster = ({ monster, playClickSound }) => {
       : "rgba(0,188,212,0.1)";
   const borderColor = !isUnlocked ? "#333" : isBoss ? "#ff3333" : THEME.border;
 
-  // 💡 ตัวกำหนด Source ของรูปภาพ:
-  // ถ้า frames กำลังโหลดอยู่ (length == 0) ให้ดึงภาพนิ่งจาก LoadImage ไปโชว์พลางๆ ก่อน
-  // พอโหลดเสร็จ ค่อยเช็คต่อว่าปลดล็อคหรือยัง (ถ้าปลดล็อคให้ขยับ ถ้าล็อคให้หยุดนิ่งเฟรมแรก)
-  const imgSrc =
-    frames.length > 0
-      ? isUnlocked
-        ? frames[frame - 1]?.src
-        : frames[0]?.src
-      : LoadImage("img_monster", monster?.id, 1);
+  // ดึงภาพนิ่งเฟรมแรกมาโชว์ (ผ่านระบบ Safe Image)
+  const staticPath = LoadImage("img_monster", monster?.id, 1);
+  // ถ้าโหลดเฟรมขยับมาแล้ว (frames.length > 0) ให้สลับไปใช้เฟรมขยับ
+  const activeSrc =
+    frames.length > 0 && isUnlocked
+      ? frames[frame - 1]?.src
+      : frames.length > 0
+        ? frames[0]?.src
+        : staticPath;
 
   return (
     <Grid container spacing={0} sx={{ height: "100%" }}>
-      {/* LEFT: Picture Monster */}
       <Grid
-        size={{ xs: 5, sm: 5 }}
+        item
+        xs={5}
         sx={{
           height: "100%",
           display: "flex",
@@ -454,7 +492,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
             },
           }}
         >
-          {/* Badge Zone */}
           <Box
             sx={{
               position: "absolute",
@@ -489,7 +526,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
             >
               #{monster?.no ?? "???"}
             </Box>
-
             {isBoss && isUnlocked && (
               <Box
                 sx={{
@@ -516,12 +552,11 @@ const DetailMonster = ({ monster, playClickSound }) => {
             )}
           </Box>
 
-          {/* รูปมอนสเตอร์: เปลี่ยนมาใช้ imgSrc ที่คำนวณไว้ด้านบนแทน */}
           {monster?.id ? (
-            <img
-              key={monster?.id}
-              src={imgSrc}
+            <SafeImageLoader
+              src={activeSrc}
               alt={monster?.name}
+              isUnlocked={isUnlocked}
               style={{
                 width: "80%",
                 height: "80%",
@@ -530,10 +565,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
                 filter: !isUnlocked
                   ? "brightness(0) drop-shadow(0 0 5px rgba(255,255,255,0.2))"
                   : "drop-shadow(0 4px 4px rgba(0,0,0,0.5))",
-                // เอา transition ออกเพื่อให้ดำสนิททันที
-              }}
-              onError={(e) => {
-                e.currentTarget.src = "/fallback/unknown-monster.png";
               }}
             />
           ) : (
@@ -548,7 +579,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
             </Typography>
           )}
 
-          {/* แสดงไอคอนแม่กุญแจทับรูปหากล็อค */}
           {!isUnlocked && (
             <LockIcon
               sx={{
@@ -564,8 +594,7 @@ const DetailMonster = ({ monster, playClickSound }) => {
         </Box>
       </Grid>
 
-      {/* RIGHT: Details & Tabs */}
-      <Grid size={{ xs: 7, sm: 7 }}>
+      <Grid item xs={7}>
         <Box
           sx={{
             height: "100%",
@@ -581,7 +610,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
             },
           }}
         >
-          {/* Main Card Panel */}
           <Box
             sx={{
               flex: 1,
@@ -602,7 +630,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
               },
             }}
           >
-            {/* Tab Header */}
             <Stack
               direction="row"
               sx={{
@@ -643,7 +670,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
                 </Button>
               ))}
             </Stack>
-
             <Box sx={{ flex: 1, overflow: "hidden" }}>
               {tab === "info" && <InfoTab monster={monster} />}
               {tab === "buff" && <BuffTab monster={monster} />}
@@ -654,8 +680,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
     </Grid>
   );
 };
-
-// --- LIST MONSTER (Bottom) ---
 
 const arrowBtnStyle = {
   mx: 1,
@@ -690,12 +714,10 @@ const ListMonster = ({
   playClickSound,
 }) => {
   const scrollRef = useRef(null);
-
   const scroll = (dir) => {
     if (!scrollRef.current) return;
-    const scrollAmount = dir === "left" ? -310 : 310;
     scrollRef.current.scrollBy({
-      left: scrollAmount,
+      left: dir === "left" ? -310 : 310,
       behavior: "smooth",
     });
   };
@@ -723,15 +745,9 @@ const ListMonster = ({
         },
       }}
     >
-      <Button
-        onClick={() => scroll("left")}
-        sx={{
-          ...arrowBtnStyle,
-        }}
-      >
+      <Button onClick={() => scroll("left")} sx={arrowBtnStyle}>
         ◀
       </Button>
-
       <Box
         ref={scrollRef}
         sx={{
@@ -760,34 +776,6 @@ const ListMonster = ({
         {listMonster.map((m) => {
           const isActive = selectedMonster?.id === m.id;
           const isUnlocked = m.isUnlocked;
-          const isBoss = m.isBoss;
-
-          // จัดการสีกรอบ หากยังไม่ปลดล็อคให้เป็นสีเทาหม่น
-          const activeBorderColor = !isUnlocked
-            ? "#888"
-            : isBoss
-              ? "#ff3333"
-              : THEME.accent;
-          const inactiveBorderColor = !isUnlocked
-            ? "#333"
-            : isBoss
-              ? "#800000"
-              : THEME.border;
-          const activeShadow = !isUnlocked
-            ? "0 0 10px rgba(255,255,255,0.2)"
-            : isBoss
-              ? `0 0 15px #ff3333`
-              : `0 0 15px ${THEME.accent}`;
-          const boxBgColor = isActive
-            ? !isUnlocked
-              ? "#222"
-              : THEME.bgMain
-            : !isUnlocked
-              ? "#111"
-              : isBoss
-                ? "#2a0a0a"
-                : THEME.bgPanel;
-
           return (
             <Box
               key={m.id}
@@ -799,10 +787,18 @@ const ListMonster = ({
                 flexShrink: 0,
                 width: { xs: 45, sm: 50 },
                 height: { xs: 45, sm: 50 },
-                border: `2px solid ${isActive ? activeBorderColor : inactiveBorderColor}`,
-                backgroundColor: boxBgColor,
+                border: `2px solid ${isActive ? (isUnlocked ? THEME.accent : "#888") : isUnlocked ? THEME.border : "#333"}`,
+                backgroundColor: isActive
+                  ? isUnlocked
+                    ? THEME.bgMain
+                    : "#222"
+                  : isUnlocked
+                    ? THEME.bgPanel
+                    : "#111",
                 borderRadius: "4px",
-                boxShadow: isActive ? activeShadow : "none",
+                boxShadow: isActive
+                  ? `0 0 15px ${isUnlocked ? THEME.accent : "rgba(255,255,255,0.2)"}`
+                  : "none",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -823,9 +819,10 @@ const ListMonster = ({
                 },
               }}
             >
-              <img
+              <SafeImageLoader
                 src={LoadImage("img_monster", m.id, 1)}
                 alt={m.name}
+                isUnlocked={isUnlocked}
                 style={{
                   height: "100%",
                   maxHeight: "40px",
@@ -833,13 +830,9 @@ const ListMonster = ({
                   objectFit: "contain",
                   padding: "2px",
                   imageRendering: "pixelated",
-                  // ใส่ Effect เงาดำใน List หากยังไม่ปลดล็อค
                   filter: !isUnlocked
                     ? "brightness(0) drop-shadow(0 0 2px rgba(255,255,255,0.2))"
                     : "none",
-                }}
-                onError={(e) => {
-                  e.currentTarget.src = "/fallback/unknown-monster.png";
                 }}
               />
               {!isUnlocked && (
@@ -858,13 +851,7 @@ const ListMonster = ({
           );
         })}
       </Box>
-
-      <Button
-        onClick={() => scroll("right")}
-        sx={{
-          ...arrowBtnStyle,
-        }}
-      >
+      <Button onClick={() => scroll("right")} sx={arrowBtnStyle}>
         ▶
       </Button>
     </Box>
@@ -877,38 +864,24 @@ const MonsterLibrary = () => {
   const { currentUser } = useAuthStore();
   const { monsters, unlockedMonsterIds, fetchUnlockedMonsters } =
     useMonsterStore();
-
   const [selectedMonster, setSelectedMonster] = useState(null);
-
-  const [isMinLoading, setIsMinLoading] = useState(true);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(true);
-
   const playClickSound = useGameSfx(clickSFX);
   const playMouseReleaseSound = useGameSfx(clickMouseSFX);
 
-  // --- จุดที่แก้ไข (กรองเอาเฉพาะ Stage ที่ผ่านแล้ว) ---
   useEffect(() => {
     if (currentUser?.stages) {
-      // ดึงเฉพาะด่านที่ is_completed === true
       const completedStages = currentUser.stages.filter(
-        (stage) => stage.is_completed === true,
+        (s) => s.is_completed === true,
       );
       fetchUnlockedMonsters(completedStages);
     }
   }, [currentUser, fetchUnlockedMonsters]);
 
-  // LOGIC การคำนวณการ Lock / Unlock จาก unlockedMonsterIds
   const sortedMonsters = useMemo(() => {
     if (!monsters) return [];
-
     return [...monsters]
       .sort((a, b) => a.no - b.no)
-      .map((m) => {
-        // ถ้า ID มอนสเตอร์ตัวนี้ ไปอยู่ในกอง ID ที่เราไล่ดึงมาจาก API (unlockedMonsterIds) แสดงว่าปลดล็อคแล้ว!
-        const isUnlocked = unlockedMonsterIds.includes(m.id);
-
-        return { ...m, isUnlocked };
-      });
+      .map((m) => ({ ...m, isUnlocked: unlockedMonsterIds.includes(m.id) }));
   }, [monsters, unlockedMonsterIds]);
 
   useEffect(() => {
@@ -917,8 +890,6 @@ const MonsterLibrary = () => {
     }
   }, [sortedMonsters, selectedMonster]);
 
-  // 💡 THE FIX: สร้างตัวแปรนี้ขึ้นมาเพื่อ "ดึงข้อมูลล่าสุด" เสมอ
-  // แทนที่จะใช้ selectedMonster ตรงๆ ที่อาจจะข้อมูลเก่า เราเอา ID ของมันไปค้นหาใน sortedMonsters ที่มีค่า Lock/Unlock ล่าสุด
   const currentActiveMonster = useMemo(() => {
     if (!selectedMonster || !sortedMonsters.length) return selectedMonster;
     return (
@@ -926,48 +897,21 @@ const MonsterLibrary = () => {
     );
   }, [selectedMonster, sortedMonsters]);
 
-  // preload image monster
-  useEffect(() => {
-    if (!sortedMonsters || sortedMonsters.length === 0) return;
-
-    const preloadAssets = async () => {
-      setIsLoadingAssets(true);
-
-      const tasks = sortedMonsters.map((m) =>
-        preloadImageAsync(LoadImage("img_monster", m.id, 1)),
-      );
-
-      await Promise.all(tasks);
-      setIsLoadingAssets(false);
-      setIsMinLoading(false);
-    };
-
-    preloadAssets();
-  }, [sortedMonsters]);
-
   return (
     <Box sx={{ height: "100vh" }}>
       <MotionBox
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-        transition={{
-          duration: 0.6,
-          ease: "easeOut",
-        }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
         sx={{
           position: "fixed",
           top: "55%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-
-          // Container Design: กรอบไม้สีเข้ม
           background: `linear-gradient(${THEME.bgMain}, #1a120b)`,
           border: `8px solid ${THEME.border}`,
           borderRadius: "12px",
-          boxShadow: `
-            0 0 0 4px #1a120b,
-            0 20px 60px rgba(49, 49, 49, 0.8)
-          `,
+          boxShadow: `0 0 0 4px #1a120b, 0 20px 60px rgba(49, 49, 49, 0.8)`,
           width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
           height: { xs: "70%", sm: "70%", md: "570px",xl: "80%" },
           p: 1,
@@ -984,7 +928,6 @@ const MonsterLibrary = () => {
           
         }}
       >
-        {/* Header Title */}
         <Box
           sx={{
             py: 2,
@@ -1017,7 +960,6 @@ const MonsterLibrary = () => {
           </Typography>
         </Box>
 
-        {/* Content Area */}
         <Box
           id="Content-Area"
           sx={{
@@ -1070,7 +1012,6 @@ const MonsterLibrary = () => {
           >
             <ListMonster
               listMonster={sortedMonsters}
-              // 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster
               selectedMonster={currentActiveMonster}
               onSelectMonster={setSelectedMonster}
               playClickSound={playClickSound}

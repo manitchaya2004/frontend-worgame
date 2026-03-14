@@ -1,12 +1,24 @@
 {
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "http://25.16.201.205:3000/$1"
+      "source": "/api/:path*",
+      "destination": "https://f88d-1-47-131-5.ngrok-free.app/:path*"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/api/img_hero/:path*",
+      "destination": "https://f88d-1-47-131-5.ngrok-free.app/img_hero/:path*"
+    },
+    {
+      "source": "/api/img_monster/:path*",
+      "destination": "https://f88d-1-47-131-5.ngrok-free.app/img_monster/:path*"
+    },
+    {
+      "source": "/api/img_map/:path*",
+      "destination": "https://f88d-1-47-131-5.ngrok-free.app/img_map/:path*"
     }
   ]
 }

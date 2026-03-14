@@ -1,34 +1,50 @@
 import { create } from "zustand";
-import { INITIALIZED, LOADING, LOADED, FAILED ,API_URL} from "./const";
+import { INITIALIZED, LOADING, LOADED, FAILED } from "./const";
+import { supabase } from "../service/supabaseClient";
 
 export const useDictionaryStore = create((set, get) => ({
   words: [],
   wordsForMiniGame: [],
   count: 0,
   hasNext: false,
-  lastWord: null,
   loading: INITIALIZED,
   error: null,
 
-  fetchDictionary: async (payload) => {
+  // ✅ 1. Fetch Dictionary แบบรองรับการค้นหาและแบ่งหน้า
+  fetchDictionary: async ({ search = "", page = 0, limit = 20, append = false, level = "" }) => {
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`/api/dict/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // คำนวณช่วงข้อมูล (Pagination)
+      const from = page * limit;
+      const to = from + limit - 1;
 
-      if (!res.ok) throw new Error("Fetch dictionary failed");
+      // เริ่มสร้าง Query
+      let query = supabase
+        .from('dictionary')
+        .select('*', { count: 'exact' }); // count: exact เพื่อเอาจำนวนทั้งหมดมาคำนวณ hasNext
 
-      const data = await res.json();
+      // 🔍 ถ้ามีการค้นหา
+      if (search) {
+        query = query.ilike('word', `%${search}%`);
+      }
+
+      // 🎯 ถ้ามีการกรองเลเวล
+      if (level) {
+        query = query.eq('level', level);
+      }
+
+      // 📦 กำหนดช่วงข้อมูลและเรียงลำดับ
+      const { data, error, count } = await query
+        .range(from, to)
+        .order('word', { ascending: true });
+
+      if (error) throw error;
 
       set({
-        count: data.count,
-        hasNext: data.hasNext,
-        lastWord: data.lastWord,
-        words: payload.append ? [...get().words, ...data.data] : data.data,
+        count: count || 0,
+        hasNext: count > to + 1,
+        words: append ? [...get().words, ...data] : data,
         loading: LOADED,
       });
     } catch (err) {
@@ -36,26 +52,30 @@ export const useDictionaryStore = create((set, get) => ({
     }
   },
 
-  // dictionary สำหรับหน้า minigame
-  fetchMiniGameDictionary: async (payload) => {
+  // ✅ 2. Dictionary สำหรับหน้า Mini Game
+  // (โครงสร้างคล้ายกัน แต่แยกเก็บคนละก้อนเพื่อไม่ให้ UI หน้าหลักกระโดด)
+  fetchMiniGameDictionary: async ({ search = "", page = 0, limit = 10, append = false, level = "" }) => {
     try {
       set({ loading: LOADING, error: null });
 
-      const res = await fetch(`/api/dict/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const from = page * limit;
+      const to = from + limit - 1;
 
-      if (!res.ok) throw new Error("Fetch dictionary failed");
+      let query = supabase.from('dictionary').select('*', { count: 'exact' });
 
-      const data = await res.json();
+      if (search) query = query.ilike('word', `%${search}%`);
+      if (level) query = query.eq('level', level);
+
+      const { data, error, count } = await query
+        .range(from, to)
+        .order('word', { ascending: true });
+
+      if (error) throw error;
 
       set({
-        count: data.count,
-        hasNext: data.hasNext,
-        lastWord: data.lastWord,
-        wordsForMiniGame: payload.append ? [...get().wordsForMiniGame, ...data.data] : data.data, 
+        count: count || 0,
+        hasNext: count > to + 1,
+        wordsForMiniGame: append ? [...get().wordsForMiniGame, ...data] : data,
         loading: LOADED,
       });
     } catch (err) {
@@ -63,20 +83,6 @@ export const useDictionaryStore = create((set, get) => ({
     }
   },
 
-  clearDictionary: () => {
-    set({
-      words: [],
-      count: 0,
-      hasNext: false,
-      lastWord: null,
-    });
-  },
-  clearMiniGameDictionary: () => {
-    set({
-      wordsForMiniGame: [],
-      count: 0,
-      hasNext: false,
-      lastWord: null,
-    });
-  },
+  clearDictionary: () => set({ words: [], count: 0, hasNext: false }),
+  clearMiniGameDictionary: () => set({ wordsForMiniGame: [], count: 0, hasNext: false }),
 }));

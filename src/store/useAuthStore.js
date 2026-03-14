@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { LOADED, LOADING, FAILED, INITIALIZED, API_URL } from "./const";
+import { LOADED, LOADING, FAILED, INITIALIZED } from "./const";
+import { supabase } from "../service/supabaseClient";
 
 export const useAuthStore = create(
   persist(
@@ -8,7 +9,7 @@ export const useAuthStore = create(
       currentUser: null,
       previewData: null,
 
-      /* ================= STATE (เหมือน Redux) ================= */
+      /* ================= STATE ================= */
       registerState: INITIALIZED,
       loginState: INITIALIZED,
       selectHeroState: INITIALIZED,
@@ -22,16 +23,13 @@ export const useAuthStore = create(
 
       backendRegisMessage: null,
       backendLoginMessage: null,
+      buyHeroError: null,
 
       errorLogin: false,
       errorRegister: false,
-      buyHeroError: null,
 
-      // volumn
       volume: 0.3,
       isMuted: false,
-
-      // 💥 SFX Settings
       sfxVolume: 0.5,
       isSfxMuted: false,
 
@@ -43,13 +41,14 @@ export const useAuthStore = create(
       },
       toggleMute: () => {
         set((state) => ({ isMuted: !state.isMuted }));
-        import("../utils/sfx").then(m => m.bgm.updateLiveVolume());
+        import("../utils/sfx").then((m) => m.bgm.updateLiveVolume());
       },
       setSfxVolume: (newVolume) => set({ sfxVolume: newVolume }),
       toggleSfxMute: () => set((state) => ({ isSfxMuted: !state.isSfxMuted })),
 
-      /* ===== REGISTER ===== */
+      /* ===== REGISTER (คงความหมายเดิม: รับ username, email, password) ===== */
       registerUser: async (userData) => {
+        const { username, email, password } = userData;
         try {
           set({
             registerState: LOADING,
@@ -57,53 +56,37 @@ export const useAuthStore = create(
             errorRegister: false,
           });
 
-          const res = await fetch(`/api/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(userData),
-            credentials: "include",
+          // ใช้ Supabase Auth โดยส่ง email และ password จริงๆ
+          // และเก็บ username ไว้ใน metadata เพื่อให้ Trigger ใน SQL นำไปใช้ต่อได้
+          const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+              data: { username: username } 
+            }
           });
 
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error(
-              "Server error (Not JSON), please check your Backend URL",
-            );
-          }
-
-          const data = await res.json();
-
-          if (!data.isSuccess) {
-            throw new Error(data.message);
-          }
+          if (error) throw error;
 
           set({
             registerState: LOADED,
-            currentUser: data.user ?? null,
             errorRegister: false,
           });
 
-          return data;
+          return { isSuccess: true };
         } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Register failed";
-
           set({
             registerState: FAILED,
-            backendRegisMessage: message,
+            backendRegisMessage: err.message,
             errorRegister: true,
           });
-
           throw err;
         }
       },
 
-      /* ===== LOGIN ===== */
+      /* ===== LOGIN (ใช้ Username ค้นหา Email เพื่อ Auth กับ Supabase) ===== */
       loginUser: async (credentials) => {
+        const { username, password } = credentials; 
         try {
           set({
             loginState: LOADING,
@@ -111,78 +94,75 @@ export const useAuthStore = create(
             errorLogin: false,
           });
 
-          const res = await fetch(`/api/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(credentials),
-            credentials: "include",
+          // 1. 🔍 ไปค้นหา Email จริงๆ ของ Username นี้จากตาราง player ก่อน
+          const { data: userData, error: userError } = await supabase
+            .from('player') 
+            .select('email')
+            .eq('username', username)
+            .maybeSingle(); 
+
+          if (userError || !userData) {
+            throw new Error("ไม่พบชื่อผู้ใช้นี้ในระบบ หรือยังไม่ได้ลงทะเบียนตาราง Player");
+          }
+
+          // 2. 🔑 เอา Email ที่หาเจอไป Login กับ Supabase Auth
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email: userData.email,
+            password: password,
           });
 
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("Login failed: Server returned non-JSON response");
-          }
+          if (authError) throw authError;
 
-          const data = await res.json();
+          // 3. 🎮 ดึงข้อมูลเกม (Money, Stamina, Heroes) ผ่าน RPC get_player_data
+          const { data: gameData, error: rpcError } = await supabase.rpc('get_player_data', {
+            p_username: username 
+          });
 
-          if (!data.isSuccess) {
-            throw new Error(data.message);
-          }
+          if (rpcError) throw rpcError;
 
-          localStorage.setItem("token", data.token);
-
+          // เซ็ตสถานะสำเร็จ
           set({
             loginState: LOADED,
             isAuthenticated: true,
-            currentUser: data.user,
+            currentUser: gameData,
             errorLogin: false,
           });
+          
+          return gameData; // คืนค่ากลับเพื่อให้หน้า UI เปลี่ยนหน้าได้
         } catch (error) {
+          console.error("Login Error:", error);
           set({
             loginState: FAILED,
             isAuthenticated: false,
             backendLoginMessage: error.message,
             errorLogin: true,
           });
+          return null;
         }
       },
 
-      /* ===== CHECK AUTH ===== */
+      /* ===== CHECK AUTH (ตรวจสอบ Session เมื่อ Refresh หน้าจอ) ===== */
       checkAuth: async () => {
         set({ authLoading: true });
-
         try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error("no token");
 
-          const res = await fetch(`/api/checkAuth`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+          // ดึง username จาก metadata ที่เราเก็บไว้ตอนสมัคร
+          const username = session.user.user_metadata.username;
+
+          const { data: userData, error } = await supabase.rpc('get_player_data', {
+            p_username: username
           });
 
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("unauthorized");
-          }
-
-          const data = await res.json();
+          if (error) throw error;
 
           set({
             authLoading: false,
             isAuthenticated: true,
-            currentUser: data.user,
+            currentUser: userData,
           });
-        } catch {
+        } catch (err) {
           set({
             authLoading: false,
             isAuthenticated: false,
@@ -191,270 +171,66 @@ export const useAuthStore = create(
         }
       },
 
-      /* ===== REFRESH USER DATA ===== */
       refreshUser: async () => {
+        const user = get().currentUser;
+        if (!user) return;
         try {
-          const token = localStorage.getItem("token");
-          if (!token) return;
-
-          const res = await fetch(`/api/checkAuth`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            console.warn("Refresh failed: Server returned HTML or Error");
-            return;
-          }
-
-          const data = await res.json();
-
-          set({
-            currentUser: data.user,
-            isAuthenticated: true,
-          });
+          const { data: userData, error } = await supabase.rpc(
+            "get_player_data",
+            {
+              p_username: user.username,
+            },
+          );
+          if (!error) set({ currentUser: userData });
         } catch (error) {
           console.error("Failed to refresh user data", error);
         }
       },
 
-      /* ===== CHECK FIRST TIME ===== */
-      checkFirstTime: async () => {
-        try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
-
-          const res = await fetch(`/api/checkFirstTime`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-          });
-
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("server error");
-          }
-
-          const data = await res.json();
-
-          if (!data.isSuccess) throw new Error(data.message);
-
-          set({
-            isFirstTime: data.firstTime,
-          });
-
-          return data.firstTime;
-        } catch (error) {
-          console.error("checkFirstTime error:", error);
-          set({
-            isFirstTime: false,
-          });
-          return false;
-        }
-      },
-
+      /* ===== 4. HERO ACTIONS (ใช้ Username อ้างอิง) ===== */
       selectHero: async (heroId) => {
         try {
           set({ selectHeroState: LOADING });
+          const user = get().currentUser;
 
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
+          const { error } = await supabase
+            .from("player_hero")
+            .update({ is_selected: false })
+            .eq("player_id", user.username);
 
-          const res = await fetch(`/api/select-hero`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ heroId }),
-          });
+          if (error) throw error;
 
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("server error");
-          }
+          const { error: selectError } = await supabase
+            .from("player_hero")
+            .update({ is_selected: true })
+            .match({ player_id: user.username, hero_id: heroId });
 
-          const data = await res.json();
-          if (!data.isSuccess) throw new Error(data.message);
+          if (selectError) throw selectError;
 
-          set((state) => ({
-            selectHeroState: LOADED,
-            currentUser: {
-              ...state.currentUser,
-              heroes: state.currentUser.heroes.map((h) => ({
-                ...h,
-                is_selected: h.hero_id === heroId,
-              })),
-            },
-          }));
-
+          await get().refreshUser();
+          set({ selectHeroState: LOADED });
           return true;
         } catch (err) {
-          console.error("selectHero error:", err);
           set({ selectHeroState: FAILED });
           return false;
-        }
-      },
-
-      buyHero: async (heroId) => {
-        try {
-          set({ buyHeroState: LOADING, buyHeroError: null });
-
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
-
-          const res = await fetch(`/api/buy-hero`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-            body: JSON.stringify({ heroId }),
-          });
-
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Server returned non-JSON. Possible 404 or Crash.");
-          }
-
-          const data = await res.json();
-
-          if (!res.ok || !data.isSuccess) {
-            throw new Error(data.message || "buy hero failed");
-          }
-
-          const { hero, moneyLeft } = data;
-
-          set((state) => ({
-            currentUser: {
-              ...state.currentUser,
-              money: moneyLeft,
-              heroes: [...(state.currentUser?.heroes || []), hero],
-            },
-            buyHeroState: LOADED,
-          }));
-        } catch (err) {
-          console.error("buyHero error:", err);
-          set({
-            buyHeroState: FAILED,
-            buyHeroError: err.message,
-          });
-        } finally {
-          setTimeout(() => {
-            set({ buyHeroState: INITIALIZED });
-          }, 800);
-        }
-      },
-
-      updateResources: async (payload) => {
-        set({ resourceStatus: LOADING });
-        try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
-          const res = await fetch(`/api/update-resources`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("server error");
-          }
-
-          const data = await res.json();
-          if (!data.isSuccess) throw new Error(data.message);
-
-          if (data.isSuccess) {
-            const { health, cure, reroll } = data.resources;
-
-            set((state) => ({
-              resourceStatus: LOADED,
-              currentUser: {
-                ...state.currentUser,
-                potion: {
-                  ...state.currentUser.potion,
-                  health: health,
-                  cure: cure,
-                  reroll: reroll,
-                },
-              },
-            }));
-
-            setTimeout(() => {
-              set({ resourceStatus: INITIALIZED });
-            }, 1000);
-          } else {
-            set({ resourceStatus: FAILED });
-          }
-        } catch (err) {
-          console.error("updateResources error:", err);
-          set({ resourceStatus: FAILED });
         }
       },
 
       upgradeHero: async (heroId) => {
         set({ upgradeStatus: LOADING });
         try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
-          const res = await fetch(`/api/level-up`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+          const user = get().currentUser;
+          const { data: updatedUser, error } = await supabase.rpc(
+            "upgrade_hero_stats",
+            {
+              p_hero_id: heroId,
+              p_username: user.username,
             },
-            body: JSON.stringify({ heroId }),
-          });
+          );
 
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("Server returned non-JSON");
-          }
+          if (error) throw error;
 
-          const data = await res.json();
-          if (!res.ok || !data.isSuccess) throw new Error(data.message);
-
-          const { hero } = data;
-
-          set((state) => ({
-            upgradeStatus: LOADED,
-            currentUser: {
-              ...state.currentUser,
-              heroes: state.currentUser.heroes.map((h) =>
-                h.hero_id === heroId ? { ...h, ...hero } : h,
-              ),
-              money: data.moneyLeft ?? state.currentUser.money,
-            },
-          }));
-
+          set({ upgradeStatus: LOADED, currentUser: updatedUser });
           return true;
         } catch (err) {
           console.error("upgradeHero error:", err);
@@ -462,186 +238,99 @@ export const useAuthStore = create(
         }
       },
 
-      fetchPreviewData: async (heroId) => {
-        set({ previewData: null, upgradeStatus: LOADING });
-        try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
-          const res = await fetch(`/api/preview-level-up`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ heroId }),
-          });
-
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("Server error");
-          }
-
-          const data = await res.json();
-          if (!res.ok || !data.isSuccess) throw new Error(data.message);
-
-          set({
-            previewData: data.data,
-            upgradeStatus: LOADED,
-          });
-        } catch (err) {
-          console.error("fetchPreviewData error:", err);
-          set({ upgradeStatus: FAILED });
-        }
-      },
-
-      // =========================================
-      // ⚡ UPDATE STAMINA
-      // =========================================
+      /* ===== 5. RESOURCES & STAMINA (ใช้ Username อ้างอิง) ===== */
       updateStamina: async (amount) => {
         try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
-
-          const res = await fetch(`/api/update-stamina`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+          const user = get().currentUser;
+          const { data: updatedUser, error } = await supabase.rpc(
+            "update_stamina_rpc",
+            {
+              p_username: user.username,
+              p_amount: amount,
             },
-            body: JSON.stringify({ amount }),
-          });
+          );
 
-          const contentType = res.headers.get("content-type");
-          if (
-            !res.ok ||
-            !contentType ||
-            !contentType.includes("application/json")
-          ) {
-            throw new Error("server error");
-          }
-
-          const data = await res.json();
-          if (!data.isSuccess) throw new Error(data.message);
-
-          set((state) => ({
-            currentUser: {
-              ...state.currentUser,
-              stamina: {
-                ...state.currentUser.stamina,
-                current: data.stamina.current,
-                max: data.stamina.max,
-                timeToNext: data.stamina.timeToNext,
-              },
-            },
-          }));
-
-          return { success: true, currentStamina: data.stamina.current };
+          if (error) throw error;
+          set({ currentUser: updatedUser });
+          return { success: true, currentStamina: updatedUser.stamina.current };
         } catch (err) {
-          console.error("updateStamina error:", err);
           return { success: false, error: err.message };
         }
       },
 
-      // =========================================
-      // ⏳ REDUCE STAMINA TIMER (มินิเกมตอบถูก)
-      // =========================================
       reduceStaminaTimer: async (minutes) => {
         try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("no token");
-
-          const res = await fetch(`/api/reduce-stamina-timer`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+          const user = get().currentUser;
+          const { data: updatedUser, error } = await supabase.rpc(
+            "reduce_stamina_timer_rpc",
+            {
+              p_username: user.username,
+              p_minutes: minutes,
             },
-            body: JSON.stringify({ minutes }),
-          });
+          );
 
-          // ... (ส่วนตรวจเช็ค error เหมือนเดิม) ...
+          if (error) throw error;
 
-          const data = await res.json();
-          if (!data.isSuccess) throw new Error(data.message);
-
-          // 💡 ตรวจสอบว่าสายฟ้าปัจจุบัน เพิ่มขึ้นจากของเดิมใน Store หรือไม่
           const previousStamina = get().currentUser?.stamina?.current || 0;
-          const currentStamina = data.stamina.current;
-          const earnedStamina = currentStamina > previousStamina; // ถ้าได้เพิ่ม ถือว่าตีบวกสำเร็จ!
+          const earnedStamina = updatedUser.stamina.current > previousStamina;
 
-          set((state) => ({
-            currentUser: {
-              ...state.currentUser,
-              stamina: {
-                ...state.currentUser.stamina,
-                current: currentStamina,
-                max: data.stamina.max,
-                timeToNext: data.stamina.timeToNext,
-              },
-            },
-          }));
-
+          set({ currentUser: updatedUser });
           return {
             success: true,
-            currentStamina: currentStamina,
-            earnedStamina: earnedStamina, // 💡 ส่งค่านี้กลับไปให้ MiniGame.jsx รู้
+            currentStamina: updatedUser.stamina.current,
+            earnedStamina,
           };
         } catch (err) {
-          console.error("reduceStaminaTimer error:", err);
           return { success: false, error: err.message };
         }
       },
 
-      /* ===== CLEAR STATES (เหมือน reducers) ===== */
-      logout: () => {
-        localStorage.removeItem("token");
+      logout: async () => {
+        await supabase.auth.signOut();
         set({
           isAuthenticated: false,
           currentUser: null,
+          loginState: INITIALIZED,
+          registerState: INITIALIZED
         });
       },
 
-      clearErrorRegisMessage: () => set({ backendRegisMessage: null }),
+      /* ===== CLEAR MESSAGES & STATES ===== */
+      clearBackendMessage: () => set({
+        backendLoginMessage: null,
+        backendRegisMessage: null,
+        buyHeroError: null,
+        errorLogin: false,
+        errorRegister: false
+      }),
 
-      clearErrorLoginMessage: () => set({ backendLoginMessage: null }),
+      clearErrorRegisMessage: () => set({ 
+        backendRegisMessage: null, 
+        errorRegister: false 
+      }),
+
+      clearErrorLoginMessage: () => set({ 
+        backendLoginMessage: null, 
+        errorLogin: false 
+      }),
 
       clearLoginState: () => set({ loginState: INITIALIZED }),
-
       clearRegisterState: () => set({ registerState: INITIALIZED }),
+      clearUpgradeStatus: () => set({ upgradeStatus: INITIALIZED, previewData: null }),
 
-      clearUpgradeStatus: () =>
-        set({ upgradeStatus: INITIALIZED, previewData: null }),
-
-      getSelectedHero: () => {
-        const user = get().currentUser;
-        return user?.heroes?.find((h) => h.is_selected === true) ?? null;
-      },
-
-      isHeroOwned: (heroId) => {
-        const user = get().currentUser;
-        return !!user?.heroes?.some((h) => h.hero_id === heroId);
-      },
-
-      isHeroSelected: (heroId) => {
-        const user = get().currentUser;
-        return !!user?.heroes?.some(
-          (h) => h.hero_id === heroId && h.is_selected === true,
-        );
-      },
+      /* ===== HELPERS ===== */
+      getSelectedHero: () =>
+        get().currentUser?.heroes?.find((h) => h.is_selected) ?? null,
+      isHeroOwned: (heroId) =>
+        !!get().currentUser?.heroes?.some((h) => h.hero_id === heroId),
     }),
     {
       name: "auth-storage",
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
-
         volume: state.volume,
         isMuted: state.isMuted,
-
         sfxVolume: state.sfxVolume,
         isSfxMuted: state.isSfxMuted,
       }),
