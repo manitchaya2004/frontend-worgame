@@ -1,34 +1,33 @@
 import { create } from "zustand";
-import { INITIALIZED, LOADING, LOADED, FAILED ,API_URL} from "./const";
-
+import { INITIALIZED, LOADING, LOADED, FAILED } from "./const";
+import { supabase } from "../service/supabaseClient";
 
 export const useStageStore = create((set) => ({
   stages: [],
   loading: INITIALIZED,
   error: null,
 
+  // ✅ ดึงข้อมูลด่านทั้งหมดจาก Supabase
   getAllStage: async () => {
     try {
       set({ loading: LOADING, error: null });
 
-      // เพิ่ม Header เพื่อข้ามหน้าแจ้งเตือนของ ngrok
-      const res = await fetch(`/api/getAllStage`, {
-        headers: {
-          "ngrok-skip-browser-warning": "69420",
-        },
+      // ดึงข้อมูลจากตาราง stage และเรียงลำดับตาม orderNo เพื่อให้ด่าน 1 มาก่อนด่าน 2
+      const { data, error } = await supabase
+        .from('stage')
+        .select('*')
+        .order('orderNo', { ascending: true });
+
+      if (error) throw error;
+
+      console.log("✅ Supabase Stage Data:", data);
+
+      set({ 
+        stages: data || [], 
+        loading: LOADED 
       });
-
-      if (!res.ok) throw new Error("Failed to fetch stages");
-
-      const data = await res.json();
-      console.log("Check Stage Data:", data); // ดูใน Console ว่า data เป็น Array หรือ Object
-
-      // ตรวจสอบโครงสร้างข้อมูล (ถ้า Backend ส่งมาในรูปแบบ { data: [...] } ให้ใช้ data.data)
-      const stageList = Array.isArray(data) ? data : data.data; 
-      
-      set({ stages: stageList || [], loading: LOADED });
     } catch (err) {
-      console.error("Fetch Stage Error:", err);
+      console.error("❌ Fetch Stage Error:", err);
       set({ loading: FAILED, error: err.message });
     }
   },

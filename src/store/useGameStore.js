@@ -696,7 +696,7 @@ export const useGameStore = create((set, get) => ({
 
       if (stageError) throw stageError;
 
-      // --- 3. แปลง Logic (Grouping) และ Sort ระยะทาง (ป้องกันการเรียงผิด) ---
+      // --- 3. แปลง Logic (Grouping) และ Sort ระยะทาง ---
       const groupedEvents = rawStageData.monster_spawn.reduce((acc, row) => {
         const dist = Number(row.distant_spawn);
         let group = acc.find(g => g.distance === dist);
@@ -706,7 +706,6 @@ export const useGameStore = create((set, get) => ({
           monster_id: row.monster.id,
           level: row.level,
           name: row.monster.name,
-          description: row.monster.description,
           hp: row.monster.hp,
           power: row.monster.power,
           exp: row.monster.exp,
@@ -720,11 +719,8 @@ export const useGameStore = create((set, get) => ({
           })) : []
         };
 
-        if (group) {
-          group.monsters.push(monsterData);
-        } else {
-          acc.push({ distance: dist, monsters: [monsterData] });
-        }
+        if (group) { group.monsters.push(monsterData); } 
+        else { acc.push({ distance: dist, monsters: [monsterData] }); }
         return acc;
       }, []).sort((a, b) => a.distance - b.distance); 
 
@@ -740,14 +736,15 @@ export const useGameStore = create((set, get) => ({
         events: groupedEvents 
       };
 
-      // --- 4. 🚀 Asset Preloading (แก้ปัญหารูปวาร์ป) ---
-      console.log("⏳ Preloading Assets...");
+      // --- 4. 🚀 Asset Preloading (Player + Monster + Map) ---
+      console.log("⏳ Preloading Assets (Heroes, Monsters, and Map)...");
       const STORAGE_HERO = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
       const STORAGE_MONSTER = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_monster/";
+      const STORAGE_MAP = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
       
       const imagesToPreload = [];
 
-      // Preload Player (ทุก Action ทุุก Frame)
+      // 4.1 เก็บรูป Player
       const pPath = selectedHero?.hero_id;
       if (pPath) {
         ["idle", "walk", "attack", "guard"].forEach(act => {
@@ -755,7 +752,7 @@ export const useGameStore = create((set, get) => ({
         });
       }
 
-      // Preload Monsters ในด่านนี้ทั้งหมด
+      // 4.2 เก็บรูป Monsters ในด่านนี้
       finalStageData.events.forEach(ev => {
         ev.monsters.forEach(m => {
           ["idle", "attack"].forEach(act => {
@@ -764,18 +761,23 @@ export const useGameStore = create((set, get) => ({
         });
       });
 
-      // ดำเนินการโหลดรูปภาพเข้า Cache ของ Browser
+      // 4.3 ✅ เพิ่มการ Preload รูปพื้นหลังแผนที่
+      if (stageId) {
+        imagesToPreload.push(`${STORAGE_MAP}${stageId}.png`);
+      }
+
+      // ดำเนินการโหลดรูปภาพเข้า Cache ของ Browser ทั้งหมด
       const preloadPromises = [...new Set(imagesToPreload)].map(src => {
         return new Promise((resolve) => {
           const img = new Image();
           img.src = src;
           img.onload = resolve;
-          img.onerror = resolve; // ข้ามถ้าหาไฟล์ไม่เจอ
+          img.onerror = resolve; // ข้ามถ้าหาไฟล์ไม่เจอ เพื่อไม่ให้เกมค้าง
         });
       });
 
       await Promise.all(preloadPromises);
-      console.log("✅ Assets Preloaded! Game Ready.");
+      console.log("✅ All Assets Preloaded! Map is ready.");
 
       // --- 5. บันทึกลง Store และเริ่มเกม ---
       set({
@@ -790,6 +792,7 @@ export const useGameStore = create((set, get) => ({
       DeckManager.init();
       await delay(500);
 
+      // --- 6. เล่นเพลงประกอบ ---
       const isMutedNow = useAuthStore.getState().isMuted;
       if (!isMutedNow) bgm.playAdvanture();
 
