@@ -18,14 +18,14 @@ export const FormTextField = ({
   onChange,
   errorMessage,
   helperText,
+  maxLength ,
 }) => {
-
   // 1. สร้างตัวแปรเก็บ Style ของ Label ไว้ที่เดียว
   const labelStyles = {
     color: "white",
     fontFamily: "'Press Start 2P'",
     fontSize: { xs: "10px", sm: "12px" },
-    mb: 0.5,
+    mb: 0.4,
     "@media (orientation: landscape) and (max-height: 450px)": {
       mb: 0.2,
       fontSize: "7px",
@@ -42,7 +42,6 @@ export const FormTextField = ({
       "@media (orientation: landscape) and (max-height: 450px)": {
         height: 30,
         borderRadius: "13px",
-        
       },
       borderRadius: "15px",
       fontFamily: "'Press Start 2P'",
@@ -69,7 +68,6 @@ export const FormTextField = ({
         },
         "@media (orientation: landscape) and (max-height: 450px)": {
           fontSize: "7px",
-         
         },
       },
     },
@@ -86,11 +84,27 @@ export const FormTextField = ({
     },
   };
 
+  const isCounter = !errorMessage && maxLength && typeof value === "string";
+
+  const helperContent = isCounter ? (
+    <Box sx={{ textAlign: "right" }}>
+      <Typography
+        sx={{
+          color: "white",
+          fontFamily: "'Press Start 2P'", // ให้ฟอนต์เข้ากัน
+          fontSize: "8px",
+        }}
+      >
+        {value.length}/{maxLength}
+      </Typography>
+    </Box>
+  ) : (
+    <Box sx={{ textAlign: "left" }}>{errorMessage || helperText}</Box>
+  );
+
   return (
     <Box sx={{ width: "100%" }}>
-      <Typography sx={labelStyles}>
-        {label}
-      </Typography>
+      <Typography sx={labelStyles}>{label}</Typography>
 
       {/* เรียกใช้ TextField แค่รอบเดียว */}
       <TextField
@@ -103,8 +117,10 @@ export const FormTextField = ({
         onChange={onChange}
         variant="outlined"
         sx={textFieldStyles} // โยนตัวแปร Style ที่เขียนไว้ด้านบนมาใส่
+        inputProps={{ maxLength }}
         InputProps={
           // ถ้าเป็นพาสเวิร์ด ถึงจะใส่ลูกตา ถ้าไม่ใช่ก็ใส่ undefined (ไม่แสดงอะไร)
+
           isPassword
             ? {
                 endAdornment: (
@@ -118,7 +134,7 @@ export const FormTextField = ({
             : undefined
         }
         error={!!errorMessage}
-        helperText={helperText}
+        helperText={helperContent}
       />
     </Box>
   );

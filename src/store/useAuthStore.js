@@ -49,6 +49,7 @@ export const useAuthStore = create(
       /* ===== REGISTER (คงความหมายเดิม: รับ username, email, password) ===== */
       registerUser: async (userData) => {
         const { username, email, password } = userData;
+
         try {
           set({
             registerState: LOADING,
@@ -56,17 +57,29 @@ export const useAuthStore = create(
             errorRegister: false,
           });
 
-          // ใช้ Supabase Auth โดยส่ง email และ password จริงๆ
-          // และเก็บ username ไว้ใน metadata เพื่อให้ Trigger ใน SQL นำไปใช้ต่อได้
+          // 1️⃣ เช็ค username ก่อน
+          const { data: usernameCheck } = await supabase
+            .from("player")
+            .select("username")
+            .eq("username", username)
+            .maybeSingle();
+
+          if (usernameCheck) {
+            throw new Error("username already exists");
+          }
+
+          // 2️⃣ สมัคร Supabase Auth
           const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
             options: {
-              data: { username: username } 
-            }
+              data: { username: username },
+            },
           });
 
-          if (error) throw error;
+          if (error) {
+            throw new Error("email already registered");
+          }
 
           set({
             registerState: LOADED,
@@ -80,13 +93,14 @@ export const useAuthStore = create(
             backendRegisMessage: err.message,
             errorRegister: true,
           });
+
           throw err;
         }
       },
 
       /* ===== LOGIN (ใช้ Username ค้นหา Email เพื่อ Auth กับ Supabase) ===== */
       loginUser: async (credentials) => {
-        const { username, password } = credentials; 
+        const { username, password } = credentials;
         try {
           set({
             loginState: LOADING,
@@ -96,27 +110,33 @@ export const useAuthStore = create(
 
           // 1. 🔍 ไปค้นหา Email จริงๆ ของ Username นี้จากตาราง player ก่อน
           const { data: userData, error: userError } = await supabase
-            .from('player') 
-            .select('email')
-            .eq('username', username)
-            .maybeSingle(); 
+            .from("player")
+            .select("email")
+            .eq("username", username)
+            .maybeSingle();
 
           if (userError || !userData) {
-            throw new Error("ไม่พบชื่อผู้ใช้นี้ในระบบ หรือยังไม่ได้ลงทะเบียนตาราง Player");
+            throw new Error("Invaild username. Please try again");
           }
 
           // 2. 🔑 เอา Email ที่หาเจอไป Login กับ Supabase Auth
-          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: userData.email,
-            password: password,
-          });
+          const { data: authData, error: authError } =
+            await supabase.auth.signInWithPassword({
+              email: userData.email,
+              password: password,
+            });
 
-          if (authError) throw authError;
+          if (authError) {
+            throw new Error("Invaild password. Please try again");
+          }
 
           // 3. 🎮 ดึงข้อมูลเกม (Money, Stamina, Heroes) ผ่าน RPC get_player_data
-          const { data: gameData, error: rpcError } = await supabase.rpc('get_player_data', {
-            p_username: username 
-          });
+          const { data: gameData, error: rpcError } = await supabase.rpc(
+            "get_player_data",
+            {
+              p_username: username,
+            },
+          );
 
           if (rpcError) throw rpcError;
 
@@ -127,7 +147,7 @@ export const useAuthStore = create(
             currentUser: gameData,
             errorLogin: false,
           });
-          
+
           return gameData; // คืนค่ากลับเพื่อให้หน้า UI เปลี่ยนหน้าได้
         } catch (error) {
           console.error("Login Error:", error);
@@ -145,15 +165,20 @@ export const useAuthStore = create(
       checkAuth: async () => {
         set({ authLoading: true });
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           if (!session) throw new Error("no token");
 
           // ดึง username จาก metadata ที่เราเก็บไว้ตอนสมัคร
           const username = session.user.user_metadata.username;
 
-          const { data: userData, error } = await supabase.rpc('get_player_data', {
-            p_username: username
-          });
+          const { data: userData, error } = await supabase.rpc(
+            "get_player_data",
+            {
+              p_username: username,
+            },
+          );
 
           if (error) throw error;
 
@@ -291,32 +316,36 @@ export const useAuthStore = create(
           isAuthenticated: false,
           currentUser: null,
           loginState: INITIALIZED,
-          registerState: INITIALIZED
+          registerState: INITIALIZED,
         });
       },
 
       /* ===== CLEAR MESSAGES & STATES ===== */
-      clearBackendMessage: () => set({
-        backendLoginMessage: null,
-        backendRegisMessage: null,
-        buyHeroError: null,
-        errorLogin: false,
-        errorRegister: false
-      }),
+      clearBackendMessage: () =>
+        set({
+          backendLoginMessage: null,
+          backendRegisMessage: null,
+          buyHeroError: null,
+          errorLogin: false,
+          errorRegister: false,
+        }),
 
-      clearErrorRegisMessage: () => set({ 
-        backendRegisMessage: null, 
-        errorRegister: false 
-      }),
+      clearErrorRegisMessage: () =>
+        set({
+          backendRegisMessage: null,
+          errorRegister: false,
+        }),
 
-      clearErrorLoginMessage: () => set({ 
-        backendLoginMessage: null, 
-        errorLogin: false 
-      }),
+      clearErrorLoginMessage: () =>
+        set({
+          backendLoginMessage: null,
+          errorLogin: false,
+        }),
 
       clearLoginState: () => set({ loginState: INITIALIZED }),
       clearRegisterState: () => set({ registerState: INITIALIZED }),
-      clearUpgradeStatus: () => set({ upgradeStatus: INITIALIZED, previewData: null }),
+      clearUpgradeStatus: () =>
+        set({ upgradeStatus: INITIALIZED, previewData: null }),
 
       /* ===== HELPERS ===== */
       getSelectedHero: () =>
