@@ -1,4 +1,10 @@
-import { Typography, Box, LinearProgress, Tooltip, IconButton } from "@mui/material";
+import {
+  Typography,
+  Box,
+  LinearProgress,
+  Tooltip,
+  IconButton,
+} from "@mui/material";
 import { THEME, getStatIcon } from "../hook/const";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 export const StatLine = ({
@@ -105,7 +111,6 @@ export const StatLine = ({
             // fontWeight: "bold",
             backgroundColor: "#2a160f",
             border: `1px solid black`,
-           
           },
         },
         arrow: { sx: { color: "#000000" } },
@@ -254,15 +259,29 @@ export const StatTextBox = ({
   tooltipText = "",
   isUnlocked = true, // เพิ่ม prop เพื่อเช็คปลดล็อค
 }) => (
-  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+    }}
+  >
     {/* LABEL + INFO ICON */}
     <Box
       sx={{
-        width: "140px", 
+        width: "140px",
         display: "flex",
         alignItems: "center",
-        gap: 0.8, 
+        gap: 0.8,
         flexShrink: 0,
+        // เพิ่มเฉพาะจอใหญ่
+        "@media (min-width: 1800px)": {
+          width: "200px",
+        },
+        // บีบความกว้าง Label ฝั่งซ้าย
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          // width: "90px",
+          gap: 0.5,
+        },
       }}
     >
       {getStatIcon(label)}
@@ -270,10 +289,18 @@ export const StatTextBox = ({
       <Typography
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: {xs: 8, md: 10}, 
+          fontSize: { xs: 7, md: 10 },
           color: isUnlocked ? THEME.accent : "#777", // สีเทาถ้ายังล็อค
           textShadow: `1px 1px 0 ${THEME.shadow}`,
           letterSpacing: "1px",
+          // ขยายฟอนต์เฉพาะจอใหญ่
+          "@media (min-width: 1800px)": {
+            fontSize: 12,
+          },
+          // ย่อฟอนต์ใน Mobile Landscape
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            fontSize: 8,
+          },
         }}
       >
         {label}
@@ -287,11 +314,17 @@ export const StatTextBox = ({
               p: 0,
               color: THEME.accent,
               "&:hover": {
-                color: "#ffd966", 
+                color: "#ffd966",
               },
             }}
           >
-            <InfoOutlinedIcon sx={{ fontSize: 12 }} />
+            <InfoOutlinedIcon
+              sx={{ 
+                fontSize: 12, 
+                "@media (min-width: 1800px)": { fontSize: 16 },
+                "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 8 }
+              }}
+            />
           </IconButton>
         </Tooltip>
       )}
@@ -300,7 +333,7 @@ export const StatTextBox = ({
     {/* VALUE BOX */}
     <Box
       sx={{
-        ml: { xs: 0, md: 3 }, 
+        ml: { xs: 0, md: 3 },
         flex: 1,
         backgroundColor: "#1a120b",
         color: isUnlocked ? THEME.accent : "#555",
@@ -312,7 +345,21 @@ export const StatTextBox = ({
         boxShadow: "inset 0 2px 5px rgba(0,0,0,0.8)",
         fontFamily: "'Verdana', sans-serif",
         fontWeight: "bold",
-        fontSize: 13,
+        fontSize: { xs: 9, xl: 13 },
+        // ยืดเฉพาะจอใหญ่
+        "@media (min-width: 1800px)": {
+          py: 1,
+          fontSize: 15,
+         
+        },
+        // ย่อกล่อง Value บน Mobile Landscape ให้แบนที่สุด
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          ml: 0,
+          px: 0.5,
+          fontSize: 7,
+          border: `1px solid ${isUnlocked ? THEME.border : "#333"}`,
+           borderRadius: "2px",
+        },
       }}
     >
       {isUnlocked ? value : "???"}

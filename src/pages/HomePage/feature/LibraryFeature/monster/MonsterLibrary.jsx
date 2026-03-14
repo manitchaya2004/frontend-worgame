@@ -43,23 +43,52 @@ const InfoTab = ({ monster }) => {
 
   const deck = monster?.monster_deck || [];
   return (
-    <Box sx={{ m: 2, height: "100%", overflowY: "auto", pr: 1 }}>
+    <Box
+      sx={{
+        m: 2,
+        height: "-webkit-fill-available",
+        overflowY: "auto",
+        pr: 1,
+        // เพิ่มเฉพาะจอใหญ่
+        "@media (min-width: 1800px)": {
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        },
+        // ปรับสำหรับ Mobile Landscape
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          m: 0.5,
+          pr: 0.5,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        },
+      }}
+    >
       <Box
         sx={{
-          mb: 2,
           textAlign: "center",
           borderBottom: `2px dashed ${THEME.border}`,
           pb: 2,
+          // ปรับ Padding ด้านล่างสำหรับ Mobile Landscape
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            pb: 0.5,
+          },
         }}
       >
         <Typography
           sx={{
             fontFamily: "'Press Start 2P'",
-            fontSize: 16,
+            fontSize: { xs: 10, xl: 14 },
             color: isUnlocked ? THEME.accent : "#777",
             mb: 0.5,
             textTransform: "uppercase",
             textShadow: `2px 2px 0 ${THEME.shadow}`,
+            // ย่อฟอนต์ใน Mobile Landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 8,
+              mb: 0.2,
+            },
           }}
         >
           {isUnlocked ? monster?.name || "Unknown" : "???"}
@@ -73,13 +102,17 @@ const InfoTab = ({ monster }) => {
             gap: 0.5,
             mt: 1.5,
             flexWrap: "wrap",
+            // ลด Margin Top ใน Mobile Landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              mt: 0.2,
+            },
           }}
         >
           {isUnlocked ? (
             <Typography
               sx={{
                 fontFamily: "'Verdana', sans-serif",
-                fontSize: { xs: 9, md: 11 },
+                fontSize: { xs: 9, md: 11, xl: 13 },
                 color: "#d7ccc8",
                 lineHeight: 1.2,
                 textAlign: "center",
@@ -94,7 +127,7 @@ const InfoTab = ({ monster }) => {
             <Typography
               sx={{
                 fontFamily: "'Verdana', sans-serif",
-                fontSize: { xs: 9, md: 11 },
+                fontSize: { xs: 9, md: 11, xl: 15 },
                 color: "#d7ccc8",
                 lineHeight: 1.2,
                 textAlign: "center",
@@ -109,7 +142,34 @@ const InfoTab = ({ monster }) => {
         </Box>
       </Box>
 
-      <Box sx={{ mt: 2 }}>
+      <Box
+        sx={{
+          mt: 1,
+         
+          // เพิ่มระยะห่างเฉพาะจอใหญ่
+          "@media (min-width: 1800px)": {
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: 1,
+          },
+          // ใช้ Flex จัดการช่องว่างอัตโนมัติใน Mobile Landscape
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            my: 0.8,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-evenly", // ให้ห่างเท่าๆ กัน
+            gap: 0,
+          },
+          // "@media (min-width:1200px)": {
+          //   display: "flex",
+          //   flexDirection: "column",
+          //   gap:1
+          // },
+        }}
+      >
         <StatTextBox
           label="HP"
           value={monster?.hp || 0}
@@ -125,7 +185,17 @@ const InfoTab = ({ monster }) => {
           value={monster?.speed || 0}
           isUnlocked={isUnlocked}
         />
-        <Divider sx={{ my: 2, borderColor: THEME.border, opacity: 0.9 }} />
+        <Divider
+          sx={{
+            my: 2,
+            borderColor: THEME.border,
+            opacity: 0.9,
+            // ลดความห่างเส้นแบ่งใน Mobile Landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              my: 0.2,
+            },
+          }}
+        />
         <StatTextBox
           label="MANA COST"
           value={monster?.quiz_move_cost || 0}
@@ -161,13 +231,24 @@ const BuffTab = ({ monster }) => {
           gap: 2,
         }}
       >
-        <LockIcon sx={{ fontSize: 40, color: "#555" }} />
+        <LockIcon
+          sx={{
+            fontSize: 40,
+            color: "#555",
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 24,
+            },
+          }}
+        />
         <Typography
           sx={{
             fontFamily: "'Press Start 2P'",
             fontSize: 10,
             color: "#777",
             lineHeight: 1.5,
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 7,
+            },
           }}
         >
           Explore the adventure and clear stages to unlock this monster's
@@ -179,12 +260,21 @@ const BuffTab = ({ monster }) => {
 
   if (deck.length === 0) {
     return (
-      <Box sx={{ p: 4, textAlign: "center" }}>
+      <Box
+        sx={{
+          p: 4,
+          textAlign: "center",
+          "@media (orientation: landscape) and (max-height: 450px)": { p: 1 },
+        }}
+      >
         <Typography
           sx={{
             fontFamily: "'Press Start 2P'",
             fontSize: 10,
             color: THEME.textMain,
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 7,
+            },
           }}
         >
           No buff found.
@@ -206,7 +296,15 @@ const BuffTab = ({ monster }) => {
   }, []);
 
   return (
-    <Box sx={{ m: 2, height: "100%", overflowY: "auto", pr: 1 }}>
+    <Box
+      sx={{
+        m: 2,
+        height: "100%",
+        overflowY: "auto",
+        pr: 1,
+        "@media (orientation: landscape) and (max-height: 450px)": { m: 1 },
+      }}
+    >
       {/* 💡 เปลี่ยนจาก Stack เป็น Grid เพื่อให้แสดง 2 คอลัมน์ */}
       <Box
         sx={{
@@ -257,11 +355,11 @@ const BuffTab = ({ monster }) => {
                     transform: "scale(1.2)",
                   },
                   "@media (orientation: landscape) and (max-height: 450px)": {
-                    width: 9,
-                    height: 9,
-                    fontSize: 8,
+                    width: 14,
+                    height: 14,
+                    fontSize: 7,
                     justifyContent: "center",
-                    border: "0.2px solid #fff",
+                    border: "0.5px solid #fff",
                   },
                 }}
               >
@@ -315,10 +413,15 @@ const DetailMonster = ({ monster, playClickSound }) => {
       <Grid
         size={{ xs: 5, sm: 5 }}
         sx={{
+          height: "100%",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           p: 2,
+          // ลด Padding ลงใน Mobile Landscape
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            p: 0.5,
+          },
         }}
       >
         <Box
@@ -335,12 +438,20 @@ const DetailMonster = ({ monster, playClickSound }) => {
               : `6px 6px 0 ${THEME.shadow}, 0 0 20px ${glowColor}`,
             width: "100%",
             height: "100%",
-            maxHeight: "350px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             backgroundImage: `radial-gradient(circle, ${bgGradient} 0%, rgba(0,0,0,0) 70%)`,
             position: "relative",
+            // ให้ยืดหยุ่นตามความสูงใน Mobile Landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              height: "100%", // ใช้พื้นที่ 100% ของ Grid
+              border: `2px solid ${borderColor}`,
+              borderRadius: "4px",
+              boxShadow: !isUnlocked
+                ? "none"
+                : `3px 3px 0 ${THEME.shadow}, 0 0 20px ${glowColor}`,
+            },
           }}
         >
           {/* Badge Zone */}
@@ -351,6 +462,11 @@ const DetailMonster = ({ monster, playClickSound }) => {
               left: 8,
               display: "flex",
               gap: 1,
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                top: 4,
+                left: 4,
+                gap: 0.5,
+              },
             }}
           >
             <Box
@@ -363,6 +479,12 @@ const DetailMonster = ({ monster, playClickSound }) => {
                 fontFamily: "'Press Start 2P'",
                 fontSize: 10,
                 border: `2px solid ${!isUnlocked ? "#222" : THEME.border}`,
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 6,
+                  px: 0.5,
+                  py: 0.2,
+                  border: `1px solid ${!isUnlocked ? "#222" : THEME.border}`,
+                },
               }}
             >
               #{monster?.no ?? "???"}
@@ -381,6 +503,12 @@ const DetailMonster = ({ monster, playClickSound }) => {
                   border: `2px solid #800000`,
                   boxShadow: "0 0 5px rgba(255,0,0,0.8)",
                   animation: "pulse 1.5s infinite",
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 6,
+                    px: 0.5,
+                    py: 0.2,
+                    border: `1px solid #800000`,
+                  },
                 }}
               >
                 BOSS
@@ -427,6 +555,9 @@ const DetailMonster = ({ monster, playClickSound }) => {
                 position: "absolute",
                 color: "rgba(255,255,255,0.3)",
                 fontSize: 60,
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 30,
+                },
               }}
             />
           )}
@@ -440,8 +571,14 @@ const DetailMonster = ({ monster, playClickSound }) => {
             height: "100%",
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
             p: 2,
             pl: { xs: 2, sm: 0 },
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              p: 0.5,
+              pl: 0,
+            },
           }}
         >
           {/* Main Card Panel */}
@@ -456,8 +593,13 @@ const DetailMonster = ({ monster, playClickSound }) => {
               flexDirection: "column",
               overflow: "hidden",
               width: "100%",
-              height: "100%",
-              maxHeight: "350px",
+              height: { xs: "100px", sm: "150px", md: "250px", xl: "100%" },
+              // ให้ยืดหยุ่นใน Mobile Landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                height: "100%",
+                border: `2px solid ${THEME.border}`,
+                borderRadius: "4px",
+              },
             }}
           >
             {/* Tab Header */}
@@ -466,6 +608,9 @@ const DetailMonster = ({ monster, playClickSound }) => {
               sx={{
                 borderBottom: `3px solid ${THEME.border}`,
                 background: "#1a120b",
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  borderBottom: `1px solid ${THEME.border}`,
+                },
               }}
             >
               {["info", "buff"].map((t) => (
@@ -486,6 +631,11 @@ const DetailMonster = ({ monster, playClickSound }) => {
                     "&:hover": {
                       backgroundColor:
                         tab === t ? THEME.border : `rgba(90, 62, 43, 0.5)`,
+                    },
+                    // ย่อขนาดและ Padding แถบ Tab
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      fontSize: 7,
+                      py: 0.5,
                     },
                   }}
                 >
@@ -522,6 +672,15 @@ const arrowBtnStyle = {
     transform: "translate(2px, 2px)",
   },
   "&:disabled": { opacity: 0.5, boxShadow: "none", cursor: "not-allowed" },
+  // ย่อปุ่มลูกศรใน Mobile Landscape
+  "@media (orientation: landscape) and (max-height: 450px)": {
+    minWidth: 24,
+    height: 24,
+    mx: 0.5,
+    fontSize: 10,
+    border: `1px solid ${THEME.border}`,
+    boxShadow: `1px 1px 0 ${THEME.shadow}`,
+  },
 };
 
 const ListMonster = ({
@@ -554,6 +713,14 @@ const ListMonster = ({
         backgroundColor: "rgba(0,0,0,0.3)",
         borderRadius: "8px",
         border: `2px solid ${THEME.border}`,
+        // ย่อ Padding ใน Mobile Landscape
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          py: 1,
+          px: 0.2,
+          gap: 0.5,
+          border: `1px solid ${THEME.border}`,
+          borderRadius: "4px",
+        },
       }}
     >
       <Button
@@ -583,6 +750,11 @@ const ListMonster = ({
           msOverflowStyle: "none",
           scrollbarWidth: "none",
           WebkitOverflowScrolling: "touch",
+          // ลดความสูงแถบ Scroll Box ลง
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            height: 35,
+            gap: "6px",
+          },
         }}
       >
         {listMonster.map((m) => {
@@ -642,13 +814,24 @@ const ListMonster = ({
                   zIndex: 1,
                   borderColor: activeBorderColor,
                 },
+                // ย่อขนาดกล่องมอนสเตอร์ใน List
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  width: 35,
+                  height: 35,
+                  border: `1px solid ${isActive ? activeBorderColor : inactiveBorderColor}`,
+                 
+                },
               }}
             >
               <img
                 src={LoadImage("img_monster", m.id, 1)}
                 alt={m.name}
                 style={{
-                  height: "40px",
+                  height: "100%",
+                  maxHeight: "40px",
+                  width: "100%",
+                  objectFit: "contain",
+                  padding: "2px",
                   imageRendering: "pixelated",
                   // ใส่ Effect เงาดำใน List หากยังไม่ปลดล็อค
                   filter: !isUnlocked
@@ -665,6 +848,9 @@ const ListMonster = ({
                     position: "absolute",
                     color: "rgba(255,255,255,0.4)",
                     fontSize: 16,
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      fontSize: 12,
+                    },
                   }}
                 />
               )}
@@ -760,7 +946,7 @@ const MonsterLibrary = () => {
   }, [sortedMonsters]);
 
   return (
-    <Box sx={{ m: 2 }}>
+    <Box sx={{ height: "100vh" }}>
       <MotionBox
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
@@ -783,10 +969,19 @@ const MonsterLibrary = () => {
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
           width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
-          height: "565px",
+          height: { xs: "70%", sm: "70%", md: "570px",xl: "80%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
+
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            top: "55%", 
+            transform: "translate(-50%, -50%)",
+            height: "80%", 
+            border: `4px solid ${THEME.border}`,
+            borderRadius: "6px",
+          },
+          
         }}
       >
         {/* Header Title */}
@@ -799,6 +994,11 @@ const MonsterLibrary = () => {
             mt: -1,
             mb: 2,
             borderBottom: `4px solid ${THEME.border}`,
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1, // ลดให้บางที่สุด
+              mb: 0.5,
+              borderBottom: `2px solid ${THEME.border}`,
+            },
           }}
         >
           <Typography
@@ -807,6 +1007,10 @@ const MonsterLibrary = () => {
               color: THEME.accent,
               fontSize: { xs: 16, md: 24 },
               textShadow: `3px 3px 0 #000, 0 0 10px ${THEME.accent}`,
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 10, // ย่อฟอนต์
+                textShadow: `2px 2px 0 #000, 0 0 6px ${THEME.accent}`,
+              },
             }}
           >
             MONSTER LIBRARY
@@ -815,14 +1019,37 @@ const MonsterLibrary = () => {
 
         {/* Content Area */}
         <Box
+          id="Content-Area"
           sx={{
             flex: 1,
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
+            // backgroundColor:'white'
+            // height:'100%',
+            justifyContent: "space-between", // ดันเนื้อหาให้กระจายตัว
+            // alignItems:'center'
+            
+           
+
           }}
         >
-          <Box sx={{ flex: 1, mb: 1 }}>
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              mb: 0.5,
+               "@media (orientation: landscape) and (max-height: 450px)": {
+                mt:1,
+                flex:0,
+                height:'220px',
+       
+              },
+
+            }}
+          >
             {/* 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster */}
             <DetailMonster
               monster={currentActiveMonster}
@@ -831,7 +1058,16 @@ const MonsterLibrary = () => {
           </Box>
 
           {/* Footer List */}
-          <Box sx={{ height: "80px", px: 2, mb: 1 }}>
+          <Box
+            sx={{
+              px: 2,
+              pb: 0.5,
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                px: 1,
+                pb: 0,
+              },
+            }}
+          >
             <ListMonster
               listMonster={sortedMonsters}
               // 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster

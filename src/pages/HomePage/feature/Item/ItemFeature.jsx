@@ -32,7 +32,6 @@ const MotionBox = motion(Box);
 const ItemFeature = () => {
   const { currentUser, updateResources, resourceStatus } = useAuthStore();
 
-  console.log("potion", currentUser);
   const playClickSound = useGameSfx(clickSfx);
   const [isLoading, setIsLoading] = useState(false);
   const potions = currentUser?.potion || {};

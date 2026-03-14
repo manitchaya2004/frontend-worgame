@@ -164,15 +164,15 @@ export const getDeckIconData = (effect) => {
 export const getStatIcon = (label) => {
   const lowerLabel = label.toLowerCase();
   if (lowerLabel.includes("hp"))
-    return <FavoriteIcon sx={{ color: "#ff4d4d", fontSize: 16 }} />;
+    return <FavoriteIcon sx={{ color: "#ff4d4d", fontSize: {xs:12,xl:16} }} />;
   if (lowerLabel.includes("power"))
-    return <FlashOnIcon sx={{ color: "#ffb84d", fontSize: 16 }} />;
+    return <FlashOnIcon sx={{ color: "#ffb84d", fontSize: {xs:12,xl:16} }} />;
   if (lowerLabel.includes("speed"))
-    return <SpeedIcon sx={{ color: "#00e5ff", fontSize: 16 }} />;
+    return <SpeedIcon sx={{ color: "#00e5ff", fontSize: {xs:12,xl:16} }} />;
   if (lowerLabel.includes("mana"))
-    return <AutoFixHighIcon sx={{ color: "#9933ff", fontSize: 16 }} />;
+    return <AutoFixHighIcon sx={{ color: "#9933ff", fontSize: {xs:12,xl:16} }} />;
   if (lowerLabel.includes("coin"))
-    return <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 16 }} />;
+    return <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: {xs:12,xl:16} }} />;
   return null;
 };
 
