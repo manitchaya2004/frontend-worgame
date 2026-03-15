@@ -77,8 +77,7 @@ const ItemCard = ({
           alignItems: "center",
           gap: 2,
           flexDirection: "column",
-          backgroundColor:'pink',
-          height:'100%',
+           height:'100%',
           justifyContent:''
         }}
       >

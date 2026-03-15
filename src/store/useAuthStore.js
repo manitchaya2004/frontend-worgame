@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { LOADED, LOADING, FAILED, INITIALIZED } from "./const";
+import { getCalculatedStats } from "../utils/getCalculated";
 import { supabase } from "../service/supabaseClient";
 
 export const useAuthStore = create(
@@ -49,6 +50,7 @@ export const useAuthStore = create(
       /* ===== REGISTER (คงความหมายเดิม: รับ username, email, password) ===== */
       registerUser: async (userData) => {
         const { username, email, password } = userData;
+
         try {
           set({
             registerState: LOADING,
@@ -56,17 +58,29 @@ export const useAuthStore = create(
             errorRegister: false,
           });
 
-          // ใช้ Supabase Auth โดยส่ง email และ password จริงๆ
-          // และเก็บ username ไว้ใน metadata เพื่อให้ Trigger ใน SQL นำไปใช้ต่อได้
+          // 1️⃣ เช็ค username ก่อน
+          const { data: usernameCheck } = await supabase
+            .from("player")
+            .select("username")
+            .eq("username", username)
+            .maybeSingle();
+
+          if (usernameCheck) {
+            throw new Error("username already exists");
+          }
+
+          // 2️⃣ สมัคร Supabase Auth
           const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
             options: {
-              data: { username: username } 
-            }
+              data: { username: username },
+            },
           });
 
-          if (error) throw error;
+          if (error) {
+            throw new Error("email already registered");
+          }
 
           set({
             registerState: LOADED,
@@ -80,13 +94,14 @@ export const useAuthStore = create(
             backendRegisMessage: err.message,
             errorRegister: true,
           });
+
           throw err;
         }
       },
 
       /* ===== LOGIN (ใช้ Username ค้นหา Email เพื่อ Auth กับ Supabase) ===== */
       loginUser: async (credentials) => {
-        const { username, password } = credentials; 
+        const { username, password } = credentials;
         try {
           set({
             loginState: LOADING,
@@ -96,27 +111,33 @@ export const useAuthStore = create(
 
           // 1. 🔍 ไปค้นหา Email จริงๆ ของ Username นี้จากตาราง player ก่อน
           const { data: userData, error: userError } = await supabase
-            .from('player') 
-            .select('email')
-            .eq('username', username)
-            .maybeSingle(); 
+            .from("player")
+            .select("email")
+            .eq("username", username)
+            .maybeSingle();
 
           if (userError || !userData) {
-            throw new Error("ไม่พบชื่อผู้ใช้นี้ในระบบ หรือยังไม่ได้ลงทะเบียนตาราง Player");
+            throw new Error("Invaild username. Please try again");
           }
 
           // 2. 🔑 เอา Email ที่หาเจอไป Login กับ Supabase Auth
-          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: userData.email,
-            password: password,
-          });
+          const { data: authData, error: authError } =
+            await supabase.auth.signInWithPassword({
+              email: userData.email,
+              password: password,
+            });
 
-          if (authError) throw authError;
+          if (authError) {
+            throw new Error("Invaild password. Please try again");
+          }
 
           // 3. 🎮 ดึงข้อมูลเกม (Money, Stamina, Heroes) ผ่าน RPC get_player_data
-          const { data: gameData, error: rpcError } = await supabase.rpc('get_player_data', {
-            p_username: username 
-          });
+          const { data: gameData, error: rpcError } = await supabase.rpc(
+            "get_player_data",
+            {
+              p_username: username,
+            },
+          );
 
           if (rpcError) throw rpcError;
 
@@ -127,7 +148,7 @@ export const useAuthStore = create(
             currentUser: gameData,
             errorLogin: false,
           });
-          
+
           return gameData; // คืนค่ากลับเพื่อให้หน้า UI เปลี่ยนหน้าได้
         } catch (error) {
           console.error("Login Error:", error);
@@ -145,15 +166,20 @@ export const useAuthStore = create(
       checkAuth: async () => {
         set({ authLoading: true });
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           if (!session) throw new Error("no token");
 
           // ดึง username จาก metadata ที่เราเก็บไว้ตอนสมัคร
           const username = session.user.user_metadata.username;
 
-          const { data: userData, error } = await supabase.rpc('get_player_data', {
-            p_username: username
-          });
+          const { data: userData, error } = await supabase.rpc(
+            "get_player_data",
+            {
+              p_username: username,
+            },
+          );
 
           if (error) throw error;
 
@@ -191,28 +217,87 @@ export const useAuthStore = create(
       selectHero: async (heroId) => {
         try {
           set({ selectHeroState: LOADING });
-          const user = get().currentUser;
 
-          const { error } = await supabase
+          const username = get().currentUser.username;
+
+          // reset hero
+          const { error: resetError } = await supabase
             .from("player_hero")
             .update({ is_selected: false })
-            .eq("player_id", user.username);
+            .eq("player_id", username);
 
-          if (error) throw error;
+          if (resetError) throw resetError;
 
+          // select hero
           const { error: selectError } = await supabase
             .from("player_hero")
             .update({ is_selected: true })
-            .match({ player_id: user.username, hero_id: heroId });
+            .match({
+              player_id: username,
+              hero_id: heroId,
+            });
 
           if (selectError) throw selectError;
 
           await get().refreshUser();
+
           set({ selectHeroState: LOADED });
           return true;
         } catch (err) {
+          console.error(err);
           set({ selectHeroState: FAILED });
           return false;
+        }
+      },
+
+      buyHero: async (heroId) => {
+        try {
+          set({ buyHeroState: "LOADING", buyHeroError: null });
+
+          // 1. ดึง username จาก state ปัจจุบันด้วย get()
+          const state = get();
+          const currentUsername = state.currentUser?.username;
+
+          if (!currentUsername) {
+            throw new Error("no user found in state");
+          }
+
+          // 2. เรียกใช้ RPC ที่เราสร้างไว้ใน Supabase
+          const { data, error } = await supabase.rpc("buy_hero", {
+            p_hero_id: heroId,
+            p_username: currentUsername,
+          });
+
+          if (error) {
+            throw new Error(error.message || "Supabase RPC error");
+          }
+
+          // 3. เช็คกรณีเงินไม่พอ หรือซื้อไม่สำเร็จตามโครงสร้าง JSON ที่ Return กลับมา
+          if (!data || !data.isSuccess) {
+            throw new Error(data?.message || "buy hero failed");
+          }
+
+          const { hero, moneyLeft } = data;
+
+          // 4. อัปเดต State กลับเข้าไป
+          set((state) => ({
+            currentUser: {
+              ...state.currentUser,
+              money: moneyLeft,
+              heroes: [...(state.currentUser?.heroes || []), hero],
+            },
+            buyHeroState: "LOADED",
+          }));
+        } catch (err) {
+          console.error("buyHero error:", err);
+          set({
+            buyHeroState: "FAILED",
+            buyHeroError: err.message,
+          });
+        } finally {
+          setTimeout(() => {
+            set({ buyHeroState: "INITIALIZED" });
+          }, 800);
         }
       },
 
@@ -238,12 +323,110 @@ export const useAuthStore = create(
         }
       },
 
+      fetchPreviewData: async (heroId) => {
+        set({ previewData: null, upgradeStatus: LOADING });
+
+        try {
+          const username = useAuthStore.getState().currentUser.username;
+
+          const { data, error } = await supabase
+            .from("player_hero")
+            .select(
+              `
+        level,
+        hero:hero_id (
+          hp,
+          power,
+          speed
+        )
+      `,
+            )
+            .eq("player_id", username)
+            .eq("hero_id", heroId)
+            .single();
+
+          if (error) throw error;
+
+          const row = data;
+
+          // ใช้ฟังก์ชันเดิมของพั้น
+          const curStats = getCalculatedStats(
+            row.hero.hp,
+            row.hero.power,
+            row.hero.speed,
+            row.level,
+          );
+
+          const nxtStats = getCalculatedStats(
+            row.hero.hp,
+            row.hero.power,
+            row.hero.speed,
+            row.level + 1,
+          );
+
+          set({
+            previewData: {
+              level: { current: row.level, next: row.level + 1 },
+              hp: { current: curStats.hp, next: nxtStats.hp },
+              power: { current: curStats.power, next: nxtStats.power },
+              speed: { current: curStats.speed, next: nxtStats.speed },
+            },
+            upgradeStatus: LOADED,
+          });
+        } catch (err) {
+          console.error("fetchPreviewData error:", err);
+          set({ upgradeStatus: FAILED });
+        }
+      },
+
       /* ===== 5. RESOURCES & STAMINA (ใช้ Username อ้างอิง) ===== */
+      updateResources: async (payload) => {
+        set({ resourceStatus: LOADING });
+        try {
+          const currentUsername = get().currentUser?.username;
+          if (!currentUsername) throw new Error("no user found");
+
+          const { data, error } = await supabase.rpc("update_resources", {
+            p_username: currentUsername,
+            p_heal: payload.heal,
+            p_cure: payload.cure,
+            p_reroll: payload.reroll,
+            p_stamina: payload.stamina,
+          });
+
+          if (error) throw new Error(error.message);
+          if (!data || !data.isSuccess) throw new Error(data?.message || "update failed");
+
+          const { health, cure, reroll } = data.resources;
+
+          set((state) => ({
+            resourceStatus: LOADED,
+            currentUser: {
+              ...state.currentUser,
+              potion: {
+                ...state.currentUser.potion,
+                health: health,
+                cure: cure,
+                reroll: reroll,
+              },
+            },
+          }));
+
+          setTimeout(() => {
+            set({ resourceStatus: INITIALIZED });
+          }, 1000);
+          
+        } catch (err) {
+          console.error("updateResources error:", err);
+          set({ resourceStatus: FAILED });
+        }
+      },
+
       updateStamina: async (amount) => {
         try {
           const user = get().currentUser;
-          const { data: updatedUser, error } = await supabase.rpc(
-            "update_stamina_rpc",
+          const { data, error } = await supabase.rpc(
+            "update_stamina",
             {
               p_username: user.username,
               p_amount: amount,
@@ -251,8 +434,21 @@ export const useAuthStore = create(
           );
 
           if (error) throw error;
-          set({ currentUser: updatedUser });
-          return { success: true, currentStamina: updatedUser.stamina.current };
+          if (!data || !data.isSuccess) throw new Error(data?.message || "update failed");
+
+          set((state) => ({
+            currentUser: {
+              ...state.currentUser,
+              stamina: {
+                ...state.currentUser.stamina,
+                current: data.stamina.current,
+                max: data.stamina.max,
+                timeToNext: data.stamina.timeToNext,
+              },
+            },
+          }));
+
+          return { success: true, currentStamina: data.stamina.current };
         } catch (err) {
           return { success: false, error: err.message };
         }
@@ -261,8 +457,8 @@ export const useAuthStore = create(
       reduceStaminaTimer: async (minutes) => {
         try {
           const user = get().currentUser;
-          const { data: updatedUser, error } = await supabase.rpc(
-            "reduce_stamina_timer_rpc",
+          const { data, error } = await supabase.rpc(
+            "reduce_stamina_timer",
             {
               p_username: user.username,
               p_minutes: minutes,
@@ -270,14 +466,26 @@ export const useAuthStore = create(
           );
 
           if (error) throw error;
+          if (!data || !data.isSuccess) throw new Error(data?.message || "reduce timer failed");
 
           const previousStamina = get().currentUser?.stamina?.current || 0;
-          const earnedStamina = updatedUser.stamina.current > previousStamina;
+          const earnedStamina = data.stamina.current > previousStamina;
 
-          set({ currentUser: updatedUser });
+          set((state) => ({
+            currentUser: {
+              ...state.currentUser,
+              stamina: {
+                ...state.currentUser.stamina,
+                current: data.stamina.current,
+                max: data.stamina.max,
+                timeToNext: data.stamina.timeToNext,
+              },
+            },
+          }));
+
           return {
             success: true,
-            currentStamina: updatedUser.stamina.current,
+            currentStamina: data.stamina.current,
             earnedStamina,
           };
         } catch (err) {
@@ -291,32 +499,36 @@ export const useAuthStore = create(
           isAuthenticated: false,
           currentUser: null,
           loginState: INITIALIZED,
-          registerState: INITIALIZED
+          registerState: INITIALIZED,
         });
       },
 
       /* ===== CLEAR MESSAGES & STATES ===== */
-      clearBackendMessage: () => set({
-        backendLoginMessage: null,
-        backendRegisMessage: null,
-        buyHeroError: null,
-        errorLogin: false,
-        errorRegister: false
-      }),
+      clearBackendMessage: () =>
+        set({
+          backendLoginMessage: null,
+          backendRegisMessage: null,
+          buyHeroError: null,
+          errorLogin: false,
+          errorRegister: false,
+        }),
 
-      clearErrorRegisMessage: () => set({ 
-        backendRegisMessage: null, 
-        errorRegister: false 
-      }),
+      clearErrorRegisMessage: () =>
+        set({
+          backendRegisMessage: null,
+          errorRegister: false,
+        }),
 
-      clearErrorLoginMessage: () => set({ 
-        backendLoginMessage: null, 
-        errorLogin: false 
-      }),
+      clearErrorLoginMessage: () =>
+        set({
+          backendLoginMessage: null,
+          errorLogin: false,
+        }),
 
       clearLoginState: () => set({ loginState: INITIALIZED }),
       clearRegisterState: () => set({ registerState: INITIALIZED }),
-      clearUpgradeStatus: () => set({ upgradeStatus: INITIALIZED, previewData: null }),
+      clearUpgradeStatus: () =>
+        set({ upgradeStatus: INITIALIZED, previewData: null }),
 
       /* ===== HELPERS ===== */
       getSelectedHero: () =>

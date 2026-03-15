@@ -16,6 +16,7 @@ export default function PaperFrame({ title, children }) {
           xs: "100%",
           sm: 600,
         },
+        
         "@media (orientation: landscape) and (max-height: 450px)": {
           width: 400,
         },
@@ -31,7 +32,7 @@ export default function PaperFrame({ title, children }) {
           // minHeight: "280px",
           px: { xs: 2, sm: 3 },
           py: { xs: 3, sm: 4 },
-          gap: 2,
+          gap: 0.3,
           // บีบ padding และ gap เฉพาะตอนตะแคงมือถือ
           "@media (orientation: landscape) and (max-height: 450px)": {
             py: 1.5,
@@ -44,6 +45,7 @@ export default function PaperFrame({ title, children }) {
             sx={{
               textAlign: "center",
               borderBottom: `3px solid ${THEMES.border}`,
+              mb:1
             }}
           >
             <Typography

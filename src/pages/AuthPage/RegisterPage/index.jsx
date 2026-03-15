@@ -89,8 +89,8 @@ const RegisterPage = () => {
     }
     // ความยาว username
     else if (
-      formRegister.username.length < 3 ||
-      formRegister.username.length > 20
+      formRegister.username.length < 1 ||
+      formRegister.username.length > 12
     ) {
       newErrors.username = "Username must be 3-20 characters long";
     }
@@ -98,6 +98,9 @@ const RegisterPage = () => {
     // ===== email =====
     if (!formRegister.email.trim()) {
       newErrors.email = "Please enter your email";
+    } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formRegister.email)) {
+      newErrors.email =
+        "Invalid email format. Please enter a valid email address.";
     }
 
     // ===== password =====
@@ -143,7 +146,7 @@ const RegisterPage = () => {
 
   // error for network reject and when regis pass
   useEffect(() => {
-    if (isFailed) {
+    if (isFailed && !message) {
       setSnackbar({
         open: true,
         message: "Failed to Register",
@@ -170,11 +173,10 @@ const RegisterPage = () => {
           alignItems: "center",
           justifyContent: "center",
           px: { xs: 2, sm: 0 },
-           "@media (orientation: landscape) and (max-height: 450px)": {
+          "@media (orientation: landscape) and (max-height: 450px)": {
             alignItems: "center", // ดันขึ้นบนสุดไม่ให้หัวล้น
             py: 2, // เพิ่มขอบบนล่างกันตกขอบ
             overflowY: "auto", // เผื่อจอมันเตี้ยมากๆ ให้ยังไถดูได้
-     
           },
         }}
       >
@@ -186,7 +188,7 @@ const RegisterPage = () => {
             value={formRegister.username}
             onChange={handleInputChange}
             errorMessage={errors.username}
-            helperText={errors.username}
+            maxLength={12}
           />
           <FormTextField
             label="Email"
@@ -222,7 +224,6 @@ const RegisterPage = () => {
 
           <Button
             fullWidth
-            
             disabled={isLoading}
             onClick={handleSubmit}
             sx={{
@@ -248,8 +249,8 @@ const RegisterPage = () => {
               "@media (orientation: landscape) and (max-height: 450px)": {
                 fontSize: "10px",
                 mt: 0.5,
-                height: 32
-              }
+                height: 32,
+              },
             }}
             startIcon={
               isLoading ? <CircularProgress size={20} color="inherit" /> : null
@@ -265,7 +266,7 @@ const RegisterPage = () => {
               alignItems: "center",
               width: "100%",
               mt: 1,
-              gap: 1
+              gap: 1,
             }}
           >
             <Typography

@@ -25,6 +25,7 @@ const MotionBox = motion(Box);
 const AdvantureFeature = () => {
   const { currentUser, updateStamina } = useAuthStore();
 
+  console.log("user",currentUser)
   const { stages, loadingStage } = useData();
   const store = useGameStore();
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ const AdvantureFeature = () => {
             selectedStage: stage,
           },
         });
-      }, 2500);
+      }, 2000);
     } else {
       alert("Failed to consume stamina. Please try again.");
     }
@@ -190,15 +191,15 @@ const AdvantureFeature = () => {
             0 0 0 4px #1a120b,
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
-            width: { xs: "85%", sm: "80%", md: "80%", lg: "65%" },
-            height: { xs: "80%", sm: "80%", md: "80%", lg: "90%", xl: "80%" },
+            width: { xs: "80%", sm: "80%", md: "80%", lg: "70%" },
+            height: { xs: "70%", sm: "70%", md: "670px",xl: "80%" },
             p: 1,
             display: "flex",
             flexDirection: "column",
             "@media (orientation: landscape) and (max-height: 450px)": {
-              top: "58%",
+              top: "55%",
               transform: "translate(-50%, -50%)",
-              height: "70%",
+              height: "80%",
               border: `4px solid ${THEMES.border}`,
               borderRadius: "6px",
             },
