@@ -1,20 +1,32 @@
+<<<<<<< Updated upstream
 import React, { useCallback, useEffect, useState } from "react";
 import { API_URL } from "../config";
 import { MonsterSpriteLoop } from "../components/SpriteLoops";
+=======
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { supabase } from "../../../service/supabaseClient";
+
+const STAGE_BUCKET = "asset";
+const MAP_FOLDER = "img_map";
+
+const getMapPublicUrl = (id) => {
+  const { data } = supabase.storage
+    .from(STAGE_BUCKET)
+    .getPublicUrl(`${MAP_FOLDER}/${id}.png`);
+  return data?.publicUrl || "";
+};
+>>>>>>> Stashed changes
 
 const StagePanel = () => {
   const [stages, setStages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Spawn panel state
   const [selectedStageId, setSelectedStageId] = useState("");
   const [showSpawn, setShowSpawn] = useState(false);
 
-  // ✅ Map file (png)
   const [mapFile, setMapFile] = useState(null);
 
-  // Stage form state
   const [formData, setFormData] = useState({
     id: "",
     orderNo: "",
@@ -27,13 +39,19 @@ const StagePanel = () => {
   const fetchStages = useCallback(async () => {
     setLoading(true);
     try {
+<<<<<<< Updated upstream
       const res = await fetch(`/api/getAllStage`);
       if (!res.ok) throw new Error("Failed to fetch stages");
       const data = await res.json();
       setStages(data);
+=======
+      const { data, error } = await supabase.rpc("get_stages");
+      if (error) throw error;
+      setStages(Array.isArray(data) ? data : []);
+>>>>>>> Stashed changes
     } catch (e) {
-      console.error(e);
-      alert("Fetch stages failed");
+      console.error("fetchStages error:", e);
+      alert(`Fetch stages failed: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -64,21 +82,30 @@ const StagePanel = () => {
     setShowSpawn(false);
   };
 
-  // ✅ upload map (optional)
   const uploadMap = async (stageId) => {
     if (!mapFile) return;
 
-    const fd = new FormData();
-    fd.append("map", mapFile);
+    const ext = mapFile.name?.split(".").pop()?.toLowerCase();
+    if (ext !== "png") {
+      throw new Error("อัปโหลดได้เฉพาะไฟล์ PNG");
+    }
 
+<<<<<<< Updated upstream
     const up = await fetch(`/api/stage/${stageId}/map`, {
       method: "POST",
       body: fd,
     });
+=======
+    const { error } = await supabase.storage
+      .from(STAGE_BUCKET)
+      .upload(`${MAP_FOLDER}/${stageId}.png`, mapFile, {
+        upsert: true,
+        contentType: mapFile.type || "image/png",
+      });
+>>>>>>> Stashed changes
 
-    if (!up.ok) {
-      const err = await up.json().catch(() => ({}));
-      throw new Error(err.message || "map upload failed");
+    if (error) {
+      throw new Error(error.message || "map upload failed");
     }
   };
 
@@ -86,28 +113,27 @@ const StagePanel = () => {
     e.preventDefault();
 
     if (!formData.id?.trim()) return alert("Stage ID is required");
-    if (formData.orderNo === "" || formData.orderNo == null)
+    if (formData.orderNo === "" || formData.orderNo == null) {
       return alert("OrderNo is required");
+    }
 
     const payload = {
-      id: formData.id.trim(),
-      orderNo: Number(formData.orderNo),
-      name: formData.name,
-      description: formData.description || null,
-      money_reward:
+      p_id: formData.id.trim(),
+      p_orderno: Number(formData.orderNo),
+      p_name: formData.name,
+      p_description: formData.description || null,
+      p_money_reward:
         formData.money_reward === "" ? null : Number(formData.money_reward),
-      distant_goal:
+      p_distant_goal:
         formData.distant_goal === "" ? null : Number(formData.distant_goal),
     };
 
     try {
-      let url = `/api/stage`;
-      let method = "POST";
-      if (isEditing) {
-        url = `/api/stage/${formData.id}`;
-        method = "PUT";
-      }
+      const { error } = isEditing
+        ? await supabase.rpc("update_stage", payload)
+        : await supabase.rpc("create_stage", payload);
 
+<<<<<<< Updated upstream
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -118,6 +144,9 @@ const StagePanel = () => {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Save stage failed");
       }
+=======
+      if (error) throw error;
+>>>>>>> Stashed changes
 
       if (mapFile) {
         await uploadMap(formData.id.trim());
@@ -127,7 +156,7 @@ const StagePanel = () => {
       resetForm();
       fetchStages();
     } catch (err) {
-      console.error(err);
+      console.error("handleSubmit error:", err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -147,14 +176,27 @@ const StagePanel = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(`Delete Stage: ${id} ?\n(จะลบ spawn ในด่านนี้ด้วย)`))
+    if (!window.confirm(`Delete Stage: ${id} ?\n(จะลบ spawn ในด่านนี้ด้วย)`)) {
       return;
+    }
 
     try {
+<<<<<<< Updated upstream
       const res = await fetch(`/api/stage/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete stage failed");
+=======
+      const { error } = await supabase.rpc("delete_stage", { p_id: id });
+      if (error) throw error;
+
+      const { error: mapError } = await supabase.storage
+        .from(STAGE_BUCKET)
+        .remove([`${MAP_FOLDER}/${id}.png`]);
+
+      if (mapError) {
+        console.warn("delete map warning:", mapError.message);
+>>>>>>> Stashed changes
       }
 
       if (selectedStageId === id) {
@@ -164,7 +206,7 @@ const StagePanel = () => {
       alert("Stage Deleted!");
       fetchStages();
     } catch (err) {
-      console.error(err);
+      console.error("handleDelete error:", err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -185,23 +227,41 @@ const StagePanel = () => {
     }, 80);
   };
 
+<<<<<<< Updated upstream
   // Thumbnail map image: /img_map/{id}.png
   const MapThumb = ({ id }) => {
     const url = `/api/img_map/${id}.png`;
     const [hide, setHide] = useState(false);
+=======
+  const MapThumb = ({ id }) => {
+    const url = getMapPublicUrl(id);
+    const [hide, setHide] = useState(false);
+    const cache = useRef({});
 
-    if (hide) return <span className="no-sprite">No Map</span>;
+    if (cache.current[id] == null) {
+      cache.current[id] = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+    }
+
+    if (hide || !url) return <span className="no-sprite">No Map</span>;
+>>>>>>> Stashed changes
+
     return (
       <img
         className="map-thumb"
+<<<<<<< Updated upstream
         src={url}
+=======
+        src={cache.current[id]}
+>>>>>>> Stashed changes
         alt={`${id} map`}
         onError={() => setHide(true)}
       />
     );
   };
 
-  const sortedStages = [...stages].sort((a, b) => a.orderNo - b.orderNo);
+  const sortedStages = [...stages].sort(
+    (a, b) => Number(a.orderNo ?? 0) - Number(b.orderNo ?? 0)
+  );
 
   return (
     <div className="admin-container">
@@ -482,31 +542,55 @@ const SpawnPanel = ({ stageId, onClose }) => {
 
   const fetchMonsters = useCallback(async () => {
     try {
+<<<<<<< Updated upstream
       const res = await fetch(`/api/monster`);
       if (!res.ok) throw new Error("Failed to fetch monsters");
       const data = await res.json();
       setMonsters(data);
       if (!formData.monster_id && data?.[0]?.id) {
         setFormData((p) => ({ ...p, monster_id: data[0].id }));
+=======
+      const { data, error } = await supabase
+        .from("monster")
+        .select("id, name, no")
+        .order("no", { ascending: true });
+
+      if (error) throw error;
+
+      const list = Array.isArray(data) ? data : [];
+      setMonsters(list);
+
+      if (!formData.monster_id && list?.[0]?.id) {
+        setFormData((p) => ({ ...p, monster_id: list[0].id }));
+>>>>>>> Stashed changes
       }
     } catch (e) {
-      console.error(e);
-      alert("Fetch monsters failed");
+      console.error("fetchMonsters error:", e);
+      alert(`Fetch monsters failed: ${e.message}`);
     }
   }, [formData.monster_id]);
 
   const fetchSpawns = useCallback(async () => {
     setLoading(true);
     try {
+<<<<<<< Updated upstream
       const res = await fetch(
         `/api/spawn?stage_id=${encodeURIComponent(stageId)}`
       );
       if (!res.ok) throw new Error("Failed to fetch spawns");
       const data = await res.json();
       setSpawns(data);
+=======
+      const { data, error } = await supabase.rpc("get_stage_spawns", {
+        p_stage_id: stageId,
+      });
+
+      if (error) throw error;
+      setSpawns(Array.isArray(data) ? data : []);
+>>>>>>> Stashed changes
     } catch (e) {
-      console.error(e);
-      alert("Fetch spawns failed");
+      console.error("fetchSpawns error:", e);
+      alert(`Fetch spawns failed: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -535,21 +619,22 @@ const SpawnPanel = ({ stageId, onClose }) => {
     if (!formData.monster_id) return alert("กรุณาเลือก monster");
     if (formData.distant_spawn === "") return alert("กรุณาใส่ distant_spawn");
 
-    const payload = {
-      stage_id: stageId,
-      monster_id: formData.monster_id,
-      level: formData.level,
-      distant_spawn: Number(formData.distant_spawn),
-    };
-
     try {
-      let url = `/api/spawn`;
-      let method = "POST";
-      if (isEditing) {
-        url = `/api/spawn/${formData.id}`;
-        method = "PUT";
-      }
+      const { error } = isEditing
+        ? await supabase.rpc("update_spawn", {
+            p_id: formData.id,
+            p_monster_id: formData.monster_id,
+            p_level: formData.level,
+            p_distant_spawn: Number(formData.distant_spawn),
+          })
+        : await supabase.rpc("create_spawn", {
+            p_stage_id: stageId,
+            p_monster_id: formData.monster_id,
+            p_level: formData.level,
+            p_distant_spawn: Number(formData.distant_spawn),
+          });
 
+<<<<<<< Updated upstream
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -560,12 +645,15 @@ const SpawnPanel = ({ stageId, onClose }) => {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Save spawn failed");
       }
+=======
+      if (error) throw error;
+>>>>>>> Stashed changes
 
       alert(isEditing ? "Spawn Updated!" : "Spawn Created!");
       resetForm();
       fetchSpawns();
     } catch (err) {
-      console.error(err);
+      console.error("handleSubmit spawn error:", err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -586,14 +674,19 @@ const SpawnPanel = ({ stageId, onClose }) => {
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Spawn ID: ${id}?`)) return;
     try {
+<<<<<<< Updated upstream
       const res = await fetch(`/api/spawn/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Delete spawn failed");
       }
+=======
+      const { error } = await supabase.rpc("delete_spawn", { p_id: id });
+      if (error) throw error;
+>>>>>>> Stashed changes
       fetchSpawns();
     } catch (err) {
-      console.error(err);
+      console.error("handleDelete spawn error:", err);
       alert(`Error: ${err.message}`);
     }
   };
