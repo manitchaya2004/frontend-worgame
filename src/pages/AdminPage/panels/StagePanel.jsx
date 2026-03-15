@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "../../../service/supabaseClient";
+import { AnimatePresence, motion } from "framer-motion";
 
 const STAGE_BUCKET = "asset";
 const MAP_FOLDER = "img_map";
@@ -11,24 +12,287 @@ const getMapPublicUrl = (id) => {
   return data?.publicUrl || "";
 };
 
+const emptyStageForm = {
+  id: "",
+  orderNo: "",
+  name: "",
+  description: "",
+  money_reward: "",
+  distant_goal: "",
+};
+
+const StageFormFields = ({
+  formData,
+  handleChange,
+  isEditing,
+  mapFile,
+  setMapFile,
+}) => {
+  return (
+    <>
+      <div className="flex-row flex-wrap">
+        <div
+          className="form-field flex-2 minw-220"
+          data-tooltip="รหัสอ้างอิงของด่าน (ใช้เป็นชื่อไฟล์แผนที่ด้วย)"
+        >
+          <label className="form-label required">Stage ID</label>
+          <input
+            className="input-field"
+            name="id"
+            placeholder="e.g. green-grass-1"
+            value={formData.id}
+            onChange={handleChange}
+            required
+            disabled={isEditing}
+          />
+          <span className="form-hint">
+            ใช้เป็นชื่อไฟล์ map ด้วย → จะเซฟเป็น img_map/{"{id}"}.png
+          </span>
+        </div>
+
+        <div
+          className="form-field flex-1 minw-140"
+          data-tooltip="ลำดับของด่านที่จะแสดงในเกม (ตัวเลข)"
+        >
+          <label className="form-label required">OrderNo</label>
+          <input
+            className="input-field"
+            type="number"
+            name="orderNo"
+            placeholder="1"
+            value={formData.orderNo}
+            onChange={handleChange}
+            required
+          />
+          <span className="form-hint">ลำดับด่านที่แสดงในเกม</span>
+        </div>
+      </div>
+
+      <div
+        className="form-field full"
+        data-tooltip="ชื่อด่านที่จะแสดงให้ผู้เล่นเห็น"
+      >
+        <label className="form-label required">Stage Name</label>
+        <input
+          className="input-field"
+          name="name"
+          placeholder="Name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        <span className="form-hint">ชื่อที่แสดงในหน้าเลือกด่าน</span>
+      </div>
+
+      <div
+        className="form-field full"
+        data-tooltip="คำอธิบายหรือเนื้อเรื่องย่อของด่าน"
+      >
+        <label className="form-label">Description</label>
+        <input
+          className="input-field"
+          name="description"
+          placeholder="optional"
+          value={formData.description}
+          onChange={handleChange}
+        />
+        <span className="form-hint">คำอธิบายสั้น ๆ (ไม่ใส่ได้)</span>
+      </div>
+
+      <div className="flex-row flex-wrap">
+        <div
+          className="form-field flex-1 minw-200"
+          data-tooltip="จำนวนเงินรางวัลที่จะได้รับเมื่อผ่านด่านนี้"
+        >
+          <label className="form-label">money_reward</label>
+          <input
+            className="input-field"
+            type="number"
+            name="money_reward"
+            placeholder="optional"
+            value={formData.money_reward}
+            onChange={handleChange}
+          />
+          <span className="form-hint">เงินรางวัลหลังผ่านด่าน</span>
+        </div>
+
+        <div
+          className="form-field flex-1 minw-200"
+          data-tooltip="ระยะทางที่ผู้เล่นต้องไปให้ถึงเพื่อผ่านด่านนี้"
+        >
+          <label className="form-label">distant_goal</label>
+          <input
+            className="input-field"
+            type="number"
+            name="distant_goal"
+            placeholder="optional"
+            value={formData.distant_goal}
+            onChange={handleChange}
+          />
+          <span className="form-hint">ระยะเป้าหมาย/เงื่อนไขชนะ (ถ้ามี)</span>
+        </div>
+      </div>
+
+      <div
+        className="form-field full mt-10"
+        data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)"
+      >
+        <label className="form-label">Map Image (PNG)</label>
+
+        {mapFile && (
+          <div style={{ marginBottom: "10px" }}>
+            <img
+              src={URL.createObjectURL(mapFile)}
+              alt="Map Preview"
+              style={{
+                maxWidth: "200px",
+                maxHeight: "150px",
+                objectFit: "contain",
+                border: "1px solid #444",
+                borderRadius: "4px",
+                background: "rgba(0,0,0,0.5)",
+              }}
+            />
+          </div>
+        )}
+
+        <input
+          type="file"
+          accept="image/png"
+          onChange={(e) => setMapFile(e.target.files?.[0] || null)}
+        />
+        <span className="form-hint">
+          อัปโหลดได้เฉพาะ PNG • ไม่เลือกไฟล์ = ไม่อัปโหลด • ถ้า Edit แล้วเลือกไฟล์ใหม่จะอัปโหลดทับ
+        </span>
+      </div>
+    </>
+  );
+};
+
+const EditStageModal = ({
+  open,
+  formData,
+  handleChange,
+  mapFile,
+  setMapFile,
+  handleSubmit,
+  handleClose,
+}) => {
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, handleClose]);
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.65)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ duration: 0.18 }}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "min(980px, 96vw)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+            borderRadius: 16,
+            background: "linear-gradient(180deg, #161915 0%, #10130f 100%)",
+            border: "1px solid rgba(34,197,94,0.28)",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            padding: 22,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 14,
+              position: "sticky",
+              top: -22,
+              background: "linear-gradient(180deg, #161915 0%, #161915 100%)",
+              padding: "8px 0 12px",
+              zIndex: 2,
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, color: "#fff", fontSize: 24 }}>Edit Stage</h3>
+              <div style={{ color: "#68d391", marginTop: 4, fontSize: 13 }}>
+                Editing: {formData.id || "-"}
+              </div>
+            </div>
+          </div>
+
+          <form className="form-box stage-mode" onSubmit={handleSubmit} style={{ margin: 0 }}>
+            <StageFormFields
+              formData={formData}
+              handleChange={handleChange}
+              isEditing={true}
+              mapFile={mapFile}
+              setMapFile={setMapFile}
+            />
+
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 20,
+              }}
+            >
+              <button type="button" className="btn btn-cancel" onClick={handleClose}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-edit">
+                UPDATE STAGE
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
 const StagePanel = () => {
   const [stages, setStages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
 
   const [selectedStageId, setSelectedStageId] = useState("");
   const [showSpawn, setShowSpawn] = useState(false);
 
-  const [mapFile, setMapFile] = useState(null);
+  const [createMapFile, setCreateMapFile] = useState(null);
+  const [createForm, setCreateForm] = useState(emptyStageForm);
 
-  const [formData, setFormData] = useState({
-    id: "",
-    orderNo: "",
-    name: "",
-    description: "",
-    money_reward: "",
-    distant_goal: "",
-  });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editMapFile, setEditMapFile] = useState(null);
+  const [editForm, setEditForm] = useState(emptyStageForm);
 
   const fetchStages = useCallback(async () => {
     setLoading(true);
@@ -48,20 +312,21 @@ const StagePanel = () => {
     fetchStages();
   }, [fetchStages]);
 
-  const handleChange = (e) =>
-    setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
+  const handleCreateChange = (e) =>
+    setCreateForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const resetForm = () => {
-    setIsEditing(false);
-    setFormData({
-      id: "",
-      orderNo: "",
-      name: "",
-      description: "",
-      money_reward: "",
-      distant_goal: "",
-    });
-    setMapFile(null);
+  const handleEditChange = (e) =>
+    setEditForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
+  const resetCreateForm = () => {
+    setCreateForm(emptyStageForm);
+    setCreateMapFile(null);
+  };
+
+  const resetEditForm = () => {
+    setEditForm(emptyStageForm);
+    setEditMapFile(null);
+    setEditOpen(false);
   };
 
   const closeSpawn = () => {
@@ -69,7 +334,7 @@ const StagePanel = () => {
     setShowSpawn(false);
   };
 
-  const uploadMap = async (stageId) => {
+  const uploadMap = async (stageId, mapFile) => {
     if (!mapFile) return;
 
     const ext = mapFile.name?.split(".").pop()?.toLowerCase();
@@ -89,48 +354,80 @@ const StagePanel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.id?.trim()) return alert("Stage ID is required");
-    if (formData.orderNo === "" || formData.orderNo == null) {
+    if (!createForm.id?.trim()) return alert("Stage ID is required");
+    if (createForm.orderNo === "" || createForm.orderNo == null) {
       return alert("OrderNo is required");
     }
 
     const payload = {
-      p_id: formData.id.trim(),
-      p_orderno: Number(formData.orderNo),
-      p_name: formData.name,
-      p_description: formData.description || null,
+      p_id: createForm.id.trim(),
+      p_orderno: Number(createForm.orderNo),
+      p_name: createForm.name,
+      p_description: createForm.description || null,
       p_money_reward:
-        formData.money_reward === "" ? null : Number(formData.money_reward),
+        createForm.money_reward === "" ? null : Number(createForm.money_reward),
       p_distant_goal:
-        formData.distant_goal === "" ? null : Number(formData.distant_goal),
+        createForm.distant_goal === "" ? null : Number(createForm.distant_goal),
     };
 
     try {
-      const { error } = isEditing
-        ? await supabase.rpc("update_stage", payload)
-        : await supabase.rpc("create_stage", payload);
-
+      const { error } = await supabase.rpc("create_stage", payload);
       if (error) throw error;
 
-      if (mapFile) {
-        await uploadMap(formData.id.trim());
+      if (createMapFile) {
+        await uploadMap(createForm.id.trim(), createMapFile);
       }
 
-      alert(isEditing ? "Stage Updated!" : "Stage Created!");
-      resetForm();
+      alert("Stage Created!");
+      resetCreateForm();
       fetchStages();
     } catch (err) {
-      console.error("handleSubmit error:", err);
+      console.error("handleCreateSubmit error:", err);
       alert(`Error: ${err.message}`);
     }
   };
 
-  const handleEdit = (s) => {
-    setIsEditing(true);
-    setFormData({
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!editForm.id?.trim()) return alert("Stage ID is required");
+    if (editForm.orderNo === "" || editForm.orderNo == null) {
+      return alert("OrderNo is required");
+    }
+
+    const payload = {
+      p_id: editForm.id.trim(),
+      p_orderno: Number(editForm.orderNo),
+      p_name: editForm.name,
+      p_description: editForm.description || null,
+      p_money_reward:
+        editForm.money_reward === "" ? null : Number(editForm.money_reward),
+      p_distant_goal:
+        editForm.distant_goal === "" ? null : Number(editForm.distant_goal),
+    };
+
+    try {
+      const { error } = await supabase.rpc("update_stage", payload);
+      if (error) throw error;
+
+      if (editMapFile) {
+        await uploadMap(editForm.id.trim(), editMapFile);
+      }
+
+      alert("Stage Updated!");
+      resetEditForm();
+      fetchStages();
+    } catch (err) {
+      console.error("handleEditSubmit error:", err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const openEditModal = (s) => {
+    setEditForm({
       id: s.id,
       orderNo: s.orderNo ?? "",
       name: s.name ?? "",
@@ -138,8 +435,8 @@ const StagePanel = () => {
       money_reward: s.money_reward ?? "",
       distant_goal: s.distant_goal ?? "",
     });
-    setMapFile(null);
-    document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
+    setEditMapFile(null);
+    setEditOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -214,168 +511,34 @@ const StagePanel = () => {
 
   return (
     <div className="admin-container">
-      <form className="form-box stage-mode" onSubmit={handleSubmit}>
-        <h3 className="form-title stage">
-          {isEditing ? `EDITING STAGE: ${formData.id}` : "NEW STAGE"}
-        </h3>
+      <form className="form-box stage-mode" onSubmit={handleCreateSubmit}>
+        <h3 className="form-title stage">NEW STAGE</h3>
 
-        <div className="flex-row flex-wrap">
-          <div
-            className="form-field flex-2 minw-220"
-            data-tooltip="รหัสอ้างอิงของด่าน (ใช้เป็นชื่อไฟล์แผนที่ด้วย)"
-          >
-            <label className="form-label required">Stage ID</label>
-            <input
-              className="input-field"
-              name="id"
-              placeholder="e.g. green-grass-1"
-              value={formData.id}
-              onChange={handleChange}
-              required
-              disabled={isEditing}
-            />
-            <span className="form-hint">
-              ใช้เป็นชื่อไฟล์ map ด้วย → จะเซฟเป็น img_map/{"{id}"}.png
-            </span>
-          </div>
-
-          <div
-            className="form-field flex-1 minw-140"
-            data-tooltip="ลำดับของด่านที่จะแสดงในเกม (ตัวเลข)"
-          >
-            <label className="form-label required">OrderNo</label>
-            <input
-              className="input-field"
-              type="number"
-              name="orderNo"
-              placeholder="1"
-              value={formData.orderNo}
-              onChange={handleChange}
-              required
-            />
-            <span className="form-hint">ลำดับด่านที่แสดงในเกม</span>
-          </div>
-        </div>
-
-        <div
-          className="form-field full"
-          data-tooltip="ชื่อด่านที่จะแสดงให้ผู้เล่นเห็น"
-        >
-          <label className="form-label required">Stage Name</label>
-          <input
-            className="input-field"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <span className="form-hint">ชื่อที่แสดงในหน้าเลือกด่าน</span>
-        </div>
-
-        <div
-          className="form-field full"
-          data-tooltip="คำอธิบายหรือเนื้อเรื่องย่อของด่าน"
-        >
-          <label className="form-label">Description</label>
-          <input
-            className="input-field"
-            name="description"
-            placeholder="optional"
-            value={formData.description}
-            onChange={handleChange}
-          />
-          <span className="form-hint">คำอธิบายสั้น ๆ (ไม่ใส่ได้)</span>
-        </div>
-
-        <div className="flex-row flex-wrap">
-          <div
-            className="form-field flex-1 minw-200"
-            data-tooltip="จำนวนเงินรางวัลที่จะได้รับเมื่อผ่านด่านนี้"
-          >
-            <label className="form-label">money_reward</label>
-            <input
-              className="input-field"
-              type="number"
-              name="money_reward"
-              placeholder="optional"
-              value={formData.money_reward}
-              onChange={handleChange}
-            />
-            <span className="form-hint">เงินรางวัลหลังผ่านด่าน</span>
-          </div>
-
-          <div
-            className="form-field flex-1 minw-200"
-            data-tooltip="ระยะทางที่ผู้เล่นต้องไปให้ถึงเพื่อผ่านด่านนี้"
-          >
-            <label className="form-label">distant_goal</label>
-            <input
-              className="input-field"
-              type="number"
-              name="distant_goal"
-              placeholder="optional"
-              value={formData.distant_goal}
-              onChange={handleChange}
-            />
-            <span className="form-hint">ระยะเป้าหมาย/เงื่อนไขชนะ (ถ้ามี)</span>
-          </div>
-        </div>
-
-        <div
-          className="form-field full mt-10"
-          data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)"
-        >
-          <label className="form-label">Map Image (PNG)</label>
-
-          {mapFile && (
-            <div style={{ marginBottom: "10px" }}>
-              <img
-                src={URL.createObjectURL(mapFile)}
-                alt="Map Preview"
-                style={{
-                  maxWidth: "200px",
-                  maxHeight: "150px",
-                  objectFit: "contain",
-                  border: "1px solid #444",
-                  borderRadius: "4px",
-                  background: "rgba(0,0,0,0.5)",
-                }}
-              />
-            </div>
-          )}
-
-          <input
-            type="file"
-            accept="image/png"
-            onChange={(e) => setMapFile(e.target.files?.[0] || null)}
-          />
-          <span className="form-hint">
-            อัปโหลดได้เฉพาะ PNG • ไม่เลือกไฟล์ = ไม่อัปโหลด • ถ้า Edit
-            แล้วเลือกไฟล์ใหม่จะอัปโหลดทับ
-          </span>
-        </div>
+        <StageFormFields
+          formData={createForm}
+          handleChange={handleCreateChange}
+          isEditing={false}
+          mapFile={createMapFile}
+          setMapFile={setCreateMapFile}
+        />
 
         <div className="flex-row justify-center mt-20">
           <button
             type="submit"
-            className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
+            className="btn btn-add"
             style={{ flex: 1 }}
-            data-tooltip={isEditing ? "บันทึกการแก้ไขด่าน" : "สร้างด่านใหม่"}
+            data-tooltip="สร้างด่านใหม่"
           >
-            {isEditing ? "UPDATE STAGE" : "CREATE STAGE"}
+            CREATE STAGE
           </button>
 
-          {isEditing && (
-            <button
-              type="button"
-              className="btn btn-cancel"
-              onClick={resetForm}
-              data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม"
-            >
-              CANCEL
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={resetCreateForm}
+          >
+            RESET
+          </button>
         </div>
       </form>
 
@@ -419,7 +582,7 @@ const StagePanel = () => {
                         <button
                           type="button"
                           className="btn btn-edit"
-                          onClick={() => handleEdit(s)}
+                          onClick={() => openEditModal(s)}
                           data-tooltip="แก้ไขข้อมูลด่านนี้"
                         >
                           Edit
@@ -440,9 +603,7 @@ const StagePanel = () => {
                           onClick={() => openSpawn(s.id)}
                           data-tooltip="จัดการจุดเกิดมอนสเตอร์ (Spawns) ในด่านนี้"
                         >
-                          {showSpawn && selectedStageId === s.id
-                            ? "Close"
-                            : "Spawns"}
+                          {showSpawn && selectedStageId === s.id ? "Close" : "Spawns"}
                         </button>
                       </div>
                     </td>
@@ -472,6 +633,16 @@ const StagePanel = () => {
           </table>
         )}
       </div>
+
+      <EditStageModal
+        open={editOpen}
+        formData={editForm}
+        handleChange={handleEditChange}
+        mapFile={editMapFile}
+        setMapFile={setEditMapFile}
+        handleSubmit={handleEditSubmit}
+        handleClose={resetEditForm}
+      />
     </div>
   );
 };
