@@ -1,5 +1,4 @@
-// src/pages/AdminPage/AdminPage.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminPage.css";
 
@@ -17,6 +16,17 @@ const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("dictionary");
   const navigate = useNavigate();
   const { currentUser, logout } = useAuthStore();
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate("/auth");
+      return;
+    }
+
+    if (currentUser.role !== "admin") {
+      navigate("/battle");
+    }
+  }, [currentUser, navigate]);
 
   const handleLogout = () => {
     logout();
