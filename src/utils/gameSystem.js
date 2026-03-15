@@ -10,6 +10,23 @@ const DECK_COMPOSITION = {
 
 const VOWELS = ['A', 'E', 'I', 'O', 'U'];
 
+// ==========================================
+// 📊 GLOBAL POWER SETTINGS
+// ==========================================
+export const POWER_GROUPS = {
+  G1: ["A", "E", "I", "O", "U"],
+  G2: ["L", "N", "S", "T", "R", "D", "G", "B", "C", "M", "P", "F", "H", "K"],
+  G3: ["V", "W", "J", "X", "Y", "Q", "Z"],
+};
+
+export const GLOBAL_POWER_MAP = {};
+Object.entries(POWER_GROUPS).forEach(([group, chars]) => {
+  const powerValue = group === "G1" ? 0.5 : group === "G2" ? 1.0 : 1.5;
+  chars.forEach((char) => {
+    GLOBAL_POWER_MAP[char] = powerValue;
+  });
+});
+
 export const DeckManager = {
   activeDeck: [],
 
@@ -112,6 +129,14 @@ export const DeckManager = {
     });
     return nextInv;
   },
+
+  getLetterDamage: (char) => {
+    if (!char) return 0;
+    let upperChar = char.toUpperCase();
+    if (upperChar === "QU") upperChar = "Q";
+    const value = GLOBAL_POWER_MAP[upperChar];
+    return value !== undefined ? Number(value) : 0;
+  },
 };
 
 export const WordSystem = {
@@ -147,4 +172,159 @@ export const WordSystem = {
     }
     return matrix[b.length][a.length];
   },
+  findBestWordFromLetters: (letters, dictionary, maxLetters) => {
+    if (!letters || letters.length === 0) return { bestWord: "", usedItems: [] };
+
+    const availableChars = new Set(letters.map((l) => l?.char.toLowerCase()));
+    const charCounts = {};
+    letters.forEach((item) => {
+      if (!item) return;
+      const c = item.char.toLowerCase();
+      charCounts[c] = (charCounts[c] || 0) + 1;
+    });
+
+    let bestWord = "";
+    let usedItems = [];
+
+    const possibleWords = dictionary.filter(
+      ({ word }) =>
+        word.length > 0 &&
+        word.length <= maxLetters &&
+        word.length > bestWord.length &&
+        [...word.toLowerCase()].every((char) => availableChars.has(char)),
+    );
+
+    possibleWords.forEach(({ word }) => {
+      const w = word.toLowerCase();
+      const tempCounts = { ...charCounts };
+      let canMake = true;
+
+      for (const char of w) {
+        if (!tempCounts[char]) {
+          canMake = false;
+          break;
+        }
+        tempCounts[char]--;
+      }
+
+      if (canMake) {
+        bestWord = w;
+        const tempLetters = [...letters];
+        const currentUsed = [];
+        for (const char of w) {
+          const idx = tempLetters.findIndex(
+            (l) => l?.char.toLowerCase() === char,
+          );
+          currentUsed.push(tempLetters[idx]);
+          tempLetters[idx] = null;
+        }
+        usedItems = currentUsed;
+      }
+    });
+
+    return { bestWord, usedItems };
+  }
 };
+
+export const GameLogic = {
+  calculateZoneBuffs: (
+    inventory,
+    deckList,
+    unlockedSlots,
+    currentDrawPile = [],
+  ) => {
+    let placements = [];
+    if (!deckList || deckList.length === 0)
+      return { placements, newDrawPile: [] };
+
+    let drawPile = [...currentDrawPile];
+    let currentIndex = 0;
+
+    let activeCardIds = inventory
+      .filter((item) => item && item.buffId)
+      .map((item) => item.buffId);
+
+    while (currentIndex < unlockedSlots) {
+      let remainingSpace = unlockedSlots - currentIndex;
+
+      if (drawPile.length === 0) {
+        let availableToReshuffle = deckList.filter(
+          (c) => !activeCardIds.includes(c.id),
+        );
+
+        if (availableToReshuffle.length === 0) {
+          break;
+        }
+
+        drawPile = [...availableToReshuffle].sort(() => 0.5 - Math.random());
+      }
+
+      let validInPile = drawPile.filter((c) => (c.size || 10) <= remainingSpace);
+
+      if (validInPile.length === 0) {
+        break;
+      }
+
+      const targetCard = validInPile[validInPile.length - 1];
+      const cardIndex = drawPile.lastIndexOf(targetCard);
+
+      const card = drawPile.splice(cardIndex, 1)[0];
+
+      const size = card.size || 10;
+      const endIndex = currentIndex + size;
+      
+      let availableInZone = [];
+      for (let i = currentIndex; i < endIndex; i++) {
+        if (
+          inventory[i] &&
+          !inventory[i].buff &&
+          !placements.some((p) => p.targetIdx === i)
+        ) {
+          availableInZone.push(i);
+        }
+      }
+      if (availableInZone.length > 0) {
+        const targetIdx =
+          availableInZone[Math.floor(Math.random() * availableInZone.length)];
+        placements.push({ targetIdx, effect: card.effect, buffId: card.id });
+        activeCardIds.push(card.id);
+      }
+      currentIndex += size;
+    }
+    return { placements, newDrawPile: drawPile };
+  },
+
+  applyRandomBuffs: (inventory, deckList = [], drawPile = []) => {
+    const newItems = inventory.map((item) =>
+      item ? { ...item, buff: null, buffId: null } : null,
+    );
+    let validIndices = newItems
+      .map((item, idx) => (item ? idx : null))
+      .filter((i) => i !== null);
+
+    let updatedDrawPile = [...drawPile];
+
+    if (validIndices.length > 0 && deckList.length > 0) {
+      // 🌟 FIX: ระบุชื่อ Object GameLogic นำหน้าฟังก์ชันเสมอ
+      let result = GameLogic.calculateZoneBuffs(
+        newItems,
+        deckList,
+        newItems.length,
+        drawPile,
+      );
+      result.placements.forEach((p) => {
+        newItems[p.targetIdx].buff = p.effect;
+        newItems[p.targetIdx].buffId = p.buffId;
+    });
+      updatedDrawPile = result.newDrawPile;
+    } else if (validIndices.length > 0) {
+      validIndices.forEach((idx) => {
+        const roll = Math.random();
+        if (roll < 0.1) newItems[idx].buff = "double-dmg";
+        else if (roll < 0.2) newItems[idx].buff = "double-guard";
+        else if (roll < 0.3) newItems[idx].buff = "mana-plus";
+      });
+    }
+    return { newItems, updatedDrawPile };
+  }
+}

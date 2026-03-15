@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint, FaInfoCircle, FaBolt, FaCloud, FaPlus, FaCross } from "react-icons/fa";
 import { INVENTORY_COUNT } from "../../../../const/index";
-import { useGameStore, getLetterDamage } from "../../../../store/useGameStore";
+import { useGameStore } from "../../../../store/useGameStore";
+import { DeckManager } from "../../../../utils/gameSystem";
 import { GiBrain, GiBroadsword, GiShield, GiWaterDrop, GiTrident, GiBowieKnife, GiFangs } from "react-icons/gi";
 
 const SingleSlot = ({ index }) => {
@@ -19,7 +20,7 @@ const SingleSlot = ({ index }) => {
 
   let displayDamage = 0;
   if (item) {
-    displayDamage = getLetterDamage(item.char);
+    displayDamage = DeckManager.getLetterDamage(item.char);
   }
 
   const isStunned = item?.status === "stun";
