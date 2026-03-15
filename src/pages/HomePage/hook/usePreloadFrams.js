@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { API_URL } from "../../../store/const";
 const frameCache = new Map();
 
+const Storage = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/"
 export const usePreloadFrames = (
   name = "img_hero",
   heroId,
@@ -30,10 +31,10 @@ export const usePreloadFrames = (
 
       if (isSingleFrame) {
         // สำหรับ DetailItem เดิมที่อาจส่ง "walk-1" มา
-        src = `/api/${name}/${heroId}-${actionOrCount}.png`;
+        src = `${Storage}/${name}/${heroId}-${actionOrCount}.png`;
       } else {
         // สำหรับ Player/Enemy ที่ส่ง Action หลักเข้ามา
-        src = `/api/${name}/${heroId}-${actionName}-${i}.png`;
+        src = `${Storage}/${name}/${heroId}-${actionName}-${i}.png`;
       }
 
       img.src = src;
@@ -56,7 +57,7 @@ export const usePreloadFrames = (
 };
 
 export const LoadImage = (name = "img_monster", Id, i) => {
-  return `/api/${name}/${Id}-idle-${i}.png`;
+  return `${Storage}/${name}/${Id}-idle-${i}.png`;
 };
 
 // export const LoadImage = (name = "img_hero", id, frame = 1, action = "idle") => {

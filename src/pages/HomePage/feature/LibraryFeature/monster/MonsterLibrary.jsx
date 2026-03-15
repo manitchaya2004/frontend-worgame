@@ -201,7 +201,7 @@ const InfoTab = ({ monster }) => {
       <Box
         sx={{
           mt: 1,
-         
+
           // เพิ่มระยะห่างเฉพาะจอใหญ่
           "@media (min-width: 1800px)": {
             flex: 1,
@@ -448,8 +448,7 @@ const DetailMonster = ({ monster, playClickSound }) => {
   return (
     <Grid container spacing={0} sx={{ height: "100%" }}>
       <Grid
-        item
-        xs={5}
+        size={{ xs: 5, sm: 5 }}
         sx={{
           height: "100%",
           display: "flex",
@@ -553,10 +552,10 @@ const DetailMonster = ({ monster, playClickSound }) => {
           </Box>
 
           {monster?.id ? (
-            <SafeImageLoader
+            <img
+              key={monster?.id}
               src={activeSrc}
               alt={monster?.name}
-              isUnlocked={isUnlocked}
               style={{
                 width: "80%",
                 height: "80%",
@@ -565,6 +564,10 @@ const DetailMonster = ({ monster, playClickSound }) => {
                 filter: !isUnlocked
                   ? "brightness(0) drop-shadow(0 0 5px rgba(255,255,255,0.2))"
                   : "drop-shadow(0 4px 4px rgba(0,0,0,0.5))",
+                // เอา transition ออกเพื่อให้ดำสนิททันที
+              }}
+              onError={(e) => {
+                e.currentTarget.src = "/fallback/unknown-monster.png";
               }}
             />
           ) : (
@@ -594,7 +597,7 @@ const DetailMonster = ({ monster, playClickSound }) => {
         </Box>
       </Grid>
 
-      <Grid item xs={7}>
+      <Grid size={{ xs: 7, sm: 7 }}>
         <Box
           sx={{
             height: "100%",
@@ -776,6 +779,33 @@ const ListMonster = ({
         {listMonster.map((m) => {
           const isActive = selectedMonster?.id === m.id;
           const isUnlocked = m.isUnlocked;
+          const isBoss = m.isBoss;
+
+          // จัดการสีกรอบ หากยังไม่ปลดล็อคให้เป็นสีเทาหม่น
+          const activeBorderColor = !isUnlocked
+            ? "#888"
+            : isBoss
+              ? "#ff3333"
+              : THEME.accent;
+          const inactiveBorderColor = !isUnlocked
+            ? "#333"
+            : isBoss
+              ? "#800000"
+              : THEME.border;
+          const activeShadow = !isUnlocked
+            ? "0 0 10px rgba(255,255,255,0.2)"
+            : isBoss
+              ? `0 0 15px #ff3333`
+              : `0 0 15px ${THEME.accent}`;
+          const boxBgColor = isActive
+            ? !isUnlocked
+              ? "#222"
+              : THEME.bgMain
+            : !isUnlocked
+              ? "#111"
+              : isBoss
+                ? "#2a0a0a"
+                : THEME.bgPanel;
           return (
             <Box
               key={m.id}
@@ -787,18 +817,10 @@ const ListMonster = ({
                 flexShrink: 0,
                 width: { xs: 45, sm: 50 },
                 height: { xs: 45, sm: 50 },
-                border: `2px solid ${isActive ? (isUnlocked ? THEME.accent : "#888") : isUnlocked ? THEME.border : "#333"}`,
-                backgroundColor: isActive
-                  ? isUnlocked
-                    ? THEME.bgMain
-                    : "#222"
-                  : isUnlocked
-                    ? THEME.bgPanel
-                    : "#111",
+                border: `2px solid ${isActive ? activeBorderColor : inactiveBorderColor}`,
+                backgroundColor: boxBgColor,
                 borderRadius: "4px",
-                boxShadow: isActive
-                  ? `0 0 15px ${isUnlocked ? THEME.accent : "rgba(255,255,255,0.2)"}`
-                  : "none",
+                boxShadow: isActive ? activeShadow : "none",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -815,24 +837,22 @@ const ListMonster = ({
                   width: 35,
                   height: 35,
                   border: `1px solid ${isActive ? activeBorderColor : inactiveBorderColor}`,
-                 
                 },
               }}
             >
-              <SafeImageLoader
+              <img
                 src={LoadImage("img_monster", m.id, 1)}
                 alt={m.name}
-                isUnlocked={isUnlocked}
                 style={{
-                  height: "100%",
-                  maxHeight: "40px",
-                  width: "100%",
-                  objectFit: "contain",
-                  padding: "2px",
+                  height: "40px",
                   imageRendering: "pixelated",
+                  // ใส่ Effect เงาดำใน List หากยังไม่ปลดล็อค
                   filter: !isUnlocked
                     ? "brightness(0) drop-shadow(0 0 2px rgba(255,255,255,0.2))"
                     : "none",
+                }}
+                onError={(e) => {
+                  e.currentTarget.src = "/fallback/unknown-monster.png";
                 }}
               />
               {!isUnlocked && (
@@ -913,19 +933,18 @@ const MonsterLibrary = () => {
           borderRadius: "12px",
           boxShadow: `0 0 0 4px #1a120b, 0 20px 60px rgba(49, 49, 49, 0.8)`,
           width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
-          height: { xs: "70%", sm: "70%", md: "570px",xl: "80%" },
+          height: { xs: "70%", sm: "70%", md: "570px", xl: "80%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
 
           "@media (orientation: landscape) and (max-height: 450px)": {
-            top: "55%", 
+            top: "55%",
             transform: "translate(-50%, -50%)",
-            height: "80%", 
+            height: "80%",
             border: `4px solid ${THEME.border}`,
             borderRadius: "6px",
           },
-          
         }}
       >
         <Box
@@ -971,9 +990,6 @@ const MonsterLibrary = () => {
             // height:'100%',
             justifyContent: "space-between", // ดันเนื้อหาให้กระจายตัว
             // alignItems:'center'
-            
-           
-
           }}
         >
           <Box
@@ -983,13 +999,11 @@ const MonsterLibrary = () => {
               flexDirection: "column",
               justifyContent: "center",
               mb: 0.5,
-               "@media (orientation: landscape) and (max-height: 450px)": {
-                mt:1,
-                flex:0,
-                height:'220px',
-       
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                mt: 1,
+                flex: 0,
+                height: "220px",
               },
-
             }}
           >
             {/* 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster */}

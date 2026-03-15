@@ -179,7 +179,7 @@ export const getStatIcon = (label) => {
 export const name = "img_hero";
 
 export const backgroundStage = (stageIDName) => {
-  return `/api/img_map/${stageIDName}.png`;
+  return `https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/${stageIDName}.png`;
 };
 
 

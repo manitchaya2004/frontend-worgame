@@ -25,6 +25,7 @@ const MotionBox = motion(Box);
 const AdvantureFeature = () => {
   const { currentUser, updateStamina } = useAuthStore();
 
+  console.log("user",currentUser)
   const { stages, loadingStage } = useData();
   const store = useGameStore();
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ const AdvantureFeature = () => {
             selectedStage: stage,
           },
         });
-      }, 2500);
+      }, 2000);
     } else {
       alert("Failed to consume stamina. Please try again.");
     }

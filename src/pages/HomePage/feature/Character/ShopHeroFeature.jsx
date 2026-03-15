@@ -199,7 +199,6 @@ const ShopHeroFeature = () => {
             sx={{
               display: "flex",
               alignItems: "center",
-              // backgroundColor:'pink',
               gap: { xs: 1, md: 1 },
               overflowX: "auto",
               scrollSnapType: "x mandatory",
