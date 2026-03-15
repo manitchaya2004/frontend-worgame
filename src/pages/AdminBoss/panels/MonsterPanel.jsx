@@ -1,9 +1,8 @@
 // src/pages/AdminPage/panels/MonsterPanel.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { API_URL } from "../config";
+import { supabase } from "../../../service/supabaseClient";
 import { MonsterSpriteLoop } from "../components/SpriteLoops";
 
-// ✅ UI แบบเดียวกับ HeroPanel: dropdown + animation + icon
 import { AnimatePresence, motion } from "framer-motion";
 import {
   GiBroadsword,
@@ -19,11 +18,26 @@ const toSlug = (text = "") =>
   text
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, "") // ตัดอักขระแปลก ๆ
-    .replace(/\s+/g, "-") // เว้นวรรค → -
-    .replace(/-+/g, "-"); // กัน -- ซ้อน
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 
-// ✅ รายชื่อ Effect สำหรับ Deck (id ล้วน) — ให้เหมือน HeroPanel
+const MONSTER_BUCKET = "asset";
+const MONSTER_FOLDER = "img_monster";
+
+const buildMonsterSpritePath = (monsterId, key, fileName = "") => {
+  const ext = fileName?.split(".").pop()?.toLowerCase() || "png";
+
+  const map = {
+    attack1: "attack-1",
+    attack2: "attack-2",
+    idle1: "idle-1",
+    idle2: "idle-2",
+  };
+
+  return `${MONSTER_FOLDER}/${monsterId}-${map[key]}.${ext}`;
+};
+
 const DECK_EFFECTS = [
   "double-dmg",
   "double-guard",
@@ -39,14 +53,12 @@ const DECK_EFFECTS = [
   "vampire_fang",
 ];
 
-// ✅ meta สำหรับทำ UI ให้เหมือนในไฟล์เกม (icon + สี + label)
 const EFFECT_META = {
   "double-dmg": { label: "Double Damage", icon: <GiBroadsword />, color: "#c0392b" },
   "double-guard": { label: "Double Guard", icon: <GiShield />, color: "#2980b9" },
   "double-shield": { label: "Double Shield", icon: <GiShield />, color: "#2980b9" },
   "mana-plus": { label: "Mana Plus", icon: <GiWaterDrop />, color: "#00bcd4" },
   "shield-plus": { label: "Shield Plus", icon: <GiTrident />, color: "#e67e22" },
-
   "add_bleed": { label: "Add Bleed", icon: <GiBowieKnife />, color: "#8b0000" },
   "add_poison": { label: "Add Poison", icon: <FaCloud />, color: "#27ae60" },
   "add_stun": { label: "Add Stun", icon: <FaBolt />, color: "#f39c12" },
@@ -56,7 +68,6 @@ const EFFECT_META = {
   "vampire_fang": { label: "Vampire Fang", icon: <GiFangs />, color: "#8b0000" },
 };
 
-// ✅ Effect dropdown แบบเดียวกับ HeroPanel
 const EffectSelect = ({ value, options, onChange }) => {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -199,7 +210,6 @@ const MonsterPanel = () => {
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // ===== Sprite files (4 รูป) =====
   const [spriteFiles, setSpriteFiles] = useState({
     attack1: null,
     attack2: null,
@@ -213,7 +223,6 @@ const MonsterPanel = () => {
   const handleSpriteChange = (key, file) =>
     setSpriteFiles((prev) => ({ ...prev, [key]: file }));
 
-  // ===== Form =====
   const emptyForm = useMemo(
     () => ({
       id: "",
@@ -225,6 +234,8 @@ const MonsterPanel = () => {
       exp: "",
       description: "",
       isBoss: false,
+      quiz_move_cost: "",
+      monster_moves: [],
       monster_deck: [],
     }),
     []
@@ -235,13 +246,12 @@ const MonsterPanel = () => {
   const fetchMonsters = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/monster`);
-      if (!res.ok) throw new Error("Failed to fetch monster");
-      const data = await res.json();
+      const { data, error } = await supabase.rpc("get_monsters", {});
+      if (error) throw error;
       setMonsters(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      alert("Error fetching monster (เช็ค API_URL / endpoint)");
+      alert(`Error fetching monster: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -251,7 +261,6 @@ const MonsterPanel = () => {
     fetchMonsters();
   }, [fetchMonsters]);
 
-  // ===== Table Sorting =====
   const [sortBy, setSortBy] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
 
@@ -341,12 +350,10 @@ const MonsterPanel = () => {
     );
   };
 
-  // ===== Helpers =====
   const setField = (name, value) => setFormData((p) => ({ ...p, [name]: value }));
   const setNumberField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
 
-  // ✅ Deck handlers
   const handleAddDeckItem = () => {
     setFormData((prev) => ({
       ...prev,
@@ -372,22 +379,28 @@ const MonsterPanel = () => {
     });
   };
 
-  // ===== Sprites upload =====
   const uploadSpritesStrict4 = async (monsterId) => {
-    const fd = new FormData();
-    fd.append("attack1", spriteFiles.attack1);
-    fd.append("attack2", spriteFiles.attack2);
-    fd.append("idle1", spriteFiles.idle1);
-    fd.append("idle2", spriteFiles.idle2);
+    const requiredKeys = ["attack1", "attack2", "idle1", "idle2"];
+    const missing = requiredKeys.filter((k) => !spriteFiles[k]);
 
-    const up = await fetch(`/api/monster/${monsterId}/sprites`, {
-      method: "POST",
-      body: fd,
-    });
+    if (missing.length > 0) {
+      throw new Error(`ต้องอัปโหลดรูปให้ครบ 4 รูป (${missing.join(", ")})`);
+    }
 
-    if (!up.ok) {
-      const err = await up.json().catch(() => ({}));
-      throw new Error(err.message || "monster sprite upload failed");
+    for (const key of requiredKeys) {
+      const file = spriteFiles[key];
+      const path = buildMonsterSpritePath(monsterId, key, file.name);
+
+      const { error } = await supabase.storage
+        .from(MONSTER_BUCKET)
+        .upload(path, file, {
+          upsert: true,
+          contentType: file.type || "image/png",
+        });
+
+      if (error) {
+        throw new Error(`upload ${key} failed: ${error.message}`);
+      }
     }
   };
 
@@ -395,56 +408,54 @@ const MonsterPanel = () => {
     e.preventDefault();
 
     const payload = {
-      id: formData.id,
-      no: formData.no === "" ? null : Number(formData.no),
-      name: formData.name,
-      hp: formData.hp === "" ? 0 : Number(formData.hp),
-      power: formData.power === "" ? 0 : Number(formData.power),
-      speed: formData.speed === "" ? 0 : Number(formData.speed),
-      exp: formData.exp === "" ? 0 : Number(formData.exp),
-      description: formData.description || null,
-      isBoss: Boolean(formData.isBoss),
-      monster_deck: (formData.monster_deck || []).map((item) => ({
+      p_id: formData.id,
+      p_no: formData.no === "" ? null : Number(formData.no),
+      p_name: formData.name || null,
+      p_hp: formData.hp === "" ? 0 : Number(formData.hp),
+      p_power: formData.power === "" ? 0 : Number(formData.power),
+      p_speed: formData.speed === "" ? 0 : Number(formData.speed),
+      p_exp: formData.exp === "" ? 0 : Number(formData.exp),
+      p_description: formData.description || null,
+      p_isboss: Boolean(formData.isBoss),
+
+      p_quiz_move_cost:
+        formData.quiz_move_cost === "" ? null : Number(formData.quiz_move_cost),
+
+      p_monster_deck: (formData.monster_deck || []).map((item) => ({
         effect: item.effect,
         size: Number(item.size) || 1,
       })),
     };
 
     try {
-      let url = `/api/monster`;
-      let method = "POST";
-
-      if (isEditing) {
-        url = `/api/monster/${formData.id}`;
-        method = "PUT";
-      }
-
       if (!isEditing) {
         const missing = Object.entries(spriteFiles)
           .filter(([, f]) => !f)
           .map(([k]) => k);
+
         if (missing.length > 0) {
           alert(`ต้องอัปโหลดรูปครบ 4 รูปก่อนสร้าง Monster (ขาด: ${missing.join(", ")})`);
           return;
         }
       }
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const { error } = isEditing
+        ? await supabase.rpc("update_monster", payload)
+        : await supabase.rpc("create_monster", payload);
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || "Save failed");
-      }
+      if (error) throw error;
 
       if (!isEditing) {
         await uploadSpritesStrict4(formData.id);
       } else {
-        const all4 = Object.values(spriteFiles).every(Boolean);
-        if (all4) await uploadSpritesStrict4(formData.id);
+        const anySelected = Object.values(spriteFiles).some(Boolean);
+        if (anySelected) {
+          const all4 = Object.values(spriteFiles).every(Boolean);
+          if (!all4) {
+            throw new Error("ถ้าจะแก้รูป ต้องเลือกใหม่ให้ครบทั้ง 4 รูป");
+          }
+          await uploadSpritesStrict4(formData.id);
+        }
       }
 
       alert(isEditing ? "Monster Updated!" : "Monster Created!");
@@ -469,6 +480,8 @@ const MonsterPanel = () => {
       exp: m.exp ?? 0,
       description: m.description ?? "",
       isBoss: Boolean(m.isBoss),
+      quiz_move_cost: m.quiz_move_cost ?? "",
+      monster_moves: [],
       monster_deck: m.monster_deck || [],
     });
     resetSpriteFiles();
@@ -480,12 +493,8 @@ const MonsterPanel = () => {
     if (!window.confirm(`Delete Monster ID: ${id}?`)) return;
 
     try {
-      const res = await fetch(`/api/monster/${id}`, { method: "DELETE" });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `Delete failed (HTTP ${res.status})`);
-      }
+      const { error } = await supabase.rpc("delete_monster", { p_id: id });
+      if (error) throw error;
 
       alert("Monster deleted!");
       fetchMonsters();
@@ -497,14 +506,35 @@ const MonsterPanel = () => {
 
   const handleDeleteSprites = async (id) => {
     if (!window.confirm(`Delete ALL sprites of Monster ID: ${id}?`)) return;
+
     try {
-      const res = await fetch(`/api/monster/${id}/sprites`, { method: "DELETE" });
-      if (res.ok) {
-        alert("Sprites deleted");
-        fetchMonsters();
-      } else alert("Delete sprites failed");
-    } catch {
-      alert("Error deleting sprites");
+      const paths = [
+        `${MONSTER_FOLDER}/${id}-attack-1.png`,
+        `${MONSTER_FOLDER}/${id}-attack-2.png`,
+        `${MONSTER_FOLDER}/${id}-idle-1.png`,
+        `${MONSTER_FOLDER}/${id}-idle-2.png`,
+        `${MONSTER_FOLDER}/${id}-attack-1.jpg`,
+        `${MONSTER_FOLDER}/${id}-attack-2.jpg`,
+        `${MONSTER_FOLDER}/${id}-idle-1.jpg`,
+        `${MONSTER_FOLDER}/${id}-idle-2.jpg`,
+        `${MONSTER_FOLDER}/${id}-attack-1.jpeg`,
+        `${MONSTER_FOLDER}/${id}-attack-2.jpeg`,
+        `${MONSTER_FOLDER}/${id}-idle-1.jpeg`,
+        `${MONSTER_FOLDER}/${id}-idle-2.jpeg`,
+        `${MONSTER_FOLDER}/${id}-attack-1.webp`,
+        `${MONSTER_FOLDER}/${id}-attack-2.webp`,
+        `${MONSTER_FOLDER}/${id}-idle-1.webp`,
+        `${MONSTER_FOLDER}/${id}-idle-2.webp`,
+      ];
+
+      const { error } = await supabase.storage.from(MONSTER_BUCKET).remove(paths);
+      if (error) throw error;
+
+      alert("Sprites deleted");
+      fetchMonsters();
+    } catch (err) {
+      console.error(err);
+      alert(`Error deleting sprites: ${err.message}`);
     }
   };
 
@@ -566,7 +596,8 @@ const MonsterPanel = () => {
               onChange={(e) => setNumberField("hp", e.target.value)}
             />
           </div>
-          <div className="form-field" data-tooltip="พลังโจมตีพื้นฐาน (มีผลต่อความแรงสกิล)">
+
+          <div className="form-field" data-tooltip="พลังโจมตีพื้นฐาน">
             <label className="form-label required">power</label>
             <input
               className="input-field"
@@ -575,7 +606,8 @@ const MonsterPanel = () => {
               onChange={(e) => setNumberField("power", e.target.value)}
             />
           </div>
-          <div className="form-field" data-tooltip="ความเร็ว (กำหนดลำดับการโจมตีในแต่ละเทิร์น)">
+
+          <div className="form-field" data-tooltip="ความเร็ว">
             <label className="form-label required">speed</label>
             <input
               className="input-field"
@@ -584,7 +616,8 @@ const MonsterPanel = () => {
               onChange={(e) => setNumberField("speed", e.target.value)}
             />
           </div>
-          <div className="form-field" data-tooltip="ค่าประสบการณ์ที่จะมอบให้ผู้เล่นเมื่อชนะ">
+
+          <div className="form-field" data-tooltip="EXP">
             <label className="form-label required">exp</label>
             <input
               className="input-field"
@@ -594,7 +627,7 @@ const MonsterPanel = () => {
             />
           </div>
 
-          <div className="form-field" data-tooltip="สถานะบอส (ส่งผลต่อรางวัลและ UI พิเศษ)">
+          <div className="form-field" data-tooltip="สถานะบอส">
             <label className="form-label">isBoss</label>
             <div style={{ display: "flex", alignItems: "center", height: "40px", gap: "10px" }}>
               <input
@@ -604,15 +637,17 @@ const MonsterPanel = () => {
                 onChange={(e) => setField("isBoss", e.target.checked)}
                 style={{ width: "20px", height: "20px", cursor: "pointer", accentColor: "#e53e3e" }}
               />
-              <label htmlFor="isBoss" style={{ color: "#fff", cursor: "pointer", margin: 0, userSelect: "none" }}>
+              <label
+                htmlFor="isBoss"
+                style={{ color: "#fff", cursor: "pointer", margin: 0, userSelect: "none" }}
+              >
                 Boss Monster
               </label>
             </div>
-            <span className="form-hint">กดติ๊กเพื่อกำหนดเป็นบอส</span>
           </div>
         </div>
 
-        <div className="form-field full" data-tooltip="คำอธิบายเพิ่มเติมเกี่ยวกับมอนสเตอร์">
+        <div className="form-field full">
           <label className="form-label">description</label>
           <input
             className="input-field"
@@ -623,7 +658,6 @@ const MonsterPanel = () => {
           />
         </div>
 
-        {/* ✅ Monster Deck (ใช้ EffectSelect แบบเดียวกับ HeroPanel) */}
         <div
           style={{
             width: "100%",
@@ -634,13 +668,16 @@ const MonsterPanel = () => {
             border: "1px dashed #555",
           }}
         >
-          <h4 style={{ margin: "0 0 10px 0", color: "#e2e8f0" }} data-tooltip="การ์ดเอฟเฟกต์ที่มอนสเตอร์ตัวนี้มีในกอง">
+          <h4 style={{ margin: "0 0 10px 0", color: "#e2e8f0" }}>
             Monster Deck (Cards)
           </h4>
 
           {(formData.monster_deck || []).map((item, index) => (
-            <div key={index} style={{ display: "flex", gap: "10px", marginBottom: "8px", alignItems: "center" }}>
-              <div className="form-field flex-2" style={{ marginBottom: 0 }} data-tooltip="เลือกเอฟเฟกต์ของการ์ด">
+            <div
+              key={index}
+              style={{ display: "flex", gap: "10px", marginBottom: "8px", alignItems: "center" }}
+            >
+              <div className="form-field flex-2" style={{ marginBottom: 0 }}>
                 <EffectSelect
                   value={item.effect}
                   options={DECK_EFFECTS}
@@ -648,7 +685,7 @@ const MonsterPanel = () => {
                 />
               </div>
 
-              <div className="form-field flex-1" style={{ marginBottom: 0 }} data-tooltip="จำนวนใบของการ์ดชนิดนี้ในกอง">
+              <div className="form-field flex-1" style={{ marginBottom: 0 }}>
                 <input
                   className="input-field"
                   type="number"
@@ -664,7 +701,6 @@ const MonsterPanel = () => {
                 className="btn btn-delete"
                 onClick={() => handleRemoveDeckItem(index)}
                 style={{ height: "36px", padding: "0 10px", marginTop: "20px" }}
-                data-tooltip="ลบการ์ดใบนี้ออกจากกอง"
               >
                 X
               </button>
@@ -676,15 +712,13 @@ const MonsterPanel = () => {
             className="btn"
             onClick={handleAddDeckItem}
             style={{ background: "#c53030", marginTop: "10px" }}
-            data-tooltip="เพิ่มการ์ดชนิดใหม่ลงในกอง"
           >
             + Add Card
           </button>
         </div>
 
-        {/* ===== Sprite Upload 4 ===== */}
         <div className="sprite-upload" style={{ marginTop: 15 }}>
-          <div className="hint" data-tooltip="ต้องอัปโหลดให้ครบทั้ง 4 ท่าทางเพื่อให้แอนิเมชันทำงานสมบูรณ์">
+          <div className="hint">
             Monster Sprites (ต้องมี 4 รูป) — Attack x2, Idle x2
             {isEditing && <span className="subhint"> (แก้รูป: เลือกใหม่ให้ครบ 4 แล้วกด UPDATE)</span>}
           </div>
@@ -702,9 +736,15 @@ const MonsterPanel = () => {
                   border: "1px dashed #555",
                   borderRadius: "8px",
                 }}
-                data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}
               >
-                <label style={{ fontSize: 12, color: "#888", fontWeight: "bold", textTransform: "capitalize" }}>
+                <label
+                  style={{
+                    fontSize: 12,
+                    color: "#888",
+                    fontWeight: "bold",
+                    textTransform: "capitalize",
+                  }}
+                >
                   {k}
                 </label>
 
@@ -740,20 +780,18 @@ const MonsterPanel = () => {
             type="submit"
             className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
             style={{ flex: 1 }}
-            data-tooltip={isEditing ? "บันทึกการแก้ไขข้อมูลมอนสเตอร์" : "สร้างมอนสเตอร์ตัวใหม่ลงในระบบ"}
           >
             {isEditing ? "UPDATE MONSTER" : "CREATE MONSTER"}
           </button>
 
           {isEditing && (
-            <button type="button" className="btn btn-cancel" onClick={handleCancel} data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม">
+            <button type="button" className="btn btn-cancel" onClick={handleCancel}>
               CANCEL
             </button>
           )}
         </div>
       </form>
 
-      {/* ===== Table ===== */}
       <div className="table-wrapper">
         {loading ? (
           <p className="loading-center">Loading Monsters...</p>
@@ -761,18 +799,16 @@ const MonsterPanel = () => {
           <table className="dict-table monster-theme">
             <thead>
               <tr>
-                <th data-tooltip="ภาพตัวอย่างแอนิเมชัน">Sprite</th>
-                <th data-tooltip="รหัสอ้างอิงของมอนสเตอร์">ID</th>
-
-                <SortableTH colKey="no" tooltip="เลขลำดับมอนสเตอร์">No</SortableTH>
-                <SortableTH colKey="name" tooltip="ชื่อมอนสเตอร์">Name</SortableTH>
-                <SortableTH colKey="hp" tooltip="พลังชีวิตสูงสุด">HP</SortableTH>
-                <SortableTH colKey="power" tooltip="พลังโจมตีพื้นฐาน">Power</SortableTH>
-                <SortableTH colKey="speed" tooltip="ความเร็ว (กำหนดลำดับการโจมตี)">Speed</SortableTH>
-                <SortableTH colKey="exp" tooltip="EXP ที่ได้รับเมื่อชนะ">EXP</SortableTH>
-                <SortableTH colKey="isBoss" tooltip="สถานะบอส (มีผลต่อเพลงและรางวัล)">isBoss</SortableTH>
-
-                <th data-tooltip="จำนวนประเภทการ์ดในกอง">Deck</th>
+                <th>Sprite</th>
+                <th>ID</th>
+                <SortableTH colKey="no">No</SortableTH>
+                <SortableTH colKey="name">Name</SortableTH>
+                <SortableTH colKey="hp">HP</SortableTH>
+                <SortableTH colKey="power">Power</SortableTH>
+                <SortableTH colKey="speed">Speed</SortableTH>
+                <SortableTH colKey="exp">EXP</SortableTH>
+                <SortableTH colKey="isBoss">isBoss</SortableTH>
+                <th>Deck</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -792,12 +828,14 @@ const MonsterPanel = () => {
                   <td className="mono">{m.power ?? "-"}</td>
                   <td className="mono">{m.speed ?? "-"}</td>
                   <td className="mono">{m.exp ?? "-"}</td>
-
                   <td className="mono">
-                    {m.isBoss ? <span style={{ color: "#e53e3e", fontWeight: "bold" }}>TRUE</span> : "false"}
+                    {m.isBoss ? (
+                      <span style={{ color: "#e53e3e", fontWeight: "bold" }}>TRUE</span>
+                    ) : (
+                      "false"
+                    )}
                   </td>
 
-                  {/* ✅ แสดง deck แบบ label+id เหมือน HeroPanel */}
                   <td style={{ fontSize: 12 }}>
                     <div style={{ color: "#48bb78", fontWeight: "bold" }}>
                       Cards: {Array.isArray(m.monster_deck) ? m.monster_deck.length : 0}
@@ -823,7 +861,6 @@ const MonsterPanel = () => {
                         type="button"
                         className="btn btn-edit"
                         onClick={() => handleEdit(m)}
-                        data-tooltip="แก้ไขข้อมูลมอนสเตอร์ตัวนี้"
                       >
                         Edit
                       </button>
@@ -832,7 +869,6 @@ const MonsterPanel = () => {
                         type="button"
                         className="btn btn-delete"
                         onClick={() => handleDelete(m.id)}
-                        data-tooltip="ลบมอนสเตอร์ถาวร"
                       >
                         Del
                       </button>
@@ -841,7 +877,6 @@ const MonsterPanel = () => {
                         type="button"
                         className="btn btn-sprites"
                         onClick={() => handleDeleteSprites(m.id)}
-                        data-tooltip="ลบเฉพาะไฟล์รูปภาพ Sprites"
                       >
                         Del Sprites
                       </button>

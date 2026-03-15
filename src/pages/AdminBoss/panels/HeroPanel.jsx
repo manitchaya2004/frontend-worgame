@@ -1,9 +1,7 @@
-// src/pages/AdminPage/panels/HeroPanel.jsx
 import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
-import { API_URL } from "../config";
+import { supabase } from "../../../service/supabaseClient";
 import { HeroSpriteLoop } from "../components/SpriteLoops";
 
-// ✅ UI แบบในไฟล์เกม (dropdown + animation + icon)
 import { AnimatePresence, motion } from "framer-motion";
 import {
   GiBroadsword,
@@ -15,7 +13,33 @@ import {
 } from "react-icons/gi";
 import { FaBolt, FaCloud, FaEyeSlash, FaPlus } from "react-icons/fa";
 
-// ✅ รายชื่อ Effect สำหรับ Deck (id ล้วน) — ให้เหมือน MonsterPanel
+const HERO_BUCKET = "asset";
+const HERO_FOLDER = "img_hero";
+
+const buildHeroSpritePath = (heroId, key, fileName = "") => {
+  const ext = fileName?.split(".").pop()?.toLowerCase() || "png";
+
+  const map = {
+    attack1: "attack-1",
+    attack2: "attack-2",
+    idle1: "idle-1",
+    idle2: "idle-2",
+    walk1: "walk-1",
+    walk2: "walk-2",
+    guard1: "guard-1",
+  };
+
+  return `${HERO_FOLDER}/${heroId}-${map[key]}.${ext}`;
+};
+
+const toHeroId = (name = "") =>
+  name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
 const DECK_EFFECTS = [
   "double-dmg",
   "double-shield",
@@ -30,13 +54,11 @@ const DECK_EFFECTS = [
   "vampire_fang",
 ];
 
-// ✅ meta สำหรับทำ UI ให้เหมือนในไฟล์เกม (icon + สี + label) — ให้เหมือน MonsterPanel
 const EFFECT_META = {
   "double-dmg": { label: "Double Damage", icon: <GiBroadsword />, color: "#c0392b" },
   "double-shield": { label: "Double Shield", icon: <GiShield />, color: "#2980b9" },
   "mana-plus": { label: "Mana Plus", icon: <GiWaterDrop />, color: "#00bcd4" },
   "shield-plus": { label: "Shield Plus", icon: <GiTrident />, color: "#e67e22" },
-
   "add_bleed": { label: "Add Bleed", icon: <GiBowieKnife />, color: "#8b0000" },
   "add_poison": { label: "Add Poison", icon: <FaCloud />, color: "#27ae60" },
   "add_stun": { label: "Add Stun", icon: <FaBolt />, color: "#f39c12" },
@@ -46,15 +68,12 @@ const EFFECT_META = {
   "vampire_fang": { label: "Vampire Fang", icon: <GiFangs />, color: "#8b0000" },
 };
 
-// ✅ Effect dropdown แบบเดียวกับไฟล์เกม: badge + icon + popup list + motion
 const EffectSelect = ({ value, options, onChange }) => {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
-  const current =
-    EFFECT_META[value] || ({ label: value, icon: null, color: "#666" });
+  const current = EFFECT_META[value] || { label: value, icon: null, color: "#666" };
 
-  // ปิดเมื่อคลิกนอกกรอบ
   useEffect(() => {
     const onDown = (e) => {
       if (!wrapRef.current) return;
@@ -191,6 +210,17 @@ const EffectSelect = ({ value, options, onChange }) => {
   );
 };
 
+const emptyForm = {
+  id: "",
+  name: "",
+  hp: "",
+  power: "",
+  speed: "",
+  ability_cost: "",
+  description: "",
+  hero_deck: [],
+};
+
 const HeroPanel = () => {
   const [heroes, setHeroes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -206,6 +236,8 @@ const HeroPanel = () => {
     guard1: null,
   });
 
+  const [formData, setFormData] = useState(emptyForm);
+
   const resetSpriteFiles = () =>
     setSpriteFiles({
       attack1: null,
@@ -220,25 +252,6 @@ const HeroPanel = () => {
   const handleSpriteChange = (key, file) =>
     setSpriteFiles((prev) => ({ ...prev, [key]: file }));
 
-  const toHeroId = (name = "") =>
-    name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
-
-  const [formData, setFormData] = useState({
-    id: "",
-    name: "",
-    hp: "",
-    power: "",
-    speed: "",
-    ability_cost: "",
-    description: "",
-    hero_deck: [],
-  });
-
   const setField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
 
@@ -248,13 +261,12 @@ const HeroPanel = () => {
   const fetchHeroes = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/hero`);
-      if (!res.ok) throw new Error("Failed to fetch heroes");
-      const data = await res.json();
+      const { data, error } = await supabase.rpc("get_heroes");
+      if (error) throw error;
       setHeroes(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error(e);
-      alert("Error fetching heroes");
+      console.error("fetchHeroes error:", e);
+      alert(`Error fetching heroes: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -264,7 +276,6 @@ const HeroPanel = () => {
     fetchHeroes();
   }, [fetchHeroes]);
 
-  // ===== Table Sorting =====
   const [sortBy, setSortBy] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
 
@@ -329,7 +340,6 @@ const HeroPanel = () => {
     return arr;
   }, [heroes, sortBy, sortDir]);
 
-  // ✅ SortableTH component สำหรับ Header ของตาราง
   const SortableTH = ({ colKey, children, tooltip }) => {
     const active = sortBy === colKey;
 
@@ -380,22 +390,27 @@ const HeroPanel = () => {
   };
 
   const uploadSpritesStrict7 = async (heroId) => {
-    const fd = new FormData();
-    fd.append("attack1", spriteFiles.attack1);
-    fd.append("attack2", spriteFiles.attack2);
-    fd.append("idle1", spriteFiles.idle1);
-    fd.append("idle2", spriteFiles.idle2);
-    fd.append("walk1", spriteFiles.walk1);
-    fd.append("walk2", spriteFiles.walk2);
-    fd.append("guard1", spriteFiles.guard1);
+    const requiredKeys = ["attack1", "attack2", "idle1", "idle2", "walk1", "walk2", "guard1"];
+    const missing = requiredKeys.filter((k) => !spriteFiles[k]);
 
-    const up = await fetch(`/api/hero/${heroId}/sprites`, {
-      method: "POST",
-      body: fd,
-    });
-    if (!up.ok) {
-      const err = await up.json().catch(() => ({}));
-      throw new Error(err.message || "Hero sprites upload failed");
+    if (missing.length > 0) {
+      throw new Error(`ต้องอัปโหลดรูปให้ครบ 7 รูป (${missing.join(", ")})`);
+    }
+
+    for (const key of requiredKeys) {
+      const file = spriteFiles[key];
+      const path = buildHeroSpritePath(heroId, key, file.name);
+
+      const { error } = await supabase.storage
+        .from(HERO_BUCKET)
+        .upload(path, file, {
+          upsert: true,
+          contentType: file.type || "image/png",
+        });
+
+      if (error) {
+        throw new Error(`upload ${key} failed: ${error.message}`);
+      }
     }
   };
 
@@ -403,74 +418,61 @@ const HeroPanel = () => {
     e.preventDefault();
 
     const payload = {
-      id: formData.id,
-      name: formData.name,
-      hp: formData.hp === "" ? 0 : Number(formData.hp),
-      power: formData.power === "" ? 0 : Number(formData.power),
-      speed: formData.speed === "" ? 0 : Number(formData.speed),
-      ability_cost:
-        formData.ability_cost === "" ? null : Number(formData.ability_cost),
-      description: formData.description || null,
-      hero_deck: (formData.hero_deck || []).map((item) => ({
+      p_id: formData.id,
+      p_name: formData.name || null,
+      p_hp: formData.hp === "" ? 0 : Number(formData.hp),
+      p_power: formData.power === "" ? 0 : Number(formData.power),
+      p_speed: formData.speed === "" ? 0 : Number(formData.speed),
+      p_ability_cost: formData.ability_cost === "" ? null : Number(formData.ability_cost),
+      p_description: formData.description || null,
+      p_hero_deck: (formData.hero_deck || []).map((item) => ({
         effect: item.effect,
         size: Number(item.size) || 1,
       })),
     };
 
     try {
-      let url = `/api/hero`;
-      let method = "POST";
-      if (isEditing) {
-        url = `/api/hero/${formData.id}`;
-        method = "PUT";
+      if (!formData.id || !formData.name) {
+        throw new Error("กรุณากรอกชื่อ Hero");
       }
 
       if (!isEditing) {
         const missing = Object.entries(spriteFiles)
           .filter(([, f]) => !f)
           .map(([k]) => k);
+
         if (missing.length > 0) {
-          alert(
-            `ต้องอัปโหลดรูปครบ 7 รูปก่อนสร้าง Hero\nขาด: ${missing.join(", ")}`
-          );
+          alert(`ต้องอัปโหลดรูปครบ 7 รูปก่อนสร้าง Hero\nขาด: ${missing.join(", ")}`);
           return;
         }
       }
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const { error } = isEditing
+        ? await supabase.rpc("update_hero", payload)
+        : await supabase.rpc("create_hero", payload);
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Save failed");
-      }
+      if (error) throw error;
 
       if (!isEditing) {
         await uploadSpritesStrict7(formData.id);
       } else {
-        const all7 = Object.values(spriteFiles).every(Boolean);
-        if (all7) await uploadSpritesStrict7(formData.id);
+        const anySelected = Object.values(spriteFiles).some(Boolean);
+        if (anySelected) {
+          const all7 = Object.values(spriteFiles).every(Boolean);
+          if (!all7) {
+            throw new Error("ถ้าจะแก้รูป ต้องเลือกใหม่ให้ครบทั้ง 7 รูป");
+          }
+          await uploadSpritesStrict7(formData.id);
+        }
       }
 
       alert(isEditing ? "Hero Updated!" : "Hero Created!");
-      setFormData({
-        id: "",
-        name: "",
-        hp: "",
-        power: "",
-        speed: "",
-        ability_cost: "",
-        description: "",
-        hero_deck: [],
-      });
+      setFormData(emptyForm);
       resetSpriteFiles();
       setIsEditing(false);
       fetchHeroes();
     } catch (err) {
-      console.error(err);
+      console.error("handleSubmit error:", err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -489,52 +491,76 @@ const HeroPanel = () => {
 
     resetSpriteFiles();
     setIsEditing(true);
-
+    document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Hero ID: ${id}?`)) return;
+
     try {
-      const res = await fetch(`${API_URL}/hero/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Delete failed");
-      }
+      const { error } = await supabase.rpc("delete_hero", { p_id: id });
+      if (error) throw error;
+
       alert("Hero deleted!");
       fetchHeroes();
     } catch (err) {
-      console.error(err);
+      console.error("handleDelete error:", err);
       alert(`Error deleting hero: ${err.message}`);
     }
   };
 
   const handleDeleteSprites = async (id) => {
     if (!window.confirm(`Delete ALL sprites of Hero ID: ${id}?`)) return;
+
     try {
-      const res = await fetch(`${API_URL}/hero/${id}/sprites`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        alert("Sprites deleted");
-        fetchHeroes();
-      } else alert("Delete sprites failed");
-    } catch {
-      alert("Error deleting sprites");
+      const paths = [
+        `${HERO_FOLDER}/${id}-attack-1.png`,
+        `${HERO_FOLDER}/${id}-attack-2.png`,
+        `${HERO_FOLDER}/${id}-idle-1.png`,
+        `${HERO_FOLDER}/${id}-idle-2.png`,
+        `${HERO_FOLDER}/${id}-walk-1.png`,
+        `${HERO_FOLDER}/${id}-walk-2.png`,
+        `${HERO_FOLDER}/${id}-guard-1.png`,
+
+        `${HERO_FOLDER}/${id}-attack-1.jpg`,
+        `${HERO_FOLDER}/${id}-attack-2.jpg`,
+        `${HERO_FOLDER}/${id}-idle-1.jpg`,
+        `${HERO_FOLDER}/${id}-idle-2.jpg`,
+        `${HERO_FOLDER}/${id}-walk-1.jpg`,
+        `${HERO_FOLDER}/${id}-walk-2.jpg`,
+        `${HERO_FOLDER}/${id}-guard-1.jpg`,
+
+        `${HERO_FOLDER}/${id}-attack-1.jpeg`,
+        `${HERO_FOLDER}/${id}-attack-2.jpeg`,
+        `${HERO_FOLDER}/${id}-idle-1.jpeg`,
+        `${HERO_FOLDER}/${id}-idle-2.jpeg`,
+        `${HERO_FOLDER}/${id}-walk-1.jpeg`,
+        `${HERO_FOLDER}/${id}-walk-2.jpeg`,
+        `${HERO_FOLDER}/${id}-guard-1.jpeg`,
+
+        `${HERO_FOLDER}/${id}-attack-1.webp`,
+        `${HERO_FOLDER}/${id}-attack-2.webp`,
+        `${HERO_FOLDER}/${id}-idle-1.webp`,
+        `${HERO_FOLDER}/${id}-idle-2.webp`,
+        `${HERO_FOLDER}/${id}-walk-1.webp`,
+        `${HERO_FOLDER}/${id}-walk-2.webp`,
+        `${HERO_FOLDER}/${id}-guard-1.webp`,
+      ];
+
+      const { error } = await supabase.storage.from(HERO_BUCKET).remove(paths);
+      if (error) throw error;
+
+      alert("Sprites deleted");
+      fetchHeroes();
+    } catch (err) {
+      console.error("handleDeleteSprites error:", err);
+      alert(`Error deleting sprites: ${err.message}`);
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setFormData({
-      id: "",
-      name: "",
-      hp: "",
-      power: "",
-      speed: "",
-      ability_cost: "",
-      description: "",
-      hero_deck: [],
-    });
+    setFormData(emptyForm);
     resetSpriteFiles();
   };
 
@@ -625,7 +651,6 @@ const HeroPanel = () => {
           />
         </div>
 
-        {/* จัดการ Hero Deck */}
         <div
           style={{
             width: "100%",
@@ -658,7 +683,6 @@ const HeroPanel = () => {
                 style={{ marginBottom: 0 }}
                 data-tooltip="เลือกเอฟเฟกต์ของการ์ด"
               >
-                {/* ✅ เปลี่ยน select เป็น UI แบบในไฟล์เกม */}
                 <EffectSelect
                   value={item.effect}
                   options={DECK_EFFECTS}
@@ -704,7 +728,6 @@ const HeroPanel = () => {
           </button>
         </div>
 
-        {/* Sprites Upload 7 รูป */}
         <div className="sprite-upload" style={{ marginTop: 15 }}>
           <div className="hint" data-tooltip="อัปโหลดภาพแอนิเมชันให้ครบทั้ง 7 ท่าทาง">
             Hero Sprites (ต้องมี 7 รูป) — Attack x2, Idle x2, Walk x2, Guard x1
@@ -791,7 +814,6 @@ const HeroPanel = () => {
         </div>
       </form>
 
-      {/* Table Section */}
       <div className="table-wrapper">
         {loading ? (
           <p className="loading-center">Loading Heroes...</p>
@@ -838,7 +860,6 @@ const HeroPanel = () => {
                   <td className="mono">{h.speed ?? "-"}</td>
                   <td className="mono">{h.ability_cost ?? "-"}</td>
 
-                  {/* ✅ Deck ให้ใหญ่ขึ้น + แสดงรายการการ์ด */}
                   <td className="hero-deck-cell">
                     <div
                       style={{
