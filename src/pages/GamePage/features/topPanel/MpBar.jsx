@@ -9,10 +9,10 @@ export function MpBar({ mp, max, color = "#3b82f6" }) {
       style={{
         position: "relative",
         width: "70px",       // เท่ากับความกว้างของ HpBar
-        height: "8px",       // ✅ เพิ่มความสูงจาก 3px เป็น 8px ให้มองเห็นชัดขึ้น
+        height: "8px",       // เพิ่มความสูงจาก 3px เป็น 8px ให้มองเห็นชัดขึ้น
         background: "rgba(0, 0, 0, 0.5)", // พื้นหลังจางลงหน่อยเพื่อให้หลอดเด่น
         border: "1.5px solid #000",      // ลดความหนาเส้นขอบลงเล็กน้อย
-        borderRadius: "4px",             // ✅ ปรับให้มนรอบด้านเพื่อความสวยงาม
+        borderRadius: "4px",             // ปรับให้มนรอบด้านเพื่อความสวยงาม
         overflow: "hidden",
         boxShadow: "0 1px 3px rgba(0,0,0,0.5)",
       }}
