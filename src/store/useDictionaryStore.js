@@ -11,40 +11,28 @@ export const useDictionaryStore = create((set, get) => ({
   error: null,
 
   // ✅ 1. Fetch Dictionary แบบรองรับการค้นหาและแบ่งหน้า
-  fetchDictionary: async ({ search = "", page = 0, limit = 20, append = false, level = "" }) => {
+  fetchDictionary: async (payload) => {
     try {
       set({ loading: LOADING, error: null });
 
-      // คำนวณช่วงข้อมูล (Pagination)
-      const from = page * limit;
-      const to = from + limit - 1;
+      // แมปตัวแปรจาก payload เดิมให้ตรงกับพารามิเตอร์ของ RPC
+      const { data, error } = await supabase.rpc("query_dict", {
+        p_starts_with: payload.startsWith || null,
+        p_contains: payload.contains || null,
+        p_length: payload.length || 0,
+        p_level: payload.level || null,
+        p_limit: payload.limit || 50,
+        p_last_word: payload.lastWord || null,
+      });
 
-      // เริ่มสร้าง Query
-      let query = supabase
-        .from('dictionary')
-        .select('*', { count: 'exact' }); // count: exact เพื่อเอาจำนวนทั้งหมดมาคำนวณ hasNext
-
-      // 🔍 ถ้ามีการค้นหา
-      if (search) {
-        query = query.ilike('word', `%${search}%`);
-      }
-
-      // 🎯 ถ้ามีการกรองเลเวล
-      if (level) {
-        query = query.eq('level', level);
-      }
-
-      // 📦 กำหนดช่วงข้อมูลและเรียงลำดับ
-      const { data, error, count } = await query
-        .range(from, to)
-        .order('word', { ascending: true });
-
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (!data || !data.isSuccess) throw new Error("fetch dictionary failed");
 
       set({
-        count: count || 0,
-        hasNext: count > to + 1,
-        words: append ? [...get().words, ...data] : data,
+        count: data.count,
+        hasNext: data.hasNext,
+        lastWord: data.lastWord,
+        words: payload.append ? [...get().words, ...data.data] : data.data,
         loading: LOADED,
       });
     } catch (err) {
@@ -54,28 +42,28 @@ export const useDictionaryStore = create((set, get) => ({
 
   // ✅ 2. Dictionary สำหรับหน้า Mini Game
   // (โครงสร้างคล้ายกัน แต่แยกเก็บคนละก้อนเพื่อไม่ให้ UI หน้าหลักกระโดด)
-  fetchMiniGameDictionary: async ({ search = "", page = 0, limit = 10, append = false, level = "" }) => {
+  fetchMiniGameDictionary: async (payload) => {
     try {
       set({ loading: LOADING, error: null });
 
-      const from = page * limit;
-      const to = from + limit - 1;
+      // แมปตัวแปรจาก payload เดิมให้ตรงกับพารามิเตอร์ของ RPC
+      const { data, error } = await supabase.rpc("query_dict", {
+        p_starts_with: payload.startsWith || null,
+        p_contains: payload.contains || null,
+        p_length: payload.length || 0,
+        p_level: payload.level || null,
+        p_limit: payload.limit || 50,
+        p_last_word: payload.lastWord || null,
+      });
 
-      let query = supabase.from('dictionary').select('*', { count: 'exact' });
-
-      if (search) query = query.ilike('word', `%${search}%`);
-      if (level) query = query.eq('level', level);
-
-      const { data, error, count } = await query
-        .range(from, to)
-        .order('word', { ascending: true });
-
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (!data || !data.isSuccess) throw new Error("fetch dictionary failed");
 
       set({
-        count: count || 0,
-        hasNext: count > to + 1,
-        wordsForMiniGame: append ? [...get().wordsForMiniGame, ...data] : data,
+        count: data.count,
+        hasNext: data.hasNext,
+        lastWord: data.lastWord,
+        wordsForMiniGame: payload.append ? [...get().wordsForMiniGame, ...data.data] : data.data,
         loading: LOADED,
       });
     } catch (err) {
@@ -84,5 +72,6 @@ export const useDictionaryStore = create((set, get) => ({
   },
 
   clearDictionary: () => set({ words: [], count: 0, hasNext: false }),
-  clearMiniGameDictionary: () => set({ wordsForMiniGame: [], count: 0, hasNext: false }),
+  clearMiniGameDictionary: () =>
+    set({ wordsForMiniGame: [], count: 0, hasNext: false }),
 }));
