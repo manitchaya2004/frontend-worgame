@@ -18,7 +18,7 @@ const AdminBoss = () => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuthStore();
 
-  console.log("AdminBoss rendered", currentUser);
+  //console.log("AdminBoss rendered", currentUser);
 
   const handleLogout = () => {
     logout();

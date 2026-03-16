@@ -653,7 +653,7 @@ export const useGameStore = create((set, get) => ({
       let to = 999;
       let hasMore = true;
 
-      console.log("⏳ Loading Dictionary (30,000+ entries)...");
+      //console.log("⏳ Loading Dictionary (30,000+ entries)...");
       while (hasMore) {
         const { data: partDict, error: dictError } = await supabase
           .from('dictionary')
@@ -670,7 +670,7 @@ export const useGameStore = create((set, get) => ({
           to += 1000;
         }
       }
-      console.log(`✅ Dictionary Loaded: ${allDictData.length} entries`);
+      //console.log(`✅ Dictionary Loaded: ${allDictData.length} entries`);
 
       // --- 2. ดึง Stage Data พร้อม Join ข้อมูล Monster และ Deck ---
       const { data: rawStageData, error: stageError } = await supabase
@@ -737,7 +737,7 @@ export const useGameStore = create((set, get) => ({
       };
 
       // --- 4. 🚀 Asset Preloading (Player + Monster + Map) ---
-      console.log("⏳ Preloading Assets (Heroes, Monsters, and Map)...");
+      //console.log("⏳ Preloading Assets (Heroes, Monsters, and Map)...");
       const STORAGE_HERO = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
       const STORAGE_MONSTER = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_monster/";
       const STORAGE_MAP = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
@@ -777,7 +777,7 @@ export const useGameStore = create((set, get) => ({
       });
 
       await Promise.all(preloadPromises);
-      console.log("✅ All Assets Preloaded! Map is ready.");
+      //console.log("✅ All Assets Preloaded! Map is ready.");
 
       // --- 5. บันทึกลง Store และเริ่มเกม ---
       set({
