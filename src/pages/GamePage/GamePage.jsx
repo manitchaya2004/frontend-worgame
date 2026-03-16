@@ -697,6 +697,8 @@ export default function GameApp() {
         onConfirm={handleExit}
         title="Surrender?"
         description="You will receive half of your earned coins."
+        confirmText="YES"
+        cancelText="NO"
       />
     </>
   );

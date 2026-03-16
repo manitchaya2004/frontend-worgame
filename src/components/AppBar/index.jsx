@@ -676,6 +676,16 @@ const GameAppBar = () => {
                         : "rgba(43, 29, 20, 0.9)",
                       transform: "translateY(1px)",
                     },
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      fontSize: item.isMain ? 6 : 5,
+                      "& .MuiButton-startIcon": {
+                      // 💡 THE FIX: เอา margin ออกเมื่อโชว์แค่ไอคอนอย่างเดียว หรือ ไม่มีไอคอนเลย
+                      margin: 0,
+                      "& > *:nth-of-type(1)": {
+                        fontSize: isCompact ? 14 : item.isMain ? 26 : 22,
+                      },
+                    },
+                    },
                   }}
                   // 💡 THE FIX: โชว์ไอคอนเฉพาะปุ่มที่ไม่ได้เป็นหน้าหลัก (Item / Character)
                   startIcon={!item.isMain ? item.icon : null}
@@ -834,16 +844,14 @@ const GameAppBar = () => {
                 </IconButton>
               </Tooltip>
             ) : (
-
-                <button
-                  className="server-mini-btn"
-                  onClick={()=> navigate("/")}
-                  type="button"
-                  title="Go to Game Page"
-                >
-                  Admin
-                </button>
-             
+              <button
+                className="server-mini-btn"
+                onClick={() => navigate("/")}
+                type="button"
+                title="Go to Game Page"
+              >
+                Admin
+              </button>
             )}
           </Box>
         </Toolbar>
