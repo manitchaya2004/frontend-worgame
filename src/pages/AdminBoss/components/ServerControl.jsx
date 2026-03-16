@@ -1,22 +1,44 @@
 import React, { useEffect, useState } from "react";
-import { API_URL } from "../config";
+import { supabase } from "../../../service/supabaseClient";
 
 const ServerControl = ({ serverId = "hell" }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchServer = async () => {
-    setLoading(true);
+    // console.log("👉 1. กำลังเริ่มดึงข้อมูล Server...");
     try {
-      const res = await fetch(`/api/server/${serverId}`);
-      if (!res.ok) throw new Error("Failed to fetch server");
-      const json = await res.json();
-      setData(json);
+      // console.log("👉 2. กำลังเชื่อมต่อ Supabase...");
+      let { data: serverData, error } = await supabase
+        .from("server_status")
+        .select("*")
+        .eq("id", serverId)
+        .maybeSingle(); 
+
+      // console.log("👉 3. ผลลัพธ์จาก Supabase:", serverData, "Error:", error);
+
+      if (error) throw error;
+
+      if (!serverData) {
+        // console.log(`👉 4. ไม่พบเซิร์ฟเวอร์ ${serverId} กำลังสร้างให้ใหม่...`);
+        const { data: newData, error: insertError } = await supabase
+          .from("server_status")
+          .insert([{ id: serverId, online_count: 0, is_close: false }])
+          .select()
+          .single();
+          
+        if (insertError) throw insertError;
+        serverData = newData;
+      }
+
+      setData(serverData);
+      // console.log("👉 5. อัปเดตข้อมูลขึ้นหน้าจอสำเร็จ!");
     } catch (e) {
-      console.error(e);
+      // console.error("❌ ขัดข้องที่ fetchServer:", e.message || e);
       setData(null);
     } finally {
       setLoading(false);
+      // console.log("👉 6. ปิดหน้าต่าง Loading (เลิกหมุนติ้ว)");
     }
   };
 
@@ -29,19 +51,21 @@ const ServerControl = ({ serverId = "hell" }) => {
   const toggleServer = async () => {
     if (!data) return;
     try {
-      const res = await fetch(`/api/server/${serverId}/toggle`, {
-        method: "PATCH",
-      });
+      const newStatus = !data.is_close;
+      console.log(`กำลังเปลี่ยนสถานะเป็น: ${newStatus ? 'ปิด' : 'เปิด'}`);
+      
+      const { data: updatedData, error } = await supabase
+        .from("server_status")
+        .update({ is_close: newStatus, updated_at: new Date().toISOString() })
+        .eq("id", serverId)
+        .select()
+        .single();
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Toggle failed");
-      }
-
-      const updated = await res.json();
-      setData(updated);
+      if (error) throw error;
+      
+      setData(updatedData); 
     } catch (e) {
-      alert(e.message);
+      alert("Toggle failed: " + e.message);
     }
   };
 
@@ -71,10 +95,9 @@ const ServerControl = ({ serverId = "hell" }) => {
       </div>
 
       <button
-        className={`server-btn ${isClose ? "open" : "close"}`}
+        className="btn-toggle-server"
         onClick={toggleServer}
-        disabled={!data}
-        title="สลับสถานะ server"
+        disabled={loading}
       >
         {isClose ? "OPEN SERVER" : "CLOSE SERVER"}
       </button>

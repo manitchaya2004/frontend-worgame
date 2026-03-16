@@ -1,138 +1,148 @@
-import React, { useEffect, useState, useRef, memo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../../service/supabaseClient";
 
-// --- Sub-Component สำหรับจัดการการโหลดรูปทีละเฟรมพร้อม Bypass ngrok ---
-const SpriteFrame = memo(({ url, className, alt, onError }) => {
-  const [displayUrl, setDisplayUrl] = useState("");
-  const cache = useRef({}); // ใช้เก็บ Blob URL ที่โหลดแล้ว
-  const loadingPath = useRef("");
+const HERO_BUCKET = "asset";
+const HERO_FOLDER = "img_hero";
+const MONSTER_BUCKET = "asset";
+const MONSTER_FOLDER = "img_monster";
 
-  // 🌟 ฟังก์ชันเติม Parameter Bypass ngrok เข้าไปใน URL
-  const withBypass = (targetUrl) => {
-    const connector = targetUrl.includes("?") ? "&" : "?";
-    return `${targetUrl}${connector}ngrok-skip-browser-warning=69420`;
-  };
+const tryExts = ["png", "jpg", "jpeg", "webp"];
 
-  useEffect(() => {
-    // 1. ถ้ามีใน Cache แล้ว ใช้จาก Cache ทันที (แก้รูปวาร์ป)
-    if (cache.current[url]) {
-      setDisplayUrl(cache.current[url]);
-      return;
-    }
+const getPublicUrl = (bucket, path) => {
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return data?.publicUrl || "";
+};
 
-    // 2. ป้องกันการโหลดซ้ำถ้ากำลังโหลด Path นี้อยู่
-    if (loadingPath.current === url) return;
-
-    let isMounted = true;
-    loadingPath.current = url;
-
-    const fetchSprite = async () => {
-      try {
-        // 🌟 แก้ไข: ใช้ URL Parameter แทนการใส่ Header ใน fetch
-        const response = await fetch(withBypass(url));
-        
-        if (!response.ok) throw new Error("Fetch failed");
-        
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-
-        if (isMounted) {
-          cache.current[url] = objectUrl;
-          // สลับรูปใหม่เมื่อโหลดเสร็จสมบูรณ์เท่านั้น เพื่อให้รูปเก่าค้างไว้ก่อน (ป้องกันกะพริบ)
-          setDisplayUrl(objectUrl);
-          loadingPath.current = "";
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error("Sprite load error:", err);
-          loadingPath.current = "";
-          onError();
-        }
-      }
-    };
-
-    fetchSprite();
-    return () => {
-      isMounted = false;
-    };
-  }, [url, onError]);
-
-  // ล้าง Memory เมื่อ Component ถูกทำลาย
-  useEffect(() => {
-    return () => {
-      Object.values(cache.current).forEach(u => URL.revokeObjectURL(u));
-    };
-  }, []);
-
-  // ถ้ายังไม่มี URL แสดงผล ให้คืนค่าว่างไปก่อน (หรือจะใส่ Placeholder เล็กๆ ก็ได้)
-  if (!displayUrl) return <div className={className} style={{ visibility: 'hidden' }} />;
-
-  return <img className={className} src={displayUrl} alt={alt} />;
-});
-
-export const MonsterSpriteLoop = ({ id }) => {
-  const frames = [
-    `/api/img_monster/${id}-attack-1.png`,
-    `/api/img_monster/${id}-attack-2.png`,
-    `/api/img_monster/${id}-idle-1.png`,
-    `/api/img_monster/${id}-idle-2.png`,
-  ];
-
-  const [idx, setIdx] = useState(0);
-  const [hide, setHide] = useState(false);
-
-  useEffect(() => {
-    setHide(false);
-    setIdx(0);
-  }, [id]);
-
-  useEffect(() => {
-    const t = setInterval(() => setIdx((v) => (v + 1) % frames.length), 250);
-    return () => clearInterval(t);
-  }, [frames.length]);
-
-  if (hide) return <span className="no-sprite">No Sprite</span>;
-
-  return (
-    <SpriteFrame
-      url={frames[idx]}
-      className="sprite"
-      alt={`${id} sprite`}
-      onError={() => setHide(true)}
-    />
-  );
+const SpriteFrame = ({ url, className, alt, onError }) => {
+  return <img className={className} src={url} alt={alt} onError={onError} />;
 };
 
 export const HeroSpriteLoop = ({ id }) => {
-  const frames = [
-    `/api/img_hero/${id}-attack-1.png`,
-    `/api/img_hero/${id}-attack-2.png`,
-    `/api/img_hero/${id}-idle-1.png`,
-    `/api/img_hero/${id}-idle-2.png`,
-    `/api/img_hero/${id}-walk-1.png`,
-    `/api/img_hero/${id}-walk-2.png`,
-    `/api/img_hero/${id}-guard-1.png`,
-  ];
+  const candidates = useMemo(
+    () => [
+      [`${HERO_FOLDER}/${id}-attack-1`, "attack-1"],
+      [`${HERO_FOLDER}/${id}-attack-2`, "attack-2"],
+      [`${HERO_FOLDER}/${id}-idle-1`, "idle-1"],
+      [`${HERO_FOLDER}/${id}-idle-2`, "idle-2"],
+      [`${HERO_FOLDER}/${id}-walk-1`, "walk-1"],
+      [`${HERO_FOLDER}/${id}-walk-2`, "walk-2"],
+      [`${HERO_FOLDER}/${id}-guard-1`, "guard-1"],
+    ],
+    [id]
+  );
 
+  const [frames, setFrames] = useState([]);
   const [idx, setIdx] = useState(0);
   const [hide, setHide] = useState(false);
 
   useEffect(() => {
-    setHide(false);
-    setIdx(0);
-  }, [id]);
+    let cancelled = false;
+
+    const loadFrames = async () => {
+      const urls = [];
+
+      for (const [basePath] of candidates) {
+        let found = "";
+        for (const ext of tryExts) {
+          const url = getPublicUrl(HERO_BUCKET, `${basePath}.${ext}`);
+          found = url;
+          break;
+        }
+        if (found) urls.push(found);
+      }
+
+      if (!cancelled) {
+        setFrames(urls);
+        setIdx(0);
+        setHide(urls.length === 0);
+      }
+    };
+
+    loadFrames();
+    return () => {
+      cancelled = true;
+    };
+  }, [candidates]);
 
   useEffect(() => {
-    const t = setInterval(() => setIdx((v) => (v + 1) % frames.length), 220);
+    if (frames.length <= 1) return;
+    const t = setInterval(() => {
+      setIdx((v) => (v + 1) % frames.length);
+    }, 220);
     return () => clearInterval(t);
-  }, [frames.length]);
+  }, [frames]);
 
-  if (hide) return <span className="no-sprite">No Sprite</span>;
+  if (hide || frames.length === 0) return <span className="no-sprite">No Sprite</span>;
 
   return (
     <SpriteFrame
       url={frames[idx]}
       className="sprite"
       alt={`${id} hero sprite`}
+      onError={() => setHide(true)}
+    />
+  );
+};
+
+export const MonsterSpriteLoop = ({ id }) => {
+  const candidates = useMemo(
+    () => [
+      [`${MONSTER_FOLDER}/${id}-attack-1`, "attack-1"],
+      [`${MONSTER_FOLDER}/${id}-attack-2`, "attack-2"],
+      [`${MONSTER_FOLDER}/${id}-idle-1`, "idle-1"],
+      [`${MONSTER_FOLDER}/${id}-idle-2`, "idle-2"],
+    ],
+    [id]
+  );
+
+  const [frames, setFrames] = useState([]);
+  const [idx, setIdx] = useState(0);
+  const [hide, setHide] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFrames = async () => {
+      const urls = [];
+
+      for (const [basePath] of candidates) {
+        let found = "";
+        for (const ext of tryExts) {
+          const url = getPublicUrl(MONSTER_BUCKET, `${basePath}.${ext}`);
+          found = url;
+          break;
+        }
+        if (found) urls.push(found);
+      }
+
+      if (!cancelled) {
+        setFrames(urls);
+        setIdx(0);
+        setHide(urls.length === 0);
+      }
+    };
+
+    loadFrames();
+    return () => {
+      cancelled = true;
+    };
+  }, [candidates]);
+
+  useEffect(() => {
+    if (frames.length <= 1) return;
+    const t = setInterval(() => {
+      setIdx((v) => (v + 1) % frames.length);
+    }, 250);
+    return () => clearInterval(t);
+  }, [frames]);
+
+  if (hide || frames.length === 0) return <span className="no-sprite">No Sprite</span>;
+
+  return (
+    <SpriteFrame
+      url={frames[idx]}
+      className="sprite"
+      alt={`${id} monster sprite`}
       onError={() => setHide(true)}
     />
   );

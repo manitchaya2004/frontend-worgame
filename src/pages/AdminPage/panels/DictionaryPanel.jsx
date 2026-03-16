@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { API_URL } from "../config";
+import { supabase } from "../../../service/supabaseClient";
 
 const VALID_TYPES = [
   "noun",
@@ -38,31 +38,71 @@ const DictionaryPanel = () => {
   const fileInputRef = useRef(null);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
+  const normalizeLevelForApi = (lv) => {
+    if (lv === "" || lv === undefined || lv === null) return null;
+    return lv;
+  };
+
+  const normalizeWord = (text = "") => String(text).trim().toLowerCase();
+  const normalizeType = (text = "") => String(text).trim().toLowerCase();
+
+  const normalizeBoolean = (value) => {
+    const v = String(value ?? "")
+      .trim()
+      .toLowerCase();
+
+    if (["true", "1", "yes", "y", "on"].includes(v)) return true;
+    if (["false", "0", "no", "n", "off", ""].includes(v)) return false;
+    return false;
+  };
+
+  const normalizeTypeSafe = (value) => {
+    const v = normalizeType(value);
+    return VALID_TYPES.includes(v) ? v : "";
+  };
+
+  const normalizeLevelSafe = (value) => {
+    const raw = String(value ?? "").trim().toUpperCase();
+    if (!raw || raw === "NULL" || raw === "NONE" || raw === "-") return "";
+    return VALID_LEVELS.includes(raw) ? raw : "";
+  };
+
   const fetchWordsQuery = useCallback(async () => {
     setLoading(true);
     try {
-      const payload = { limit: 100 };
-      if (searchText) payload.startsWith = searchText;
-      else if (selectedLetter) payload.startsWith = selectedLetter;
+      const startsWith = searchText || selectedLetter || null;
+      const level = filterLevel || null;
 
-      if (filterLevel) payload.level = filterLevel;
-      if (filterLength) payload.length = Number(filterLength);
-      if (onlyOxford) payload.onlyOxford = true;
+      const lengthValue =
+        filterLength === "7"
+          ? 0
+          : filterLength
+          ? Number(filterLength)
+          : 0;
 
-      const res = await fetch(`/api/dict/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const { data, error } = await supabase.rpc("query_dictionary", {
+        p_starts_with: startsWith,
+        p_contains: null,
+        p_length: lengthValue,
+        p_level: level,
+        p_limit: 100,
+        p_last_word: null,
+        p_only_oxford: onlyOxford,
       });
 
-      const responseData = await res.json();
-      const resultData = Array.isArray(responseData)
-        ? responseData
-        : responseData.data || [];
+      if (error) throw error;
+
+      let resultData = Array.isArray(data) ? data : [];
+
+      // เดิม UI ใช้ "7+ Chars"
+      if (filterLength === "7") {
+        resultData = resultData.filter((item) => String(item.word || "").length >= 7);
+      }
 
       setWords(resultData);
     } catch (error) {
       console.error("Error fetching words:", error);
+      setWords([]);
     } finally {
       setLoading(false);
     }
@@ -98,35 +138,6 @@ const DictionaryPanel = () => {
       is_oxford: false,
     });
     setIsEditing(false);
-  };
-
-  const normalizeLevelForApi = (lv) => {
-    if (lv === "" || lv === undefined || lv === null) return null;
-    return lv;
-  };
-
-  const normalizeWord = (text = "") => String(text).trim().toLowerCase();
-  const normalizeType = (text = "") => String(text).trim().toLowerCase();
-
-  const normalizeBoolean = (value) => {
-    const v = String(value ?? "")
-      .trim()
-      .toLowerCase();
-
-    if (["true", "1", "yes", "y", "on"].includes(v)) return true;
-    if (["false", "0", "no", "n", "off", ""].includes(v)) return false;
-    return false;
-  };
-
-  const normalizeTypeSafe = (value) => {
-    const v = normalizeType(value);
-    return VALID_TYPES.includes(v) ? v : "";
-  };
-
-  const normalizeLevelSafe = (value) => {
-    const raw = String(value ?? "").trim().toUpperCase();
-    if (!raw || raw === "NULL" || raw === "NONE" || raw === "-") return "";
-    return VALID_LEVELS.includes(raw) ? raw : "";
   };
 
   const splitLooseLine = (line) => {
@@ -253,33 +264,35 @@ const DictionaryPanel = () => {
     }
 
     try {
-      const method = isEditing ? "PUT" : "POST";
-      const url = isEditing
-        ? `${API_URL}/dict/${formData.id}`
-        : `${API_URL}/dict`;
+      if (isEditing) {
+        const { error } = await supabase.rpc("update_dictionary_word", {
+          p_id: formData.id,
+          p_word: formData.word.trim(),
+          p_type: formData.type.trim(),
+          p_meaning: formData.meaning.trim(),
+          p_level: normalizeLevelForApi(formData.level),
+          p_is_oxford: Boolean(formData.is_oxford),
+        });
 
-      const payload = {
-        word: formData.word.trim(),
-        type: formData.type.trim(),
-        meaning: formData.meaning.trim(),
-        level: normalizeLevelForApi(formData.level),
-        is_oxford: Boolean(formData.is_oxford),
-      };
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.rpc("add_dictionary_word", {
+          p_word: formData.word.trim(),
+          p_type: formData.type.trim(),
+          p_meaning: formData.meaning.trim(),
+          p_level: normalizeLevelForApi(formData.level),
+          p_is_oxford: Boolean(formData.is_oxford),
+        });
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Operation failed");
+        if (error) throw error;
+      }
 
       resetForm();
-      fetchWordsQuery();
+      await fetchWordsQuery();
       alert(isEditing ? "แก้ไขสำเร็จ!" : "เพิ่มคำศัพท์สำเร็จ!");
     } catch (error) {
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       console.error(error);
+      alert(error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     }
   };
 
@@ -287,143 +300,134 @@ const DictionaryPanel = () => {
     fileInputRef.current?.click();
   };
 
-const handleTextFileUpload = async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleTextFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  try {
-    setBulkUploading(true);
-    const text = await file.text();
+    try {
+      setBulkUploading(true);
+      const text = await file.text();
 
-    const lines = text
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#"));
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith("#"));
 
-    if (lines.length === 0) {
-      alert("อัปโหลดไม่สำเร็จ: ไฟล์ว่าง หรือไม่มีข้อมูลที่ใช้เพิ่มคำศัพท์");
-      return;
-    }
-
-    const existingSet = new Set(
-      words.map((item) => `${normalizeWord(item.word)}__${normalizeType(item.type)}`)
-    );
-
-    const localSeen = new Set();
-    const rowsToCreate = [];
-    const skippedReasons = [];
-
-    lines.forEach((line, index) => {
-      const rowNo = index + 1;
-      const parsed = sanitizeParsedEntry(splitLooseLine(line));
-
-      const safeWord = parsed.word?.trim() || "";
-      const safeType = parsed.type || "";
-      const safeMeaning = parsed.meaning?.trim() || "";
-      const safeLevel = parsed.level || "";
-      const safeOxford = Boolean(parsed.is_oxford);
-
-      if (!safeWord) {
-        skippedReasons.push(`บรรทัด ${rowNo}: ไม่มี word`);
+      if (lines.length === 0) {
+        alert("อัปโหลดไม่สำเร็จ: ไฟล์ว่าง หรือไม่มีข้อมูลที่ใช้เพิ่มคำศัพท์");
         return;
       }
 
-      if (!safeType) {
-        skippedReasons.push(
-          `บรรทัด ${rowNo}: type ไม่ถูกต้องหรือไม่มีค่า (ต้องเป็น noun, verb, adjective, adverb, preposition, conjunction, pronoun)`
+      const existingSet = new Set(
+        words.map((item) => `${normalizeWord(item.word)}__${normalizeType(item.type)}`)
+      );
+
+      const localSeen = new Set();
+      const rowsToCreate = [];
+      const skippedReasons = [];
+
+      lines.forEach((line, index) => {
+        const rowNo = index + 1;
+        const parsed = sanitizeParsedEntry(splitLooseLine(line));
+
+        const safeWord = parsed.word?.trim() || "";
+        const safeType = parsed.type || "";
+        const safeMeaning = parsed.meaning?.trim() || "";
+        const safeLevel = parsed.level || "";
+        const safeOxford = Boolean(parsed.is_oxford);
+
+        if (!safeWord) {
+          skippedReasons.push(`บรรทัด ${rowNo}: ไม่มี word`);
+          return;
+        }
+
+        if (!safeType) {
+          skippedReasons.push(
+            `บรรทัด ${rowNo}: type ไม่ถูกต้องหรือไม่มีค่า (ต้องเป็น noun, verb, adjective, adverb, preposition, conjunction, pronoun)`
+          );
+          return;
+        }
+
+        if (!safeMeaning) {
+          skippedReasons.push(`บรรทัด ${rowNo}: meaning ว่าง`);
+          return;
+        }
+
+        if (safeLevel && !VALID_LEVELS.includes(String(safeLevel).toUpperCase())) {
+          skippedReasons.push(`บรรทัด ${rowNo}: level ไม่ถูกต้อง (${safeLevel})`);
+          return;
+        }
+
+        const dedupeKey = `${normalizeWord(safeWord)}__${normalizeType(safeType)}`;
+
+        if (existingSet.has(dedupeKey)) {
+          skippedReasons.push(`บรรทัด ${rowNo}: คำซ้ำในระบบ (${safeWord} / ${safeType})`);
+          return;
+        }
+
+        if (localSeen.has(dedupeKey)) {
+          skippedReasons.push(`บรรทัด ${rowNo}: คำซ้ำภายในไฟล์ (${safeWord} / ${safeType})`);
+          return;
+        }
+
+        localSeen.add(dedupeKey);
+        rowsToCreate.push({
+          rowNo,
+          payload: {
+            p_word: safeWord,
+            p_type: safeType,
+            p_meaning: safeMeaning,
+            p_level: normalizeLevelForApi(safeLevel),
+            p_is_oxford: safeOxford,
+          },
+        });
+      });
+
+      if (rowsToCreate.length === 0) {
+        alert(
+          `อัปโหลดไม่สำเร็จ: ไม่มีข้อมูลที่เพิ่มได้\n\nเหตุผล:\n- ${skippedReasons.join("\n- ")}`
         );
         return;
       }
 
-      if (!safeMeaning) {
-        skippedReasons.push(`บรรทัด ${rowNo}: meaning ว่าง`);
-        return;
-      }
+      let successCount = 0;
+      const failedReasons = [...skippedReasons];
 
-      if (safeLevel && !VALID_LEVELS.includes(String(safeLevel).toUpperCase())) {
-        skippedReasons.push(`บรรทัด ${rowNo}: level ไม่ถูกต้อง (${safeLevel})`);
-        return;
-      }
+      for (const row of rowsToCreate) {
+        try {
+          const { error } = await supabase.rpc("add_dictionary_word", row.payload);
 
-      const dedupeKey = `${normalizeWord(safeWord)}__${normalizeType(safeType)}`;
-
-      if (existingSet.has(dedupeKey)) {
-        skippedReasons.push(`บรรทัด ${rowNo}: คำซ้ำในระบบ (${safeWord} / ${safeType})`);
-        return;
-      }
-
-      if (localSeen.has(dedupeKey)) {
-        skippedReasons.push(`บรรทัด ${rowNo}: คำซ้ำภายในไฟล์ (${safeWord} / ${safeType})`);
-        return;
-      }
-
-      localSeen.add(dedupeKey);
-      rowsToCreate.push({
-        rowNo,
-        payload: {
-          word: safeWord,
-          type: safeType,
-          meaning: safeMeaning,
-          level: normalizeLevelForApi(safeLevel),
-          is_oxford: safeOxford,
-        },
-      });
-    });
-
-    if (rowsToCreate.length === 0) {
-      alert(
-        `อัปโหลดไม่สำเร็จ: ไม่มีข้อมูลที่เพิ่มได้\n\nเหตุผล:\n- ${skippedReasons.join("\n- ")}`
-      );
-      return;
-    }
-
-    let successCount = 0;
-    const failedReasons = [...skippedReasons];
-
-    for (const row of rowsToCreate) {
-      try {
-        const res = await fetch(`${API_URL}/dict`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(row.payload),
-        });
-
-        if (res.ok) {
-          successCount += 1;
-        } else {
-          let serverMessage = "บันทึกข้อมูลไม่สำเร็จ";
-          try {
-            const errData = await res.json();
-            serverMessage = errData?.message || serverMessage;
-          } catch {
-            // ignore
+          if (error) {
+            failedReasons.push(`บรรทัด ${row.rowNo}: ${error.message || "บันทึกข้อมูลไม่สำเร็จ"}`);
+          } else {
+            successCount += 1;
           }
-          failedReasons.push(`บรรทัด ${row.rowNo}: ${serverMessage}`);
+        } catch (err) {
+          console.error("Bulk insert failed:", err);
+          failedReasons.push(
+            `บรรทัด ${row.rowNo}: ${err.message || "เชื่อมต่อ Supabase ไม่สำเร็จ"}`
+          );
         }
-      } catch (err) {
-        console.error("Bulk insert failed:", err);
-        failedReasons.push(`บรรทัด ${row.rowNo}: ${err.message || "เชื่อมต่อ server ไม่สำเร็จ"}`);
       }
-    }
 
-    await fetchWordsQuery();
+      await fetchWordsQuery();
 
-    if (failedReasons.length > 0) {
-      alert(
-        `อัปโหลดเสร็จ: เพิ่มสำเร็จ ${successCount} รายการ\nไม่สำเร็จ ${failedReasons.length} รายการ\n\nสาเหตุ:\n- ${failedReasons.join(
-          "\n- "
-        )}`
-      );
-    } else {
-      alert(`อัปโหลดเสร็จ: เพิ่มสำเร็จ ${successCount} รายการ`);
+      if (failedReasons.length > 0) {
+        alert(
+          `อัปโหลดเสร็จ: เพิ่มสำเร็จ ${successCount} รายการ\nไม่สำเร็จ ${failedReasons.length} รายการ\n\nสาเหตุ:\n- ${failedReasons.join(
+            "\n- "
+          )}`
+        );
+      } else {
+        alert(`อัปโหลดเสร็จ: เพิ่มสำเร็จ ${successCount} รายการ`);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`เกิดข้อผิดพลาดในการอ่านไฟล์ข้อความ: ${error.message || "unknown error"}`);
+    } finally {
+      setBulkUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  } catch (error) {
-    console.error(error);
-    alert(`เกิดข้อผิดพลาดในการอ่านไฟล์ข้อความ: ${error.message || "unknown error"}`);
-  } finally {
-    setBulkUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
   };
 
   const handleEditClick = (row) => {
@@ -444,16 +448,28 @@ const handleTextFileUpload = async (e) => {
     if (!window.confirm(`แน่ใจนะว่าจะลบ "${label}" ?`)) return;
 
     try {
-      const res = await fetch(`${API_URL}/dict/${row.id}`, { method: "DELETE" });
-      if (res.ok) fetchWordsQuery();
-      else alert("ลบไม่สำเร็จ");
+      const { data, error } = await supabase.rpc("delete_dictionary_word", {
+        p_id: row.id,
+      });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        alert("ลบไม่สำเร็จ");
+        return;
+      }
+
+      await fetchWordsQuery();
     } catch (error) {
-      alert("เกิดข้อผิดพลาด");
+      alert(error.message || "เกิดข้อผิดพลาด");
       console.error(error);
     }
   };
 
-  const filteredWords = words.filter((w) => !filterType || w.type === filterType);
+  const filteredWords =
+    filterLength === "7"
+      ? words.filter((w) => (!filterType || w.type === filterType) && String(w.word || "").length >= 7)
+      : words.filter((w) => !filterType || w.type === filterType);
 
   return (
     <div>

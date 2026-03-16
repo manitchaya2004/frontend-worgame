@@ -21,7 +21,8 @@ import {
 import { MdMusicOff, MdFlag } from "react-icons/md";
 
 // --- Store & System ---
-import { useGameStore, getLetterDamage } from "../../store/useGameStore";
+import { useGameStore } from "../../store/useGameStore";
+import { DeckManager } from "../../utils/gameSystem";
 
 // --- Components ---
 import { InventorySlot } from "./features/downPanel/InventorySlot";
@@ -135,7 +136,6 @@ export default function GameApp() {
   const [pendingAction, setPendingAction] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // ✅ 1. ตั้งค่า Base URL สำหรับแผนที่ให้ตรงกับ STORAGE ใน Supabase
   const MAP_BASE_URL =
     "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
 
@@ -143,9 +143,6 @@ export default function GameApp() {
   const lastTimeRef = useRef(0);
   const constraintsRef = useRef(null);
 
-  // ✅ 2. ลบ Logic: Fetch Background Image เดิมออกทั้งหมด (ไม่ต้องใช้ blob แล้ว)
-
-  // --- Window Resizing --- (คงเดิม)
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 720;
   const [windowScale, setWindowScale] = useState(1);
@@ -168,7 +165,6 @@ export default function GameApp() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // --- Game Data & Logic --- (คงเดิม)
   const activeSelectedItems = useMemo(
     () => store.selectedLetters.filter((i) => i !== null),
     [store.selectedLetters],
@@ -187,17 +183,8 @@ export default function GameApp() {
     const playerPower = store.playerData?.power || 3;
     const excessLetters = wordLength - playerPower;
 
-    if (excessLetters > 0) {
-      const recoilPercent = excessLetters * 0.1;
-      recoilDmg = Math.max(
-        1,
-        Math.floor(
-          (store.playerData?.max_hp || 0) * Math.min(recoilPercent, 1),
-        ),
-      );
-    }
     activeSelectedItems.forEach((item) => {
-      const base = getLetterDamage(item.char);
+      const base = DeckManager.getLetterDamage(item.char);
       strikeTotal += item.buff === "double-dmg" ? base * 2 : base;
       guardTotal +=
         item.buff === "double-guard" || item.buff === "double-shield"
@@ -205,6 +192,12 @@ export default function GameApp() {
           : base;
       if (item.buff === "heal") healTotal += Math.ceil(base);
     });
+
+    // 🌟 FIX: อัปเดต Recoil Damage ใน Prediction ให้คำนวณเป็น 50% ของดาเมจโจมตี
+    if (excessLetters > 0) {
+      recoilDmg = Math.max(1, Math.floor(strikeTotal * 0.5));
+    }
+
     return {
       strike: { min: Math.floor(strikeTotal), max: Math.ceil(strikeTotal) },
       guard: { min: Math.floor(guardTotal), max: Math.ceil(guardTotal) },
@@ -235,7 +228,7 @@ export default function GameApp() {
       const alive = store.enemies.filter((e) => e.hp > 0);
       if (type === "Guard") executeAction("Guard", null);
       else {
-        if (alive.length === 1) executeAction("Strike", alive[0].id);
+        if (alive.length === 1) executeAction(type, alive[0].id);
         else setShowTargetPicker(true);
       }
     },
@@ -285,6 +278,42 @@ export default function GameApp() {
     }
   }, [appStatus, animate]);
 
+  useEffect(() => {
+    if (store.gameState === "GAME_CLEARED") {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      bgm.stop();
+      navigate("/summary", {
+        state: {
+          result: "WIN",
+          earnedCoins: store.receivedCoin,
+          stageCoins: store.stageData?.money_reward || 0,
+          wordLog: store.wordLog,
+          stageId: store.stageData?.id,
+          hasMaxSlotUpgrade: store.stageData?.is_upgrade_potionn
+        },
+      });
+      setTimeout(() => {
+        store.reset();
+        store.resetSelection();
+      }, 100);
+    } else if (store.gameState === "OVER") {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      bgm.stop();
+      const halfCoins = Math.floor((store.receivedCoin || 0) / 2);
+      navigate("/summary", {
+        state: {
+          result: "LOSE",
+          earnedCoins: halfCoins,
+          wordLog: store.wordLog,
+        },
+      });
+      setTimeout(() => {
+        store.reset();
+        store.resetSelection();
+      }, 100);
+    }
+  }, [store.gameState, navigate, store.receivedCoin, store.stageData, store.wordLog]);
+
   const handleExit = useCallback(async () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     bgm.stop();
@@ -328,7 +357,6 @@ export default function GameApp() {
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
-  // ✅ 3. คำนวณพื้นหลัง URL (ส่ง null ถ้ายังไม่พร้อม)
   const backgroundUrl = selectedStage
     ? `${MAP_BASE_URL}${selectedStage}.png`
     : null;
@@ -365,7 +393,6 @@ export default function GameApp() {
             boxShadow: "0 0 20px rgba(0,0,0,0.8)",
           }}
         >
-          {/* HUD Left & Right */}
           <div
             style={{
               position: "absolute",
@@ -471,7 +498,6 @@ export default function GameApp() {
             </TopHudTooltipWrapper>
           </div>
 
-          {/* Battle Area */}
           <div
             style={{
               flex: 1,
@@ -479,7 +505,6 @@ export default function GameApp() {
               overflow: "hidden",
               borderBottom: "4px solid #0f0a08",
               width: "100%",
-              // ✅ 4. ใช้ backgroundUrl ที่เตรียมไว้ และจะดึงจาก Cache ทันที
               backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : "none",
               backgroundRepeat: "repeat-x",
               backgroundSize: "auto 100%",
@@ -529,7 +554,6 @@ export default function GameApp() {
               <MeaningPopup entries={store.validWordInfo?.entries} />
             )}
 
-            {/* Prediction HUDs */}
             <AnimatePresence>
               {store.validWordInfo &&
                 (prediction.guard.max > 0 || prediction.heal > 0) && (
@@ -601,7 +625,6 @@ export default function GameApp() {
             </AnimatePresence>
           </div>
 
-          {/* Bottom Panel */}
           <div
             style={{
               flex: 1,
@@ -648,12 +671,17 @@ export default function GameApp() {
                     height: "100%",
                   }}
                 >
-                  <PlayerStatusCard onHeal={store.usePotion} />
+                  <PlayerStatusCard 
+                    onHeal={() => store.usePotion("health")}
+                    onCure={() => store.usePotion("cure")}
+                    onReroll={() => store.usePotion("reroll")}
+                  />
                   <InventorySlot />
                   <ActionControls
                     store={store}
                     onAttackClick={() => handleActionClick("Strike")}
                     onShieldClick={() => handleActionClick("Guard")}
+                    onSkillClick={() => handleActionClick("Skill")}
                     onEndTurnClick={store.passTurn}
                   />
                 </div>
@@ -674,7 +702,6 @@ export default function GameApp() {
   );
 }
 
-// PredictionBadge และอื่นๆ (คงเดิม)
 const PredictionBadge = memo(
   ({ type, value, color, side, isWarning = false }) => {
     const displayValue =

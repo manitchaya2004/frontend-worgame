@@ -1,45 +1,308 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { API_URL } from "../config";
+import { supabase } from "../../../service/supabaseClient";
+import { AnimatePresence, motion } from "framer-motion";
+
+const STAGE_BUCKET = "asset";
+const MAP_FOLDER = "img_map";
+
+const getMapPublicUrl = (id) => {
+  const { data } = supabase.storage
+    .from(STAGE_BUCKET)
+    .getPublicUrl(`${MAP_FOLDER}/${id}.png`);
+  return data?.publicUrl || "";
+};
+
+const emptyStageForm = {
+  id: "",
+  orderNo: "",
+  name: "",
+  description: "",
+  money_reward: "",
+  distant_goal: "",
+};
+
+const StageFormFields = ({
+  formData,
+  handleChange,
+  isEditing,
+  mapFile,
+  setMapFile,
+}) => {
+  return (
+    <>
+      <div className="flex-row flex-wrap">
+        <div
+          className="form-field flex-2 minw-220"
+          data-tooltip="รหัสอ้างอิงของด่าน (ใช้เป็นชื่อไฟล์แผนที่ด้วย)"
+        >
+          <label className="form-label required">Stage ID</label>
+          <input
+            className="input-field"
+            name="id"
+            placeholder="e.g. green-grass-1"
+            value={formData.id}
+            onChange={handleChange}
+            required
+            disabled={isEditing}
+          />
+          <span className="form-hint">
+            ใช้เป็นชื่อไฟล์ map ด้วย → จะเซฟเป็น img_map/{"{id}"}.png
+          </span>
+        </div>
+
+        <div
+          className="form-field flex-1 minw-140"
+          data-tooltip="ลำดับของด่านที่จะแสดงในเกม (ตัวเลข)"
+        >
+          <label className="form-label required">OrderNo</label>
+          <input
+            className="input-field"
+            type="number"
+            name="orderNo"
+            placeholder="1"
+            value={formData.orderNo}
+            onChange={handleChange}
+            required
+          />
+          <span className="form-hint">ลำดับด่านที่แสดงในเกม</span>
+        </div>
+      </div>
+
+      <div
+        className="form-field full"
+        data-tooltip="ชื่อด่านที่จะแสดงให้ผู้เล่นเห็น"
+      >
+        <label className="form-label required">Stage Name</label>
+        <input
+          className="input-field"
+          name="name"
+          placeholder="Name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        <span className="form-hint">ชื่อที่แสดงในหน้าเลือกด่าน</span>
+      </div>
+
+      <div
+        className="form-field full"
+        data-tooltip="คำอธิบายหรือเนื้อเรื่องย่อของด่าน"
+      >
+        <label className="form-label">Description</label>
+        <input
+          className="input-field"
+          name="description"
+          placeholder="optional"
+          value={formData.description}
+          onChange={handleChange}
+        />
+        <span className="form-hint">คำอธิบายสั้น ๆ (ไม่ใส่ได้)</span>
+      </div>
+
+      <div className="flex-row flex-wrap">
+        <div
+          className="form-field flex-1 minw-200"
+          data-tooltip="จำนวนเงินรางวัลที่จะได้รับเมื่อผ่านด่านนี้"
+        >
+          <label className="form-label">money_reward</label>
+          <input
+            className="input-field"
+            type="number"
+            name="money_reward"
+            placeholder="optional"
+            value={formData.money_reward}
+            onChange={handleChange}
+          />
+          <span className="form-hint">เงินรางวัลหลังผ่านด่าน</span>
+        </div>
+
+        <div
+          className="form-field flex-1 minw-200"
+          data-tooltip="ระยะทางที่ผู้เล่นต้องไปให้ถึงเพื่อผ่านด่านนี้"
+        >
+          <label className="form-label">distant_goal</label>
+          <input
+            className="input-field"
+            type="number"
+            name="distant_goal"
+            placeholder="optional"
+            value={formData.distant_goal}
+            onChange={handleChange}
+          />
+          <span className="form-hint">ระยะเป้าหมาย/เงื่อนไขชนะ (ถ้ามี)</span>
+        </div>
+      </div>
+
+      <div
+        className="form-field full mt-10"
+        data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)"
+      >
+        <label className="form-label">Map Image (PNG)</label>
+
+        {mapFile && (
+          <div style={{ marginBottom: "10px" }}>
+            <img
+              src={URL.createObjectURL(mapFile)}
+              alt="Map Preview"
+              style={{
+                maxWidth: "200px",
+                maxHeight: "150px",
+                objectFit: "contain",
+                border: "1px solid #444",
+                borderRadius: "4px",
+                background: "rgba(0,0,0,0.5)",
+              }}
+            />
+          </div>
+        )}
+
+        <input
+          type="file"
+          accept="image/png"
+          onChange={(e) => setMapFile(e.target.files?.[0] || null)}
+        />
+        <span className="form-hint">
+          อัปโหลดได้เฉพาะ PNG • ไม่เลือกไฟล์ = ไม่อัปโหลด • ถ้า Edit แล้วเลือกไฟล์ใหม่จะอัปโหลดทับ
+        </span>
+      </div>
+    </>
+  );
+};
+
+const EditStageModal = ({
+  open,
+  formData,
+  handleChange,
+  mapFile,
+  setMapFile,
+  handleSubmit,
+  handleClose,
+}) => {
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, handleClose]);
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.65)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ duration: 0.18 }}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "min(980px, 96vw)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+            borderRadius: 16,
+            background: "linear-gradient(180deg, #161915 0%, #10130f 100%)",
+            border: "1px solid rgba(34,197,94,0.28)",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            padding: 22,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 14,
+              position: "sticky",
+              top: -22,
+              background: "linear-gradient(180deg, #161915 0%, #161915 100%)",
+              padding: "8px 0 12px",
+              zIndex: 2,
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, color: "#fff", fontSize: 24 }}>Edit Stage</h3>
+              <div style={{ color: "#68d391", marginTop: 4, fontSize: 13 }}>
+                Editing: {formData.id || "-"}
+              </div>
+            </div>
+          </div>
+
+          <form className="form-box stage-mode" onSubmit={handleSubmit} style={{ margin: 0 }}>
+            <StageFormFields
+              formData={formData}
+              handleChange={handleChange}
+              isEditing={true}
+              mapFile={mapFile}
+              setMapFile={setMapFile}
+            />
+
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 20,
+              }}
+            >
+              <button type="button" className="btn btn-cancel" onClick={handleClose}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-edit">
+                UPDATE STAGE
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
 
 const StagePanel = () => {
   const [stages, setStages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
 
-  // Spawn panel state
   const [selectedStageId, setSelectedStageId] = useState("");
   const [showSpawn, setShowSpawn] = useState(false);
 
-  // ✅ Map file (png)
-  const [mapFile, setMapFile] = useState(null);
+  const [createMapFile, setCreateMapFile] = useState(null);
+  const [createForm, setCreateForm] = useState(emptyStageForm);
 
-  // Stage form state
-  const [formData, setFormData] = useState({
-    id: "",
-    orderNo: "",
-    name: "",
-    description: "",
-    money_reward: "",
-    distant_goal: "",
-  });
-
-  // 🌟 Helper function สำหรับต่อท้าย URL เพื่อ Bypass ngrok
-  const withBypass = (url) => {
-    const connector = url.includes("?") ? "&" : "?";
-    return `${url}${connector}ngrok-skip-browser-warning=69420`;
-  };
+  const [editOpen, setEditOpen] = useState(false);
+  const [editMapFile, setEditMapFile] = useState(null);
+  const [editForm, setEditForm] = useState(emptyStageForm);
 
   const fetchStages = useCallback(async () => {
     setLoading(true);
     try {
-      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
-      const res = await fetch(withBypass(`/api/getAllStage`));
-      if (!res.ok) throw new Error("Failed to fetch stages");
-      const data = await res.json();
-      setStages(data);
+      const { data, error } = await supabase.rpc("get_stages");
+      if (error) throw error;
+      setStages(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error(e);
-      alert("Fetch stages failed");
+      console.error("fetchStages error:", e);
+      alert(`Fetch stages failed: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -49,20 +312,21 @@ const StagePanel = () => {
     fetchStages();
   }, [fetchStages]);
 
-  const handleChange = (e) =>
-    setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
+  const handleCreateChange = (e) =>
+    setCreateForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const resetForm = () => {
-    setIsEditing(false);
-    setFormData({
-      id: "",
-      orderNo: "",
-      name: "",
-      description: "",
-      money_reward: "",
-      distant_goal: "",
-    });
-    setMapFile(null);
+  const handleEditChange = (e) =>
+    setEditForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
+  const resetCreateForm = () => {
+    setCreateForm(emptyStageForm);
+    setCreateMapFile(null);
+  };
+
+  const resetEditForm = () => {
+    setEditForm(emptyStageForm);
+    setEditMapFile(null);
+    setEditOpen(false);
   };
 
   const closeSpawn = () => {
@@ -70,79 +334,100 @@ const StagePanel = () => {
     setShowSpawn(false);
   };
 
-  // ✅ upload map (optional)
-  const uploadMap = async (stageId) => {
+  const uploadMap = async (stageId, mapFile) => {
     if (!mapFile) return;
 
-    const fd = new FormData();
-    fd.append("map", mapFile);
+    const ext = mapFile.name?.split(".").pop()?.toLowerCase();
+    if (ext !== "png") {
+      throw new Error("อัปโหลดได้เฉพาะไฟล์ PNG");
+    }
 
-    // 🌟 แก้ไข: เพิ่ม Parameter Bypass
-    const up = await fetch(withBypass(`/api/stage/${stageId}/map`), {
-      method: "POST",
-      body: fd,
-    });
+    const { error } = await supabase.storage
+      .from(STAGE_BUCKET)
+      .upload(`${MAP_FOLDER}/${stageId}.png`, mapFile, {
+        upsert: true,
+        contentType: mapFile.type || "image/png",
+      });
 
-    if (!up.ok) {
-      const err = await up.json().catch(() => ({}));
-      throw new Error(err.message || "map upload failed");
+    if (error) {
+      throw new Error(error.message || "map upload failed");
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.id?.trim()) return alert("Stage ID is required");
-    if (formData.orderNo === "" || formData.orderNo == null)
+    if (!createForm.id?.trim()) return alert("Stage ID is required");
+    if (createForm.orderNo === "" || createForm.orderNo == null) {
       return alert("OrderNo is required");
+    }
 
     const payload = {
-      id: formData.id.trim(),
-      orderNo: Number(formData.orderNo),
-      name: formData.name,
-      description: formData.description || null,
-      money_reward:
-        formData.money_reward === "" ? null : Number(formData.money_reward),
-      distant_goal:
-        formData.distant_goal === "" ? null : Number(formData.distant_goal),
+      p_id: createForm.id.trim(),
+      p_orderno: Number(createForm.orderNo),
+      p_name: createForm.name,
+      p_description: createForm.description || null,
+      p_money_reward:
+        createForm.money_reward === "" ? null : Number(createForm.money_reward),
+      p_distant_goal:
+        createForm.distant_goal === "" ? null : Number(createForm.distant_goal),
     };
 
     try {
-      let url = `/api/stage`;
-      let method = "POST";
-      if (isEditing) {
-        url = `/api/stage/${formData.id}`;
-        method = "PUT";
+      const { error } = await supabase.rpc("create_stage", payload);
+      if (error) throw error;
+
+      if (createMapFile) {
+        await uploadMap(createForm.id.trim(), createMapFile);
       }
 
-      // 🌟 แก้ไข: เพิ่ม Parameter Bypass ใน URL
-      const res = await fetch(withBypass(url), {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Save stage failed");
-      }
-
-      if (mapFile) {
-        await uploadMap(formData.id.trim());
-      }
-
-      alert(isEditing ? "Stage Updated!" : "Stage Created!");
-      resetForm();
+      alert("Stage Created!");
+      resetCreateForm();
       fetchStages();
     } catch (err) {
-      console.error(err);
+      console.error("handleCreateSubmit error:", err);
       alert(`Error: ${err.message}`);
     }
   };
 
-  const handleEdit = (s) => {
-    setIsEditing(true);
-    setFormData({
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!editForm.id?.trim()) return alert("Stage ID is required");
+    if (editForm.orderNo === "" || editForm.orderNo == null) {
+      return alert("OrderNo is required");
+    }
+
+    const payload = {
+      p_id: editForm.id.trim(),
+      p_orderno: Number(editForm.orderNo),
+      p_name: editForm.name,
+      p_description: editForm.description || null,
+      p_money_reward:
+        editForm.money_reward === "" ? null : Number(editForm.money_reward),
+      p_distant_goal:
+        editForm.distant_goal === "" ? null : Number(editForm.distant_goal),
+    };
+
+    try {
+      const { error } = await supabase.rpc("update_stage", payload);
+      if (error) throw error;
+
+      if (editMapFile) {
+        await uploadMap(editForm.id.trim(), editMapFile);
+      }
+
+      alert("Stage Updated!");
+      resetEditForm();
+      fetchStages();
+    } catch (err) {
+      console.error("handleEditSubmit error:", err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const openEditModal = (s) => {
+    setEditForm({
       id: s.id,
       orderNo: s.orderNo ?? "",
       name: s.name ?? "",
@@ -150,20 +435,25 @@ const StagePanel = () => {
       money_reward: s.money_reward ?? "",
       distant_goal: s.distant_goal ?? "",
     });
-    setMapFile(null);
-    document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
+    setEditMapFile(null);
+    setEditOpen(true);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(`Delete Stage: ${id} ?\n(จะลบ spawn ในด่านนี้ด้วย)`))
+    if (!window.confirm(`Delete Stage: ${id} ?\n(จะลบ spawn ในด่านนี้ด้วย)`)) {
       return;
+    }
 
     try {
-      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
-      const res = await fetch(withBypass(`/api/stage/${id}`), { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Delete stage failed");
+      const { error } = await supabase.rpc("delete_stage", { p_id: id });
+      if (error) throw error;
+
+      const { error: mapError } = await supabase.storage
+        .from(STAGE_BUCKET)
+        .remove([`${MAP_FOLDER}/${id}.png`]);
+
+      if (mapError) {
+        console.warn("delete map warning:", mapError.message);
       }
 
       if (selectedStageId === id) {
@@ -173,7 +463,7 @@ const StagePanel = () => {
       alert("Stage Deleted!");
       fetchStages();
     } catch (err) {
-      console.error(err);
+      console.error("handleDelete error:", err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -194,213 +484,61 @@ const StagePanel = () => {
     }, 80);
   };
 
-  // 🌟 แก้ไข MapThumb: โหลดผ่าน Fetch เพื่อเลี่ยง ngrok warning
   const MapThumb = ({ id }) => {
-    const url = `/api/img_map/${id}.png`;
-    const [displayUrl, setDisplayUrl] = useState("");
+    const url = getMapPublicUrl(id);
     const [hide, setHide] = useState(false);
     const cache = useRef({});
 
-    useEffect(() => {
-      if (cache.current[url]) {
-        setDisplayUrl(cache.current[url]);
-        return;
-      }
-      let isMounted = true;
-      const fetchThumb = async () => {
-        try {
-          const res = await fetch(withBypass(url));
-          if (!res.ok) throw new Error();
-          const blob = await res.blob();
-          const bUrl = URL.createObjectURL(blob);
-          if (isMounted) {
-            cache.current[url] = bUrl;
-            setDisplayUrl(bUrl);
-          }
-        } catch (e) {
-          if (isMounted) setHide(true);
-        }
-      };
-      fetchThumb();
-      return () => { isMounted = false; };
-    }, [url]);
+    if (cache.current[id] == null) {
+      cache.current[id] = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+    }
 
-    if (hide) return <span className="no-sprite">No Map</span>;
+    if (hide || !url) return <span className="no-sprite">No Map</span>;
+
     return (
       <img
         className="map-thumb"
-        src={displayUrl}
+        src={cache.current[id]}
         alt={`${id} map`}
+        onError={() => setHide(true)}
       />
     );
   };
 
-  const sortedStages = [...stages].sort((a, b) => a.orderNo - b.orderNo);
+  const sortedStages = [...stages].sort(
+    (a, b) => Number(a.orderNo ?? 0) - Number(b.orderNo ?? 0)
+  );
 
   return (
     <div className="admin-container">
-      <form className="form-box stage-mode" onSubmit={handleSubmit}>
-        <h3 className="form-title stage">
-          {isEditing ? `EDITING STAGE: ${formData.id}` : "NEW STAGE"}
-        </h3>
+      <form className="form-box stage-mode" onSubmit={handleCreateSubmit}>
+        <h3 className="form-title stage">NEW STAGE</h3>
 
-        <div className="flex-row flex-wrap">
-          <div
-            className="form-field flex-2 minw-220"
-            data-tooltip="รหัสอ้างอิงของด่าน (ใช้เป็นชื่อไฟล์แผนที่ด้วย)"
-          >
-            <label className="form-label required">Stage ID</label>
-            <input
-              className="input-field"
-              name="id"
-              placeholder="e.g. green-grass-1"
-              value={formData.id}
-              onChange={handleChange}
-              required
-              disabled={isEditing}
-            />
-            <span className="form-hint">
-              ใช้เป็นชื่อไฟล์ map ด้วย → จะเซฟเป็น img_map/{"{id}"}.png
-            </span>
-          </div>
-
-          <div
-            className="form-field flex-1 minw-140"
-            data-tooltip="ลำดับของด่านที่จะแสดงในเกม (ตัวเลข)"
-          >
-            <label className="form-label required">OrderNo</label>
-            <input
-              className="input-field"
-              type="number"
-              name="orderNo"
-              placeholder="1"
-              value={formData.orderNo}
-              onChange={handleChange}
-              required
-            />
-            <span className="form-hint">ลำดับด่านที่แสดงในเกม</span>
-          </div>
-        </div>
-
-        <div
-          className="form-field full"
-          data-tooltip="ชื่อด่านที่จะแสดงให้ผู้เล่นเห็น"
-        >
-          <label className="form-label required">Stage Name</label>
-          <input
-            className="input-field"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <span className="form-hint">ชื่อที่แสดงในหน้าเลือกด่าน</span>
-        </div>
-
-        <div
-          className="form-field full"
-          data-tooltip="คำอธิบายหรือเนื้อเรื่องย่อของด่าน"
-        >
-          <label className="form-label">Description</label>
-          <input
-            className="input-field"
-            name="description"
-            placeholder="optional"
-            value={formData.description}
-            onChange={handleChange}
-          />
-          <span className="form-hint">คำอธิบายสั้น ๆ (ไม่ใส่ได้)</span>
-        </div>
-
-        <div className="flex-row flex-wrap">
-          <div
-            className="form-field flex-1 minw-200"
-            data-tooltip="จำนวนเงินรางวัลที่จะได้รับเมื่อผ่านด่านนี้"
-          >
-            <label className="form-label">money_reward</label>
-            <input
-              className="input-field"
-              type="number"
-              name="money_reward"
-              placeholder="optional"
-              value={formData.money_reward}
-              onChange={handleChange}
-            />
-            <span className="form-hint">เงินรางวัลหลังผ่านด่าน</span>
-          </div>
-
-          <div
-            className="form-field flex-1 minw-200"
-            data-tooltip="ระยะทางที่ผู้เล่นต้องไปให้ถึงเพื่อผ่านด่านนี้"
-          >
-            <label className="form-label">distant_goal</label>
-            <input
-              className="input-field"
-              type="number"
-              name="distant_goal"
-              placeholder="optional"
-              value={formData.distant_goal}
-              onChange={handleChange}
-            />
-            <span className="form-hint">ระยะเป้าหมาย/เงื่อนไขชนะ (ถ้ามี)</span>
-          </div>
-        </div>
-
-        <div
-          className="form-field full mt-10"
-          data-tooltip="อัปโหลดรูปภาพแผนที่ของด่าน (รองรับเฉพาะไฟล์ PNG)"
-        >
-          <label className="form-label">Map Image (PNG)</label>
-
-          {mapFile && (
-            <div style={{ marginBottom: "10px" }}>
-              <img
-                src={URL.createObjectURL(mapFile)}
-                alt="Map Preview"
-                style={{
-                  maxWidth: "200px",
-                  maxHeight: "150px",
-                  objectFit: "contain",
-                  border: "1px solid #444",
-                  borderRadius: "4px",
-                  background: "rgba(0,0,0,0.5)",
-                }}
-              />
-            </div>
-          )}
-
-          <input
-            type="file"
-            accept="image/png"
-            onChange={(e) => setMapFile(e.target.files?.[0] || null)}
-          />
-          <span className="form-hint">
-            อัปโหลดได้เฉพาะ PNG • ไม่เลือกไฟล์ = ไม่อัปโหลด • ถ้า Edit
-            แล้วเลือกไฟล์ใหม่จะอัปโหลดทับ
-          </span>
-        </div>
+        <StageFormFields
+          formData={createForm}
+          handleChange={handleCreateChange}
+          isEditing={false}
+          mapFile={createMapFile}
+          setMapFile={setCreateMapFile}
+        />
 
         <div className="flex-row justify-center mt-20">
           <button
             type="submit"
-            className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
+            className="btn btn-add"
             style={{ flex: 1 }}
-            data-tooltip={isEditing ? "บันทึกการแก้ไขด่าน" : "สร้างด่านใหม่"}
+            data-tooltip="สร้างด่านใหม่"
           >
-            {isEditing ? "UPDATE STAGE" : "CREATE STAGE"}
+            CREATE STAGE
           </button>
 
-          {isEditing && (
-            <button
-              type="button"
-              className="btn btn-cancel"
-              onClick={resetForm}
-              data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม"
-            >
-              CANCEL
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={resetCreateForm}
+          >
+            RESET
+          </button>
         </div>
       </form>
 
@@ -444,7 +582,7 @@ const StagePanel = () => {
                         <button
                           type="button"
                           className="btn btn-edit"
-                          onClick={() => handleEdit(s)}
+                          onClick={() => openEditModal(s)}
                           data-tooltip="แก้ไขข้อมูลด่านนี้"
                         >
                           Edit
@@ -465,9 +603,7 @@ const StagePanel = () => {
                           onClick={() => openSpawn(s.id)}
                           data-tooltip="จัดการจุดเกิดมอนสเตอร์ (Spawns) ในด่านนี้"
                         >
-                          {showSpawn && selectedStageId === s.id
-                            ? "Close"
-                            : "Spawns"}
+                          {showSpawn && selectedStageId === s.id ? "Close" : "Spawns"}
                         </button>
                       </div>
                     </td>
@@ -497,6 +633,16 @@ const StagePanel = () => {
           </table>
         )}
       </div>
+
+      <EditStageModal
+        open={editOpen}
+        formData={editForm}
+        handleChange={handleEditChange}
+        mapFile={editMapFile}
+        setMapFile={setEditMapFile}
+        handleSubmit={handleEditSubmit}
+        handleClose={resetEditForm}
+      />
     </div>
   );
 };
@@ -514,40 +660,39 @@ const SpawnPanel = ({ stageId, onClose }) => {
     distant_spawn: "",
   });
 
-  const withBypass = (url) => {
-    const connector = url.includes("?") ? "&" : "?";
-    return `${url}${connector}ngrok-skip-browser-warning=69420`;
-  };
-
   const fetchMonsters = useCallback(async () => {
     try {
-      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
-      const res = await fetch(withBypass(`/api/monster`));
-      if (!res.ok) throw new Error("Failed to fetch monsters");
-      const data = await res.json();
-      setMonsters(data);
-      if (!formData.monster_id && data?.[0]?.id) {
-        setFormData((p) => ({ ...p, monster_id: data[0].id }));
+      const { data, error } = await supabase
+        .from("monster")
+        .select("id, name, no")
+        .order("no", { ascending: true });
+
+      if (error) throw error;
+
+      const list = Array.isArray(data) ? data : [];
+      setMonsters(list);
+
+      if (!formData.monster_id && list?.[0]?.id) {
+        setFormData((p) => ({ ...p, monster_id: list[0].id }));
       }
     } catch (e) {
-      console.error(e);
-      alert("Fetch monsters failed");
+      console.error("fetchMonsters error:", e);
+      alert(`Fetch monsters failed: ${e.message}`);
     }
   }, [formData.monster_id]);
 
   const fetchSpawns = useCallback(async () => {
     setLoading(true);
     try {
-      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
-      const res = await fetch(
-        withBypass(`/api/spawn?stage_id=${encodeURIComponent(stageId)}`)
-      );
-      if (!res.ok) throw new Error("Failed to fetch spawns");
-      const data = await res.json();
-      setSpawns(data);
+      const { data, error } = await supabase.rpc("get_stage_spawns", {
+        p_stage_id: stageId,
+      });
+
+      if (error) throw error;
+      setSpawns(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error(e);
-      alert("Fetch spawns failed");
+      console.error("fetchSpawns error:", e);
+      alert(`Fetch spawns failed: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -576,38 +721,28 @@ const SpawnPanel = ({ stageId, onClose }) => {
     if (!formData.monster_id) return alert("กรุณาเลือก monster");
     if (formData.distant_spawn === "") return alert("กรุณาใส่ distant_spawn");
 
-    const payload = {
-      stage_id: stageId,
-      monster_id: formData.monster_id,
-      level: formData.level,
-      distant_spawn: Number(formData.distant_spawn),
-    };
-
     try {
-      let url = `/api/spawn`;
-      let method = "POST";
-      if (isEditing) {
-        url = `/api/spawn/${formData.id}`;
-        method = "PUT";
-      }
+      const { error } = isEditing
+        ? await supabase.rpc("update_spawn", {
+            p_id: formData.id,
+            p_monster_id: formData.monster_id,
+            p_level: formData.level,
+            p_distant_spawn: Number(formData.distant_spawn),
+          })
+        : await supabase.rpc("create_spawn", {
+            p_stage_id: stageId,
+            p_monster_id: formData.monster_id,
+            p_level: formData.level,
+            p_distant_spawn: Number(formData.distant_spawn),
+          });
 
-      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
-      const res = await fetch(withBypass(url), {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Save spawn failed");
-      }
+      if (error) throw error;
 
       alert(isEditing ? "Spawn Updated!" : "Spawn Created!");
       resetForm();
       fetchSpawns();
     } catch (err) {
-      console.error(err);
+      console.error("handleSubmit spawn error:", err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -628,15 +763,11 @@ const SpawnPanel = ({ stageId, onClose }) => {
   const handleDelete = async (id) => {
     if (!window.confirm(`Delete Spawn ID: ${id}?`)) return;
     try {
-      // 🌟 แก้ไข: เพิ่ม Parameter Bypass
-      const res = await fetch(withBypass(`/api/spawn/${id}`), { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Delete spawn failed");
-      }
+      const { error } = await supabase.rpc("delete_spawn", { p_id: id });
+      if (error) throw error;
       fetchSpawns();
     } catch (err) {
-      console.error(err);
+      console.error("handleDelete spawn error:", err);
       alert(`Error: ${err.message}`);
     }
   };

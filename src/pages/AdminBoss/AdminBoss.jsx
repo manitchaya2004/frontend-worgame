@@ -26,7 +26,7 @@ const AdminBoss = () => {
   };
 
   const handleGoGamePage = () => {
-    navigate("/ ");
+    navigate("/battle");
   };
 
   return (

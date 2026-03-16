@@ -1,7 +1,5 @@
-// src/pages/AdminPage/panels/PlayerPanel.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { API_URL } from "../config";
+import { supabase } from "../../../service/supabaseClient";
 
 export default function PlayerPanel() {
   const [players, setPlayers] = useState([]);
@@ -16,15 +14,21 @@ export default function PlayerPanel() {
     setMsg({ type: "", text: "" });
 
     try {
-      const res = await axios.get(`${API_URL}/getplayer`);
-      if (res.data?.isSuccess) {
-        setPlayers(res.data.data || []);
-        setEditedRoles({});
-      } else {
-        setMsg({ type: "error", text: res.data?.message || "โหลดข้อมูลไม่สำเร็จ" });
-      }
+      const { data, error } = await supabase
+        .from("player")
+        .select("username, email, role, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setPlayers(Array.isArray(data) ? data : []);
+      setEditedRoles({});
     } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.message || err.message });
+      console.error("fetchPlayers error:", err);
+      setMsg({
+        type: "error",
+        text: err.message || "โหลดข้อมูลไม่สำเร็จ",
+      });
     } finally {
       setLoading(false);
     }
@@ -37,6 +41,7 @@ export default function PlayerPanel() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return players;
+
     return players.filter((p) => {
       return (
         (p.username || "").toLowerCase().includes(q) ||
@@ -64,35 +69,39 @@ export default function PlayerPanel() {
     setMsg({ type: "", text: "" });
 
     try {
-      const res = await axios.patch(`${API_URL}/player-role`, {
-        username,
-        role: newRole,
+      const { data, error } = await supabase
+        .from("player")
+        .update({ role: newRole })
+        .eq("username", username)
+        .select("username, email, role, created_at")
+        .single();
+
+      if (error) throw error;
+
+      const updatedRole = data?.role ?? newRole;
+
+      setPlayers((prev) =>
+        prev.map((x) =>
+          x.username === username ? { ...x, role: updatedRole } : x
+        )
+      );
+
+      setEditedRoles((prev) => {
+        const copy = { ...prev };
+        delete copy[username];
+        return copy;
       });
 
-      if (res.data?.isSuccess) {
-        const updatedRole = res.data?.data?.role ?? newRole;
-
-        setPlayers((prev) =>
-          prev.map((x) =>
-            x.username === username ? { ...x, role: updatedRole } : x
-          )
-        );
-
-        setEditedRoles((prev) => {
-          const copy = { ...prev };
-          delete copy[username];
-          return copy;
-        });
-
-        setMsg({
-          type: "success",
-          text: `อัปเดต role ของ ${username} เป็น ${updatedRole} แล้ว`,
-        });
-      } else {
-        setMsg({ type: "error", text: res.data?.message || "อัปเดตไม่สำเร็จ" });
-      }
+      setMsg({
+        type: "success",
+        text: `อัปเดต role ของ ${username} เป็น ${updatedRole} แล้ว`,
+      });
     } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.message || err.message });
+      console.error("saveRole error:", err);
+      setMsg({
+        type: "error",
+        text: err.message || "อัปเดตไม่สำเร็จ",
+      });
     } finally {
       setSavingUser(null);
     }
@@ -106,7 +115,6 @@ export default function PlayerPanel() {
 
   return (
     <div>
-      {/* TOOLBAR */}
       <div className="form-box player-toolbar">
         <div className="player-toolbar-left">
           <div
@@ -141,7 +149,6 @@ export default function PlayerPanel() {
         </div>
       </div>
 
-      {/* MESSAGE */}
       {msg.text ? (
         <div
           className={`alert ${msg.type || "info"}`}
@@ -152,7 +159,6 @@ export default function PlayerPanel() {
         </div>
       ) : null}
 
-      {/* TABLE */}
       <div className="table-wrapper">
         <table className="dict-table">
           <thead>

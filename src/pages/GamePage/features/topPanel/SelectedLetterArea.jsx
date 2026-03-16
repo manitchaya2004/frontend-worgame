@@ -2,7 +2,7 @@ import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint, FaBolt, FaCloud, FaPlus, FaCross } from "react-icons/fa";
 import { GiBroadsword, GiShield, GiWaterDrop, GiTrident, GiBowieKnife, GiFangs } from "react-icons/gi";
-import { getLetterDamage } from "../../../../store/useGameStore"; 
+import { DeckManager } from "../../../../utils/gameSystem";
 
 export const SelectedLetterArea = ({ store, constraintsRef }) => {
   const activeSelectedItems = store.selectedLetters.filter((i) => i !== null);
@@ -22,7 +22,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
             const duration = item?.statusDuration || 0;
             const buffType = item?.buff || null;
 
-            const displayDamage = getLetterDamage(item.char);
+            const displayDamage = DeckManager.getLetterDamage(item.char);
 
             const getBuffBadgeData = () => {
               if (isBlind || !buffType) return null;
