@@ -14,7 +14,10 @@ export const SelectComponent = ({ label, value, onChange, options }) => {
 
   return (
     <FormControl
-      sx={{ mb: 1, minWidth: { xs: 52, sm: 109, md: 121, lg: 170 } }}
+      sx={{
+        mb: 1,
+        minWidth: { xs: 52, sm: 109, md: 121, lg: 170 },
+      }}
       size="small"
     >
       <Select
@@ -49,6 +52,10 @@ export const SelectComponent = ({ label, value, onChange, options }) => {
           "& svg": {
             color: "#2b1d14",
           },
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            fontSize: 8,
+            height: 30,
+          },
         }}
         MenuProps={{
           PaperProps: {
@@ -58,6 +65,12 @@ export const SelectComponent = ({ label, value, onChange, options }) => {
               boxShadow: "3px 3px 0 #2b1d14",
 
               maxHeight: 200, // ⭐ คุมความสูง
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                 border: "1px solid #2b1d14",
+              boxShadow: "2px 2px 0 #2b1d14",
+
+              maxHeight: 150, // ⭐ คุมความสูง
+                },
             },
           },
         }}

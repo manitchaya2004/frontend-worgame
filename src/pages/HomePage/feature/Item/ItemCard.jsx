@@ -42,7 +42,7 @@ const ItemCard = ({
     <Box
       sx={{
         width: { xs: 200, sm: 250, xl: "100%" },
-        height: {  xs: "-webkit-fill-available" },
+        height: { xs: "-webkit-fill-available" },
         backgroundColor: "#2b1d14",
         border: `3px solid ${color}`,
         borderRadius: "12px",
@@ -54,6 +54,11 @@ const ItemCard = ({
         position: "relative",
         overflow: "hidden",
         // alignItems:'center'
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          height: "100%",
+          border: `2px solid ${color}`,
+          borderRadius: "8px",
+        },
       }}
     >
       {/* Background Effect */}
@@ -77,8 +82,11 @@ const ItemCard = ({
           alignItems: "center",
           gap: 2,
           flexDirection: "column",
-           height:'100%',
-          justifyContent:''
+          height: "100%",
+          justifyContent: "",
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            gap: 1,
+          },
         }}
       >
         <Box
@@ -87,7 +95,6 @@ const ItemCard = ({
             alignItems: "center",
             gap: 1,
             flexDirection: { xs: "column", sm: "row" },
-            
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -97,6 +104,9 @@ const ItemCard = ({
                 fontSize: { xs: 10, sm: 16, xl: 18 },
                 color: color,
                 textTransform: "uppercase",
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 10,
+                },
               }}
             >
               {label}
@@ -111,7 +121,7 @@ const ItemCard = ({
               slotProps={{
                 tooltip: {
                   sx: {
-                    fontSize: {sm:"12px",xl:"16px"},
+                    fontSize: { sm: "12px", xl: "16px" },
                     fontFamily: "'Verdana', sans-serif",
                     backgroundColor: "#2a160f",
                     border: `1px solid black`,
@@ -143,8 +153,12 @@ const ItemCard = ({
             justifyContent: "center",
             alignItems: "center",
             color: color,
-            "& svg": { fontSize: { xs: 50, sm: 100,xl:150 } },
-            
+            "& svg": { fontSize: { xs: 50, sm: 100, xl: 150 } },
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              width: 100,
+              height: "100%",
+              "& svg": { fontSize: 50 },
+            },
           }}
         >
           {icon}
@@ -162,6 +176,7 @@ const ItemCard = ({
           borderTop: "2px dashed #3e2723",
           flexDirection: { xs: "column", sm: "row" },
           gap: { xs: 1, sm: 0 },
+
         }}
       >
         <Typography
@@ -169,6 +184,9 @@ const ItemCard = ({
             fontFamily: "'Press Start 2P'",
             fontSize: { xs: 8, sm: 10 },
             color: "#fff",
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 7,
+            },
           }}
         >
           CARRY:
@@ -187,6 +205,10 @@ const ItemCard = ({
               borderRadius: "4px",
               padding: "4px",
               "&:disabled": { opacity: 0.3 },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                borderRadius: "2px",
+                padding: "2px",
+              },
             }}
           >
             <RemoveIcon fontSize="small" />
@@ -198,6 +220,9 @@ const ItemCard = ({
                 fontFamily: "'Press Start 2P'",
                 fontSize: 14,
                 color: count > 0 ? "#fff" : "#555",
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 8,
+                },
               }}
             >
               {count}
@@ -215,6 +240,10 @@ const ItemCard = ({
               color: "#fff",
               borderRadius: "4px",
               padding: "4px",
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                borderRadius: "2px",
+                padding: "2px",
+              },
             }}
           >
             <AddIcon fontSize="small" />

@@ -201,7 +201,6 @@ const InfoTab = ({ monster }) => {
       <Box
         sx={{
           mt: 1,
-
           // เพิ่มระยะห่างเฉพาะจอใหญ่
           "@media (min-width: 1800px)": {
             flex: 1,
@@ -219,11 +218,6 @@ const InfoTab = ({ monster }) => {
             justifyContent: "space-evenly", // ให้ห่างเท่าๆ กัน
             gap: 0,
           },
-          // "@media (min-width:1200px)": {
-          //   display: "flex",
-          //   flexDirection: "column",
-          //   gap:1
-          // },
         }}
       >
         <StatTextBox
@@ -348,7 +342,6 @@ const BuffTab = ({ monster }) => {
         "@media (orientation: landscape) and (max-height: 450px)": { m: 1 },
       }}
     >
-      {/* 💡 เปลี่ยนจาก Stack เป็น Grid เพื่อให้แสดง 2 คอลัมน์ */}
       <Box
         sx={{
           display: "flex",
@@ -435,9 +428,7 @@ const DetailMonster = ({ monster, playClickSound }) => {
       : "rgba(0,188,212,0.1)";
   const borderColor = !isUnlocked ? "#333" : isBoss ? "#ff3333" : THEME.border;
 
-  // ดึงภาพนิ่งเฟรมแรกมาโชว์ (ผ่านระบบ Safe Image)
   const staticPath = LoadImage("img_monster", monster?.id, 1);
-  // ถ้าโหลดเฟรมขยับมาแล้ว (frames.length > 0) ให้สลับไปใช้เฟรมขยับ
   const activeSrc =
     frames.length > 0 && isUnlocked
       ? frames[frame - 1]?.src
@@ -447,6 +438,7 @@ const DetailMonster = ({ monster, playClickSound }) => {
 
   return (
     <Grid container spacing={0} sx={{ height: "100%" }}>
+      {/* LEFT: Picture Monster */}
       <Grid
         size={{ xs: 5, sm: 5 }}
         sx={{
@@ -474,15 +466,15 @@ const DetailMonster = ({ monster, playClickSound }) => {
               ? "none"
               : `6px 6px 0 ${THEME.shadow}, 0 0 20px ${glowColor}`,
             width: "100%",
-            height: "100%",
+            height: "100%", // 💡 ยืดสุดความสูง
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             backgroundImage: `radial-gradient(circle, ${bgGradient} 0%, rgba(0,0,0,0) 70%)`,
             position: "relative",
-            // ให้ยืดหยุ่นตามความสูงใน Mobile Landscape
+            // 💡 ให้ยืดหยุ่นเต็มที่โดยไม่มี maxHeight ใน Mobile Landscape
             "@media (orientation: landscape) and (max-height: 450px)": {
-              height: "100%", // ใช้พื้นที่ 100% ของ Grid
+              height: "100%", 
               border: `2px solid ${borderColor}`,
               borderRadius: "4px",
               boxShadow: !isUnlocked
@@ -491,6 +483,7 @@ const DetailMonster = ({ monster, playClickSound }) => {
             },
           }}
         >
+          {/* Badge Zone */}
           <Box
             sx={{
               position: "absolute",
@@ -551,36 +544,19 @@ const DetailMonster = ({ monster, playClickSound }) => {
             )}
           </Box>
 
-          {monster?.id ? (
-            <img
-              key={monster?.id}
-              src={activeSrc}
-              alt={monster?.name}
-              style={{
-                width: "80%",
-                height: "80%",
-                objectFit: "contain",
-                imageRendering: "pixelated",
-                filter: !isUnlocked
-                  ? "brightness(0) drop-shadow(0 0 5px rgba(255,255,255,0.2))"
-                  : "drop-shadow(0 4px 4px rgba(0,0,0,0.5))",
-                // เอา transition ออกเพื่อให้ดำสนิททันที
-              }}
-              onError={(e) => {
-                e.currentTarget.src = "/fallback/unknown-monster.png";
-              }}
-            />
-          ) : (
-            <Typography
-              sx={{
-                fontFamily: "'Press Start 2P'",
-                fontSize: 10,
-                color: "#aaa",
-              }}
-            >
-              No Image
-            </Typography>
-          )}
+          <SafeImageLoader
+             src={activeSrc}
+             alt={monster?.name}
+             style={{
+               width: "80%",
+               height: "80%",
+               objectFit: "contain",
+               imageRendering: "pixelated",
+               filter: !isUnlocked
+                 ? "brightness(0) drop-shadow(0 0 5px rgba(255,255,255,0.2))"
+                 : "drop-shadow(0 4px 4px rgba(0,0,0,0.5))",
+             }}
+          />
 
           {!isUnlocked && (
             <LockIcon
@@ -624,8 +600,8 @@ const DetailMonster = ({ monster, playClickSound }) => {
               flexDirection: "column",
               overflow: "hidden",
               width: "100%",
-              height: { xs: "100px", sm: "150px", md: "250px", xl: "100%" },
-              // ให้ยืดหยุ่นใน Mobile Landscape
+              height: "100%", // 💡 ยืดเต็ม
+              // 💡 ให้ยืดเต็มโดยไม่มี maxHeight ใน Mobile Landscape
               "@media (orientation: landscape) and (max-height: 450px)": {
                 height: "100%",
                 border: `2px solid ${THEME.border}`,
@@ -662,7 +638,6 @@ const DetailMonster = ({ monster, playClickSound }) => {
                       backgroundColor:
                         tab === t ? THEME.border : `rgba(90, 62, 43, 0.5)`,
                     },
-                    // ย่อขนาดและ Padding แถบ Tab
                     "@media (orientation: landscape) and (max-height: 450px)": {
                       fontSize: 7,
                       py: 0.5,
@@ -844,7 +819,11 @@ const ListMonster = ({
                 src={LoadImage("img_monster", m.id, 1)}
                 alt={m.name}
                 style={{
-                  height: "40px",
+                  height: "100%",
+                  maxHeight: "40px",
+                  width: "100%",
+                  objectFit: "contain",
+                  padding: "2px",
                   imageRendering: "pixelated",
                   // ใส่ Effect เงาดำใน List หากยังไม่ปลดล็อค
                   filter: !isUnlocked
@@ -932,8 +911,8 @@ const MonsterLibrary = () => {
           border: `8px solid ${THEME.border}`,
           borderRadius: "12px",
           boxShadow: `0 0 0 4px #1a120b, 0 20px 60px rgba(49, 49, 49, 0.8)`,
-          width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
-          height: { xs: "70%", sm: "70%", md: "570px", xl: "80%" },
+          width: { xs: "90%", sm: "80%", md: "80%" }, // 💡 ตามเดิมของคุณ
+          height: { xs: "70%", sm: "70%", md: "570px", xl: "82%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
@@ -957,7 +936,7 @@ const MonsterLibrary = () => {
             mb: 2,
             borderBottom: `4px solid ${THEME.border}`,
             "@media (orientation: landscape) and (max-height: 450px)": {
-              py: 1, // ลดให้บางที่สุด
+              py: 1, // 💡 คง py 1 ไว้ตามที่คุณขอ
               mb: 0.5,
               borderBottom: `2px solid ${THEME.border}`,
             },
@@ -970,7 +949,7 @@ const MonsterLibrary = () => {
               fontSize: { xs: 16, md: 24 },
               textShadow: `3px 3px 0 #000, 0 0 10px ${THEME.accent}`,
               "@media (orientation: landscape) and (max-height: 450px)": {
-                fontSize: 10, // ย่อฟอนต์
+                fontSize: 10,
                 textShadow: `2px 2px 0 #000, 0 0 6px ${THEME.accent}`,
               },
             }}
@@ -986,10 +965,7 @@ const MonsterLibrary = () => {
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            // backgroundColor:'white'
-            // height:'100%',
-            justifyContent: "space-between", // ดันเนื้อหาให้กระจายตัว
-            // alignItems:'center'
+            justifyContent: "space-between", // ดันเนื้อหาให้กระจายตัวบน-ล่าง
           }}
         >
           <Box
@@ -999,14 +975,13 @@ const MonsterLibrary = () => {
               flexDirection: "column",
               justifyContent: "center",
               mb: 0.5,
+              overflow: "hidden", // 💡 สำคัญ: ป้องกันไม่ให้ Detail ดัน List
               "@media (orientation: landscape) and (max-height: 450px)": {
                 mt: 1,
-                flex: 0,
-                height: "220px",
+                flex: 1, // 💡 ลบ height: 220px และ flex: 0 ออก ให้มันใช้พื้นที่ที่เหลือได้เต็มที่
               },
             }}
           >
-            {/* 💡 ส่ง currentActiveMonster เข้าไปแทน selectedMonster */}
             <DetailMonster
               monster={currentActiveMonster}
               playClickSound={playMouseReleaseSound}
@@ -1018,9 +993,10 @@ const MonsterLibrary = () => {
             sx={{
               px: 2,
               pb: 0.5,
+              flexShrink: 0, // 💡 สำคัญ: ห้าม List โดนบีบเด็ดขาด
               "@media (orientation: landscape) and (max-height: 450px)": {
                 px: 1,
-                pb: 0,
+                pb: 1, // 💡 ดัน List ให้ลอยขึ้นมานิดนึงในแนวนอน
               },
             }}
           >

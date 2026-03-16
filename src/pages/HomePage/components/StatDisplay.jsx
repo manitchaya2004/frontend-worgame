@@ -279,7 +279,6 @@ export const StatTextBox = ({
         },
         // บีบความกว้าง Label ฝั่งซ้าย
         "@media (orientation: landscape) and (max-height: 450px)": {
-          // width: "90px",
           gap: 0.5,
         },
       }}
@@ -350,7 +349,6 @@ export const StatTextBox = ({
         "@media (min-width: 1800px)": {
           py: 1,
           fontSize: 15,
-         
         },
         // ย่อกล่อง Value บน Mobile Landscape ให้แบนที่สุด
         "@media (orientation: landscape) and (max-height: 450px)": {
@@ -358,7 +356,7 @@ export const StatTextBox = ({
           px: 0.5,
           fontSize: 7,
           border: `1px solid ${isUnlocked ? THEME.border : "#333"}`,
-           borderRadius: "2px",
+          borderRadius: "2px",
         },
       }}
     >
