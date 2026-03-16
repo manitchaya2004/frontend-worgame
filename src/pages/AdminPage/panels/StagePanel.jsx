@@ -4,11 +4,20 @@ import { AnimatePresence, motion } from "framer-motion";
 
 const STAGE_BUCKET = "asset";
 const MAP_FOLDER = "img_map";
+const MONSTER_FOLDER = "img_monster";
 
 const getMapPublicUrl = (id) => {
   const { data } = supabase.storage
     .from(STAGE_BUCKET)
     .getPublicUrl(`${MAP_FOLDER}/${id}.png`);
+  return data?.publicUrl || "";
+};
+
+const getMonsterPublicUrl = (monsterId, fileName = "attack-1.png") => {
+  if (!monsterId) return "";
+  const { data } = supabase.storage
+    .from(STAGE_BUCKET)
+    .getPublicUrl(`${MONSTER_FOLDER}/${monsterId}-${fileName}`);
   return data?.publicUrl || "";
 };
 
@@ -277,6 +286,82 @@ const EditStageModal = ({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+};
+
+const MonsterThumb = ({ id, size = 64 }) => {
+  const [frameIndex, setFrameIndex] = useState(0);
+  const [hide, setHide] = useState(false);
+
+  const frames = [
+    getMonsterPublicUrl(id, "attack-1.png"),
+    getMonsterPublicUrl(id, "attack-2.png"),
+    getMonsterPublicUrl(id, "idle-1.png"),
+    getMonsterPublicUrl(id, "idle-2.png"),
+  ].filter(Boolean);
+
+  useEffect(() => {
+    setHide(false);
+    setFrameIndex(0);
+  }, [id]);
+
+  useEffect(() => {
+    if (frames.length <= 1) return;
+    const t = setInterval(() => {
+      setFrameIndex((v) => (v + 1) % frames.length);
+    }, 280);
+    return () => clearInterval(t);
+  }, [frames.length]);
+
+  if (!id || hide || frames.length === 0) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 8,
+          border: "1px dashed #555",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#777",
+          fontSize: 11,
+          background: "rgba(255,255,255,0.02)",
+          flex: "0 0 auto",
+        }}
+      >
+        No Img
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 10,
+        border: "1px solid rgba(212,175,55,0.35)",
+        background: "rgba(0,0,0,0.35)",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flex: "0 0 auto",
+      }}
+    >
+      <img
+        src={frames[frameIndex]}
+        alt={`${id} monster`}
+        onError={() => setHide(true)}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          imageRendering: "pixelated",
+        }}
+      />
+    </div>
   );
 };
 
@@ -777,6 +862,9 @@ const SpawnPanel = ({ stageId, onClose }) => {
     return m ? `${m.name} (${m.id})` : id;
   };
 
+  const monsterById = (id) => monsters.find((x) => x.id === id);
+  const selectedMonster = monsters.find((m) => m.id === formData.monster_id);
+
   return (
     <div
       style={{
@@ -834,45 +922,94 @@ const SpawnPanel = ({ stageId, onClose }) => {
           {isEditing ? `Editing Spawn ID: ${formData.id}` : "Add Spawn"}
         </div>
 
-        <div style={{ display: "flex", gap: 10, width: "100%", flexWrap: "wrap" }}>
-          <select
-            className="input-field"
-            name="monster_id"
-            value={formData.monster_id}
-            onChange={handleChange}
-            style={{ flex: 2, minWidth: 240 }}
-            data-tooltip="เลือกมอนสเตอร์ที่จะให้เกิดในด่านนี้"
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              width: "100%",
+              flexWrap: "wrap",
+              alignItems: "stretch",
+            }}
           >
-            <option value="" disabled>
-              -- select monster --
-            </option>
-            {monsters.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.id})
-              </option>
-            ))}
-          </select>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                flex: 2,
+                minWidth: 320,
+                padding: 10,
+                border: "1px solid rgba(104,211,145,0.35)",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.02)",
+              }}
+            >
+              <MonsterThumb id={formData.monster_id} size={72} />
 
-          <input
-            className="input-field"
-            name="level"
-            placeholder="level (e.g. A1)"
-            value={formData.level}
-            onChange={handleChange}
-            style={{ flex: 1, minWidth: 140 }}
-            data-tooltip="ระดับความยากหรือรูปแบบสเตตัสของมอนสเตอร์ (เช่น A1)"
-          />
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <select
+                  className="input-field"
+                  name="monster_id"
+                  value={formData.monster_id}
+                  onChange={handleChange}
+                  style={{ width: "100%" }}
+                  data-tooltip="เลือกมอนสเตอร์ที่จะให้เกิดในด่านนี้"
+                >
+                  <option value="" disabled>
+                    -- select monster --
+                  </option>
+                  {monsters.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.id})
+                    </option>
+                  ))}
+                </select>
 
-          <input
-            className="input-field"
-            type="number"
-            name="distant_spawn"
-            placeholder="distant_spawn"
-            value={formData.distant_spawn}
-            onChange={handleChange}
-            style={{ flex: 1, minWidth: 180 }}
-            data-tooltip="ระยะทางในด่านที่ผู้เล่นเดินไปถึง แล้วมอนสเตอร์ตัวนี้จะเกิด"
-          />
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: "#b7c9b9",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {selectedMonster ? (
+                    <>
+                      <div>
+                        <strong style={{ color: "#fff" }}>{selectedMonster.name}</strong>
+                      </div>
+                      <div style={{ color: "#8fb996" }}>ID: {selectedMonster.id}</div>
+                      <div style={{ color: "#8fb996" }}>No: {selectedMonster.no ?? "-"}</div>
+                    </>
+                  ) : (
+                    <span style={{ color: "#777" }}>ยังไม่ได้เลือก monster</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <input
+              className="input-field"
+              name="level"
+              placeholder="level (e.g. A1)"
+              value={formData.level}
+              onChange={handleChange}
+              style={{ flex: 1, minWidth: 140 }}
+              data-tooltip="ระดับความยากหรือรูปแบบสเตตัสของมอนสเตอร์ (เช่น A1)"
+            />
+
+            <input
+              className="input-field"
+              type="number"
+              name="distant_spawn"
+              placeholder="distant_spawn"
+              value={formData.distant_spawn}
+              onChange={handleChange}
+              style={{ flex: 1, minWidth: 180 }}
+              data-tooltip="ระยะทางในด่านที่ผู้เล่นเดินไปถึง แล้วมอนสเตอร์ตัวนี้จะเกิด"
+            />
+          </div>
         </div>
 
         <div
@@ -930,7 +1067,17 @@ const SpawnPanel = ({ stageId, onClose }) => {
                     {sp.id}
                   </td>
                   <td style={{ fontSize: 12, color: "#ddd" }}>
-                    {monsterNameById(sp.monster_id)}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <MonsterThumb id={sp.monster_id} size={46} />
+                      <div>
+                        <div style={{ color: "#fff", fontWeight: 700 }}>
+                          {monsterById(sp.monster_id)?.name || sp.monster_id}
+                        </div>
+                        <div style={{ color: "#8fb996", fontSize: 11 }}>
+                          {sp.monster_id}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td>{sp.level}</td>
                   <td>{sp.distant_spawn}</td>
