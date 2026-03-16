@@ -22,8 +22,9 @@ export const useServerStore = create((set, get) => ({
     }
 
     try {
+      // 🌟 FIX: เปลี่ยนชื่อตารางเป็น 'server_status' ตามที่ระบบฐานข้อมูลของคุณตั้งไว้
       const { data, error } = await supabase
-        .from('server_config')
+        .from('server_status')
         .select('is_close')
         .eq('id', SERVER_ID)
         .single();
@@ -40,6 +41,7 @@ export const useServerStore = create((set, get) => ({
         set({ serverChecked: true, isServerClose: false, isOffline: false });
       }
     } catch (err) {
+      console.error("Check Server Error:", err);
       // ถ้าติดต่อ Supabase ไม่ได้ หรือ Error ถือว่า Offline/Server ล่ม
       set({ isOffline: true, serverChecked: true });
     }
@@ -53,8 +55,9 @@ export const useServerStore = create((set, get) => ({
     const start = Date.now();
 
     try {
+      // 🌟 FIX: เปลี่ยนชื่อตารางเป็น 'server_status'
       const { data, error } = await supabase
-        .from('server_config')
+        .from('server_status')
         .select('is_close')
         .eq('id', SERVER_ID)
         .single();
@@ -72,12 +75,12 @@ export const useServerStore = create((set, get) => ({
 
       set({ serverStatus: FAILED });
       return false;
-    } catch {
+    } catch (err) {
+      console.error("Refresh Server Error:", err);
       set({ serverStatus: FAILED });
       return false;
     }
   },
-
   // =========================
   // 🟢 ฟังก์ชันใหม่: ดักฟัง Realtime (Admin สั่งปิด/เปิด ปุ๊บ รู้ปั๊บ)
   // =========================
