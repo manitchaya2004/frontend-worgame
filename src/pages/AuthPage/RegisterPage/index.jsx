@@ -78,6 +78,7 @@ const RegisterPage = () => {
   // validate function
   const validate = () => {
     const newErrors = {};
+    const formatEmailRegEx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
     // ===== username =====
     if (!formRegister.username.trim()) {
@@ -98,7 +99,7 @@ const RegisterPage = () => {
     // ===== email =====
     if (!formRegister.email.trim()) {
       newErrors.email = "Please enter your email";
-    } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formRegister.email)) {
+    } else if (!formatEmailRegEx.test(formRegister.email)) {
       newErrors.email =
         "Invalid email format. Please enter a valid email address.";
     }
