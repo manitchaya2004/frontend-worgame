@@ -10,6 +10,7 @@ import {
   Badge,
   useMediaQuery,
   useTheme as useMuiTheme,
+  Dialog, // 💡 เพิ่มการนำเข้า Dialog
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useRef, useEffect, memo } from "react";
@@ -18,15 +19,18 @@ import { motion, animate, useAnimation } from "framer-motion";
 // Icons
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks"; // 💡 นำเข้าไอคอนใหม่สำหรับ Library
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add";
 import ErrorIcon from "@mui/icons-material/Error";
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import { MdInventory } from "react-icons/md";
 import { GiBroadsword } from "react-icons/gi";
-import { FaCrown, FaSuitcase, FaUserAlt } from "react-icons/fa";
+import { FaCrown, FaSuitcase, FaUserAlt, FaTrophy, FaBook } from "react-icons/fa";
 // Assets
 import { useAuthStore } from "../../store/useAuthStore";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
@@ -140,7 +144,6 @@ const EnergyBar = React.memo(
     const { timeLeft, isFull, timerStatus } = useStaminaTimer(staminaObj);
     const controls = useAnimation();
 
-    // 💡 THE FIX: เปลี่ยนมาใช้ useRef แทน State เพื่อไม่ให้เกิด Render loop กวนใจ
     const hasTriggeredRef = useRef(false);
 
     useEffect(() => {
@@ -152,25 +155,19 @@ const EnergyBar = React.memo(
       }
     }, [timerStatus, controls]);
 
-    // 💡 THE FIX: ลอจิกจับเวลาหมดที่ปรับปรุงใหม่ (ป้องกันค้างที่ 0:00)
     useEffect(() => {
       let retryTimer;
 
       if (timeLeft > 0) {
-        // เมื่อเวลามีมากกว่า 0 (คือเวลายังเดินอยู่ หรือเพิ่งได้สายฟ้ามาใหม่)
         hasTriggeredRef.current = false;
       } else if (timeLeft <= 0 && !isFull) {
         if (!hasTriggeredRef.current) {
-          // เมื่อเวลาแตะ 0 พอดี และยังไม่เต็ม และยังไม่ได้ยิงคำสั่ง
-          hasTriggeredRef.current = true; // สับล็อคเพื่อกันการยิงรัวๆ ทันที
+          hasTriggeredRef.current = true;
           if (onTimerEnd) {
-            onTimerEnd(); // เรียกฟังก์ชัน refreshUser() ขอสายฟ้าจาก Backend!
+            onTimerEnd();
           }
         }
 
-        // 💡 THE FIX: Retry Mechanism!
-        // ถ้า UI ค้างที่ 0:00 นานเกิน 2.5 วินาที แสดงว่า Backend ตอบกลับมาไม่ทันเวลา
-        // ให้ปลดล็อคเพื่อยิง API ขอเช็คสายฟ้าอีกรอบอัตโนมัติ!
         retryTimer = setTimeout(() => {
           hasTriggeredRef.current = false;
         }, 2500);
@@ -354,12 +351,6 @@ const GameAppBar = () => {
 
   const isCompact = isMobileWidth || isLandscapeMobile;
 
-  const isLandscape = useMediaQuery("(orientation: landscape)");
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
-
-  // 💡 กลยุทธ์: ถ้าจอเล็กมาก ให้รวม Monsters กับ Dictionary เข้าด้วยกัน
-  const showCompactLibrary = isMobile || isLandscapeMobile;
-
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
   const heroId = activeHero?.hero_id;
   const currentLevel = activeHero?.level || 1;
@@ -369,8 +360,10 @@ const GameAppBar = () => {
 
   const [openSettings, setOpenSettings] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
-
   const [isMiniGameOpen, setIsMiniGameOpen] = useState(false);
+  
+  // 💡 State สำหรับควบคุมป๊อปอัป Library
+  const [openLibrary, setOpenLibrary] = useState(false);
 
   const handleSaveSettings = (newSettings) => {
     if (!newSettings) return;
@@ -406,34 +399,52 @@ const GameAppBar = () => {
   const MAIN_NAV_ITEMS = [
     { id: "item", label: "ITEM", path: "/home/item", icon: <FaSuitcase /> },
     {
-      id: "adventure",
-      label: "ADVENTURE",
-      path: "/home",
-      icon: <GiBroadsword />, // 💡 ไม่ถูกโชว์แล้ว แต่ทิ้งไว้เป็นข้อมูลเฉยๆ
-      isMain: true,
-    },
-    {
       id: "character",
       label: "CHARACTER",
       path: "/home/character",
       icon: <FaUserAlt />,
     },
+    {
+      id: "adventure",
+      label: "ADVENTURE",
+      path: "/home",
+      icon: <GiBroadsword />, 
+      isMain: true,
+    },
+    {
+      id: "wordlog",
+      label: "WORDLOG",
+      path: "/home/wordlog",
+      icon: <FaBook />,
+    },
+    {
+      id: "scoreboard",
+      label: "SCOREBOARD",
+      path: "/home/scoreboard",
+      icon: <FaTrophy />,
+    }
   ];
 
+  // 💡 นำมาใช้แสดงในหน้าต่าง Dialog ยุบรวม
   const LIBRARY_ITEMS = [
     {
       id: "monster",
       label: "MONSTERS",
       path: "/home/monster",
-      icon: <CatchingPokemonIcon />,
+      icon: <CatchingPokemonIcon sx={{ mr: 1.5, fontSize: "22px", color: "#ffecb3" }} />,
     },
     {
       id: "dict",
-      label: "DICT",
+      label: "DICTIONARY",
       path: "/home/dictionary",
-      icon: <AutoStoriesIcon />,
+      icon: <AutoStoriesIcon sx={{ mr: 1.5, fontSize: "22px", color: "#ffecb3" }} />,
     },
   ];
+
+  // ตรวจสอบว่าเปิดหน้าไหนในกลุ่ม Library อยู่เพื่อใส่ Effect Active
+  const isLibraryActive =
+    location.pathname.includes("/home/monster") ||
+    location.pathname.includes("/home/dictionary");
 
   return (
     <>
@@ -481,8 +492,8 @@ const GameAppBar = () => {
             >
               <Box
                 sx={{
-                  pl: { xs: "45px", sm: "50px", md: "55px" },
-                  pr: { xs: 1.5, sm: 2.5 },
+                  pl: { xs: "40px", sm: "45px", md: "50px" }, // ลด Padding ซ้ายลงนิดหน่อยให้ชิด Avatar มากขึ้นเวลาชื่อสั้น
+                  pr: { xs: 1.5, sm: 2 },
                   py: 0.5,
                   backgroundColor: "rgba(43, 29, 20, 0.6)",
                   borderRadius: "15px",
@@ -490,16 +501,18 @@ const GameAppBar = () => {
                   boxShadow: "0 3px 0 #2b1a12",
                   display: "flex",
                   flexDirection: "column",
-                  minWidth: { xs: "90px", sm: "110px", md: "130px" },
+                  // 💡 จุดสำคัญ: ใช้ fit-content และกำหนด maxWidth แทน minWidth
                   width: "fit-content",
+                  minWidth: "0px", // ปลดล็อคค่าเดิม
+                  maxWidth: { xs: "120px", sm: "160px", md: "200px" }, 
                   "@media (orientation: landscape) and (max-height: 450px)": {
-                    pl: "45px",
-                    minWidth: "auto",
+                    pl: "40px",
+                    maxWidth: "140px",
                     borderRadius: "12px",
                   },
                 }}
               >
-                <Tooltip>
+                <Tooltip title={currentUser?.username}>
                   <Typography
                     noWrap
                     sx={{
@@ -507,32 +520,35 @@ const GameAppBar = () => {
                       fontSize: { xs: 6, sm: 8, md: 9 },
                       color: "#E8E9CD",
                       mb: 0.5,
-                      width: { xs: "90px", sm: "110px", md: "130px" },
-                      "@media (orientation: landscape) and (max-height: 450px)":
-                        {
-                          fontSize: 6,
-                          width:
-                            currentUser?.username.length > 6 ? "100px" : "auto",
-                        },
+                      // 💡 ปลดล็อค width ตายตัวเพื่อให้ยืดตามชื่อ แต่ถ้าเกินจะตัด ... (noWrap)
+                      width: "100%", 
+                      textAlign: "left",
                     }}
                   >
                     {currentUser?.username}
                   </Typography>
                 </Tooltip>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box 
+                  sx={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: 0.5,
+                    width: "fit-content" // ให้ Box เงินยืดตามจำนวนเงิน
+                  }}
+                >
                   <MonetizationOnIcon
                     sx={{
-                      fontSize: { xs: 10, sm: 12 },
+                      fontSize: { xs: 10, sm: 11 },
                       color: "#FFD700",
                       filter: "drop-shadow(1px 2px 0px #B8860B)",
                       borderRadius: "50%",
                       backgroundColor: "#fff",
                       border: "1px solid #B8860B",
-                      "@media (orientation: landscape) and (max-height: 450px)":
-                        {
-                          fontSize: 8,
-                        },
+                      flexShrink: 0, // กันไอคอนโดนเบียด
+                      "@media (orientation: landscape) and (max-height: 450px)": {
+                        fontSize: 8,
+                      },
                     }}
                   />
                   <AnimatedMoney
@@ -542,6 +558,7 @@ const GameAppBar = () => {
                 </Box>
               </Box>
 
+              {/* Avatar Box (เหมือนเดิมแต่เช็ค Z-index) */}
               <Box
                 sx={{
                   position: "absolute",
@@ -635,7 +652,6 @@ const GameAppBar = () => {
                   sx={{
                     position: "relative",
                     overflow: "visible",
-                    // 💡 THE FIX: Adventure ใหญ่คงที่ (160px) ส่วน Item/Character บนคอมเล็กลง (60px)
                     minWidth: isCompact
                       ? "40px"
                       : item.isMain
@@ -648,7 +664,6 @@ const GameAppBar = () => {
                         : { xs: "36px", md: "40px" },
                     flexDirection: { xs: "column", sm: "row" },
                     fontFamily: "'Press Start 2P'",
-                    // 💡 THE FIX: ปรับขนาดฟอนต์ของ Adventure ให้เล็กลงนิดหน่อย
                     fontSize: item.isMain
                       ? { xs: 7, sm: 8, md: 13 }
                       : { xs: 6, sm: 8 },
@@ -664,7 +679,6 @@ const GameAppBar = () => {
                     p: isCompact ? 0 : { xs: 0, sm: 1.5 },
                     transition: "all 0.1s",
                     "& .MuiButton-startIcon": {
-                      // 💡 THE FIX: เอา margin ออกเมื่อโชว์แค่ไอคอนอย่างเดียว หรือ ไม่มีไอคอนเลย
                       margin: 0,
                       "& > *:nth-of-type(1)": {
                         fontSize: isCompact ? 18 : item.isMain ? 26 : 22,
@@ -679,27 +693,22 @@ const GameAppBar = () => {
                     "@media (orientation: landscape) and (max-height: 450px)": {
                       fontSize: item.isMain ? 6 : 5,
                       "& .MuiButton-startIcon": {
-                      // 💡 THE FIX: เอา margin ออกเมื่อโชว์แค่ไอคอนอย่างเดียว หรือ ไม่มีไอคอนเลย
-                      margin: 0,
-                      "& > *:nth-of-type(1)": {
-                        fontSize: isCompact ? 14 : item.isMain ? 26 : 22,
+                        margin: 0,
+                        "& > *:nth-of-type(1)": {
+                          fontSize: isCompact ? 14 : item.isMain ? 26 : 22,
+                        },
                       },
                     },
-                    },
                   }}
-                  // 💡 THE FIX: โชว์ไอคอนเฉพาะปุ่มที่ไม่ได้เป็นหน้าหลัก (Item / Character)
                   startIcon={!item.isMain ? item.icon : null}
                 >
-                  {/* 💡 THE FIX: โชว์ Text เฉพาะปุ่มหน้าหลัก (Adventure) */}
                   {item.isMain ? item.label : null}
                 </Button>
               );
 
-              // 💡 THE FIX: ระบบห่อ Tooltip ให้ Item กับ Character
               let renderedContent = buttonContent;
 
               if (item.id === "item" && hasEmptySlot) {
-                // ถ้าเป็น Item และมีช่องว่าง โชว์ Tooltip ข้อมูลช่องว่าง
                 renderedContent = (
                   <Tooltip
                     title={`You have empty slots! (${currentItemsCount}/${maxItemsSlot})`}
@@ -726,15 +735,12 @@ const GameAppBar = () => {
                   </Tooltip>
                 );
               } else if (!item.isMain) {
-                // ถ้าเป็น Item (ตอนเต็ม) หรือ Character โชว์ Tooltip เป็นชื่อของเมนู
                 renderedContent = (
                   <Tooltip title={item.label} arrow placement="top">
-                    {/* ห่อ Box กันเหนียวเผื่อ Tooltip งงกับ Button */}
                     <Box>{buttonContent}</Box>
                   </Tooltip>
                 );
               } else {
-                // ส่วน Adventure เป็นปุ่มใหญ่มี Text อยู่แล้ว ปล่อยโล่ง
                 renderedContent = buttonContent;
               }
 
@@ -770,33 +776,29 @@ const GameAppBar = () => {
               />
             )}
 
-            {LIBRARY_ITEMS.map((item) => {
-              const isActive = location.pathname.includes(item.path);
-              return (
-                <Tooltip key={item.id} title={item.label} arrow>
-                  <IconButton
-                    onClick={() => {
-                      playClickSound();
-                      navigate(item.path);
-                    }}
-                    sx={{
-                      color: isActive ? THEME.activeBorder : "#d7ccc8",
-                      backgroundColor: isActive
-                        ? "rgba(255, 236, 179, 0.1)"
-                        : "transparent",
-                      border: `2px solid ${isActive ? THEME.activeBorder : "transparent"}`,
-                      borderRadius: "8px",
-                      p: { xs: 0.5, sm: 1 },
-                      "& .MuiSvgIcon-root": {
-                        fontSize: !isLandscapeMobile ? { xs: 20, sm: 24 } : 18,
-                      },
-                    }}
-                  >
-                    {item.icon}
-                  </IconButton>
-                </Tooltip>
-              );
-            })}
+            {/* 💡 THE FIX: ยุบรวม Monsters & Dictionary ให้เหลือปุ่มเดียว */}
+            <Tooltip title="Library" arrow>
+              <IconButton
+                onClick={() => {
+                  playClickSound();
+                  setOpenLibrary(true);
+                }}
+                sx={{
+                  color: isLibraryActive ? THEME.activeBorder : "#d7ccc8",
+                  backgroundColor: isLibraryActive
+                    ? "rgba(255, 236, 179, 0.1)"
+                    : "transparent",
+                  border: `2px solid ${isLibraryActive ? THEME.activeBorder : "transparent"}`,
+                  borderRadius: "8px",
+                  p: { xs: 0.5, sm: 1 },
+                  "& .MuiSvgIcon-root": {
+                    fontSize: !isLandscapeMobile ? { xs: 20, sm: 24 } : 18,
+                  },
+                }}
+              >
+                <MenuBookIcon />
+              </IconButton>
+            </Tooltip>
 
             <Tooltip title="Settings" arrow>
               <IconButton
@@ -856,6 +858,82 @@ const GameAppBar = () => {
           </Box>
         </Toolbar>
       </AppBar>
+
+      {/* 📚 Dialog สำหรับเลือก Library */}
+      <Dialog
+        open={openLibrary}
+        onClose={() => setOpenLibrary(false)}
+        PaperProps={{
+          style: {
+            backgroundColor: "transparent",
+            boxShadow: "none",
+          },
+        }}
+      >
+        <Box
+          sx={{
+            background: "#19120e",
+            width: { xs: "260px", sm: "350px" },
+            padding: "25px",
+            borderRadius: "12px",
+            border: "3px solid #8c734b",
+            boxShadow: "0 0 0 5px #0f0a08, 0 10px 40px rgba(0,0,0,0.9)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 2.5,
+            alignItems: "center",
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: "'Press Start 2P'",
+              color: "#f1c40f",
+              fontSize: { xs: "12px", sm: "14px" },
+              textShadow: "2px 2px 0px #000",
+              mb: 1,
+            }}
+          >
+            SELECT LIBRARY
+          </Typography>
+
+          {LIBRARY_ITEMS.map((item) => (
+            <Button
+              key={item.id}
+              fullWidth
+              onClick={() => {
+                playClickSound();
+                setOpenLibrary(false);
+                navigate(item.path);
+              }}
+              sx={{
+                background: "linear-gradient(to bottom, #4a3b2a, #2b2218)",
+                border: "2px solid #6b543a",
+                borderBottom: "4px solid #6b543a",
+                borderRadius: "6px",
+                color: "#d1c4b6",
+                fontFamily: "'Press Start 2P'",
+                fontSize: { xs: "10px", sm: "11px" },
+                py: 2,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                transition: "all 0.1s",
+                "&:hover": {
+                  filter: "brightness(1.2)",
+                  transform: "translateY(-2px)",
+                },
+                "&:active": {
+                  transform: "translateY(2px)",
+                  borderBottom: "2px solid #6b543a",
+                },
+              }}
+            >
+              {item.icon}
+              {item.label}
+            </Button>
+          ))}
+        </Box>
+      </Dialog>
 
       {/* ⚙️ 1. Dialog สำหรับ "ตั้งค่าเสียง" เท่านั้น (ไม่ถามเรื่อง Logout) */}
       <GameDialog

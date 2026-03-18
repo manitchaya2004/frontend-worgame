@@ -428,6 +428,10 @@ export const useGameStore = create((set, get) => ({
 
       if (selectedHero) {
         const { stats, deck_list } = selectedHero;
+        // 🌟 แก้ไข: คำนวณ Slot เริ่มต้นจาก 8 + Power (ไม่เกิน 20)
+        const initialPower = stats?.power || 3;
+        const initialUnlockedSlots = Math.min(8 + initialPower, 20);
+
         set((state) => ({
           playerData: {
             ...state.playerData,
@@ -449,8 +453,8 @@ export const useGameStore = create((set, get) => ({
               reroll: userData.potion.reroll,
             },
             speed: stats?.speed || 3,
-            power: stats?.power || 3,
-            unlockedSlots: 20,
+            power: initialPower,
+            unlockedSlots: initialUnlockedSlots, // 🌟 ใช้ค่าที่คำนวณใหม่
             deck_list: deck_list || [],
             draw_pile: [],
             savedEffects: { buffs: [], statuses: [] },
@@ -463,7 +467,6 @@ export const useGameStore = create((set, get) => ({
       let to = 999;
       let hasMore = true;
 
-      //console.log("⏳ Loading Dictionary (30,000+ entries)...");
       while (hasMore) {
         const { data: partDict, error: dictError } = await supabase
           .from('dictionary')
@@ -480,7 +483,6 @@ export const useGameStore = create((set, get) => ({
           to += 1000;
         }
       }
-      //console.log(`✅ Dictionary Loaded: ${allDictData.length} entries`);
 
       const { data: rawStageData, error: stageError } = await supabase
         .from('stage')
@@ -544,8 +546,6 @@ export const useGameStore = create((set, get) => ({
         events: groupedEvents 
       };
 
-      // --- 4. 🚀 Asset Preloading (Player + Monster + Map) ---
-      //console.log("⏳ Preloading Assets (Heroes, Monsters, and Map)...");
       const STORAGE_HERO = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
       const STORAGE_MONSTER = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_monster/";
       const STORAGE_MAP = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
@@ -581,7 +581,6 @@ export const useGameStore = create((set, get) => ({
       });
 
       await Promise.all(preloadPromises);
-      //console.log("✅ All Assets Preloaded! Map is ready.");
 
       set((state) => ({
         dictionary: allDictData,
@@ -592,7 +591,8 @@ export const useGameStore = create((set, get) => ({
         currentCoin: userData?.money || 0,
         playerData: {
           ...state.playerData,
-          unlockedSlots: finalStageData.slot_count || 20,
+          // 🌟 ใช้ unlockedSlots ที่คำนวณจาก Power แทนค่าจาก stageData.slot_count
+          unlockedSlots: state.playerData.unlockedSlots, 
         }
       }));
 
@@ -682,6 +682,7 @@ export const useGameStore = create((set, get) => ({
     const { playerData } = store;
     let currentInv = [...playerData.inventory];
     
+    // 🌟 มั่นใจว่าอาเรย์มีขนาดเท่ากับ unlockedSlots (8+power)
     while (currentInv.length < playerData.unlockedSlots) {
       currentInv.push(null);
     }
@@ -1025,7 +1026,6 @@ export const useGameStore = create((set, get) => ({
 
       if (updateResErr) console.error("Error Updating Resource:", updateResErr);
 
-      // เซฟระยะสุดด่าน เพราะชนะแล้ว
       const { error: progressUpdateErr } = await supabase
         .from('player_stage_progress')
         .update({ 
@@ -1080,7 +1080,8 @@ export const useGameStore = create((set, get) => ({
 
       set({ 
         gameState: "GAME_CLEARED",
-        currentCoin: currentResource.coin + totalMoneyEarned 
+        currentCoin: currentResource.coin + totalMoneyEarned,
+        isFirstClear: isFirstClear,
       });
     } catch (error) {
       console.error("Save Game Error:", error);
@@ -1108,7 +1109,6 @@ export const useGameStore = create((set, get) => ({
         .update({ coin: (currentRes?.coin || 0) + Number(earnedAmount) })
         .eq('player_id', username);
 
-      // 🌟 ดึงข้อมูลและเทียบระยะทาง
       if (currentStageId) {
         const { data: oldProgress } = await supabase
           .from('player_stage_progress')
@@ -1365,7 +1365,7 @@ export const useGameStore = create((set, get) => ({
     let blindCount = 0;
     let blessCount = 0;
     let healAmount = 0;
-    let vampireFangCount = 0;
+    let hasVampire = false;
 
     itemsUsedInAction.forEach((item) => {
       let letterDmg = DeckManager.getLetterDamage(item.char);
@@ -1390,13 +1390,12 @@ export const useGameStore = create((set, get) => ({
       else if (item.buff === "heal" && actionType === "Guard")
         healAmount += Math.ceil(letterDmg);
       else if (item.buff === "vampire_fang" && (actionType === "Strike" || actionType === "Skill"))
-        vampireFangCount++;
+        hasVampire = true;
 
       totalDmgRaw += letterDmg;
     });
 
     const totalDmg = chanceRound(totalDmgRaw);
-    
     const finalActionDmg = actionType === "Skill" ? totalDmg * 2 : totalDmg;
 
     let recoilDamage = 0;
@@ -1409,8 +1408,7 @@ export const useGameStore = create((set, get) => ({
 
     if (validWordInfo) {
       const lowerWord = word.toLowerCase();
-      const currentType =
-        validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
+      const currentType = validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
       const filteredMatches = validWordInfo.fullMatches.filter(
         (m) => (m.category || m.type || "Word") === currentType,
       );
@@ -1449,8 +1447,7 @@ export const useGameStore = create((set, get) => ({
           .map((item, idx) => (item?.status ? idx : -1))
           .filter((idx) => idx !== -1);
         if (infectedIndices.length > 0) {
-          const rIdx =
-            infectedIndices[Math.floor(Math.random() * infectedIndices.length)];
+          const rIdx = infectedIndices[Math.floor(Math.random() * infectedIndices.length)];
           currentInv[rIdx].status = null;
           currentInv[rIdx].statusDuration = 0;
         } else if (playerSavedStatuses.length > 0) {
@@ -1472,7 +1469,7 @@ export const useGameStore = create((set, get) => ({
     });
 
     set((s) => ({
-      playerShoutText: actionType === "Skill" ? "SKILL!" : actionType,
+      playerShoutText: word.toUpperCase(),
       playerVisual: "idle-1",
       playerData: {
         ...s.playerData,
@@ -1504,10 +1501,7 @@ export const useGameStore = create((set, get) => ({
     if (actionType === "Guard") {
       let finalHp = get().playerData.hp;
       if (healAmount > 0) {
-        finalHp = Math.min(
-          get().playerData.max_hp,
-          get().playerData.hp + healAmount,
-        );
+        finalHp = Math.min(get().playerData.max_hp, get().playerData.hp + healAmount);
         get().addPopup({
           id: Math.random(),
           x: PLAYER_X_POS,
@@ -1540,7 +1534,6 @@ export const useGameStore = create((set, get) => ({
     } else if (actionType === "Strike" || actionType === "Skill") {
       const target = enemies.find((e) => e.id === targetId);
       if (target) {
-        
         let isHit = true;
         let meaningStr = ""; 
         
@@ -1552,9 +1545,7 @@ export const useGameStore = create((set, get) => ({
               (m) => (m.category || m.type || "Word") === currentType
             );
             const matchToUse = filteredMatches[0] || validWordInfo.fullMatches[0];
-            
             wordLevel = matchToUse.level?.toUpperCase() || "A1";
-            
             meaningStr = typeof matchToUse.meaning === "string"
               ? matchToUse.meaning.split(/,(?![^()]*\))/)[0].trim()
               : matchToUse.meaning || "???";
@@ -1566,9 +1557,7 @@ export const useGameStore = create((set, get) => ({
           else if (wordLevel === "B2") hitChance = 90;
 
           const roll = Math.floor(Math.random() * 100);
-          if (roll >= hitChance) {
-            isHit = false; 
-          }
+          if (roll >= hitChance) isHit = false; 
         }
 
         set({ playerX: target.x - 10, playerVisual: "walk" });
@@ -1580,144 +1569,67 @@ export const useGameStore = create((set, get) => ({
           if (isSfxOn && sfx.playHit) sfx.playHit();
           set({ playerVisual: "attack-2" });
           get().damageEnemy(targetId, finalActionDmg);
+          set({ playerShoutText: "" }); 
           await delay(500);
 
-          if (vampireFangCount > 0) {
-            const vChance = 50 + (vampireFangCount - 1) * 25;
-            if (Math.random() * 100 < vChance) {
-              const stealAmount = Math.ceil(finalActionDmg / 2);
-              if (stealAmount > 0) {
-                const newHp = Math.min(
-                  get().playerData.max_hp,
-                  get().playerData.hp + stealAmount,
-                );
-                set({ playerData: { ...get().playerData, hp: newHp } });
-                get().addPopup({
-                  id: Math.random(),
-                  x: get().playerX,
-                  y: FIXED_Y - 80,
-                  value: `+${stealAmount} HP`,
-                  color: "#2ecc71",
-                });
-                if (isSfxOn && sfx.playHeal) sfx.playHeal();
-                await delay(600);
-              }
+          if (hasVampire) {
+            const stealAmount = Math.ceil(finalActionDmg / 2);
+            if (stealAmount > 0) {
+              const newHp = Math.min(get().playerData.max_hp, get().playerData.hp + stealAmount);
+              set({ playerData: { ...get().playerData, hp: newHp } });
+              get().addPopup({
+                id: Math.random(),
+                x: get().playerX,
+                y: FIXED_Y - 80,
+                value: `+${stealAmount} HP`,
+                color: "#2ecc71",
+              });
+              if (isSfxOn && sfx.playHeal) sfx.playHeal();
+              await delay(600);
             }
           }
 
           const aliveEnemies = get().enemies.filter((e) => e.hp > 0);
-
           if (aliveEnemies.length > 0) {
-            const sortedTargets = [...aliveEnemies].sort((a, b) =>
-              a.id === targetId ? -1 : 1,
-            );
+            const sortedTargets = [...aliveEnemies].sort((a, b) => a.id === targetId ? -1 : 1);
             const mainTarget = sortedTargets[0];
 
             if (poisonCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              const newDebuffs = Array(poisonCount).fill({
-                status: "poison",
-                duration: 10,
-              });
-              get().updateEnemy(mainTarget.id, {
-                savedStatuses: [...currentStatuses, ...newDebuffs],
-              });
-              get().addPopup({
-                id: Math.random(),
-                x: mainTarget.x,
-                y: FIXED_Y - 80,
-                value: "POISONED!",
-                color: "#2ecc71",
-              });
+              const newDebuffs = Array(poisonCount).fill({ status: "poison", duration: 10 });
+              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
+              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "POISONED!", color: "#2ecc71" });
               await delay(500);
             }
 
             if (bleedCount > 0) {
-              const bChance = 50 + (bleedCount - 1) * 25;
-              if (Math.random() * 100 < bChance) {
-                const currentStatuses = mainTarget.savedStatuses || [];
-                get().updateEnemy(mainTarget.id, {
-                  savedStatuses: [
-                    ...currentStatuses,
-                    { status: "bleed", duration: 6 }, 
-                  ],
-                });
-                get().addPopup({
-                  id: Math.random(),
-                  x: mainTarget.x,
-                  y: FIXED_Y - 80,
-                  value: "BLEEDING!",
-                  color: "#e74c3c",
-                });
-                await delay(500);
-              }
+              const currentStatuses = mainTarget.savedStatuses || [];
+              const newDebuffs = Array(bleedCount).fill({ status: "bleed", duration: 6 });
+              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
+              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLEEDING!", color: "#e74c3c" });
+              await delay(500);
             }
 
             if (stunCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              let successStunCount = 0;
-              for (let k = 0; k < stunCount; k++) {
-                if (Math.random() * 100 < 75) successStunCount++;
-              }
-              if (successStunCount > 0) {
-                const newDebuffs = Array(successStunCount).fill({
-                  status: "stun",
-                  duration: 1,
-                });
-                get().updateEnemy(mainTarget.id, {
-                  savedStatuses: [...currentStatuses, ...newDebuffs],
-                });
-                get().addPopup({
-                  id: Math.random(),
-                  x: mainTarget.x,
-                  y: FIXED_Y - 80,
-                  value: "STUNNED!",
-                  color: "#f1c40f",
-                });
-                await delay(500);
-              }
+              const newDebuffs = Array(stunCount).fill({ status: "stun", duration: 1 });
+              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
+              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "STUNNED!", color: "#f1c40f" });
+              await delay(500);
             }
 
             if (blindCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              let successBlindCount = 0;
-              for (let k = 0; k < blindCount; k++) {
-                if (Math.random() * 100 < 75) successBlindCount++;
-              }
-              if (successBlindCount > 0) {
-                const newDebuffs = Array(successBlindCount).fill({
-                  status: "blind",
-                  duration: 2,
-                });
-                get().updateEnemy(mainTarget.id, {
-                  savedStatuses: [...currentStatuses, ...newDebuffs],
-                });
-                get().addPopup({
-                  id: Math.random(),
-                  x: mainTarget.x,
-                  y: FIXED_Y - 80,
-                  value: "BLINDED!",
-                  color: "#8e44ad",
-                });
-                await delay(500);
-              }
+              const newDebuffs = Array(blindCount).fill({ status: "blind", duration: 2 });
+              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
+              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLINDED!", color: "#8e44ad" });
+              await delay(500);
             }
           }
 
           if (bonusShield > 0) {
-            set({
-              playerData: {
-                ...get().playerData,
-                shield: get().playerData.shield + bonusShield,
-              },
-            });
-            get().addPopup({
-              id: Math.random(),
-              x: get().playerX,
-              y: FIXED_Y - 60,
-              value: `+${bonusShield} SHIELD`,
-              color: "#2e75cc",
-            });
+            set({ playerData: { ...get().playerData, shield: get().playerData.shield + bonusShield } });
+            get().addPopup({ id: Math.random(), x: get().playerX, y: FIXED_Y - 60, value: `+${bonusShield} SHIELD`, color: "#2e75cc" });
             await delay(500);
           }
 
@@ -1727,19 +1639,14 @@ export const useGameStore = create((set, get) => ({
           }
 
         } else {
+          set({ playerShoutText: "" }); 
           if (meaningStr) {
              get().updateEnemy(targetId, { shoutText: meaningStr });
              await delay(1200); 
              get().updateEnemy(targetId, { shoutText: "" });
           }
 
-          get().addPopup({
-            id: Math.random(),
-            x: target.x,
-            y: FIXED_Y - 60,
-            value: "MISSED!",
-            color: "#95a5a6",
-          });
+          get().addPopup({ id: Math.random(), x: target.x, y: FIXED_Y - 60, value: "MISSED!", color: "#95a5a6" });
           if (isSfxOn && sfx.playMiss) sfx.playMiss();
           await delay(500);
         }
@@ -1750,17 +1657,10 @@ export const useGameStore = create((set, get) => ({
     }
 
     if (recoilDamage > 0) {
-      get().addPopup({
-        id: Math.random(),
-        x: PLAYER_X_POS,
-        y: FIXED_Y - 90,
-        value: `Recoil!`,
-        color: "#c0392b",
-      });
+      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 90, value: `Recoil!`, color: "#c0392b" });
       if (isSfxOn && sfx.playHit) sfx.playHit();
       get().damagePlayer(recoilDamage, true);
       await delay(800);
-
       if (get().playerData.hp <= 0) return;
     }
 
@@ -1768,18 +1668,14 @@ export const useGameStore = create((set, get) => ({
     
     const stillAliveEnemies = get().enemies.filter((e) => e.hp > 0);
     if (stillAliveEnemies.length === 0) {
-       if (actionType === "Skill") {
-          set({ playerData: { ...get().playerData, mana: 0 } });
-       }
+       if (actionType === "Skill") set({ playerData: { ...get().playerData, mana: 0 } });
        get().handleWaveClear();
        return;
     }
     
     if (actionType === "Skill") {
        set({ playerData: { ...get().playerData, mana: 0 } });
-       
        await get().fillInventorySlots();
-       
        set({ gameState: "PLAYERTURN" });
     } else {
        get().endTurn();
@@ -1844,7 +1740,7 @@ export const useGameStore = create((set, get) => ({
       remainingDmg -= blockAmount;
       get().addPopup({
         id: Math.random(),
-        x: PLAYER_X_POS,
+        x: PLAYER_X_POS ,
         y: FIXED_Y - 60,
         value: "BLOCK!",
         color: "#ffffff",
@@ -1860,7 +1756,7 @@ export const useGameStore = create((set, get) => ({
     if (remainingDmg > 0) {
       get().addPopup({
         id: Math.random(),
-        x: PLAYER_X_POS - 2,
+        x: PLAYER_X_POS + 3,
         y: FIXED_Y - 50,
         value: remainingDmg,
         color: "#cc2e2e",
@@ -2067,7 +1963,7 @@ export const useGameStore = create((set, get) => ({
       let enemyBleedCount = 0;
       let enemyStunCount = 0;
       let enemyBlindCount = 0;
-      let enemyVampireCount = 0;
+      let enemyHasVampire = false;
 
       let enemyHealAmount = 0;
       let enemyBlessCount = 0;
@@ -2090,7 +1986,7 @@ export const useGameStore = create((set, get) => ({
           if (targetItem.buff === "add_bleed") enemyBleedCount++;
           if (targetItem.buff === "add_stun") enemyStunCount++;
           if (targetItem.buff === "add_blind") enemyBlindCount++;
-          if (targetItem.buff === "vampire_fang" && actionType === "strike") enemyVampireCount++;
+          if (targetItem.buff === "vampire_fang" && actionType === "strike") enemyHasVampire = true;
 
           if (targetItem.buff === "heal" && actionType === "guard") enemyHealAmount += Math.ceil(letterDmg);
           if (targetItem.buff === "bless" && actionType === "guard") enemyBlessCount++;
@@ -2160,22 +2056,17 @@ export const useGameStore = create((set, get) => ({
         await delay(500);
       }
       
-      if (enemyVampireCount > 0 && actionType === "strike") {
-        const vChance = 50 + (enemyVampireCount - 1) * 25;
-        if (Math.random() * 100 < vChance) {
-          const stealAmount = Math.ceil(finalValue / 2);
-          if (stealAmount > 0) {
-            newEnHp = Math.min(en.max_hp, newEnHp + stealAmount);
-            get().addPopup({
-              id: Math.random(),
-              x: en.x,
-              y: FIXED_Y - 80,
-              value: `+${stealAmount} HP`,
-              color: "#2ecc71",
-            });
-            await delay(500);
-          }
-        }
+      if (enemyHasVampire && actionType === "strike" && finalValue > 0) {
+        const stealAmount = Math.ceil(finalValue / 2);
+        newEnHp = Math.min(en.max_hp, newEnHp + stealAmount);
+        get().addPopup({
+          id: Math.random(),
+          x: en.x,
+          y: FIXED_Y - 80,
+          value: `+${stealAmount} HP`,
+          color: "#2ecc71",
+        });
+        await delay(500);
       }
 
       get().updateEnemy(en.id, {
@@ -2218,31 +2109,16 @@ export const useGameStore = create((set, get) => ({
           await delay(500);
         }
         if (enemyBleedCount > 0) {
-          const bChance = 50 + (enemyBleedCount - 1) * 25;
-          if (Math.random() * 100 < bChance) {
-            get().applyStatusToPlayer("bleed", 100, 1, 3);
-            await delay(500);
-          }
+          get().applyStatusToPlayer("bleed", 100, enemyBleedCount, 3);
+          await delay(500);
         }
         if (enemyStunCount > 0) {
-          let successStunCount = 0;
-          for (let k = 0; k < enemyStunCount; k++) {
-            if (Math.random() * 100 < 75) successStunCount++;
-          }
-          if (successStunCount > 0) {
-            get().applyStatusToPlayer("stun", 100, successStunCount, 1);
-            await delay(500);
-          }
+          get().applyStatusToPlayer("stun", 100, enemyStunCount, 1);
+          await delay(500);
         }
         if (enemyBlindCount > 0) {
-          let successBlindCount = 0;
-          for (let k = 0; k < enemyBlindCount; k++) {
-            if (Math.random() * 100 < 75) successBlindCount++;
-          }
-          if (successBlindCount > 0) {
-            get().applyStatusToPlayer("blind", 100, successBlindCount, 2);
-            await delay(500);
-          }
+          get().applyStatusToPlayer("blind", 100, enemyBlindCount, 2);
+          await delay(500);
         }
       }
 
