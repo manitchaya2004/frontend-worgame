@@ -42,9 +42,6 @@ import { GameDialog } from "../../components/GameDialog";
 import LoadingScreen from "../../components/Loading/LoadingPage";
 import ErrorView from "../../components/Loading/ErrorView";
 
-// --------------------------------------------------------------------------
-// 🔲 SUB-COMPONENT: Top HUD Tooltip Wrapper
-// --------------------------------------------------------------------------
 const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -193,7 +190,6 @@ export default function GameApp() {
       if (item.buff === "heal") healTotal += Math.ceil(base);
     });
 
-    // 🌟 FIX: อัปเดต Recoil Damage ใน Prediction ให้คำนวณเป็น 50% ของดาเมจโจมตี
     if (excessLetters > 0) {
       recoilDmg = Math.max(1, Math.floor(strikeTotal * 0.5));
     }
@@ -289,7 +285,7 @@ export default function GameApp() {
           stageCoins: store.stageData?.money_reward || 0,
           wordLog: store.wordLog,
           stageId: store.stageData?.id,
-          hasMaxSlotUpgrade: store.stageData?.is_upgrade_potionn
+          hasMaxSlotUpgrade: store.stageData?.is_upgrade_potionn,
         },
       });
       setTimeout(() => {
@@ -312,7 +308,13 @@ export default function GameApp() {
         store.resetSelection();
       }, 100);
     }
-  }, [store.gameState, navigate, store.receivedCoin, store.stageData, store.wordLog]);
+  }, [
+    store.gameState,
+    navigate,
+    store.receivedCoin,
+    store.stageData,
+    store.wordLog,
+  ]);
 
   const handleExit = useCallback(async () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
@@ -370,14 +372,24 @@ export default function GameApp() {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          background: "#121212",
+          background: "#000",
           overflow: "hidden",
           position: "fixed",
           top: 0,
           left: 0,
         }}
       >
-        <div
+        {/* 🌟 Main Container พร้อม Screen Shake ถ้ามี store.isShaking */}
+        <motion.div
+          animate={
+            store.isShaking
+              ? {
+                  x: [-2, 2, -2, 2, 0],
+                  y: [1, -1, 1, -1, 0],
+                }
+              : {}
+          }
+          transition={{ duration: 0.2 }}
           style={{
             width: `${BASE_WIDTH}px`,
             height: `${BASE_HEIGHT}px`,
@@ -390,26 +402,31 @@ export default function GameApp() {
             background: "#B3F1FF",
             position: "relative",
             overflow: "hidden",
-            boxShadow: "0 0 20px rgba(0,0,0,0.8)",
+            boxShadow: "0 0 50px rgba(0,0,0,1)",
           }}
         >
+          {/* HUD Layer */}
           <div
             style={{
               position: "absolute",
               top: "20px",
               left: "20px",
-              zIndex: 1000,
+              zIndex: 3000,
               display: "flex",
               gap: "12px",
             }}
           >
-            <div
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => setIsDialogOpen(true)}
               style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
             >
               <MdFlag size={26} color="#e74c3c" />
-            </div>
-            <div
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={store.toggleSfx}
               style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
             >
@@ -418,8 +435,10 @@ export default function GameApp() {
               ) : (
                 <GiSpeakerOff size={26} color="#9e9e9e" />
               )}
-            </div>
-            <div
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={store.toggleBgm}
               style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
             >
@@ -428,7 +447,7 @@ export default function GameApp() {
               ) : (
                 <MdMusicOff size={26} color="#9e9e9e" />
               )}
-            </div>
+            </motion.div>
           </div>
 
           <div
@@ -436,7 +455,7 @@ export default function GameApp() {
               position: "absolute",
               top: "20px",
               right: "20px",
-              zIndex: 1000,
+              zIndex: 3000,
               display: "flex",
               gap: "10px",
             }}
@@ -446,7 +465,17 @@ export default function GameApp() {
               desc="Earned by defeating enemies."
               align="right"
             >
-              <div style={{ ...commonHudStyle, padding: "0 16px", gap: "8px" }}>
+              <motion.div
+                animate={{
+                  boxShadow: [
+                    "0 4px 10px rgba(0,0,0,0.6)",
+                    "0 4px 15px rgba(255,215,0,0.3)",
+                    "0 4px 10px rgba(0,0,0,0.6)",
+                  ],
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+                style={{ ...commonHudStyle, padding: "0 16px", gap: "8px" }}
+              >
                 <GiTwoCoins size={28} color="#ffd700" />
                 <span
                   style={{
@@ -457,14 +486,15 @@ export default function GameApp() {
                 >
                   {store.receivedCoin}
                 </span>
-              </div>
+              </motion.div>
             </TopHudTooltipWrapper>
+
             <TopHudTooltipWrapper
               title="Distance Covered"
               desc="How far you have traveled."
               align="right"
             >
-              <div
+              <motion.div
                 style={{
                   ...commonHudStyle,
                   padding: "0 20px",
@@ -494,10 +524,11 @@ export default function GameApp() {
                     METERS
                   </span>
                 </div>
-              </div>
+              </motion.div>
             </TopHudTooltipWrapper>
           </div>
 
+          {/* Game World Area */}
           <div
             style={{
               flex: 1,
@@ -510,6 +541,7 @@ export default function GameApp() {
               backgroundSize: "auto 100%",
               backgroundPositionY: "bottom",
               backgroundPositionX: `-${store.distance * 20}px`,
+              transition: "background-position 0.1s linear",
             }}
           >
             <TurnQueueBar store={store} />
@@ -625,6 +657,7 @@ export default function GameApp() {
             </AnimatePresence>
           </div>
 
+          {/* Down Panel with Turn Glow Effect */}
           <div
             style={{
               flex: 1,
@@ -634,8 +667,30 @@ export default function GameApp() {
               padding: "15px 0px",
               boxSizing: "border-box",
               position: "relative",
+              boxShadow:
+                store.gameState === "PLAYERTURN"
+                  ? "inset 0 10px 30px rgba(212,175,55,0.15)"
+                  : "none",
+              transition: "box-shadow 0.5s ease",
             }}
           >
+            {store.gameState === "PLAYERTURN" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0.3, 0.6, 0.3] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                style={{
+                  position: "absolute",
+                  top: -6,
+                  left: 0,
+                  right: 0,
+                  height: "4px",
+                  background: "#ffd700",
+                  zIndex: 3001,
+                }}
+              />
+            )}
+
             <div
               style={{
                 flex: 1,
@@ -671,7 +726,7 @@ export default function GameApp() {
                     height: "100%",
                   }}
                 >
-                  <PlayerStatusCard 
+                  <PlayerStatusCard
                     onHeal={() => store.usePotion("health")}
                     onCure={() => store.usePotion("cure")}
                     onReroll={() => store.usePotion("reroll")}
@@ -688,7 +743,7 @@ export default function GameApp() {
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <GameDialog
@@ -713,6 +768,7 @@ const PredictionBadge = memo(
         initial={{ opacity: 0, scale: 0.8, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.8, y: 10 }}
+        whileHover={{ y: -5 }}
       >
         <div
           style={{
@@ -727,9 +783,17 @@ const PredictionBadge = memo(
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
           }}
         >
-          <span style={{ color, fontSize: "18px", fontWeight: "bold" }}>
+          <span
+            style={{
+              color,
+              fontSize: "18px",
+              fontWeight: "bold",
+              textShadow: "2px 2px 0px rgba(0,0,0,0.5)",
+            }}
+          >
             {displayValue.min === displayValue.max
               ? displayValue.min
               : `${displayValue.min}-${displayValue.max}`}

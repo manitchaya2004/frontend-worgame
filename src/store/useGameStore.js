@@ -1350,6 +1350,7 @@ export const useGameStore = create((set, get) => ({
         return; 
       }
     }
+    // --------------------------------------------------
 
     const itemsUsedInAction = store.selectedLetters.filter((l) => l !== null);
     const wordLength = itemsUsedInAction.length;
@@ -1396,7 +1397,6 @@ export const useGameStore = create((set, get) => ({
     });
 
     const totalDmg = chanceRound(totalDmgRaw);
-    
     const finalActionDmg = actionType === "Skill" ? totalDmg * 2 : totalDmg;
 
     let recoilDamage = 0;
@@ -1409,8 +1409,7 @@ export const useGameStore = create((set, get) => ({
 
     if (validWordInfo) {
       const lowerWord = word.toLowerCase();
-      const currentType =
-        validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
+      const currentType = validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
       const filteredMatches = validWordInfo.fullMatches.filter(
         (m) => (m.category || m.type || "Word") === currentType,
       );
@@ -1449,8 +1448,7 @@ export const useGameStore = create((set, get) => ({
           .map((item, idx) => (item?.status ? idx : -1))
           .filter((idx) => idx !== -1);
         if (infectedIndices.length > 0) {
-          const rIdx =
-            infectedIndices[Math.floor(Math.random() * infectedIndices.length)];
+          const rIdx = infectedIndices[Math.floor(Math.random() * infectedIndices.length)];
           currentInv[rIdx].status = null;
           currentInv[rIdx].statusDuration = 0;
         } else if (playerSavedStatuses.length > 0) {
@@ -1472,7 +1470,7 @@ export const useGameStore = create((set, get) => ({
     });
 
     set((s) => ({
-      playerShoutText: actionType === "Skill" ? "SKILL!" : actionType,
+      playerShoutText: word.toUpperCase(),
       playerVisual: "idle-1",
       playerData: {
         ...s.playerData,
@@ -1504,10 +1502,7 @@ export const useGameStore = create((set, get) => ({
     if (actionType === "Guard") {
       let finalHp = get().playerData.hp;
       if (healAmount > 0) {
-        finalHp = Math.min(
-          get().playerData.max_hp,
-          get().playerData.hp + healAmount,
-        );
+        finalHp = Math.min(get().playerData.max_hp, get().playerData.hp + healAmount);
         get().addPopup({
           id: Math.random(),
           x: PLAYER_X_POS,
@@ -1540,7 +1535,6 @@ export const useGameStore = create((set, get) => ({
     } else if (actionType === "Strike" || actionType === "Skill") {
       const target = enemies.find((e) => e.id === targetId);
       if (target) {
-        
         let isHit = true;
         let meaningStr = ""; 
         
@@ -1552,9 +1546,7 @@ export const useGameStore = create((set, get) => ({
               (m) => (m.category || m.type || "Word") === currentType
             );
             const matchToUse = filteredMatches[0] || validWordInfo.fullMatches[0];
-            
             wordLevel = matchToUse.level?.toUpperCase() || "A1";
-            
             meaningStr = typeof matchToUse.meaning === "string"
               ? matchToUse.meaning.split(/,(?![^()]*\))/)[0].trim()
               : matchToUse.meaning || "???";
@@ -1566,9 +1558,7 @@ export const useGameStore = create((set, get) => ({
           else if (wordLevel === "B2") hitChance = 90;
 
           const roll = Math.floor(Math.random() * 100);
-          if (roll >= hitChance) {
-            isHit = false; 
-          }
+          if (roll >= hitChance) isHit = false; 
         }
 
         set({ playerX: target.x - 10, playerVisual: "walk" });
@@ -1580,17 +1570,17 @@ export const useGameStore = create((set, get) => ({
           if (isSfxOn && sfx.playHit) sfx.playHit();
           set({ playerVisual: "attack-2" });
           get().damageEnemy(targetId, finalActionDmg);
+          // หลังจากโจมตีโดน ค่อยล้างคำพูดออก
+          set({ playerShoutText: "" }); 
           await delay(500);
 
+          // ... (โค้ดส่วนสถานะอื่นๆ เหมือนเดิม)
           if (vampireFangCount > 0) {
             const vChance = 50 + (vampireFangCount - 1) * 25;
             if (Math.random() * 100 < vChance) {
               const stealAmount = Math.ceil(finalActionDmg / 2);
               if (stealAmount > 0) {
-                const newHp = Math.min(
-                  get().playerData.max_hp,
-                  get().playerData.hp + stealAmount,
-                );
+                const newHp = Math.min(get().playerData.max_hp, get().playerData.hp + stealAmount);
                 set({ playerData: { ...get().playerData, hp: newHp } });
                 get().addPopup({
                   id: Math.random(),
@@ -1606,29 +1596,15 @@ export const useGameStore = create((set, get) => ({
           }
 
           const aliveEnemies = get().enemies.filter((e) => e.hp > 0);
-
           if (aliveEnemies.length > 0) {
-            const sortedTargets = [...aliveEnemies].sort((a, b) =>
-              a.id === targetId ? -1 : 1,
-            );
+            const sortedTargets = [...aliveEnemies].sort((a, b) => a.id === targetId ? -1 : 1);
             const mainTarget = sortedTargets[0];
 
             if (poisonCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              const newDebuffs = Array(poisonCount).fill({
-                status: "poison",
-                duration: 10,
-              });
-              get().updateEnemy(mainTarget.id, {
-                savedStatuses: [...currentStatuses, ...newDebuffs],
-              });
-              get().addPopup({
-                id: Math.random(),
-                x: mainTarget.x,
-                y: FIXED_Y - 80,
-                value: "POISONED!",
-                color: "#2ecc71",
-              });
+              const newDebuffs = Array(poisonCount).fill({ status: "poison", duration: 10 });
+              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
+              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "POISONED!", color: "#2ecc71" });
               await delay(500);
             }
 
@@ -1636,19 +1612,8 @@ export const useGameStore = create((set, get) => ({
               const bChance = 50 + (bleedCount - 1) * 25;
               if (Math.random() * 100 < bChance) {
                 const currentStatuses = mainTarget.savedStatuses || [];
-                get().updateEnemy(mainTarget.id, {
-                  savedStatuses: [
-                    ...currentStatuses,
-                    { status: "bleed", duration: 6 }, 
-                  ],
-                });
-                get().addPopup({
-                  id: Math.random(),
-                  x: mainTarget.x,
-                  y: FIXED_Y - 80,
-                  value: "BLEEDING!",
-                  color: "#e74c3c",
-                });
+                get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, { status: "bleed", duration: 6 }] });
+                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLEEDING!", color: "#e74c3c" });
                 await delay(500);
               }
             }
@@ -1656,24 +1621,11 @@ export const useGameStore = create((set, get) => ({
             if (stunCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
               let successStunCount = 0;
-              for (let k = 0; k < stunCount; k++) {
-                if (Math.random() * 100 < 75) successStunCount++;
-              }
+              for (let k = 0; k < stunCount; k++) { if (Math.random() * 100 < 75) successStunCount++; }
               if (successStunCount > 0) {
-                const newDebuffs = Array(successStunCount).fill({
-                  status: "stun",
-                  duration: 1,
-                });
-                get().updateEnemy(mainTarget.id, {
-                  savedStatuses: [...currentStatuses, ...newDebuffs],
-                });
-                get().addPopup({
-                  id: Math.random(),
-                  x: mainTarget.x,
-                  y: FIXED_Y - 80,
-                  value: "STUNNED!",
-                  color: "#f1c40f",
-                });
+                const newDebuffs = Array(successStunCount).fill({ status: "stun", duration: 1 });
+                get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
+                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "STUNNED!", color: "#f1c40f" });
                 await delay(500);
               }
             }
@@ -1681,43 +1633,19 @@ export const useGameStore = create((set, get) => ({
             if (blindCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
               let successBlindCount = 0;
-              for (let k = 0; k < blindCount; k++) {
-                if (Math.random() * 100 < 75) successBlindCount++;
-              }
+              for (let k = 0; k < blindCount; k++) { if (Math.random() * 100 < 75) successBlindCount++; }
               if (successBlindCount > 0) {
-                const newDebuffs = Array(successBlindCount).fill({
-                  status: "blind",
-                  duration: 2,
-                });
-                get().updateEnemy(mainTarget.id, {
-                  savedStatuses: [...currentStatuses, ...newDebuffs],
-                });
-                get().addPopup({
-                  id: Math.random(),
-                  x: mainTarget.x,
-                  y: FIXED_Y - 80,
-                  value: "BLINDED!",
-                  color: "#8e44ad",
-                });
+                const newDebuffs = Array(successBlindCount).fill({ status: "blind", duration: 2 });
+                get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
+                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLINDED!", color: "#8e44ad" });
                 await delay(500);
               }
             }
           }
 
           if (bonusShield > 0) {
-            set({
-              playerData: {
-                ...get().playerData,
-                shield: get().playerData.shield + bonusShield,
-              },
-            });
-            get().addPopup({
-              id: Math.random(),
-              x: get().playerX,
-              y: FIXED_Y - 60,
-              value: `+${bonusShield} SHIELD`,
-              color: "#2e75cc",
-            });
+            set({ playerData: { ...get().playerData, shield: get().playerData.shield + bonusShield } });
+            get().addPopup({ id: Math.random(), x: get().playerX, y: FIXED_Y - 60, value: `+${bonusShield} SHIELD`, color: "#2e75cc" });
             await delay(500);
           }
 
@@ -1727,19 +1655,15 @@ export const useGameStore = create((set, get) => ({
           }
 
         } else {
+          // ถ้า Miss ให้ล้างคำพูดผู้เล่นออก แล้วให้ศัตรูพูดความหมายแทน
+          set({ playerShoutText: "" }); 
           if (meaningStr) {
              get().updateEnemy(targetId, { shoutText: meaningStr });
              await delay(1200); 
              get().updateEnemy(targetId, { shoutText: "" });
           }
 
-          get().addPopup({
-            id: Math.random(),
-            x: target.x,
-            y: FIXED_Y - 60,
-            value: "MISSED!",
-            color: "#95a5a6",
-          });
+          get().addPopup({ id: Math.random(), x: target.x, y: FIXED_Y - 60, value: "MISSED!", color: "#95a5a6" });
           if (isSfxOn && sfx.playMiss) sfx.playMiss();
           await delay(500);
         }
@@ -1750,36 +1674,26 @@ export const useGameStore = create((set, get) => ({
     }
 
     if (recoilDamage > 0) {
-      get().addPopup({
-        id: Math.random(),
-        x: PLAYER_X_POS,
-        y: FIXED_Y - 90,
-        value: `Recoil!`,
-        color: "#c0392b",
-      });
+      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 90, value: `Recoil!`, color: "#c0392b" });
       if (isSfxOn && sfx.playHit) sfx.playHit();
       get().damagePlayer(recoilDamage, true);
       await delay(800);
-
       if (get().playerData.hp <= 0) return;
     }
 
     set({ playerVisual: "idle-1", playerShoutText: "" });
     
+    // ... (ส่วนจบ Wave และ Skill เหมือนเดิม)
     const stillAliveEnemies = get().enemies.filter((e) => e.hp > 0);
     if (stillAliveEnemies.length === 0) {
-       if (actionType === "Skill") {
-          set({ playerData: { ...get().playerData, mana: 0 } });
-       }
+       if (actionType === "Skill") set({ playerData: { ...get().playerData, mana: 0 } });
        get().handleWaveClear();
        return;
     }
     
     if (actionType === "Skill") {
        set({ playerData: { ...get().playerData, mana: 0 } });
-       
        await get().fillInventorySlots();
-       
        set({ gameState: "PLAYERTURN" });
     } else {
        get().endTurn();
@@ -1860,7 +1774,7 @@ export const useGameStore = create((set, get) => ({
     if (remainingDmg > 0) {
       get().addPopup({
         id: Math.random(),
-        x: PLAYER_X_POS - 2,
+        x: PLAYER_X_POS + 3,
         y: FIXED_Y - 50,
         value: remainingDmg,
         color: "#cc2e2e",
