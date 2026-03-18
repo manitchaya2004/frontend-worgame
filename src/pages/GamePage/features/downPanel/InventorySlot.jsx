@@ -53,19 +53,39 @@ const BUFF_DEFINITION_MAP = {
 
 const defaultBuffDef = { icon: <GiStarsStack />, color: "#95a5a6" };
 
+const canHover = () => {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+};
+
 /* ===== Reusable Pixel Bar ===== */
-const PixelBar = ({ current, max, color, height = "18px", labelColor = "#fff", labelText = "", tooltipTitle = "", tooltipDesc = "" }) => {
+const PixelBar = ({
+  current,
+  max,
+  color,
+  height = "18px",
+  labelColor = "#fff",
+  labelText = "",
+  tooltipTitle = "",
+  tooltipDesc = "",
+}) => {
   const [isHovered, setIsHovered] = useState(false);
+  const allowHover = useMemo(() => canHover(), []);
   const percent = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
-  
+
   return (
-    <div 
+    <div
       style={{ position: "relative", width: "100%" }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={allowHover ? () => setIsHovered(true) : undefined}
+      onMouseLeave={allowHover ? () => setIsHovered(false) : undefined}
+      onTouchStart={() => setIsHovered(false)}
     >
       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", gap: "4px", cursor: "default" }}>
-        <span style={{ fontSize: "14px", fontWeight: "900", color: color, textShadow: "1px 1px 0 #000", fontFamily: "monospace", minWidth: "22px", textAlign: "left", lineHeight: 1 }}>{labelText}</span>
+        <span style={{ fontSize: "14px", fontWeight: "900", color: color, textShadow: "1px 1px 0 #000", fontFamily: "monospace", minWidth: "22px", textAlign: "left", lineHeight: 1 }}>
+          {labelText}
+        </span>
         <div style={{ position: "relative", flex: 1, height: height, background: "#1a1a1a", border: "1px solid #3d2e24", borderRadius: "4px", overflow: "hidden", boxShadow: "inset 0 0 5px rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${percent}%`, background: color, transition: "width 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3)" }} />
           <span style={{ position: "relative", fontSize: "10px", fontWeight: "900", color: labelColor, textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000", zIndex: 5, lineHeight: 1, fontFamily: "monospace, sans-serif" }}>
@@ -73,9 +93,36 @@ const PixelBar = ({ current, max, color, height = "18px", labelColor = "#fff", l
           </span>
         </div>
       </div>
+
       <AnimatePresence>
-        {isHovered && (
-          <motion.div initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }} exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} transition={{ duration: 0.15 }} style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "8px 10px", minWidth: "140px", zIndex: 100, pointerEvents: "none", boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)", display: "flex", flexDirection: "column", gap: "4px", whiteSpace: "nowrap" }}><div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} /><span style={{ color: color, fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>{tooltipTitle}</span><span style={{ color: "#bdc3c7", fontSize: "11px" }}>{tooltipDesc}</span></motion.div>
+        {allowHover && isHovered && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "absolute",
+              bottom: "calc(100% + 8px)",
+              left: "50%",
+              background: "rgba(15, 11, 8, 0.95)",
+              border: "1px solid #d4af37",
+              borderRadius: "6px",
+              padding: "8px 10px",
+              minWidth: "140px",
+              zIndex: 100,
+              pointerEvents: "none",
+              boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} />
+            <span style={{ color: color, fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>{tooltipTitle}</span>
+            <span style={{ color: "#bdc3c7", fontSize: "11px" }}>{tooltipDesc}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -85,15 +132,33 @@ const PixelBar = ({ current, max, color, height = "18px", labelColor = "#fff", l
 /* ===== Mini Stat Box ===== */
 const MiniStatBox = ({ icon, value, label, color, tooltipDesc }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const allowHover = useMemo(() => canHover(), []);
+
   return (
-    <div style={{ position: "relative", width: "100%" }} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <div
+      style={{ position: "relative", width: "100%" }}
+      onMouseEnter={allowHover ? () => setIsHovered(true) : undefined}
+      onMouseLeave={allowHover ? () => setIsHovered(false) : undefined}
+      onTouchStart={() => setIsHovered(false)}
+    >
       <div style={{ background: "rgba(20,20,20,0.6)", border: "1px solid #3d2e24", borderRadius: "4px", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", cursor: "default", boxShadow: "inset 0 0 5px rgba(0,0,0,0.8)" }}>
         <div style={{ color: color, fontSize: "18px", display: "flex" }}>{icon}</div>
         <span style={{ color: "#fff", fontSize: "14px", fontWeight: "900", fontFamily: "monospace" }}>{value}</span>
       </div>
+
       <AnimatePresence>
-        {isHovered && (
-          <motion.div initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }} exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} transition={{ duration: 0.15 }} style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "6px 8px", minWidth: "100px", zIndex: 100, pointerEvents: "none", boxShadow: "0 4px 8px rgba(0,0,0,0.8)", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", whiteSpace: "nowrap" }}><div style={{ position: "absolute", bottom: "-4px", left: "50%", marginLeft: "-4px", width: "8px", height: "8px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} /><span style={{ color: color, fontSize: "11px", fontWeight: "bold", textTransform: "uppercase" }}>{label}</span><span style={{ color: "#bdc3c7", fontSize: "10px" }}>{tooltipDesc}</span></motion.div>
+        {allowHover && isHovered && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            transition={{ duration: 0.15 }}
+            style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "6px 8px", minWidth: "100px", zIndex: 100, pointerEvents: "none", boxShadow: "0 4px 8px rgba(0,0,0,0.8)", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", whiteSpace: "nowrap" }}
+          >
+            <div style={{ position: "absolute", bottom: "-4px", left: "50%", marginLeft: "-4px", width: "8px", height: "8px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} />
+            <span style={{ color: color, fontSize: "11px", fontWeight: "bold", textTransform: "uppercase" }}>{label}</span>
+            <span style={{ color: "#bdc3c7", fontSize: "10px" }}>{tooltipDesc}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -103,17 +168,40 @@ const MiniStatBox = ({ icon, value, label, color, tooltipDesc }) => {
 /* ===== Potion Slot ===== */
 const PotionSlot = ({ icon, count, color, label, description, onClick, disabled }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const allowHover = useMemo(() => canHover(), []);
   const isDisabled = count <= 0 || disabled;
+
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      <motion.div onClick={!isDisabled ? onClick : undefined} whileHover={!isDisabled ? { scale: 1.02, filter: "brightness(1.15)" } : {}} whileTap={!isDisabled ? { scale: 0.95 } : {}} style={{ position: "relative", background: isDisabled ? "rgba(20,20,20,0.6)" : "linear-gradient(180deg, rgba(30,30,30,0.5) 0%, rgba(10,10,10,0.9) 100%)", border: `1px solid #3d2e24`, borderRadius: "8px", height: "90px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: isDisabled ? "default" : "pointer", boxShadow: isDisabled ? "none" : "inset 0 0 10px rgba(0,0,0,0.8)", transition: "border 0.2s", opacity: isDisabled ? 0.6 : 1 }}>
+    <div
+      style={{ position: "relative", width: "100%", height: "100%" }}
+      onMouseEnter={allowHover ? () => setIsHovered(true) : undefined}
+      onMouseLeave={allowHover ? () => setIsHovered(false) : undefined}
+      onTouchStart={() => setIsHovered(false)}
+    >
+      <motion.div
+        onClick={!isDisabled ? onClick : undefined}
+        whileHover={!isDisabled && allowHover ? { scale: 1.02, filter: "brightness(1.15)" } : {}}
+        whileTap={!isDisabled ? { scale: 0.95 } : {}}
+        style={{ position: "relative", background: isDisabled ? "rgba(20,20,20,0.6)" : "linear-gradient(180deg, rgba(30,30,30,0.5) 0%, rgba(10,10,10,0.9) 100%)", border: `1px solid #3d2e24`, borderRadius: "8px", height: "90px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: isDisabled ? "default" : "pointer", boxShadow: isDisabled ? "none" : "inset 0 0 10px rgba(0,0,0,0.8)", transition: "border 0.2s", opacity: isDisabled ? 0.6 : 1 }}
+      >
         <div style={{ position: "absolute", top: "6px", fontSize: "9px", color: "#8b7355", fontWeight: "bold", letterSpacing: "1px" }}>{label}</div>
         <div style={{ fontSize: "45px", color: !isDisabled ? color : "#444", filter: !isDisabled ? "drop-shadow(0px 0px 8px rgba(255,255,255,0.2))" : "grayscale(100%) opacity(0.5)", transform: "translateY(5px)" }}>{icon}</div>
         <div style={{ position: "absolute", bottom: "4px", right: "6px", background: count > 0 ? "#c0392b" : "#555", color: "#fff", fontSize: "12px", fontWeight: "900", borderRadius: "4px", padding: "2px 6px", boxShadow: "0 2px 4px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)" }}>x{count}</div>
       </motion.div>
+
       <AnimatePresence>
-        {isHovered && (
-          <motion.div initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }} exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} transition={{ duration: 0.15 }} style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "8px 10px", minWidth: "120px", zIndex: 100, pointerEvents: "none", boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)", display: "flex", flexDirection: "column", gap: "4px", whiteSpace: "nowrap" }}><div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} /><span style={{ color: color, fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>{label} POTION</span><span style={{ color: "#bdc3c7", fontSize: "11px" }}>{description}</span></motion.div>
+        {allowHover && isHovered && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+            transition={{ duration: 0.15 }}
+            style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "8px 10px", minWidth: "120px", zIndex: 100, pointerEvents: "none", boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)", display: "flex", flexDirection: "column", gap: "4px", whiteSpace: "nowrap" }}
+          >
+            <div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} />
+            <span style={{ color: color, fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>{label} POTION</span>
+            <span style={{ color: "#bdc3c7", fontSize: "11px" }}>{description}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -148,6 +236,7 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
   const { playerData, username, gameState } = useGameStore();
   const [isShieldHovered, setIsShieldHovered] = useState(false);
   const [isDeckHovered, setIsDeckHovered] = useState(false);
+  const allowHover = useMemo(() => canHover(), []);
 
   if (!playerData) return null;
 
@@ -205,12 +294,33 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
             <div style={{ fontSize: "16px", fontWeight: "900", color: "#f5d76e", textShadow: "0 2px 0 #000" }}>{name || "UNKNOWN"}</div>
           </div>
         </div>
-        <div style={{ position: "relative" }} onMouseEnter={() => setIsShieldHovered(true)} onMouseLeave={() => setIsShieldHovered(false)}>
+
+        <div
+          style={{ position: "relative" }}
+          onMouseEnter={allowHover ? () => setIsShieldHovered(true) : undefined}
+          onMouseLeave={allowHover ? () => setIsShieldHovered(false) : undefined}
+          onTouchStart={() => setIsShieldHovered(false)}
+        >
           <div style={{ position: "relative", width: "32px", height: "32px", display: "flex", justifyContent: "center", alignItems: "center", cursor: "default" }}>
             <GiCheckedShield style={{ fontSize: "32px", color: shield > 0 ? "#3498db" : "#444" }} />
             <span style={{ position: "absolute", fontSize: "12px", fontWeight: "900", color: "#fff", zIndex: 2, marginTop: "2px", textShadow: "0px 0px 3px #000" }}>{shield}</span>
           </div>
-          <AnimatePresence>{isShieldHovered && (<motion.div initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }} exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} transition={{ duration: 0.15 }} style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "8px 10px", minWidth: "120px", zIndex: 100, pointerEvents: "none", boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)", display: "flex", flexDirection: "column", gap: "4px", whiteSpace: "nowrap" }}><div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} /><span style={{ color: "#3498db", fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>SHIELD: {shield}</span><span style={{ color: "#bdc3c7", fontSize: "11px" }}>Absorbs incoming damage.</span></motion.div>)}</AnimatePresence>
+
+          <AnimatePresence>
+            {allowHover && isShieldHovered && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+                animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+                transition={{ duration: 0.15 }}
+                style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "8px 10px", minWidth: "120px", zIndex: 100, pointerEvents: "none", boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)", display: "flex", flexDirection: "column", gap: "4px", whiteSpace: "nowrap" }}
+              >
+                <div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} />
+                <span style={{ color: "#3498db", fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>SHIELD: {shield}</span>
+                <span style={{ color: "#bdc3c7", fontSize: "11px" }}>Absorbs incoming damage.</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -235,10 +345,11 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
       </div>
 
       {/* DECK STATUS */}
-      <div 
+      <div
         style={{ position: "relative", width: "100%", marginTop: "4px" }}
-        onMouseEnter={() => setIsDeckHovered(true)}
-        onMouseLeave={() => setIsDeckHovered(false)}
+        onMouseEnter={allowHover ? () => setIsDeckHovered(true) : undefined}
+        onMouseLeave={allowHover ? () => setIsDeckHovered(false) : undefined}
+        onTouchStart={() => setIsDeckHovered(false)}
       >
         <div style={{
           background: "rgba(20,20,20,0.6)",
@@ -261,12 +372,21 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
 
         {/* Tooltip ของ Deck */}
         <AnimatePresence>
-          {isDeckHovered && (
-            <motion.div initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }} exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }} transition={{ duration: 0.15 }} style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "8px 10px", minWidth: "160px", zIndex: 100, pointerEvents: "none", boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)", display: "flex", flexDirection: "column", gap: "4px", whiteSpace: "nowrap" }}><div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} /><span style={{ color: "#9b59b6", fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>BUFF DECK</span><span style={{ color: "#bdc3c7", fontSize: "11px", whiteSpace: "normal" }}>Bright icons are remaining in draw pile.<br/>Dim icons are currently on the board or used.</span></motion.div>
+          {allowHover && isDeckHovered && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+              animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+              exit={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
+              transition={{ duration: 0.15 }}
+              style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", background: "rgba(15, 11, 8, 0.95)", border: "1px solid #d4af37", borderRadius: "6px", padding: "8px 10px", minWidth: "160px", zIndex: 100, pointerEvents: "none", boxShadow: "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)", display: "flex", flexDirection: "column", gap: "4px", whiteSpace: "nowrap" }}
+            >
+              <div style={{ position: "absolute", bottom: "-5px", left: "50%", marginLeft: "-5px", width: "10px", height: "10px", background: "rgba(15, 11, 8, 0.95)", borderRight: "1px solid #d4af37", borderBottom: "1px solid #d4af37", transform: "rotate(45deg)" }} />
+              <span style={{ color: "#9b59b6", fontSize: "12px", fontWeight: "bold", fontFamily: "'Palatino', serif" }}>BUFF DECK</span>
+              <span style={{ color: "#bdc3c7", fontSize: "11px", whiteSpace: "normal" }}>Bright icons are remaining in draw pile.<br />Dim icons are currently on the board or used.</span>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
-
     </div>
   );
 };
@@ -274,6 +394,7 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
 const SingleSlot = ({ index, maxSlot }) => {
   const store = useGameStore();
   const [isHovered, setIsHovered] = useState(false);
+  const allowHover = useMemo(() => canHover(), []);
 
   const inventory = store.playerData.inventory;
   const isPlayerTurn = store.gameState === "PLAYERTURN";
@@ -364,10 +485,11 @@ const SingleSlot = ({ index, maxSlot }) => {
   const hasSpecialEffect = tooltipBuff || tooltipDebuff;
 
   return (
-    <div 
+    <div
       style={{ position: "relative", padding: "2px", width: "100%", height: "100%", boxSizing: "border-box" }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={allowHover ? () => setIsHovered(true) : undefined}
+      onMouseLeave={allowHover ? () => setIsHovered(false) : undefined}
+      onTouchStart={() => setIsHovered(false)}
     >
       <div style={{
           width: "100%", height: "100%",
@@ -383,7 +505,7 @@ const SingleSlot = ({ index, maxSlot }) => {
               initial={{ opacity: 0, scale: 0.4 }}
               animate={{ opacity: 1, scale: 1, filter: isStunned ? "brightness(0.7) grayscale(0.3)" : "none" }}
               exit={{ opacity: 0, scale: 0.2 }}
-              whileHover={!isDisabled && !isStunned ? { scale: 1.05 } : {}}
+              whileHover={!isDisabled && !isStunned && allowHover ? { scale: 1.05 } : {}}
               onClick={onSelect}
               style={{
                 width: "92%", height: "94%", background: getSlotBackground(),
@@ -466,7 +588,7 @@ const SingleSlot = ({ index, maxSlot }) => {
       </div>
 
       <AnimatePresence>
-        {isHovered && item && !isLocked && (
+        {allowHover && isHovered && item && !isLocked && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95, x: "-50%" }}
             animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}

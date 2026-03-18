@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../../../service/supabaseClient";
+import { AnimatePresence, motion } from "framer-motion";
 
 const VALID_TYPES = [
   "noun",
@@ -13,6 +14,199 @@ const VALID_TYPES = [
 
 const VALID_LEVELS = ["A1", "A2", "B1", "B2"];
 
+const emptyWordForm = {
+  id: "",
+  word: "",
+  type: "",
+  meaning: "",
+  level: "",
+  is_oxford: false,
+};
+
+const DictionaryFormFields = ({ formData, handleChange }) => {
+  return (
+    <>
+      <input
+        className="input-field"
+        type="text"
+        name="word"
+        placeholder="Word"
+        value={formData.word}
+        onChange={handleChange}
+        required
+      />
+
+      <select
+        className="input-field"
+        name="type"
+        value={formData.type}
+        onChange={handleChange}
+        required
+      >
+        <option value="" disabled>
+          Select Type...
+        </option>
+        <option value="noun">noun</option>
+        <option value="verb">verb</option>
+        <option value="adjective">adjective</option>
+        <option value="adverb">adverb</option>
+        <option value="preposition">preposition</option>
+        <option value="conjunction">conjunction</option>
+        <option value="pronoun">pronoun</option>
+      </select>
+
+      <input
+        className="input-field"
+        type="text"
+        name="meaning"
+        placeholder="Meaning"
+        value={formData.meaning}
+        onChange={handleChange}
+        required
+      />
+
+      <div data-tooltip="Select language difficulty level">
+        <select
+          className="input-field"
+          name="level"
+          value={formData.level ?? ""}
+          onChange={handleChange}
+        >
+          <option value="">No Level</option>
+          <option value="A1">A1</option>
+          <option value="A2">A2</option>
+          <option value="B1">B1</option>
+          <option value="B2">B2</option>
+        </select>
+      </div>
+
+      <div className="dict-upload-group">
+        <label
+          className="dict-oxford-check"
+          data-tooltip="Check if this is an Oxford 3000 word"
+        >
+          <input
+            type="checkbox"
+            name="is_oxford"
+            checked={Boolean(formData.is_oxford)}
+            onChange={handleChange}
+          />
+          <span>Oxford</span>
+        </label>
+      </div>
+    </>
+  );
+};
+
+const EditDictionaryModal = ({
+  open,
+  formData,
+  handleChange,
+  handleSubmit,
+  handleClose,
+}) => {
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, handleClose]);
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.65)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ duration: 0.18 }}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "min(700px, 96vw)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+            borderRadius: 16,
+            background: "linear-gradient(180deg, #1a1612 0%, #120f0c 100%)",
+            border: "1px solid rgba(212,175,55,0.35)",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            padding: 22,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 14,
+              position: "sticky",
+              top: -22,
+              background: "linear-gradient(180deg, #1a1612 0%, #1a1612 100%)",
+              padding: "8px 0 12px",
+              zIndex: 2,
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, color: "#fff", fontSize: 24 }}>
+                Edit Word
+              </h3>
+              <div style={{ color: "#c9a227", marginTop: 4, fontSize: 13 }}>
+                Editing: {formData.word || "-"} {formData.type ? `(${formData.type})` : ""}
+              </div>
+            </div>
+          </div>
+
+          <form className="form-box" onSubmit={handleSubmit} style={{ margin: 0 }}>
+            <DictionaryFormFields formData={formData} handleChange={handleChange} />
+
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 20,
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-cancel"
+                onClick={handleClose}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-edit">
+                UPDATE WORD
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
 const DictionaryPanel = () => {
   const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,15 +219,10 @@ const DictionaryPanel = () => {
   const [filterLength, setFilterLength] = useState("");
   const [onlyOxford, setOnlyOxford] = useState(false);
 
-  const [formData, setFormData] = useState({
-    id: "",
-    word: "",
-    type: "",
-    meaning: "",
-    level: "",
-    is_oxford: false,
-  });
-  const [isEditing, setIsEditing] = useState(false);
+  const [createForm, setCreateForm] = useState(emptyWordForm);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState(emptyWordForm);
 
   const fileInputRef = useRef(null);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -94,7 +283,6 @@ const DictionaryPanel = () => {
 
       let resultData = Array.isArray(data) ? data : [];
 
-      // เดิม UI ใช้ "7+ Chars"
       if (filterLength === "7") {
         resultData = resultData.filter((item) => String(item.word || "").length >= 7);
       }
@@ -120,24 +308,29 @@ const DictionaryPanel = () => {
     }
   };
 
-  const handleChange = (e) => {
+  const handleCreateChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
+    setCreateForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const resetForm = () => {
-    setFormData({
-      id: "",
-      word: "",
-      type: "",
-      meaning: "",
-      level: "",
-      is_oxford: false,
-    });
-    setIsEditing(false);
+  const handleEditChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const resetCreateForm = () => {
+    setCreateForm(emptyWordForm);
+  };
+
+  const resetEditForm = () => {
+    setEditForm(emptyWordForm);
+    setEditOpen(false);
   };
 
   const splitLooseLine = (line) => {
@@ -242,54 +435,75 @@ const DictionaryPanel = () => {
     };
   };
 
-  const isDuplicateWordType = (targetWord = formData.word, targetType = formData.type) => {
+  const isDuplicateWordType = (
+    targetWord,
+    targetType,
+    currentId = "",
+    editing = false
+  ) => {
     const currentWord = normalizeWord(targetWord);
     const currentType = normalizeType(targetType);
 
     return words.some((item) => {
       const sameWord = normalizeWord(item.word) === currentWord;
       const sameType = normalizeType(item.type) === currentType;
-      const isSameRow = isEditing && String(item.id) === String(formData.id);
+      const isSameRow = editing && String(item.id) === String(currentId);
 
       return sameWord && sameType && !isSameRow;
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
 
-    if (isDuplicateWordType()) {
-      alert(`มีคำว่า "${formData.word}" ใน type "${formData.type}" อยู่แล้ว`);
+    if (isDuplicateWordType(createForm.word, createForm.type, "", false)) {
+      alert(`มีคำว่า "${createForm.word}" ใน type "${createForm.type}" อยู่แล้ว`);
       return;
     }
 
     try {
-      if (isEditing) {
-        const { error } = await supabase.rpc("update_dictionary_word", {
-          p_id: formData.id,
-          p_word: formData.word.trim(),
-          p_type: formData.type.trim(),
-          p_meaning: formData.meaning.trim(),
-          p_level: normalizeLevelForApi(formData.level),
-          p_is_oxford: Boolean(formData.is_oxford),
-        });
+      const { error } = await supabase.rpc("add_dictionary_word", {
+        p_word: createForm.word.trim(),
+        p_type: createForm.type.trim(),
+        p_meaning: createForm.meaning.trim(),
+        p_level: normalizeLevelForApi(createForm.level),
+        p_is_oxford: Boolean(createForm.is_oxford),
+      });
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.rpc("add_dictionary_word", {
-          p_word: formData.word.trim(),
-          p_type: formData.type.trim(),
-          p_meaning: formData.meaning.trim(),
-          p_level: normalizeLevelForApi(formData.level),
-          p_is_oxford: Boolean(formData.is_oxford),
-        });
+      if (error) throw error;
 
-        if (error) throw error;
-      }
-
-      resetForm();
+      resetCreateForm();
       await fetchWordsQuery();
-      alert(isEditing ? "แก้ไขสำเร็จ!" : "เพิ่มคำศัพท์สำเร็จ!");
+      alert("เพิ่มคำศัพท์สำเร็จ!");
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    if (isDuplicateWordType(editForm.word, editForm.type, editForm.id, true)) {
+      alert(`มีคำว่า "${editForm.word}" ใน type "${editForm.type}" อยู่แล้ว`);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.rpc("update_dictionary_word", {
+        p_id: editForm.id,
+        p_word: editForm.word.trim(),
+        p_type: editForm.type.trim(),
+        p_meaning: editForm.meaning.trim(),
+        p_level: normalizeLevelForApi(editForm.level),
+        p_is_oxford: Boolean(editForm.is_oxford),
+      });
+
+      if (error) throw error;
+
+      resetEditForm();
+      await fetchWordsQuery();
+      alert("แก้ไขสำเร็จ!");
     } catch (error) {
       console.error(error);
       alert(error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -431,7 +645,7 @@ const DictionaryPanel = () => {
   };
 
   const handleEditClick = (row) => {
-    setFormData({
+    setEditForm({
       id: row.id || "",
       word: row.word || "",
       type: row.type || "",
@@ -439,8 +653,7 @@ const DictionaryPanel = () => {
       level: row.level ?? "",
       is_oxford: Boolean(row.is_oxford),
     });
-    setIsEditing(true);
-    document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
+    setEditOpen(true);
   };
 
   const handleDelete = async (row) => {
@@ -468,83 +681,22 @@ const DictionaryPanel = () => {
 
   const filteredWords =
     filterLength === "7"
-      ? words.filter((w) => (!filterType || w.type === filterType) && String(w.word || "").length >= 7)
+      ? words.filter(
+          (w) => (!filterType || w.type === filterType) && String(w.word || "").length >= 7
+        )
       : words.filter((w) => !filterType || w.type === filterType);
 
   return (
     <div>
-      <form className="form-box" onSubmit={handleSubmit}>
-        <input
-          className="input-field"
-          type="text"
-          name="word"
-          placeholder="Word"
-          value={formData.word}
-          onChange={handleChange}
-          required
-        />
-
-        <select
-          className="input-field"
-          name="type"
-          value={formData.type}
-          onChange={handleChange}
-          required
-        >
-          <option value="" disabled>Select Type...</option>
-          <option value="noun">noun</option>
-          <option value="verb">verb</option>
-          <option value="adjective">adjective</option>
-          <option value="adverb">adverb</option>
-          <option value="preposition">preposition</option>
-          <option value="conjunction">conjunction</option>
-          <option value="pronoun">pronoun</option>
-        </select>
-
-        <input
-          className="input-field"
-          type="text"
-          name="meaning"
-          placeholder="Meaning"
-          value={formData.meaning}
-          onChange={handleChange}
-          required
-        />
-
-        <div data-tooltip="Select language difficulty level">
-          <select
-            className="input-field"
-            name="level"
-            value={formData.level ?? ""}
-            onChange={handleChange}
-          >
-            <option value="">No Level</option>
-            <option value="A1">A1</option>
-            <option value="A2">A2</option>
-            <option value="B1">B1</option>
-            <option value="B2">B2</option>
-          </select>
-        </div>
+      <form className="form-box" onSubmit={handleCreateSubmit}>
+        <DictionaryFormFields formData={createForm} handleChange={handleCreateChange} />
 
         <div className="dict-upload-group">
-          <label
-            className="dict-oxford-check"
-            data-tooltip="Check if this is an Oxford 3000 word"
-          >
-            <input
-              type="checkbox"
-              name="is_oxford"
-              checked={Boolean(formData.is_oxford)}
-              onChange={handleChange}
-            />
-            <span>Oxford</span>
-          </label>
-
           <button
             type="button"
             className="btn dict-text-upload-btn dict-help-tooltip"
             onClick={handleBulkUploadClick}
-            disabled={bulkUploading || isEditing}
+            disabled={bulkUploading}
             data-tooltip={`รูปแบบ:
           word, type, meaning, level, is_oxford
 
@@ -566,25 +718,32 @@ const DictionaryPanel = () => {
           />
         </div>
 
-        <button
-          type="submit"
-          className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
-          data-tooltip={isEditing ? "Save changes to database" : "Create new word entry"}
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            gap: 10,
+            justifyContent: "center",
+            marginTop: 12,
+          }}
         >
-          {isEditing ? "Update Word" : "Add Word"}
-        </button>
+          <button
+            type="submit"
+            className="btn btn-add"
+            data-tooltip="Create new word entry"
+          >
+            Add Word
+          </button>
 
-        {isEditing && (
           <button
             type="button"
             className="btn"
-            onClick={resetForm}
+            onClick={resetCreateForm}
             style={{ backgroundColor: "#666" }}
-            data-tooltip="Discard all changes"
           >
-            Cancel
+            Reset
           </button>
-        )}
+        </div>
       </form>
 
       <div className="filter-section">
@@ -701,8 +860,12 @@ const DictionaryPanel = () => {
               {filteredWords.length > 0 ? (
                 filteredWords.map((item) => (
                   <tr key={item.id}>
-                    <td><strong>{item.word}</strong></td>
-                    <td><span style={{ color: "#aaa" }}>{item.type}</span></td>
+                    <td>
+                      <strong>{item.word}</strong>
+                    </td>
+                    <td>
+                      <span style={{ color: "#aaa" }}>{item.type}</span>
+                    </td>
                     <td className="meaning-cell">{item.meaning}</td>
                     <td>{item.level && String(item.level).trim() !== "" ? item.level : "-"}</td>
                     <td style={{ textAlign: "center" }}>{item.is_oxford ? "✅" : "-"}</td>
@@ -740,6 +903,14 @@ const DictionaryPanel = () => {
           </table>
         )}
       </div>
+
+      <EditDictionaryModal
+        open={editOpen}
+        formData={editForm}
+        handleChange={handleEditChange}
+        handleSubmit={handleEditSubmit}
+        handleClose={resetEditForm}
+      />
     </div>
   );
 };
