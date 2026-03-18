@@ -56,14 +56,14 @@ const AdvantureFeature = () => {
       store.reset();
       setIsEntering(true);
 
-       setTimeout(() => {
-         navigate("/battle", {
-           state: {
-             currentUser: currentUser,
-             selectedStage: stage,
-           },
-         });
-       }, 2000);
+      setTimeout(() => {
+        navigate("/battle", {
+          state: {
+            currentUser: currentUser,
+            selectedStage: stage,
+          },
+        });
+      }, 2500);
     } else {
       alert("Failed to consume stamina. Please try again.");
     }

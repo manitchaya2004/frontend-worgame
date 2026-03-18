@@ -1080,7 +1080,8 @@ export const useGameStore = create((set, get) => ({
 
       set({ 
         gameState: "GAME_CLEARED",
-        currentCoin: currentResource.coin + totalMoneyEarned 
+        currentCoin: currentResource.coin + totalMoneyEarned,
+        isFirstClear: isFirstClear,
       });
     } catch (error) {
       console.error("Save Game Error:", error);

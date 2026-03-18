@@ -63,7 +63,7 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
         // 💡 เพิ่มการจัดการความสูงและการเลื่อนสำหรับ Mobile Landscape
         maxHeight: "100vh",
         padding: "10px 0",
-        overflowY: "auto",
+        overflowY: "hidden",
         boxSizing: "border-box",
       }}
     >
