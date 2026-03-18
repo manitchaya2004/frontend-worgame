@@ -26,7 +26,7 @@ import AddIcon from "@mui/icons-material/Add";
 import ErrorIcon from "@mui/icons-material/Error";
 import { MdInventory } from "react-icons/md";
 import { GiBroadsword } from "react-icons/gi";
-import { FaCrown, FaSuitcase, FaUserAlt } from "react-icons/fa";
+import { FaCrown, FaSuitcase, FaUserAlt, FaTrophy, FaBook } from "react-icons/fa";
 // Assets
 import { useAuthStore } from "../../store/useAuthStore";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
@@ -406,6 +406,12 @@ const GameAppBar = () => {
   const MAIN_NAV_ITEMS = [
     { id: "item", label: "ITEM", path: "/home/item", icon: <FaSuitcase /> },
     {
+      id: "character",
+      label: "CHARACTER",
+      path: "/home/character",
+      icon: <FaUserAlt />,
+    },
+    {
       id: "adventure",
       label: "ADVENTURE",
       path: "/home",
@@ -413,11 +419,17 @@ const GameAppBar = () => {
       isMain: true,
     },
     {
-      id: "character",
-      label: "CHARACTER",
-      path: "/home/character",
-      icon: <FaUserAlt />,
+      id: "wordlog",
+      label: "WORDLOG",
+      path: "/home/wordlog",
+      icon: <FaBook />,
     },
+    {
+      id: "scoreboard",
+      label: "SCOREBOARD",
+      path: "/home/scoreboard",
+      icon: <FaTrophy />,
+    }
   ];
 
   const LIBRARY_ITEMS = [
