@@ -16,18 +16,20 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 
 //icon stat
-import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
-import SpeedIcon from "@mui/icons-material/Speed"; // Speed
-import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
+import {
+  GiHearts,
+  GiBroadsword, // 🟢 เพิ่มไอคอนดาบ
+  GiLeatherBoot     // 🟢 เพิ่มไอคอนรองเท้า
+} from "react-icons/gi";
 
 // Import Store & Constants
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { LOADING, LOADED, FAILED } from "../../../../store/const";
 
 const STAT_CONFIG = {
-  HP: { icon: <FavoriteIcon fontSize="inherit" />, color: "#ff5252" },
-  POWER: { icon: <FlashOnIcon fontSize="inherit" />, color: "#ffeb3b" },
-  SPEED: { icon: <SpeedIcon fontSize="inherit" />, color: "#00e5ff" },
+  HP: { icon: <GiHearts fontSize="inherit" />, color: "#ff4d4d"  },
+  ATK: { icon: <GiBroadsword fontSize="inherit" />, color: "#e67e22"  },
+  SPEED: { icon: <GiLeatherBoot fontSize="inherit" />, color: "#f1c40f"  },
 };
 
 const StatLine = ({ label, value, isImproved }) => {
@@ -383,7 +385,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   />
 
                   <StatLine label="HP" value={previewData.hp.current} />
-                  <StatLine label="POWER" value={previewData.power.current} />
+                  <StatLine label="ATK" value={previewData.power.current} />
                    <StatLine label="SPEED" value={previewData.speed.current} />
                 </Box>
               </Box>
@@ -425,7 +427,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   </Typography>
                   <Divider sx={{ borderColor: "#3e2723", mb: 1 }} />
                   <StatLine label="HP" value={previewData.hp.current} />
-                  <StatLine label="POWER" value={previewData.power.current} />
+                  <StatLine label="ATK" value={previewData.power.current} />
                   <StatLine label="SPEED" value={previewData.speed.current} />
                 </Box>
 
@@ -472,7 +474,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
                   />
                   <StatLine label="HP" value={previewData.hp.next} isImproved />
                   <StatLine
-                    label="POWER"
+                    label="ATK"
                     value={previewData.power.next}
                     isImproved
                   />

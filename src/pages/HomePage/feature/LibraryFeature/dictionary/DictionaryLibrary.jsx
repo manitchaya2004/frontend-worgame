@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import StarBackground from "../../../components/StarBackground";
 import { THEMES } from "../../../hook/const";
 
-import { shortType,Lenght, Type, Level } from "../../../hook/const";
+import { shortType, Lenght, Type, Level } from "../../../hook/const";
 //sound
 import { useGameSfx } from "../../../../../hook/useGameSfx";
 import clickSFX from "../../../../../assets/sound/click1.ogg";
@@ -41,7 +41,7 @@ const WordList = ({
       onScroll={handleScroll}
       sx={{
         width: { xs: "60%", sm: "50%", md: "50%" },
-        height: "100%",
+        height: "100%", // 💡 ปล่อยให้สูง 100% ของกล่องแม่
         border: "3px solid #2b1d14",
         boxShadow: "inset 0 0 0 2px #e7dcc8, 4px 4px 0 #2b1d14",
         background: `
@@ -55,6 +55,20 @@ const WordList = ({
 `,
         overflowY: "auto",
         backgroundAttachment: "local",
+        // 💡 ย่อขนาดช่องลายทางพื้นหลัง ให้พอดีกับคำศัพท์ที่เล็กลง
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          border: "2px solid #2b1d14",
+          boxShadow: "inset 0 0 0 1px #e7dcc8, 2px 2px 0 #2b1d14",
+          background: `
+            repeating-linear-gradient(
+              180deg,
+              #fffaf0,
+              #fffaf0 20px,
+              #f3e9d8 20px,
+              #f3e9d8 40px
+            )
+          `,
+        },
       }}
     >
       {dictionary?.length === 0 && (
@@ -101,6 +115,18 @@ const WordList = ({
                 backgroundColor: "#e7dcc8",
                 paddingLeft: "12px",
               },
+              // 💡 บีบความสูงและย่อฟอนต์ใน List ให้ถี่ขึ้น โชว์ได้เยอะขึ้น
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                p: 0.5,
+                fontSize: 9,
+                borderLeft: isActive
+                  ? "4px solid #7a1f1f"
+                  : "4px solid transparent",
+                "&:hover": {
+                  backgroundColor: "#e7dcc8",
+                  paddingLeft: "8px",
+                },
+              },
             }}
           >
             <Box sx={{ opacity: 0.7 }}>{i + 1}.</Box>
@@ -117,6 +143,10 @@ const WordList = ({
             color: "#7b4a3b",
             py: 3,
             opacity: 0.6,
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 8,
+              py: 1.5,
+            },
           }}
         >
           ── scroll for more ──
@@ -135,6 +165,10 @@ const WordList = ({
               "0%": { opacity: 0.2 },
               "50%": { opacity: 1 },
               "100%": { opacity: 0.2 },
+            },
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 6,
+              py: 1,
             },
           }}
         >
@@ -162,6 +196,12 @@ const WordDetail = ({ dictionary }) => {
           fontFamily: `"Press Start 2P"`,
           fontSize: 10,
           color: "#504f4fff",
+          height: "100%", // 💡 เพิ่มให้กินพื้นที่ 100%
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            fontSize: 7,
+            border: "2px solid #2b1d14",
+            boxShadow: "2px 2px 0 #2b1d14",
+          },
         }}
       >
         Choose a word from the list
@@ -177,18 +217,38 @@ const WordDetail = ({ dictionary }) => {
         border: "3px solid #2b1d14",
         boxShadow: "4px 4px 0 #2b1d14",
         px: 3,
-        py:2,
+        py: 2,
         overflowY: "auto",
+        height: "100%", // 💡 เพิ่มให้กินพื้นที่ 100% เพื่อให้ Scroll ภายในทำงาน
+        // 💡 ลด Padding กรอบนอกสุดของ Detail
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          px: 1.5,
+          py: 1,
+          border: "2px solid #2b1d14",
+          boxShadow: "2px 2px 0 #2b1d14",
+        },
       }}
     >
       {/* 1. MASTER WORD TITLE (แสดงแค่ครั้งเดียว) */}
-      <Box sx={{ mb: 2 }}>
+      <Box
+        sx={{
+          mb: 2,
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            mb: 0.5,
+          },
+        }}
+      >
         <Typography
           sx={{
             fontFamily: `"Press Start 2P"`,
             fontSize: 24,
             color: "#2b1d14",
-            textShadow: "2px 2px 0px #d6b46a", 
+            textShadow: "2px 2px 0px #d6b46a",
+            // 💡 ย่อขนาดชื่อคำศัพท์
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 14,
+              textShadow: "1px 1px 0px #d6b46a",
+            },
           }}
         >
           {dictionary.word}
@@ -196,12 +256,31 @@ const WordDetail = ({ dictionary }) => {
       </Box>
 
       {/* เส้นคั่นหลัก ใต้ชื่อคำศัพท์ */}
-      <Divider sx={{ borderColor: "#2b1d14", borderWidth: 1.5, mb: 2 }} />
+      <Divider
+        sx={{
+          borderColor: "#2b1d14",
+          borderWidth: 1.5,
+          mb: 2,
+          // 💡 ย่อระยะห่างของเส้นแบ่ง
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            mb: 0.5,
+            borderWidth: 1,
+          },
+        }}
+      />
 
       {/* 2. LOOP ENTRIES (แสดง Type + Meaning ย่อยๆ) */}
       {dictionary.entries.map((entry, index) => (
-        <Box key={index} sx={{ mb: index !== dictionary.entries.length - 1 ? 3 : 0 }}>
-          
+        <Box
+          key={index}
+          sx={{
+            mb: index !== dictionary.entries.length - 1 ? 3 : 0,
+            // 💡 ลดช่องว่างระหว่างแต่ละความหมาย (Meaning)
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              mb: index !== dictionary.entries.length - 1 ? 1 : 0,
+            },
+          }}
+        >
           {/* แถวแสดง Type และ Level */}
           <Box
             sx={{
@@ -209,6 +288,11 @@ const WordDetail = ({ dictionary }) => {
               alignItems: "center",
               gap: 1.5,
               mb: 1.5,
+              // 💡 ลดช่องว่างใต้ Type/Level
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                gap: 0.5,
+                mb: 0.5,
+              },
             }}
           >
             {entry.type && (
@@ -220,7 +304,14 @@ const WordDetail = ({ dictionary }) => {
                   backgroundColor: "#d6b46a",
                   border: "2px solid #2b1d14",
                   fontFamily: `"Press Start 2P"`,
-                  color: "#1b1b1b"
+                  color: "#1b1b1b",
+                  // 💡 ย่อปุ่ม Type
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    px: 0.5,
+                    py: 0.2,
+                    fontSize: 6,
+                    border: "1px solid #2b1d14",
+                  },
                 }}
               >
                 {shortType(entry.type)}
@@ -237,7 +328,14 @@ const WordDetail = ({ dictionary }) => {
                   backgroundColor: "#e7dcc8",
                   border: "2px solid #2b1d14",
                   fontFamily: `"Press Start 2P"`,
-                  color: "#1b1b1b"
+                  color: "#1b1b1b",
+                  // 💡 ย่อปุ่ม Level
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    px: 0.5,
+                    py: 0.2,
+                    fontSize: 6,
+                    border: "1px solid #2b1d14",
+                  },
                 }}
               >
                 Level {entry.level}
@@ -253,6 +351,12 @@ const WordDetail = ({ dictionary }) => {
               boxShadow: "inset 2px 2px 0 #fff",
               p: 2,
               position: "relative",
+              // 💡 ย่อกล่องคำแปล
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                p: 1,
+                border: "1px solid #d6b46a",
+                boxShadow: "inset 1px 1px 0 #fff",
+              },
             }}
           >
             {/* label */}
@@ -266,6 +370,13 @@ const WordDetail = ({ dictionary }) => {
                 fontSize: 9,
                 fontFamily: `"Press Start 2P"`,
                 color: "#7b4a3b",
+                // 💡 ย่อ Label ของคำแปล
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  top: -6,
+                  left: 6,
+                  px: 0.5,
+                  fontSize: 6,
+                },
               }}
             >
               Meaning
@@ -278,6 +389,12 @@ const WordDetail = ({ dictionary }) => {
                 color: "#1b1b1b",
                 lineHeight: 1.8,
                 mt: 1,
+                // 💡 ย่อ Text คำแปลให้ชิดกัน โชว์ข้อมูลเยอะขึ้น
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 9,
+                  lineHeight: 1.4,
+                  mt: 0.2,
+                },
               }}
             >
               {entry.meaning}
@@ -286,7 +403,17 @@ const WordDetail = ({ dictionary }) => {
 
           {/* ถ้ามีคำศัพท์ประเภทถัดไป ให้คั่นด้วยเส้นประ */}
           {index !== dictionary.entries.length - 1 && (
-            <Divider sx={{ borderStyle: "dashed", borderColor: "#d6b46a", mt: 2 }} />
+            <Divider
+              sx={{
+                borderStyle: "dashed",
+                borderColor: "#d6b46a",
+                mt: 2,
+                // 💡 ย่อเส้นประ
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  mt: 1,
+                },
+              }}
+            />
           )}
         </Box>
       ))}
@@ -346,7 +473,7 @@ const DictionaryLibrary = () => {
     }
   }, [searchInput]);
 
-  // 💡 THE FIX 1: เอา selectType ออกจากวงเล็บนี้! 
+  // 💡 THE FIX 1: เอา selectType ออกจากวงเล็บนี้!
   // เพื่อให้เวลาเปลี่ยน Filter Type คำศัพท์ที่กำลังเปิดดูอยู่ไม่หายไป
   useEffect(() => {
     setSelectedWord(null);
@@ -393,7 +520,7 @@ const DictionaryLibrary = () => {
   }, [selectedWord, groupedDictionary]);
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ height: "100vh" }}>
       <MotionBox
         initial={{ opacity: 0, scale: 0.8, y: "-40%", x: "-50%" }}
         animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
@@ -414,11 +541,19 @@ const DictionaryLibrary = () => {
             0 0 0 4px #1a120b,
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
-          width: { xs: "90vw", sm: "90%", md: "70%" },
-          height: "570px",
+          width: { xs: "90%", sm: "80%", md: "80%" },
+          height: { xs: "70%", sm: "70%", md: "570px", xl: "80%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
+
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            top: "55%",
+            transform: "translate(-50%, -50%)",
+            height: "80%",
+            border: `4px solid ${THEMES.border}`,
+            borderRadius: "6px",
+          },
         }}
       >
         {/* Title */}
@@ -431,6 +566,11 @@ const DictionaryLibrary = () => {
             mt: -1,
             mb: 2,
             borderBottom: `4px solid ${THEMES.border}`,
+             "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1, // ลดให้บางที่สุด
+              mb: 0.5,
+              borderBottom: `2px solid ${THEMES.border}`,
+            },
           }}
         >
           <Typography
@@ -439,12 +579,24 @@ const DictionaryLibrary = () => {
               color: THEMES.accent,
               fontSize: { xs: 16, md: 24 },
               textShadow: `3px 3px 0 #000, 0 0 10px ${THEMES.accent}`,
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 10, // ย่อฟอนต์
+                textShadow: `2px 2px 0 #000, 0 0 6px ${THEMES.accent}`,
+              },
             }}
           >
             Dictionary Library
           </Typography>
         </Box>{" "}
-        <Box sx={{ display: "flex", flexDirection: "column", height: "480px" }}>
+        {/* 💡 แก้ไขจุดนี้: เปลี่ยนจาก height: '100%' เป็น flex: 1 และ overflow: 'hidden' */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflow: "hidden",
+          }}
+        >
           {/* Alphabet Selector */}
           <Box
             sx={{
@@ -483,6 +635,14 @@ const DictionaryLibrary = () => {
                   "&:hover": {
                     backgroundColor: "#fff",
                   },
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 7,
+                    border: "1px solid #2b1d14",
+                  boxShadow:
+                    selectedLetter === l
+                      ? "inset 1px 1px 0 #fff"
+                      : "1px 1px 0 #2b1d14",
+                  },
                 }}
               >
                 {l}
@@ -499,9 +659,20 @@ const DictionaryLibrary = () => {
               width: "100%",
               alignItems: "center",
               justifyContent: "space-between",
+              mb: 1, // 💡 เพิ่ม margin bottom ให้มีระยะห่างกับรายการด้านล่าง
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                mb: 0,
+              },
             }}
           >
-            <Box sx={{ width: { xs: "62%", sm: "51%", md: "51%" } }}>
+            <Box
+              sx={{
+                width: { xs: "62%", sm: "51%", md: "51%" },
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  width: "100%",
+                },
+              }}
+            >
               <SearchDictionary
                 value={searchInput}
                 setSearchInput={setSearchInput}
@@ -510,7 +681,15 @@ const DictionaryLibrary = () => {
                 letter={selectedLetter}
               />
             </Box>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  gap: 0.6,
+                },
+              }}
+            >
               <SelectComponent
                 label="Type"
                 value={selectType}
@@ -533,11 +712,10 @@ const DictionaryLibrary = () => {
           </Box>
           <Box
             sx={{
-              flex: 1,
+              flex: 1, // 💡 ทำให้ส่วนรายการดึงพื้นที่ที่เหลือทั้งหมด
               display: "flex",
               gap: 1,
-              overflow: "hidden",
-              height: "500px",
+              overflow: "hidden", // 💡 ป้องกันไม่ให้ทะลุกรอบ
             }}
           >
             {/* 💡 ส่งค่า currentActiveWord ไปทำงานแทน selectedWord เสมอ */}

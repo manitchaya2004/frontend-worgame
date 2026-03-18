@@ -15,7 +15,7 @@ import ItemCard from "./ItemCard";
 import BackpackIcon from "@mui/icons-material/Backpack";
 import SaveIcon from "@mui/icons-material/Save";
 import RestoreIcon from "@mui/icons-material/Restore";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle"; 
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { FaSuitcase } from "react-icons/fa";
 import {
   GiHealthPotion,
@@ -107,9 +107,9 @@ const ItemFeature = () => {
       if (type === "reroll") newData.reroll += changeAmount;
 
       const newTotal = newData.health + newData.cure + newData.reroll;
-      if (newTotal > max_slot) return prev; 
+      if (newTotal > max_slot) return prev;
       if (newData.health < 0 || newData.cure < 0 || newData.reroll < 0)
-        return prev; 
+        return prev;
 
       return newData;
     });
@@ -127,15 +127,14 @@ const ItemFeature = () => {
         cure: inventoryPotions.cure,
         reroll: inventoryPotions.reroll,
       });
-      
+
       // เมื่อบันทึกสำเร็จ ให้เปิดโชว์ Animation
       setShowSaveSuccess(true);
-      
+
       // ตั้งเวลาให้ป๊อปอัปหายไปเองใน 2 วินาที
       setTimeout(() => {
         setShowSaveSuccess(false);
       }, 2000);
-      
     } catch (error) {
       console.error("Failed to update resources:", error);
     } finally {
@@ -144,7 +143,7 @@ const ItemFeature = () => {
   };
 
   const handleUpgrade = (type) => {
-    console.log(`Upgrade ${type}`);
+    //console.log(`Upgrade ${type}`);
   };
 
   return (
@@ -174,14 +173,20 @@ const ItemFeature = () => {
             0 0 0 4px #1a120b,
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
-          width: { xs: "90%", sm: "80%", md: "80%", lg: "65%", xl: "65%" },
-          height: { xs: "80%", sm: "80%", md: "80%", lg: "90%", xl: "80%" },
+          width: { xs: "90%", sm: "80%", md: "80%" },
+          height: { xs: "70%", sm: "70%", md: "80%", lg: "570px", xl: "82%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            top: "55%",
+            transform: "translate(-50%, -50%)",
+            height: "80%",
+            border: `4px solid ${THEMES.border}`,
+            borderRadius: "6px",
+          },
         }}
       >
-
         {/* === 💡 อนิเมชั่น Save Success เด้งขึ้นมากลางจอ === */}
         <AnimatePresence>
           {showSaveSuccess && (
@@ -203,7 +208,8 @@ const ItemFeature = () => {
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 2,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(255,255,255,0.3)",
+                boxShadow:
+                  "0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(255,255,255,0.3)",
               }}
             >
               <CheckCircleIcon sx={{ fontSize: 60, color: "#fff" }} />
@@ -235,6 +241,11 @@ const ItemFeature = () => {
             mx: -1,
             mt: -1,
             borderBottom: `4px solid ${THEMES.border}`,
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1,
+              mb: 1,
+              borderBottom: `2px solid ${THEMES.border}`,
+            },
           }}
         >
           <Typography
@@ -246,6 +257,10 @@ const ItemFeature = () => {
               letterSpacing: "2px",
               textTransform: "uppercase",
               textShadow: `3px 3px 0 #000, 0 0 10px ${THEMES.accent}`,
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 12,
+                textShadow: `2px 2px 0 #000, 0 0 6px ${THEMES.accent}`,
+              },
             }}
           >
             Support Item
@@ -266,15 +281,22 @@ const ItemFeature = () => {
             alignItems: "center",
             justifyContent: "space-between",
             boxShadow: "inset 0 0 8px rgba(0,0,0,0.6)",
-            gap: 2, 
-            position: "relative", 
-            overflow: "hidden", 
+            gap: 2,
+            position: "relative",
+            overflow: "hidden",
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              borderRadius: "6px",
+              border: "1px solid #5d4037",
+              mt: 0,
+              mb: 0.5,
+              p: 2.5,
+            },
           }}
         >
-            {/* === 💡 อนิเมชั่น Upgrade ความจุกระเป๋า เด้งขึ้นมาตรงกลางจอ === */}
-        <AnimatePresence>
-          {showUpgradeAnim && (
-          <MotionBox
+          {/* === 💡 อนิเมชั่น Upgrade ความจุกระเป๋า เด้งขึ้นมาตรงกลางจอ === */}
+          <AnimatePresence>
+            {showUpgradeAnim && (
+              <MotionBox
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -284,7 +306,7 @@ const ItemFeature = () => {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  background: "rgba(255, 215, 0, 0.3)", 
+                  background: "rgba(255, 215, 0, 0.3)",
                   backdropFilter: "blur(3px)",
                   display: "flex",
                   alignItems: "center",
@@ -292,23 +314,30 @@ const ItemFeature = () => {
                   zIndex: 10,
                   boxShadow: "inset 0 0 20px rgba(255, 215, 0, 0.8)",
                   border: "2px solid #ffd700",
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    border: "1px solid #ffd700",
+                  },
                 }}
               >
                 <MotionBox
                   initial={{ y: 20, scale: 0.5, opacity: 0 }}
-                  animate={{ 
-                    y: 0, 
-                    scale: [1, 1.1, 1], 
-                    opacity: 1 
+                  animate={{
+                    y: 0,
+                    scale: [1, 1.1, 1],
+                    opacity: 1,
                   }}
-                  transition={{ 
+                  transition={{
                     y: { type: "spring", stiffness: 300, damping: 20 },
-                    scale: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+                    scale: {
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "easeInOut",
+                    },
                   }}
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 1.5
+                    gap: 1.5,
                   }}
                 >
                   <Typography
@@ -317,14 +346,19 @@ const ItemFeature = () => {
                       color: "#ffd700",
                       fontSize: { xs: 12, md: 18 },
                       textShadow: "2px 2px 0 #000, 0 0 10px #ffd700",
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 8,
+                          textShadow: "1px 1px 0 #000, 0 0 10px #ffd700",
+                        },
                     }}
                   >
                     ✨ CAPACITY UPGRADED! ✨
                   </Typography>
                 </MotionBox>
               </MotionBox>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
 
           <Box
             sx={{
@@ -332,9 +366,17 @@ const ItemFeature = () => {
               alignItems: "center",
               gap: 2,
               flexShrink: 0,
+              "#icon-bag": {
+                color: "#d7ccc8",
+                fontSize: 28,
+
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 18,
+                },
+              },
             }}
           >
-            <FaSuitcase style={{ color: "#d7ccc8", fontSize: 28 }} />
+            <FaSuitcase id="icon-bag" />
             <Box>
               <Typography
                 sx={{
@@ -342,6 +384,9 @@ const ItemFeature = () => {
                   fontSize: 10,
                   color: "#aaa",
                   mb: 0.5,
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 8,
+                  },
                 }}
               >
                 CAPACITY
@@ -351,6 +396,9 @@ const ItemFeature = () => {
                   fontFamily: "'Press Start 2P'",
                   fontSize: 16,
                   color: "#fff",
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 10,
+                  },
                 }}
               >
                 {currentUsed} / {max_slot}
@@ -361,12 +409,12 @@ const ItemFeature = () => {
           <Box
             sx={{
               display: "flex",
-              gap: 0.5, 
-              flex: 1, 
-              flexWrap: "wrap", 
-              justifyContent: "flex-end", 
-              maxHeight: "35px", 
-              overflowY: "auto", 
+              gap: 0.5,
+              flex: 1,
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              maxHeight: "35px",
+              overflowY: "auto",
               p: 0.5,
               borderRadius: 1,
               "&::-webkit-scrollbar": { width: "4px" },
@@ -382,7 +430,7 @@ const ItemFeature = () => {
                 sx={{
                   width: { xs: 12, md: 16 },
                   height: { xs: 20, md: 24 },
-                  flexShrink: 0, 
+                  flexShrink: 0,
                   backgroundColor: i < currentUsed ? "#ffca28" : "#2b1d14",
                   border:
                     i < currentUsed ? "2px solid #ff6f00" : "2px solid #4e342e",
@@ -402,22 +450,24 @@ const ItemFeature = () => {
             mt: 1,
             width: "100%",
             height: "100%",
-            alignContent:'center',
-            
+            alignContent: "center",
           }}
         >
           <Box
             sx={{
-              gap: { xs: 1, sm: 5,xl:2 },
+              gap: { xs: 1, sm: 5, xl: 2 },
               alignItems: "center",
               justifyContent: "center",
               display: "flex",
-              
-              flexDirection: { xs: "column", sm: "row" },
+
+              flexDirection: "row",
               // width: "100%",
               height: "95%",
-              mx:2
-              
+              mx: 2,
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                height: "160px",
+                justifyContent: "flex-start",
+              },
             }}
           >
             <ItemCard
@@ -470,11 +520,14 @@ const ItemFeature = () => {
             justifyContent: "flex-end",
             gap: 2,
             backgroundColor: "rgba(0,0,0,0.2)",
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              p: 0.5,
+            },
           }}
         >
           {/* RESET BUTTON */}
           <Button
-            disabled={!isEdit || isLoading} 
+            disabled={!isEdit || isLoading}
             onClick={() => {
               playClickSound();
               handleReset();
@@ -489,6 +542,9 @@ const ItemFeature = () => {
                 backgroundColor: "rgba(255,255,255,0.1)",
               },
               "&:disabled": { color: "#605e5e" },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 8,
+              },
             }}
           >
             RESET
@@ -496,8 +552,8 @@ const ItemFeature = () => {
 
           {/* SAVE BUTTON */}
           <Button
-            disabled={!isEdit || isLoading} 
-            onClick={() => {  
+            disabled={!isEdit || isLoading}
+            onClick={() => {
               playClickSound();
               handleSave();
             }}
@@ -511,7 +567,7 @@ const ItemFeature = () => {
             sx={{
               fontFamily: "'Press Start 2P'",
               fontSize: 10,
-              backgroundColor: isEdit ? "#4caf50" : "#5d4037", 
+              backgroundColor: isEdit ? "#4caf50" : "#5d4037",
               color: isEdit ? "#fff" : "#aaa",
               border: "2px solid rgba(0,0,0,0.2)",
               boxShadow: isEdit ? "0 4px 0 #1b5e20" : "none",
@@ -519,6 +575,9 @@ const ItemFeature = () => {
               "&:hover": { backgroundColor: isEdit ? "#66bb6a" : "#5d4037" },
               "&:active": { transform: "translateY(4px)", boxShadow: "none" },
               "&:disabled": { color: "#2e1f1a" },
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                fontSize: 8,
+              },
             }}
           >
             {isLoading ? "... SAVING" : "SAVE CHANGES"}

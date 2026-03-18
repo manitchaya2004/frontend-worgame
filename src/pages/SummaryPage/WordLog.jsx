@@ -60,6 +60,11 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
         flexDirection: "column",
         gap: "20px",
         alignItems: "center",
+        // 💡 เพิ่มการจัดการความสูงและการเลื่อนสำหรับ Mobile Landscape
+        maxHeight: "100vh",
+        padding: "10px 0",
+        overflowY: "auto",
+        boxSizing: "border-box",
       }}
     >
       {/* Header */}
@@ -71,6 +76,11 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
             color: THEMES.textMain,
             textAlign: "center",
             textShadow: `2px 2px 0 ${THEMES.shadow}`,
+            // 💡 ย่อฟอนต์
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: "1rem",
+              textShadow: `1px 1px 0 ${THEMES.shadow}`,
+            },
           }}
         >
           BATTLE LOG
@@ -98,6 +108,13 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
             "&::-webkit-scrollbar-thumb": {
               background: THEMES.border,
               borderRadius: "4px",
+            },
+            // 💡 บีบ Padding และ Shadow ลง
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              padding: "8px",
+              boxShadow: `0 4px 0 ${THEMES.shadow}`,
+              borderWidth: "2px",
+              maxHeight: "50vh",
             },
           }}
         >
@@ -135,6 +152,10 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
                         transform: "translateX(4px)",
                         borderColor: THEMES.accent,
                       },
+                      // 💡 บีบ Padding รายการคำศัพท์
+                      "@media (orientation: landscape) and (max-height: 450px)": {
+                        padding: "6px 8px",
+                      },
                     }}
                   >
                     <Box sx={{ flex: 1, mr: 2 }}>
@@ -143,7 +164,11 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
                           fontFamily: '"Press Start 2P"',
                           fontSize: "0.9rem",
                           color: THEMES.accent,
-                          textTransform: "uppercase"
+                          textTransform: "uppercase",
+                          // 💡 ย่อคำศัพท์
+                          "@media (orientation: landscape) and (max-height: 450px)": {
+                            fontSize: "0.6rem",
+                          },
                         }}
                       >
                         {entry.word}
@@ -159,6 +184,11 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: "vertical",
                           overflow: "hidden",
+                          // 💡 ย่อความหมาย
+                          "@media (orientation: landscape) and (max-height: 450px)": {
+                            fontSize: "0.6rem",
+                            mt: 0.2,
+                          },
                         }}
                       >
                         <span style={{ opacity: 0.7, marginRight: 6 }}>
@@ -180,6 +210,11 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
                         height: "24px",
                         flexShrink: 0,
                         "& .MuiChip-label": { paddingLeft: 1, paddingRight: 1 },
+                        "@media (orientation: landscape) and (max-height: 450px)": {
+                          height: "18px",
+                          fontSize: "0.6rem",
+                          "& .MuiChip-icon": { fontSize: 10 }
+                        },
                       }}
                     />
                   </Box>
@@ -206,18 +241,39 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
       {/* Buttons */}
       <motion.div
         variants={itemVariants}
-        style={{ width: "100%", display: "flex", gap: 10 }}
+        style={{ width: "100%", display: "flex", gap: 10, marginBottom: "auto" }}
       >
         <Button
           onClick={onBack}
           variant="outlined"
           sx={{
-            ...commonButtonStyle,
+            fontFamily: '"Press Start 2P"',
+            fontSize: "0.9rem",
+            padding: "16px 0",
+            borderRadius: "12px",
+            boxShadow: `0 6px 0 ${THEMES.shadow}`,
+            transition: "transform 0.1s",
+            "&:hover": {
+              transform: "translateY(2px)",
+              boxShadow: `0 4px 0 ${THEMES.shadow}`,
+              filter: "brightness(1.1)",
+            },
+            "&:active": { transform: "translateY(6px)", boxShadow: "none" },
+            // สไตล์พื้นฐานของปุ่ม BACK
             flex: 1,
             backgroundColor: "transparent",
             border: `2px solid ${THEMES.border}`,
             color: THEMES.textMain,
-            boxShadow: "none",
+            // 💡 ย่อปุ่มใน Landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              padding: "8px 0",
+              fontSize: "0.6rem",
+              boxShadow: `0 4px 0 ${THEMES.shadow}`,
+              borderRadius: "8px",
+              "&:hover": {
+                boxShadow: `0 4px 0 ${THEMES.shadow}`,
+              }
+            },
           }}
         >
           BACK
@@ -226,18 +282,3 @@ export default function WordLog({ wordLog, isWin, onBack, onExit }) {
     </motion.div>
   );
 }
-
-const commonButtonStyle = {
-  fontFamily: '"Press Start 2P"',
-  fontSize: "0.9rem",
-  padding: "16px 0",
-  borderRadius: "12px",
-  boxShadow: `0 6px 0 ${THEMES.shadow}`,
-  transition: "transform 0.1s",
-  "&:hover": {
-    transform: "translateY(2px)",
-    boxShadow: `0 4px 0 ${THEMES.shadow}`,
-    filter: "brightness(1.1)",
-  },
-  "&:active": { transform: "translateY(6px)", boxShadow: "none" },
-};

@@ -463,7 +463,7 @@ export const useGameStore = create((set, get) => ({
       let to = 999;
       let hasMore = true;
 
-      console.log("⏳ Loading Dictionary (30,000+ entries)...");
+      //console.log("⏳ Loading Dictionary (30,000+ entries)...");
       while (hasMore) {
         const { data: partDict, error: dictError } = await supabase
           .from('dictionary')
@@ -480,7 +480,7 @@ export const useGameStore = create((set, get) => ({
           to += 1000;
         }
       }
-      console.log(`✅ Dictionary Loaded: ${allDictData.length} entries`);
+      //console.log(`✅ Dictionary Loaded: ${allDictData.length} entries`);
 
       const { data: rawStageData, error: stageError } = await supabase
         .from('stage')
@@ -544,7 +544,8 @@ export const useGameStore = create((set, get) => ({
         events: groupedEvents 
       };
 
-      console.log("⏳ Preloading Assets (Heroes, Monsters, and Map)...");
+      // --- 4. 🚀 Asset Preloading (Player + Monster + Map) ---
+      //console.log("⏳ Preloading Assets (Heroes, Monsters, and Map)...");
       const STORAGE_HERO = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
       const STORAGE_MONSTER = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_monster/";
       const STORAGE_MAP = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
@@ -580,7 +581,7 @@ export const useGameStore = create((set, get) => ({
       });
 
       await Promise.all(preloadPromises);
-      console.log("✅ All Assets Preloaded! Map is ready.");
+      //console.log("✅ All Assets Preloaded! Map is ready.");
 
       set((state) => ({
         dictionary: allDictData,

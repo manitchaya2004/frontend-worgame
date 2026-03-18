@@ -43,7 +43,7 @@ const InGameTimer = ({ stamina, onTimerEnd }) => {
   const maxStamina = stamina?.max || 3;
 
   const controls = useAnimation();
-  
+
   // 💡 THE FIX: เพิ่มตัวล็อคเหมือน EnergyBar ป้องกันการยิง API ซ้ำซ้อนตอน 0:00
   const hasTriggeredRef = useRef(false);
 
@@ -59,7 +59,7 @@ const InGameTimer = ({ stamina, onTimerEnd }) => {
   // 💡 THE FIX: ให้ InGameTimer ช่วยสะกิดขอสายฟ้าด้วย เผื่อเปิดมินิเกมค้างไว้แล้วหน้าจอหลักหลับ
   useEffect(() => {
     let retryTimer;
-    
+
     if (timeLeft > 0) {
       hasTriggeredRef.current = false;
     } else if (timeLeft <= 0 && !isFull) {
@@ -69,7 +69,7 @@ const InGameTimer = ({ stamina, onTimerEnd }) => {
           onTimerEnd(); // เรียก refreshUser() เพื่อขอค่าสายฟ้าใหม่
         }
       }
-      
+
       // ระบบ Retry ถ้ายังค้าง 0:00 เกิน 2.5 วิ ให้สะกิดใหม่
       retryTimer = setTimeout(() => {
         hasTriggeredRef.current = false;
@@ -150,8 +150,13 @@ const InGameTimer = ({ stamina, onTimerEnd }) => {
 
 const MiniGame = ({ open, onClose }) => {
   // 💡 THE FIX: ดึง refreshUser ออกมาใช้ด้วย
-  const { sfxVolume, isSfxMuted, reduceStaminaTimer, currentUser, refreshUser } =
-    useAuthStore();
+  const {
+    sfxVolume,
+    isSfxMuted,
+    reduceStaminaTimer,
+    currentUser,
+    refreshUser,
+  } = useAuthStore();
   const {
     fetchMiniGameDictionary,
     clearMiniGameDictionary,
@@ -166,7 +171,8 @@ const MiniGame = ({ open, onClose }) => {
   const [status, setStatus] = useState("fetching");
   const [floatingTexts, setFloatingTexts] = useState([]);
 
-  const [wordLength, setWordLength] = useState(2);
+  // 💡 เปลี่ยนจาก 2 เป็นเริ่มที่ 3 ตัวอักษรตามโจทย์
+  const [wordLength, setWordLength] = useState(3);
   const [correctStreak, setCorrectStreak] = useState(0);
   const [hintsRemaining, setHintsRemaining] = useState(3);
 
@@ -178,19 +184,20 @@ const MiniGame = ({ open, onClose }) => {
   const playClickLetter = useGameSfx(click);
   const soundClose = useGameSfx(closeSfx);
 
+  // 💡 เลื่อน Base ของ Level ให้เข้ากับความยาว 3 ตัวอักษร
   const getLevelConfig = (length) => {
     switch (length) {
-      case 2:
-        return { reward: 2, target: 1 };
       case 3:
-        return { reward: 4, target: 1 };
+        return { reward: 2, target: 1 };
       case 4:
-        return { reward: 6, target: 1 };
+        return { reward: 4, target: 1 };
       case 5:
-        return { reward: 8, target: 1 };
+        return { reward: 6, target: 1 };
       case 6:
-        return { reward: 10, target: 1 };
+        return { reward: 8, target: 1 };
       case 7:
+        return { reward: 10, target: 1 };
+      case 8:
         return { reward: 12, target: 1 };
       default:
         return { reward: 14, target: 1 };
@@ -276,10 +283,10 @@ const MiniGame = ({ open, onClose }) => {
   );
 
   const startNewGame = useCallback(() => {
-    setWordLength(2);
+    setWordLength(3); // 💡 ปรับให้เริ่มเกมที่ความยาวคำ 3
     setCorrectStreak(0);
     setHintsRemaining(3);
-    fetchWordsByLength(2);
+    fetchWordsByLength(3); // 💡 โหลดข้อมูลเริ่มที่ 3
   }, [fetchWordsByLength]);
 
   useEffect(() => {
@@ -293,9 +300,13 @@ const MiniGame = ({ open, onClose }) => {
     if (open) {
       if (currentStaminaValue > prevStaminaRef.current) {
         // กรณีที่ 1: สายฟ้าเด้งจนเต็ม (เช่น 2/3 -> 3/3)
-        if (currentStaminaValue >= maxStaminaValue && status !== "finished" && status !== "gameover") {
+        if (
+          currentStaminaValue >= maxStaminaValue &&
+          status !== "finished" &&
+          status !== "gameover"
+        ) {
           setStatus("finished"); // บังคับจบเกม เพราะเล่นต่อก็ไม่ได้สายฟ้าเพิ่มแล้ว
-        } 
+        }
         // กรณีที่ 2: สายฟ้าเด้งแต่ยังไม่เต็ม (เช่น 1/3 -> 2/3)
         else if (status === "playing") {
           // โชว์ Floating Text "⚡ +1 ENERGY!" แล้วให้เล่นต่อเนียนๆ
@@ -314,7 +325,8 @@ const MiniGame = ({ open, onClose }) => {
   }, [currentStaminaValue, maxStaminaValue, open, status]);
 
   useEffect(() => {
-    if (open && status === "fetching" && dictLoading === "loaded") { // สมมติว่า LOADED เป็นสตริง "loaded"
+    if (open && status === "fetching" && dictLoading === "loaded") {
+      // สมมติว่า LOADED เป็นสตริง "loaded"
       if (wordsForMiniGame && wordsForMiniGame.length > 0) {
         let matchedWords = wordsForMiniGame.filter(
           (item) =>
@@ -338,8 +350,8 @@ const MiniGame = ({ open, onClose }) => {
           const rawMeaning = item.meaning || "No meaning";
           const shortMeaning =
             rawMeaning.split(/[, ]+/).filter(Boolean)[0] || rawMeaning;
-          const type = item.type
-          return { word: item.word || "", meaning: shortMeaning, type:type };
+          const type = item.type;
+          return { word: item.word || "", meaning: shortMeaning, type: type };
         });
 
         if (formattedWords.length > 0) {
@@ -536,10 +548,11 @@ const MiniGame = ({ open, onClose }) => {
     if (isGameOverAfter) {
       setStatus("gameover");
     } else {
-      setWordLength(2);
+      // 💡 รีเซ็ตเป็น 3 ถ้าเล่นรอบนั้นพลาดแต่ยังไม่จบเกม (กรณีเผยคำตอบ)
+      setWordLength(3);
       setCorrectStreak(0);
       setHintsRemaining(3);
-      fetchWordsByLength(2);
+      fetchWordsByLength(3);
     }
   };
 
@@ -553,7 +566,11 @@ const MiniGame = ({ open, onClose }) => {
       const newPopupId = Date.now();
       setFloatingTexts((prev) => [
         ...prev,
-        { id: newPopupId, text: `⏳ -${levelConfig.reward} MINS!`, color: "#69f0ae" },
+        {
+          id: newPopupId,
+          text: `⏳ -${levelConfig.reward} MINS!`,
+          color: "#69f0ae",
+        },
       ]);
       setTimeout(
         () =>
@@ -633,7 +650,7 @@ const MiniGame = ({ open, onClose }) => {
         <Box
           sx={{
             width: { xs: "95%", sm: "500px" },
-            minHeight: "450px",
+            minHeight: "450px", // 💡 เปลี่ยนการตั้งค่าใน Mobile Landscape ให้มันหดได้ ไม่ล้นขอบล่าง
             display: "flex",
             flexDirection: "column",
             backgroundColor: "#1a100c",
@@ -649,6 +666,7 @@ const MiniGame = ({ open, onClose }) => {
             outline: "none",
             position: "relative",
             transition: "all 0.3s ease",
+            // 💡 ควบคุมสัดส่วนให้ย่อลงใน Mobile Landscape ป้องกันล้นขอบจอ
           }}
         >
           <AnimatePresence>
@@ -673,8 +691,8 @@ const MiniGame = ({ open, onClose }) => {
                     fontFamily: "'Press Start 2P'",
                     fontSize: { xs: 20, sm: 26 },
                     color: popup.color || "#69f0ae",
-                    textShadow: popup.color 
-                      ? `3px 3px 0 #000, 0 0 10px ${popup.color}80` 
+                    textShadow: popup.color
+                      ? `3px 3px 0 #000, 0 0 10px ${popup.color}80`
                       : "3px 3px 0 #000, 0 0 10px rgba(105,240,174,0.8)",
                   }}
                 >
@@ -731,10 +749,17 @@ const MiniGame = ({ open, onClose }) => {
                   alignItems: "flex-start",
                   mb: 2,
                   position: "relative",
+                  // 💡 ย่อ margin ด้านล่างใน Landscape
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    mb: 0.5,
+                  },
                 }}
               >
                 {/* 💡 THE FIX: ส่งฟังก์ชัน refreshUser ลงไปให้ InGameTimer จัดการ */}
-                <InGameTimer stamina={currentUser?.stamina} onTimerEnd={() => refreshUser()} />
+                <InGameTimer
+                  stamina={currentUser?.stamina}
+                  onTimerEnd={() => refreshUser()}
+                />
 
                 <Box
                   sx={{
@@ -830,13 +855,18 @@ const MiniGame = ({ open, onClose }) => {
                   startNewGame={startNewGame}
                 />
               ) : (
-              <Box
+                <Box
                   sx={{
                     flex: 1,
                     display: "flex",
                     flexDirection: "column",
                     mt: 3,
                     gap: 3,
+                    // 💡 ย่อช่องว่างและดันเนื้อหาใน Landscape ให้ชิดกันขึ้น
+                    // "@media (orientation: landscape) and (max-height: 450px)": {
+                    //   mt: 2,
+                    //   gap: 3,
+                    // },
                   }}
                 >
                   {/* 💡 THE FIX: กล่องโชว์คำแปลแบบใหม่ที่สวยขึ้นและจัดกึ่งกลางเป๊ะ */}
@@ -860,6 +890,11 @@ const MiniGame = ({ open, onClose }) => {
                         justifyContent: "center",
                         boxShadow:
                           "0 4px 6px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.8)",
+                        // 💡 ย่อ Padding ของกล่อง Meaning
+                        "@media (orientation: landscape) and (max-height: 450px)":
+                          {
+                            padding: "4px 12px",
+                          },
                       }}
                     >
                       <Typography
@@ -870,11 +905,17 @@ const MiniGame = ({ open, onClose }) => {
                           fontWeight: "bold",
                           letterSpacing: "1px",
                           textShadow: "2px 2px 0px #000",
+                          // 💡 ย่อฟอนต์ในกล่อง Meaning
+                          "@media (orientation: landscape) and (max-height: 450px)":
+                            {
+                              fontSize: 12,
+                              lineHeight: 1.2,
+                            },
                         }}
                       >
                         {gameWords[0]?.meaning}
                       </Typography>
-                      
+
                       {/* ย้าย Type เข้ามาไว้ข้างใต้คำแปล */}
                       <Typography
                         sx={{
@@ -885,6 +926,12 @@ const MiniGame = ({ open, onClose }) => {
                           letterSpacing: "0.5px",
                           textShadow: "1px 1px 0px #000",
                           mt: 0.5,
+                          // 💡 ย่อ Type ให้เล็กลงไปอีก
+                          "@media (orientation: landscape) and (max-height: 450px)":
+                            {
+                              fontSize: 8,
+                              mt: 0,
+                            },
                         }}
                       >
                         {shortType(gameWords[0]?.type)}

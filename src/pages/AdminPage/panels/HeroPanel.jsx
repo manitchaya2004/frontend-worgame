@@ -11,7 +11,7 @@ import {
   GiBowieKnife,
   GiFangs,
 } from "react-icons/gi";
-import { FaBolt, FaCloud, FaEyeSlash, FaPlus } from "react-icons/fa";
+import { FaBolt, FaCloud, FaEyeSlash, FaPlus, FaSearch } from "react-icons/fa";
 
 const HERO_BUCKET = "asset";
 const HERO_FOLDER = "img_hero";
@@ -68,6 +68,27 @@ const EFFECT_META = {
   "vampire_fang": { label: "Vampire Fang", icon: <GiFangs />, color: "#8b0000" },
 };
 
+const emptyForm = {
+  id: "",
+  name: "",
+  hp: "",
+  power: "",
+  speed: "",
+  ability_cost: "",
+  description: "",
+  hero_deck: [],
+};
+
+const createEmptySpriteFiles = () => ({
+  attack1: null,
+  attack2: null,
+  idle1: null,
+  idle2: null,
+  walk1: null,
+  walk2: null,
+  guard1: null,
+});
+
 const EffectSelect = ({ value, options, onChange }) => {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -120,14 +141,10 @@ const EffectSelect = ({ value, options, onChange }) => {
             {current.icon}
           </span>
 
-          <span style={{ color: "#ddd", fontWeight: 800 }}>
-            {current.label}
-          </span>
+          <span style={{ color: "#ddd", fontWeight: 800 }}>{current.label}</span>
         </span>
 
-        <span style={{ color: "#999", fontWeight: 900 }}>
-          {open ? "▲" : "▼"}
-        </span>
+        <span style={{ color: "#999", fontWeight: 900 }}>{open ? "▲" : "▼"}</span>
       </button>
 
       <AnimatePresence>
@@ -210,53 +227,394 @@ const EffectSelect = ({ value, options, onChange }) => {
   );
 };
 
-const emptyForm = {
-  id: "",
-  name: "",
-  hp: "",
-  power: "",
-  speed: "",
-  ability_cost: "",
-  description: "",
-  hero_deck: [],
-};
-
-const HeroPanel = () => {
-  const [heroes, setHeroes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [spriteFiles, setSpriteFiles] = useState({
-    attack1: null,
-    attack2: null,
-    idle1: null,
-    idle2: null,
-    walk1: null,
-    walk2: null,
-    guard1: null,
-  });
-
-  const [formData, setFormData] = useState(emptyForm);
-
-  const resetSpriteFiles = () =>
-    setSpriteFiles({
-      attack1: null,
-      attack2: null,
-      idle1: null,
-      idle2: null,
-      walk1: null,
-      walk2: null,
-      guard1: null,
-    });
-
-  const handleSpriteChange = (key, file) =>
-    setSpriteFiles((prev) => ({ ...prev, [key]: file }));
-
+const HeroFormFields = ({
+  formData,
+  setFormData,
+  spriteFiles,
+  handleSpriteChange,
+  handleAddDeckItem,
+  handleRemoveDeckItem,
+  handleDeckChange,
+  isEditing,
+}) => {
   const setField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
 
   const setNumberField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
+
+  return (
+    <>
+      <div className="flex-row">
+        <div
+          className="form-field flex-1"
+          data-tooltip="รหัสอ้างอิงฮีโร่ (สร้างอัตโนมัติจากชื่อ)"
+        >
+          <label className="form-label required">Hero ID</label>
+          <input className="input-field" value={formData.id} disabled />
+          <span className="form-hint">สร้างอัตโนมัติจาก Name</span>
+        </div>
+
+        <div
+          className="form-field flex-2"
+          data-tooltip="ชื่อของฮีโร่ที่จะแสดงในเกม"
+        >
+          <label className="form-label required">Name</label>
+          <input
+            className="input-field"
+            value={formData.name}
+            onChange={(e) => {
+              const name = e.target.value;
+              setFormData((p) => {
+                if (isEditing) return { ...p, name };
+                return { ...p, name, id: toHeroId(name) };
+              });
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="flex-row flex-wrap">
+        <div className="form-field" data-tooltip="พลังชีวิตเริ่มต้นของฮีโร่">
+          <label className="form-label required">hp</label>
+          <input
+            className="input-field"
+            type="number"
+            value={formData.hp}
+            onChange={(e) => setNumberField("hp", e.target.value)}
+          />
+        </div>
+
+        <div className="form-field" data-tooltip="พลังโจมตีพื้นฐาน">
+          <label className="form-label required">power</label>
+          <input
+            className="input-field"
+            type="number"
+            value={formData.power}
+            onChange={(e) => setNumberField("power", e.target.value)}
+          />
+        </div>
+
+        <div className="form-field" data-tooltip="ความเร็ว (กำหนดลำดับการโจมตี)">
+          <label className="form-label required">speed</label>
+          <input
+            className="input-field"
+            type="number"
+            value={formData.speed}
+            onChange={(e) => setNumberField("speed", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex-row">
+        <div className="form-field flex-1" data-tooltip="ค่ามานาที่ใช้สำหรับสกิลนี้">
+          <label className="form-label">ability_cost</label>
+          <input
+            className="input-field"
+            type="number"
+            value={formData.ability_cost}
+            onChange={(e) => setNumberField("ability_cost", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="form-field full" data-tooltip="คำอธิบายเพิ่มเติมเกี่ยวกับฮีโร่">
+        <label className="form-label">description</label>
+        <input
+          className="input-field"
+          value={formData.description}
+          onChange={(e) => setField("description", e.target.value)}
+        />
+      </div>
+
+      <div
+        style={{
+          width: "100%",
+          marginTop: "15px",
+          padding: "15px",
+          background: "rgba(0,0,0,0.2)",
+          borderRadius: "8px",
+          border: "1px dashed #555",
+        }}
+      >
+        <h4
+          style={{ margin: "0 0 10px 0", color: "#e2e8f0" }}
+          data-tooltip="การ์ดเอฟเฟกต์เริ่มต้นที่ฮีโร่มีในกอง"
+        >
+          Hero Deck (Cards)
+        </h4>
+
+        {(formData.hero_deck || []).map((item, index) => (
+          <div
+            key={index}
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginBottom: "8px",
+              alignItems: "center",
+            }}
+          >
+            <div
+              className="form-field flex-2"
+              style={{ marginBottom: 0 }}
+              data-tooltip="เลือกเอฟเฟกต์ของการ์ด"
+            >
+              <EffectSelect
+                value={item.effect}
+                options={DECK_EFFECTS}
+                onChange={(ef) => handleDeckChange(index, "effect", ef)}
+              />
+            </div>
+
+            <div
+              className="form-field flex-1"
+              style={{ marginBottom: 0 }}
+              data-tooltip="จำนวนใบของการ์ดชนิดนี้ในกอง"
+            >
+              <input
+                className="input-field"
+                type="number"
+                placeholder="Size (e.g. 3)"
+                value={item.size}
+                onChange={(e) => handleDeckChange(index, "size", e.target.value)}
+                min="1"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-delete"
+              onClick={() => handleRemoveDeckItem(index)}
+              style={{ height: "36px", padding: "0 10px", marginTop: "20px" }}
+              data-tooltip="ลบการ์ดใบนี้ออกจากกอง"
+            >
+              X
+            </button>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          className="btn"
+          onClick={handleAddDeckItem}
+          style={{ background: "#2b6cb0", marginTop: "10px" }}
+          data-tooltip="เพิ่มการ์ดชนิดใหม่ลงในกอง"
+        >
+          + Add Card
+        </button>
+      </div>
+
+      <div className="sprite-upload" style={{ marginTop: 15 }}>
+        <div className="hint" data-tooltip="อัปโหลดภาพแอนิเมชันให้ครบทั้ง 7 ท่าทาง">
+          Hero Sprites (ต้องมี 7 รูป) — Attack x2, Idle x2, Walk x2, Guard x1
+          {isEditing && (
+            <span className="subhint">
+              {" "}
+              (แก้รูป: เลือกใหม่ให้ครบ 7 แล้วกด UPDATE)
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", marginTop: "10px" }}>
+          {Object.keys(spriteFiles).map((k) => (
+            <div
+              key={k}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                alignItems: "flex-start",
+                padding: "10px",
+                border: "1px dashed #555",
+                borderRadius: "8px",
+              }}
+              data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}
+            >
+              <label
+                style={{
+                  fontSize: 12,
+                  color: "#888",
+                  fontWeight: "bold",
+                  textTransform: "capitalize",
+                }}
+              >
+                {k}
+              </label>
+
+              {spriteFiles[k] && (
+                <img
+                  src={URL.createObjectURL(spriteFiles[k])}
+                  alt={`Preview ${k}`}
+                  style={{
+                    width: "80px",
+                    height: "80px",
+                    objectFit: "contain",
+                    border: "1px solid #444",
+                    borderRadius: "4px",
+                    background: "rgba(0,0,0,0.5)",
+                  }}
+                />
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                required={!isEditing}
+                onChange={(e) => handleSpriteChange(k, e.target.files?.[0] || null)}
+                style={{ fontSize: "12px", width: "180px" }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};
+
+const EditHeroModal = ({
+  open,
+  formData,
+  setFormData,
+  spriteFiles,
+  handleSpriteChange,
+  handleAddDeckItem,
+  handleRemoveDeckItem,
+  handleDeckChange,
+  handleSubmit,
+  handleClose,
+}) => {
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, handleClose]);
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.65)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ duration: 0.18 }}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "min(1100px, 96vw)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+            borderRadius: 16,
+            background: "linear-gradient(180deg, #131922 0%, #0e131b 100%)",
+            border: "1px solid rgba(59,130,246,0.35)",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            padding: 22,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 14,
+              position: "sticky",
+              top: -22,
+              background: "linear-gradient(180deg, #131922 0%, #131922 100%)",
+              padding: "8px 0 12px",
+              zIndex: 2,
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, color: "#fff", fontSize: 24 }}>
+                Edit Hero
+              </h3>
+              <div style={{ color: "#60a5fa", marginTop: 4, fontSize: 13 }}>
+                Editing: {formData.id || "-"}
+              </div>
+            </div>
+          </div>
+
+          <form className="form-box hero-mode" onSubmit={handleSubmit} style={{ margin: 0 }}>
+            <HeroFormFields
+              formData={formData}
+              setFormData={setFormData}
+              spriteFiles={spriteFiles}
+              handleSpriteChange={handleSpriteChange}
+              handleAddDeckItem={handleAddDeckItem}
+              handleRemoveDeckItem={handleRemoveDeckItem}
+              handleDeckChange={handleDeckChange}
+              isEditing={true}
+            />
+
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 20,
+              }}
+            >
+              <button type="button" className="btn btn-cancel" onClick={handleClose}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-edit">
+                UPDATE HERO
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+const HeroPanel = () => {
+  const [heroes, setHeroes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [createForm, setCreateForm] = useState(emptyForm);
+  const [createSpriteFiles, setCreateSpriteFiles] = useState(createEmptySpriteFiles());
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editSpriteFiles, setEditSpriteFiles] = useState(createEmptySpriteFiles());
+
+  const [searchText, setSearchText] = useState("");
+  const [sortBy, setSortBy] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
+
+  const resetCreateForm = () => {
+    setCreateForm(emptyForm);
+    setCreateSpriteFiles(createEmptySpriteFiles());
+  };
+
+  const resetEditForm = () => {
+    setEditForm(emptyForm);
+    setEditSpriteFiles(createEmptySpriteFiles());
+    setEditOpen(false);
+  };
 
   const fetchHeroes = useCallback(async () => {
     setLoading(true);
@@ -276,9 +634,6 @@ const HeroPanel = () => {
     fetchHeroes();
   }, [fetchHeroes]);
 
-  const [sortBy, setSortBy] = useState(null);
-  const [sortDir, setSortDir] = useState("asc");
-
   const toggleSort = (key) => {
     if (sortBy === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -288,8 +643,20 @@ const HeroPanel = () => {
     }
   };
 
+  const filteredHeroes = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) return heroes;
+
+    return heroes.filter((h) =>
+      [h.id, h.name, h.description, h.hp, h.power, h.speed, h.ability_cost]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword)
+    );
+  }, [heroes, searchText]);
+
   const sortedHeroes = useMemo(() => {
-    const arr = Array.isArray(heroes) ? [...heroes] : [];
+    const arr = Array.isArray(filteredHeroes) ? [...filteredHeroes] : [];
     if (!sortBy) return arr;
 
     const dir = sortDir === "asc" ? 1 : -1;
@@ -338,7 +705,7 @@ const HeroPanel = () => {
     });
 
     return arr;
-  }, [heroes, sortBy, sortDir]);
+  }, [filteredHeroes, sortBy, sortDir]);
 
   const SortableTH = ({ colKey, children, tooltip }) => {
     const active = sortBy === colKey;
@@ -364,22 +731,22 @@ const HeroPanel = () => {
     );
   };
 
-  const handleAddDeckItem = () => {
-    setFormData((prev) => ({
+  const handleCreateDeckAdd = () => {
+    setCreateForm((prev) => ({
       ...prev,
       hero_deck: [...(prev.hero_deck || []), { effect: "double-dmg", size: 3 }],
     }));
   };
 
-  const handleRemoveDeckItem = (index) => {
-    setFormData((prev) => ({
+  const handleCreateDeckRemove = (index) => {
+    setCreateForm((prev) => ({
       ...prev,
       hero_deck: prev.hero_deck.filter((_, i) => i !== index),
     }));
   };
 
-  const handleDeckChange = (index, field, value) => {
-    setFormData((prev) => {
+  const handleCreateDeckChange = (index, field, value) => {
+    setCreateForm((prev) => {
       const newDeck = [...(prev.hero_deck || [])];
       newDeck[index] = {
         ...newDeck[index],
@@ -389,7 +756,32 @@ const HeroPanel = () => {
     });
   };
 
-  const uploadSpritesStrict7 = async (heroId) => {
+  const handleEditDeckAdd = () => {
+    setEditForm((prev) => ({
+      ...prev,
+      hero_deck: [...(prev.hero_deck || []), { effect: "double-dmg", size: 3 }],
+    }));
+  };
+
+  const handleEditDeckRemove = (index) => {
+    setEditForm((prev) => ({
+      ...prev,
+      hero_deck: prev.hero_deck.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleEditDeckChange = (index, field, value) => {
+    setEditForm((prev) => {
+      const newDeck = [...(prev.hero_deck || [])];
+      newDeck[index] = {
+        ...newDeck[index],
+        [field]: field === "size" ? Number(value) : value,
+      };
+      return { ...prev, hero_deck: newDeck };
+    });
+  };
+
+  const uploadSpritesStrict7 = async (heroId, spriteFiles) => {
     const requiredKeys = ["attack1", "attack2", "idle1", "idle2", "walk1", "walk2", "guard1"];
     const missing = requiredKeys.filter((k) => !spriteFiles[k]);
 
@@ -414,71 +806,96 @@ const HeroPanel = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
 
     const payload = {
-      p_id: formData.id,
-      p_name: formData.name || null,
-      p_hp: formData.hp === "" ? 0 : Number(formData.hp),
-      p_power: formData.power === "" ? 0 : Number(formData.power),
-      p_speed: formData.speed === "" ? 0 : Number(formData.speed),
-      p_ability_cost: formData.ability_cost === "" ? null : Number(formData.ability_cost),
-      p_description: formData.description || null,
-      p_hero_deck: (formData.hero_deck || []).map((item) => ({
+      p_id: createForm.id,
+      p_name: createForm.name || null,
+      p_hp: createForm.hp === "" ? 0 : Number(createForm.hp),
+      p_power: createForm.power === "" ? 0 : Number(createForm.power),
+      p_speed: createForm.speed === "" ? 0 : Number(createForm.speed),
+      p_ability_cost: createForm.ability_cost === "" ? null : Number(createForm.ability_cost),
+      p_description: createForm.description || null,
+      p_hero_deck: (createForm.hero_deck || []).map((item) => ({
         effect: item.effect,
         size: Number(item.size) || 1,
       })),
     };
 
     try {
-      if (!formData.id || !formData.name) {
+      if (!createForm.id || !createForm.name) {
         throw new Error("กรุณากรอกชื่อ Hero");
       }
 
-      if (!isEditing) {
-        const missing = Object.entries(spriteFiles)
-          .filter(([, f]) => !f)
-          .map(([k]) => k);
+      const missing = Object.entries(createSpriteFiles)
+        .filter(([, f]) => !f)
+        .map(([k]) => k);
 
-        if (missing.length > 0) {
-          alert(`ต้องอัปโหลดรูปครบ 7 รูปก่อนสร้าง Hero\nขาด: ${missing.join(", ")}`);
-          return;
-        }
+      if (missing.length > 0) {
+        alert(`ต้องอัปโหลดรูปครบ 7 รูปก่อนสร้าง Hero\nขาด: ${missing.join(", ")}`);
+        return;
       }
 
-      const { error } = isEditing
-        ? await supabase.rpc("update_hero", payload)
-        : await supabase.rpc("create_hero", payload);
-
+      const { error } = await supabase.rpc("create_hero", payload);
       if (error) throw error;
 
-      if (!isEditing) {
-        await uploadSpritesStrict7(formData.id);
-      } else {
-        const anySelected = Object.values(spriteFiles).some(Boolean);
-        if (anySelected) {
-          const all7 = Object.values(spriteFiles).every(Boolean);
-          if (!all7) {
-            throw new Error("ถ้าจะแก้รูป ต้องเลือกใหม่ให้ครบทั้ง 7 รูป");
-          }
-          await uploadSpritesStrict7(formData.id);
-        }
-      }
+      await uploadSpritesStrict7(createForm.id, createSpriteFiles);
 
-      alert(isEditing ? "Hero Updated!" : "Hero Created!");
-      setFormData(emptyForm);
-      resetSpriteFiles();
-      setIsEditing(false);
+      alert("Hero Created!");
+      resetCreateForm();
       fetchHeroes();
     } catch (err) {
-      console.error("handleSubmit error:", err);
+      console.error("handleCreateSubmit error:", err);
       alert(`Error: ${err.message}`);
     }
   };
 
-  const handleEdit = (h) => {
-    setFormData({
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      p_id: editForm.id,
+      p_name: editForm.name || null,
+      p_hp: editForm.hp === "" ? 0 : Number(editForm.hp),
+      p_power: editForm.power === "" ? 0 : Number(editForm.power),
+      p_speed: editForm.speed === "" ? 0 : Number(editForm.speed),
+      p_ability_cost: editForm.ability_cost === "" ? null : Number(editForm.ability_cost),
+      p_description: editForm.description || null,
+      p_hero_deck: (editForm.hero_deck || []).map((item) => ({
+        effect: item.effect,
+        size: Number(item.size) || 1,
+      })),
+    };
+
+    try {
+      if (!editForm.id || !editForm.name) {
+        throw new Error("กรุณากรอกชื่อ Hero");
+      }
+
+      const { error } = await supabase.rpc("update_hero", payload);
+      if (error) throw error;
+
+      const anySelected = Object.values(editSpriteFiles).some(Boolean);
+      if (anySelected) {
+        const all7 = Object.values(editSpriteFiles).every(Boolean);
+        if (!all7) {
+          throw new Error("ถ้าจะแก้รูป ต้องเลือกใหม่ให้ครบทั้ง 7 รูป");
+        }
+        await uploadSpritesStrict7(editForm.id, editSpriteFiles);
+      }
+
+      alert("Hero Updated!");
+      resetEditForm();
+      fetchHeroes();
+    } catch (err) {
+      console.error("handleEditSubmit error:", err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const openEditModal = (h) => {
+    setEditForm({
       id: h.id ?? "",
       name: h.name ?? "",
       hp: h.hp ?? "",
@@ -489,9 +906,8 @@ const HeroPanel = () => {
       hero_deck: Array.isArray(h.hero_deck) ? h.hero_deck : [],
     });
 
-    resetSpriteFiles();
-    setIsEditing(true);
-    document.querySelector(".form-box")?.scrollIntoView({ behavior: "smooth" });
+    setEditSpriteFiles(createEmptySpriteFiles());
+    setEditOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -558,261 +974,63 @@ const HeroPanel = () => {
     }
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    setFormData(emptyForm);
-    resetSpriteFiles();
-  };
-
   return (
     <div className="admin-container">
-      <form className="form-box hero-mode" onSubmit={handleSubmit}>
-        <h3 className="form-title hero">
-          {isEditing ? `EDITING HERO: ${formData.id}` : "NEW HERO"}
-        </h3>
+      <form className="form-box hero-mode" onSubmit={handleCreateSubmit}>
+        <h3 className="form-title hero">NEW HERO</h3>
 
-        <div className="flex-row">
-          <div
-            className="form-field flex-1"
-            data-tooltip="รหัสอ้างอิงฮีโร่ (สร้างอัตโนมัติจากชื่อ)"
-          >
-            <label className="form-label required">Hero ID</label>
-            <input className="input-field" value={formData.id} disabled />
-            <span className="form-hint">สร้างอัตโนมัติจาก Name</span>
-          </div>
-
-          <div
-            className="form-field flex-2"
-            data-tooltip="ชื่อของฮีโร่ที่จะแสดงในเกม"
-          >
-            <label className="form-label required">Name</label>
-            <input
-              className="input-field"
-              value={formData.name}
-              onChange={(e) => {
-                const name = e.target.value;
-                setFormData((p) => {
-                  if (isEditing) return { ...p, name };
-                  return { ...p, name, id: toHeroId(name) };
-                });
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="flex-row flex-wrap">
-          <div className="form-field" data-tooltip="พลังชีวิตเริ่มต้นของฮีโร่">
-            <label className="form-label required">hp</label>
-            <input
-              className="input-field"
-              type="number"
-              value={formData.hp}
-              onChange={(e) => setNumberField("hp", e.target.value)}
-            />
-          </div>
-          <div className="form-field" data-tooltip="พลังโจมตีพื้นฐาน">
-            <label className="form-label required">power</label>
-            <input
-              className="input-field"
-              type="number"
-              value={formData.power}
-              onChange={(e) => setNumberField("power", e.target.value)}
-            />
-          </div>
-          <div className="form-field" data-tooltip="ความเร็ว (กำหนดลำดับการโจมตี)">
-            <label className="form-label required">speed</label>
-            <input
-              className="input-field"
-              type="number"
-              value={formData.speed}
-              onChange={(e) => setNumberField("speed", e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="flex-row">
-          <div className="form-field flex-1" data-tooltip="ค่ามานาที่ใช้สำหรับสกิลนี้">
-            <label className="form-label">ability_cost</label>
-            <input
-              className="input-field"
-              type="number"
-              value={formData.ability_cost}
-              onChange={(e) => setNumberField("ability_cost", e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="form-field full" data-tooltip="คำอธิบายเพิ่มเติมเกี่ยวกับฮีโร่">
-          <label className="form-label">description</label>
-          <input
-            className="input-field"
-            value={formData.description}
-            onChange={(e) => setField("description", e.target.value)}
-          />
-        </div>
-
-        <div
-          style={{
-            width: "100%",
-            marginTop: "15px",
-            padding: "15px",
-            background: "rgba(0,0,0,0.2)",
-            borderRadius: "8px",
-            border: "1px dashed #555",
-          }}
-        >
-          <h4
-            style={{ margin: "0 0 10px 0", color: "#e2e8f0" }}
-            data-tooltip="การ์ดเอฟเฟกต์เริ่มต้นที่ฮีโร่มีในกอง"
-          >
-            Hero Deck (Cards)
-          </h4>
-
-          {(formData.hero_deck || []).map((item, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                gap: "10px",
-                marginBottom: "8px",
-                alignItems: "center",
-              }}
-            >
-              <div
-                className="form-field flex-2"
-                style={{ marginBottom: 0 }}
-                data-tooltip="เลือกเอฟเฟกต์ของการ์ด"
-              >
-                <EffectSelect
-                  value={item.effect}
-                  options={DECK_EFFECTS}
-                  onChange={(ef) => handleDeckChange(index, "effect", ef)}
-                />
-              </div>
-
-              <div
-                className="form-field flex-1"
-                style={{ marginBottom: 0 }}
-                data-tooltip="จำนวนใบของการ์ดชนิดนี้ในกอง"
-              >
-                <input
-                  className="input-field"
-                  type="number"
-                  placeholder="Size (e.g. 3)"
-                  value={item.size}
-                  onChange={(e) => handleDeckChange(index, "size", e.target.value)}
-                  min="1"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="btn btn-delete"
-                onClick={() => handleRemoveDeckItem(index)}
-                style={{ height: "36px", padding: "0 10px", marginTop: "20px" }}
-                data-tooltip="ลบการ์ดใบนี้ออกจากกอง"
-              >
-                X
-              </button>
-            </div>
-          ))}
-
-          <button
-            type="button"
-            className="btn"
-            onClick={handleAddDeckItem}
-            style={{ background: "#2b6cb0", marginTop: "10px" }}
-            data-tooltip="เพิ่มการ์ดชนิดใหม่ลงในกอง"
-          >
-            + Add Card
-          </button>
-        </div>
-
-        <div className="sprite-upload" style={{ marginTop: 15 }}>
-          <div className="hint" data-tooltip="อัปโหลดภาพแอนิเมชันให้ครบทั้ง 7 ท่าทาง">
-            Hero Sprites (ต้องมี 7 รูป) — Attack x2, Idle x2, Walk x2, Guard x1
-            {isEditing && (
-              <span className="subhint">
-                {" "}
-                (แก้รูป: เลือกใหม่ให้ครบ 7 แล้วกด UPDATE)
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", marginTop: "10px" }}>
-            {Object.keys(spriteFiles).map((k) => (
-              <div
-                key={k}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  alignItems: "flex-start",
-                  padding: "10px",
-                  border: "1px dashed #555",
-                  borderRadius: "8px",
-                }}
-                data-tooltip={`อัปโหลดรูปภาพสำหรับสถานะ ${k}`}
-              >
-                <label
-                  style={{
-                    fontSize: 12,
-                    color: "#888",
-                    fontWeight: "bold",
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {k}
-                </label>
-
-                {spriteFiles[k] && (
-                  <img
-                    src={URL.createObjectURL(spriteFiles[k])}
-                    alt={`Preview ${k}`}
-                    style={{
-                      width: "80px",
-                      height: "80px",
-                      objectFit: "contain",
-                      border: "1px solid #444",
-                      borderRadius: "4px",
-                      background: "rgba(0,0,0,0.5)",
-                    }}
-                  />
-                )}
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  required={!isEditing}
-                  onChange={(e) => handleSpriteChange(k, e.target.files?.[0] || null)}
-                  style={{ fontSize: "12px", width: "180px" }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <HeroFormFields
+          formData={createForm}
+          setFormData={setCreateForm}
+          spriteFiles={createSpriteFiles}
+          handleSpriteChange={(key, file) =>
+            setCreateSpriteFiles((prev) => ({ ...prev, [key]: file }))
+          }
+          handleAddDeckItem={handleCreateDeckAdd}
+          handleRemoveDeckItem={handleCreateDeckRemove}
+          handleDeckChange={handleCreateDeckChange}
+          isEditing={false}
+        />
 
         <div style={{ width: "100%", display: "flex", gap: 10, justifyContent: "center", marginTop: 20 }}>
           <button
             type="submit"
-            className={`btn ${isEditing ? "btn-edit" : "btn-add"}`}
+            className="btn btn-add"
             style={{ flex: 1 }}
-            data-tooltip={isEditing ? "บันทึกการแก้ไข" : "สร้างฮีโร่ตัวใหม่"}
+            data-tooltip="สร้างฮีโร่ตัวใหม่"
           >
-            {isEditing ? "UPDATE HERO" : "CREATE HERO"}
+            CREATE HERO
           </button>
-          {isEditing && (
-            <button
-              type="button"
-              className="btn btn-cancel"
-              onClick={handleCancel}
-              data-tooltip="ยกเลิกการแก้ไขและล้างฟอร์ม"
-            >
-              CANCEL
-            </button>
-          )}
+
+          <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={resetCreateForm}
+          >
+            RESET
+          </button>
         </div>
       </form>
+
+      <div
+        style={{
+          marginTop: 18,
+          marginBottom: 12,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          maxWidth: 360,
+        }}
+      >
+        <FaSearch style={{ color: "#999" }} />
+        <input
+          className="input-field"
+          type="text"
+          placeholder="Search hero..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </div>
 
       <div className="table-wrapper">
         {loading ? (
@@ -909,7 +1127,7 @@ const HeroPanel = () => {
                       <button
                         type="button"
                         className="btn btn-edit"
-                        onClick={() => handleEdit(h)}
+                        onClick={() => openEditModal(h)}
                         data-tooltip="แก้ไขข้อมูลฮีโร่ตัวนี้"
                       >
                         Edit
@@ -937,7 +1155,7 @@ const HeroPanel = () => {
                 </tr>
               ))}
 
-              {heroes.length === 0 && (
+              {sortedHeroes.length === 0 && (
                 <tr>
                   <td colSpan="10" style={{ textAlign: "center", padding: 20 }}>
                     No Heroes Found.
@@ -948,6 +1166,21 @@ const HeroPanel = () => {
           </table>
         )}
       </div>
+
+      <EditHeroModal
+        open={editOpen}
+        formData={editForm}
+        setFormData={setEditForm}
+        spriteFiles={editSpriteFiles}
+        handleSpriteChange={(key, file) =>
+          setEditSpriteFiles((prev) => ({ ...prev, [key]: file }))
+        }
+        handleAddDeckItem={handleEditDeckAdd}
+        handleRemoveDeckItem={handleEditDeckRemove}
+        handleDeckChange={handleEditDeckChange}
+        handleSubmit={handleEditSubmit}
+        handleClose={resetEditForm}
+      />
     </div>
   );
 };

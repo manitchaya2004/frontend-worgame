@@ -1,7 +1,8 @@
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import HeartBrokenIcon from "@mui/icons-material/HeartBroken"; 
 import { THEMES } from "../../hook/const";
+
 export const GameResult = ({ onExit, onPlayAgain, canPlayAgain }) => {
   return (
     <Box
@@ -13,6 +14,11 @@ export const GameResult = ({ onExit, onPlayAgain, canPlayAgain }) => {
         flexDirection: "column",
         alignItems: "center",
         gap: 3,
+        // 💡 ลดช่องไฟไม่ให้หน้าจอล้น
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          py: 2,
+          gap: 1,
+        },
       }}
     >
       <FlashOnIcon
@@ -21,6 +27,11 @@ export const GameResult = ({ onExit, onPlayAgain, canPlayAgain }) => {
           color: "#FFD700",
           filter: "drop-shadow(0 0 15px #FFD700)",
           mb: 2,
+          // 💡 ย่อไอคอนตอนชนะ
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            fontSize: 40,
+            mb: 0.5,
+          },
         }}
       />
       <Typography
@@ -30,6 +41,11 @@ export const GameResult = ({ onExit, onPlayAgain, canPlayAgain }) => {
           fontSize: 16,
           mb: 4,
           lineHeight: 1.5,
+          // 💡 ย่อฟอนต์คำอธิบาย
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            fontSize: 10,
+            mb: 1.5,
+          },
         }}
       >
         MINING COMPLETE!
@@ -63,6 +79,11 @@ export const GameResult = ({ onExit, onPlayAgain, canPlayAgain }) => {
               transform: "translateY(2px)",
               boxShadow: "0 2px 0 #2e1d14",
             },
+            // 💡 ย่อปุ่มออก
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1,
+              px: 2,
+            },
           }}
         >
           {/* 💡 ถ้าเล่นต่อไม่ได้ ให้ปุ่มเปลี่ยนคำเป็น CLAIM REWARD เฉยๆ */}
@@ -89,6 +110,11 @@ export const GameResult = ({ onExit, onPlayAgain, canPlayAgain }) => {
                 transform: "translateY(2px)",
                 boxShadow: "0 2px 0 #2e7d32",
               },
+              // 💡 ย่อปุ่มเล่นใหม่
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                py: 1,
+                px: 2,
+              },
             }}
           >
             PLAY AGAIN
@@ -110,6 +136,11 @@ export const GameOver = ({onClose,startNewGame}) => {
         flexDirection: "column",
         alignItems: "center",
         gap: 3,
+        // 💡 ลดช่องไฟใน Landscape
+        "@media (orientation: landscape) and (max-height: 450px)": {
+          py: 2,
+          gap: 1,
+        },
       }}
     >
       <HeartBrokenIcon
@@ -118,6 +149,11 @@ export const GameOver = ({onClose,startNewGame}) => {
           color: THEMES.error,
           filter: "drop-shadow(0 0 10px #f44336)",
           mb: 2,
+          // 💡 ย่อไอคอนตอนแพ้
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            fontSize: 40,
+            mb: 0.5,
+          },
         }}
       />
       <Typography
@@ -127,6 +163,11 @@ export const GameOver = ({onClose,startNewGame}) => {
           fontSize: 16,
           mb: 4,
           lineHeight: 1.5,
+          // 💡 ย่อฟอนต์
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            fontSize: 10,
+            mb: 1.5,
+          },
         }}
       >
         MINING FAILED!
@@ -161,6 +202,11 @@ export const GameOver = ({onClose,startNewGame}) => {
               transform: "translateY(2px)",
               boxShadow: "0 2px 0 #2e1d14",
             },
+            // 💡 ย่อปุ่มออก
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1,
+              px: 2,
+            },
           }}
         >
           EXIT
@@ -182,6 +228,11 @@ export const GameOver = ({onClose,startNewGame}) => {
               backgroundColor: "#f39c12",
               transform: "translateY(2px)",
               boxShadow: "0 2px 0 #d35400",
+            },
+            // 💡 ย่อปุ่มลองใหม่
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1,
+              px: 2,
             },
           }}
         >

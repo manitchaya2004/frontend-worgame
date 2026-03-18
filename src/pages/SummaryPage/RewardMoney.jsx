@@ -54,10 +54,15 @@ export default function RewardMoney({
         flexDirection: "column",
         gap: "20px",
         alignItems: "center",
+        // 💡 เพิ่มการจัดการความสูงและการเลื่อนสำหรับ Mobile Landscape
+        maxHeight: "100vh",
+        padding: "10px 0",
+        overflowY: "auto",
+        boxSizing: "border-box",
       }}
     >
       {/* 1. Header (Victory/Defeat) */}
-      <motion.div variants={itemVariants} style={{ textAlign: "center" }}>
+      <motion.div variants={itemVariants} style={{ textAlign: "center", marginTop: "auto" }}>
         <Typography
           sx={{
             fontFamily: '"Press Start 2P", serif',
@@ -65,6 +70,12 @@ export default function RewardMoney({
             color: isWin ? THEMES.accent : "#ef5350",
             textShadow: `4px 4px 0px ${THEMES.shadow}`,
             mb: 1,
+            // 💡 ย่อฟอนต์ใน Landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: "1.5rem",
+              textShadow: `2px 2px 0px ${THEMES.shadow}`,
+              mb: 0.5,
+            },
           }}
         >
           {isWin ? "VICTORY!" : "DEFEAT"}
@@ -74,6 +85,10 @@ export default function RewardMoney({
             fontFamily: "monospace",
             color: THEMES.textMain,
             fontSize: "0.9rem",
+            // 💡 ย่อฟอนต์ใน Landscape
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: "0.7rem",
+            },
           }}
         >
           {isWin ? "Splendid performance!" : "You fought bravely..."}
@@ -94,6 +109,13 @@ export default function RewardMoney({
               display: "flex",
               flexDirection: "column",
               gap: 2,
+              // 💡 บีบกล่องและช่องไฟใน Landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                padding: "12px",
+                gap: 1,
+                borderWidth: "2px",
+                boxShadow: `0 5px 0 ${THEMES.shadow}`,
+              },
             }}
           >
             <Typography
@@ -103,12 +125,16 @@ export default function RewardMoney({
                 color: THEMES.textMain,
                 textAlign: "center",
                 opacity: 0.8,
+                // 💡 ย่อฟอนต์
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: "0.6rem",
+                },
               }}
             >
               - REWARDS -
             </Typography>
 
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, "@media (orientation: landscape) and (max-height: 450px)": { gap: 0.5 } }}>
               <RowLabelValue label="Monster Drop" value={`+${monsterMoney}`} />
               <RowLabelValue
                 label="Stage Reward"
@@ -121,6 +147,7 @@ export default function RewardMoney({
                   borderColor: THEMES.border,
                   my: 1,
                   borderStyle: "dashed",
+                  "@media (orientation: landscape) and (max-height: 450px)": { my: 0.5 },
                 }}
               />
 
@@ -136,17 +163,23 @@ export default function RewardMoney({
                     color: "#fff",
                     fontFamily: '"Press Start 2P"',
                     fontSize: "1rem",
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      fontSize: "0.7rem",
+                    },
                   }}
                 >
                   TOTAL
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 28 }} />
+                  <MonetizationOnIcon sx={{ color: "#ffd700", fontSize: 28, "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 20 } }} />
                   <Typography
                     sx={{
                       color: "#ffd700",
                       fontFamily: '"Press Start 2P"',
                       fontSize: "1.5rem",
+                      "@media (orientation: landscape) and (max-height: 450px)": {
+                        fontSize: "1rem",
+                      },
                     }}
                   >
                     {totalMoney}
@@ -171,28 +204,39 @@ export default function RewardMoney({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
+                      "@media (orientation: landscape) and (max-height: 450px)": {
+                        p: 0.5,
+                        mt: 0.5,
+                      },
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                      <LocalDrinkIcon sx={{ color: "#4caf50", fontSize: 24 }} />
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, "@media (orientation: landscape) and (max-height: 450px)": { gap: 0.5 } }}>
+                      <LocalDrinkIcon sx={{ color: "#4caf50", fontSize: 24, "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 16 } }} />
                       <Typography
                         sx={{
                           fontFamily: '"Press Start 2P"',
                           color: "#fff",
                           fontSize: "0.75rem",
                           lineHeight: 1.5,
+                          "@media (orientation: landscape) and (max-height: 450px)": {
+                            fontSize: "0.5rem",
+                            lineHeight: 1.2,
+                          },
                         }}
                       >
                         POTION <br /> MAX SLOT
                       </Typography>
                     </Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                      <UpgradeIcon sx={{ color: THEMES.accent, fontSize: 24 }} />
+                      <UpgradeIcon sx={{ color: THEMES.accent, fontSize: 24, "@media (orientation: landscape) and (max-height: 450px)": { fontSize: 16 } }} />
                       <Typography
                         sx={{
                           fontFamily: '"Press Start 2P"',
                           color: THEMES.accent,
                           fontSize: "1.2rem",
+                          "@media (orientation: landscape) and (max-height: 450px)": {
+                            fontSize: "0.8rem",
+                          },
                         }}
                       >
                         +1
@@ -214,6 +258,7 @@ export default function RewardMoney({
           display: "flex",
           flexDirection: "column",
           gap: 12,
+          marginBottom: "auto",
         }}
       >
         {/* ปุ่มดูคำศัพท์ (ยังคงโชว์อยู่ แม้ไม่ได้เงิน เพื่อให้เข้าไปดูได้) */}
@@ -262,7 +307,12 @@ const RowLabelValue = ({ label, value, highlight }) => (
     }}
   >
     <Typography
-      sx={{ color: THEMES.textMain, fontFamily: "monospace", fontSize: "1rem" }}
+      sx={{ 
+        color: THEMES.textMain, 
+        fontFamily: "monospace", 
+        fontSize: "1rem",
+        "@media (orientation: landscape) and (max-height: 450px)": { fontSize: "0.7rem" }
+      }}
     >
       {label}
     </Typography>
@@ -271,6 +321,7 @@ const RowLabelValue = ({ label, value, highlight }) => (
         color: highlight ? THEMES.accent : "#fff",
         fontFamily: '"Press Start 2P"',
         fontSize: "0.9rem",
+        "@media (orientation: landscape) and (max-height: 450px)": { fontSize: "0.6rem" }
       }}
     >
       {value}
@@ -285,6 +336,13 @@ const commonButtonStyle = {
   borderRadius: "12px",
   boxShadow: `0 6px 0 ${THEMES.shadow}`,
   transition: "transform 0.1s",
+  // 💡 ย่อปุ่มใน Landscape
+  "@media (orientation: landscape) and (max-height: 450px)": {
+    padding: "8px 0",
+    fontSize: "0.6rem",
+    boxShadow: `0 4px 0 ${THEMES.shadow}`,
+    borderRadius: "8px",
+  },
   "&:hover": {
     transform: "translateY(2px)",
     boxShadow: `0 4px 0 ${THEMES.shadow}`,

@@ -25,7 +25,7 @@ const MotionBox = motion(Box);
 const AdvantureFeature = () => {
   const { currentUser, updateStamina } = useAuthStore();
 
-  console.log("user",currentUser)
+  //console.log("user",currentUser)
   const { stages, loadingStage } = useData();
   const store = useGameStore();
   const navigate = useNavigate();
@@ -56,14 +56,14 @@ const AdvantureFeature = () => {
       store.reset();
       setIsEntering(true);
 
-      setTimeout(() => {
-        navigate("/battle", {
-          state: {
-            currentUser: currentUser,
-            selectedStage: stage,
-          },
-        });
-      }, 2000);
+       setTimeout(() => {
+         navigate("/battle", {
+           state: {
+             currentUser: currentUser,
+             selectedStage: stage,
+           },
+         });
+       }, 2000);
     } else {
       alert("Failed to consume stamina. Please try again.");
     }
@@ -191,8 +191,8 @@ const AdvantureFeature = () => {
             0 0 0 4px #1a120b,
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
-            width: { xs: "80%", sm: "80%", md: "80%", lg: "70%" },
-            height: { xs: "70%", sm: "70%", md: "670px",xl: "80%" },
+            width: { xs: "80%", sm: "80%", md: "80%" },
+            height: { xs: "70%", sm: "70%", md: "670px",xl: "82%" },
             p: 1,
             display: "flex",
             flexDirection: "column",

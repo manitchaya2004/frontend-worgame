@@ -11,10 +11,12 @@ import LevelBar from "../../components/LevelBar";
 import correct from "../../../../assets/icons/correct.png";
 import { getDeckIconData } from "../../hook/const";
 // Icons
-import FavoriteIcon from "@mui/icons-material/Favorite"; // HP
-import FlashOnIcon from "@mui/icons-material/FlashOn"; // Power
-import SpeedIcon from "@mui/icons-material/Speed"; // Speed
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import {
+  GiHearts,
+  GiBroadsword, // 🟢 เพิ่มไอคอนดาบ
+  GiLeatherBoot     // 🟢 เพิ่มไอคอนรองเท้า
+} from "react-icons/gi";
+
 
 // Icons สำหรับปุ่ม Switch
 import ViewListIcon from "@mui/icons-material/ViewList"; // ดูแบบหลอด (List)
@@ -398,23 +400,23 @@ const HeroCard = ({
               <StatLine
                 label="HP"
                 value={game_stats.hp}
-                icon={<FavoriteIcon />}
-                color="#ff5252"
-                description="Max Health. 0 = Game Over."
+                icon={<GiHearts />}
+               color="#ff4d4d" 
+                description="Maximum health points." 
               />
               <StatLine
-                label="POWER"
+                label="ATK"
                 value={game_stats.power}
-                icon={<FlashOnIcon />}
-                color="#ffca28"
-                description="Bag Size. Max letters you can hold in hand."
+                icon={<GiBroadsword />}
+                color="#e67e22" 
+                description="Letter limit. Exceeding this causes recoil damage." 
               />
               <StatLine
                 label="SPEED"
                 value={game_stats.speed}
-                icon={<SpeedIcon />}
-                color="#00e5ff"
-                description="Turn Speed. Faster acts first."
+                icon={<GiLeatherBoot />} 
+                color="#f1c40f" 
+                description="Determines turn order in battle." 
               />
             </Box>
             {/* {showDetail ? (

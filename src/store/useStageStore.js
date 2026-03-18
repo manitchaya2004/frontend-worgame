@@ -20,7 +20,7 @@ export const useStageStore = create((set) => ({
 
       if (error) throw error;
 
-      console.log("✅ Supabase Stage Data:", data);
+      //console.log("✅ Supabase Stage Data:", data);
 
       set({ 
         stages: data || [], 

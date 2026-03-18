@@ -9,7 +9,13 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hint
   const availableLetters = poolLetters.filter(item => !item.isUsed);
 
   return (
-    <Box sx={{ mt: "auto" }}>
+    <Box 
+      sx={{ 
+        mt: "auto", 
+        // 💡 ใน Landscape ปรับลดขอบล่างไม่ให้ล้นกล่อง
+        "@media (orientation: landscape) and (max-height: 450px)": { mt: "auto" } 
+      }}
+    >
       <Box 
         sx={{ 
           display: "flex", 
@@ -17,10 +23,14 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hint
           justifyContent: "center", 
           gap: { xs: 1, sm: 1.5 }, 
           mb: 3,
-          // ขยายความกว้างเพื่อรองรับคำศัพท์ 7-8 ตัวอักษร
           maxWidth: "100%", 
           px: 1,
-          mx: "auto"
+          mx: "auto",
+          // 💡 ย่อระยะห่างตัวอักษรด้านล่างสุด
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            gap: 0.5,
+            mb: 1,
+          },
         }}
       >
         <AnimatePresence>
@@ -52,7 +62,12 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hint
                 "&:hover": {
                    border: status === "playing" ? "2px solid #d4af37" : "2px solid #5c4033",
                    boxShadow: status === "playing" ? "0 6px 12px rgba(0,0,0,0.6), inset 0 -3px 0 rgba(212,175,55,0.3)" : "none",
-                }
+                },
+                // 💡 ย่อขนาดตัวอักษรให้พอดีกับจอแคบ
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  width: 32,
+                  height: 32,
+                },
               }}
             >
               <Typography 
@@ -64,6 +79,9 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hint
                   color: "#3e2723", 
                   textShadow: "0.5px 1px 0px rgba(255,255,255,0.8)", 
                   lineHeight: 1,
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: "14px",
+                  },
                 }}
               >
                 {item.char}
@@ -74,7 +92,16 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hint
       </Box>
 
       {/* แถบปุ่มช่วยเหลือ (REVEAL & HINT) */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", px: { xs: 1, sm: 3 } }}>
+      <Box 
+        sx={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          px: { xs: 1, sm: 3 },
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            px: 1,
+          },
+        }}
+      >
         <Button
           onClick={onReveal}
           disabled={status !== "playing"}
@@ -89,7 +116,12 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hint
             "&:hover": {
               backgroundColor: "rgba(255, 138, 101, 0.1)",
               border: `2px solid #ff8a65`,
-            }
+            },
+            // 💡 ย่อปุ่มให้บางลง
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              fontSize: 8,
+              padding: "4px 8px",
+            },
           }}
         >
           REVEAL
@@ -111,7 +143,12 @@ export const LetterPool = ({ poolLetters, onSelectLetter, onHint, onReveal, hint
                 boxShadow: hintsRemaining > 0 ? "0 2px 8px rgba(255, 215, 0, 0.2)" : "none",
                 "&:hover": {
                   backgroundColor: hintsRemaining > 0 ? "rgba(255, 215, 0, 0.1)" : "rgba(0,0,0,0.6)",
-                }
+                },
+                // 💡 ย่อปุ่มให้บางลง
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 8,
+                  padding: "4px 8px",
+                },
               }}
             >
               HINT ({hintsRemaining})

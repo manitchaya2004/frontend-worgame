@@ -72,8 +72,8 @@ const ShopHeroFeature = () => {
   };
 
   useEffect(() => {
-    console.log("user", currentUser);
-    console.log("heros", heros);
+    //console.log("user", currentUser);
+    //console.log("heros", heros);
   }, []);
 
   return (
@@ -105,7 +105,7 @@ const ShopHeroFeature = () => {
     0 20px 60px rgba(49, 49, 49, 0.8)
   `,
 
-          width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
+          width: { xs: "90%", sm: "80%", md: "80%", },
           height: { xs: "70%", sm: "70%", md: "570px", xl: "82%" },
 
           p: 1,

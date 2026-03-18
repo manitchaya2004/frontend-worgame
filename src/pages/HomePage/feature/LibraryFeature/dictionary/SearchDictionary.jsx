@@ -30,7 +30,12 @@ export const SearchDictionary = ({
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">
-              <SearchIcon sx={{ color: "#d6b46a" }} />
+              <SearchIcon
+                sx={{
+                  color: "#d6b46a",
+                  "@media (orientation: landscape) and (max-height: 450px)": {fontSize: "20px",},
+                }}
+              />
             </InputAdornment>
           ),
           startAdornment: (
@@ -40,6 +45,9 @@ export const SearchDictionary = ({
                   color: "#fffbe6",
                   fontFamily: `"Press Start 2P"`,
                   fontSize: 14,
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 10,
+                  },
                 }}
               >
                 {letter}
@@ -66,6 +74,18 @@ export const SearchDictionary = ({
           },
           "& fieldset": {
             border: "none",
+          },
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            "& .MuiOutlinedInput-root": {
+              height: "28px",
+            },
+            "& .MuiInputBase-root": {
+              fontSize: 8,
+              border: "2px solid #7a1f1f",
+            },
+            "& input::placeholder": {
+              fontSize: 6,
+            },
           },
         }}
       />

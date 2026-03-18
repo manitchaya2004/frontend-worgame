@@ -44,7 +44,7 @@ export const DeckManager = {
     }
 
     this.activeDeck = tempDeck;
-    console.log(`🎴 Deck Initialized: ${this.activeDeck.length} cards.`);
+    //console.log(`🎴 Deck Initialized: ${this.activeDeck.length} cards.`);
   },
 
   draw(currentInventory = [], unlockedSlots = 10) {

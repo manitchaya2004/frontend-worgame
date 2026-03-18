@@ -176,7 +176,7 @@ const ListSection = memo(
           <Box
             sx={{
               position: "relative",
-              height: "90%",
+              height: "100%",
               width: { xs: "80%", md: "85%", lg: "85%" },
               borderRadius: 2,
               overflow: "hidden",
@@ -325,6 +325,7 @@ const ListSection = memo(
                     : { transform: "translateY(6px)", boxShadow: "none" },
                   //mobile landscape
                   "@media (orientation: landscape) and (max-height: 450px)": {
+                    mt:1.5,
                     fontSize: 10,
                     px: 3,
                     py: 1,
