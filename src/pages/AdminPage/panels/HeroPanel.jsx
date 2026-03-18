@@ -1048,20 +1048,20 @@ const handleDelete = async (id) => {
 
         <div style={{ width: "100%", display: "flex", gap: 10, justifyContent: "center", marginTop: 20 }}>
           <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={resetCreateForm}
+          >
+            RESET
+          </button>
+
+          <button
             type="submit"
             className="btn btn-add"
             style={{ flex: 1 }}
             data-tooltip="สร้างฮีโร่ตัวใหม่"
           >
             CREATE HERO
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-cancel"
-            onClick={resetCreateForm}
-          >
-            RESET
           </button>
         </div>
       </form>

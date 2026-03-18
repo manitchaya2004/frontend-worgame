@@ -40,7 +40,6 @@ const buildMonsterSpritePath = (monsterId, key, fileName = "") => {
 const DECK_EFFECTS = [
   "double-dmg",
   "double-guard",
-  "double-shield",
   "mana-plus",
   "shield-plus",
   "add_bleed",
@@ -55,7 +54,6 @@ const DECK_EFFECTS = [
 const EFFECT_META = {
   "double-dmg": { label: "Double Damage", icon: <GiBroadsword />, color: "#c0392b" },
   "double-guard": { label: "Double Guard", icon: <GiShield />, color: "#2980b9" },
-  "double-shield": { label: "Double Shield", icon: <GiShield />, color: "#2980b9" },
   "mana-plus": { label: "Mana Plus", icon: <GiWaterDrop />, color: "#00bcd4" },
   "shield-plus": { label: "Shield Plus", icon: <GiTrident />, color: "#e67e22" },
   "add_bleed": { label: "Add Bleed", icon: <GiBowieKnife />, color: "#8b0000" },
