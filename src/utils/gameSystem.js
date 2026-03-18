@@ -27,6 +27,9 @@ Object.entries(POWER_GROUPS).forEach(([group, chars]) => {
   });
 });
 
+// ==========================================
+// 📊 DECK MANAGER (UPDATED: MIN 4 VOWELS)
+// ==========================================
 export const DeckManager = {
   activeDeck: [],
 
@@ -44,19 +47,19 @@ export const DeckManager = {
     }
 
     this.activeDeck = tempDeck;
-    //console.log(`🎴 Deck Initialized: ${this.activeDeck.length} cards.`);
   },
 
   draw(currentInventory = [], unlockedSlots = 10) {
     if (this.activeDeck.length === 0) this.init();
 
-    // กรองเอาเฉพาะตัวอักษรที่มีค่าจริงๆ มาเช็คเงื่อนไข Vowel
     const existingChars = currentInventory
       .filter((slot) => slot && slot.char)
       .map((slot) => slot.char.toUpperCase());
 
     const vowelCount = existingChars.filter((c) => VOWELS.includes(c)).length;
-    const vowelCeiling = Math.max(2, Math.floor(unlockedSlots / 2));
+    
+    // ปรับเพดานสระให้สัมพันธ์กับค่าขั้นต่ำ (ขั้นต่ำ 4, เพดานควรจะเริ่มที่ 5 หรือครึ่งหนึ่งของช่อง)
+    const vowelCeiling = Math.max(5, Math.floor(unlockedSlots / 2));
     
     let foundIdx = -1;
 
@@ -65,12 +68,14 @@ export const DeckManager = {
       if (!candidate) continue;
 
       const isVowel = VOWELS.includes(candidate);
-      // Desperate Mode: ถ้าวนหาเกิน 15 ใบแล้วยังไม่เจอที่ถูกใจ ให้หยิบใบนี้เลย
       const isDesperate = i < this.activeDeck.length - 15;
 
       if (!isDesperate) {
+        // ถ้าสระเกินเพดานที่ตั้งไว้ (เช่น 5 ใบ) จะไม่จั่วสระเพิ่ม
         if (vowelCount >= vowelCeiling && isVowel) continue;
-        if (vowelCount < 2 && !isVowel && this.activeDeck.length > 10) continue;
+        
+        // 🌟 แก้ไขตรงนี้: ถ้าสระในมือน้อยกว่า 4 ใบ จะพยายามข้ามพยัญชนะเพื่อไปหาจากสระในกองมาให้
+        if (vowelCount < 4 && !isVowel && this.activeDeck.length > 10) continue;
       }
 
       foundIdx = i;
@@ -84,7 +89,7 @@ export const DeckManager = {
       pickedChar = this.activeDeck.pop();
     }
     
-    return pickedChar || "E"; // ป้องกันขั้นสุด ถ้าไม่ได้อะไรเลยให้คืน "E"
+    return pickedChar || "E";
   },
 
   createItem(index, currentInv = [], unlockedSlots = 10) {

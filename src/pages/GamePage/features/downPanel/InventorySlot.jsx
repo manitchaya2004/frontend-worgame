@@ -442,7 +442,7 @@ const SingleSlot = ({ index, maxSlot }) => {
 
   const getSlotBackground = () => {
     if (isBlind) return "linear-gradient(145deg,#2c003e,#000000)";
-    if (isStunned) return "linear-gradient(145deg,#bdc3c7,#95a5a6)";
+    if (isStunned) return "linear-gradient(145deg,#f39c12,#e67e22)"; // ⚡ Stunned Background: สีส้ม-เหลือง
     if (isPoisoned) return "linear-gradient(145deg,#d4fcd4,#a2e0a2)";
     if (isBleed) return "linear-gradient(145deg,#e74c3c,#922b21)";
     return "linear-gradient(145deg,#ffffff,#e8dcc4)";
@@ -460,20 +460,20 @@ const SingleSlot = ({ index, maxSlot }) => {
       case "double-shield": return { desc: " Double score on guard", color: "#3498db", icon: <GiShield /> };
       case "mana-plus": return { desc: " Gain 5 mana", color: "#00bcd4", icon: <GiWaterDrop /> };
       case "shield-plus": return { desc: " Gain 1 shield on strike", color: "#e67e22", icon: <GiTrident /> };
-      case "add_bleed": return { desc: " 50% Chance to Bleed target (stack +25% acc)", color: "#e74c3c", icon: <GiBowieKnife /> };
+      case "add_bleed": return { desc: " 100% Chance to Bleed target (stack based)", color: "#e74c3c", icon: <GiBowieKnife /> };
       case "add_poison":
-      case "add_posion": return { desc: " 50% Chance to Poison target (stack +1 count)", color: "#2ecc71", icon: <FaCloud /> };
-      case "add_stun": return { desc: " 50% Chance to Stun target (stack +1 count)", color: "#f1c40f", icon: <FaBolt /> };
-      case "add_blind": return { desc: " 50% Chance to Blind target (stack +1 count)", color: "#8e44ad", icon: <FaEyeSlash /> };
+      case "add_posion": return { desc: " 100% Chance to Poison target (stack based)", color: "#2ecc71", icon: <FaCloud /> };
+      case "add_stun": return { desc: " 100% Chance to Stun target (stack based)", color: "#f1c40f", icon: <FaBolt /> };
+      case "add_blind": return { desc: " 100% Chance to Blind target (stack based)", color: "#8e44ad", icon: <FaEyeSlash /> };
       case "heal": return { desc: " Heal 1 HP on guard", color: "#2ecc71", icon: <FaPlus /> };
       case "bless": return { desc: " Cleanses 1 Debuff on guard", color: "#f1c40f", icon: <FaCross /> };
-      case "vampire_fang": return { desc: " 50% Chance to Lifesteal (stack +25% acc)", color: "#8b0000", icon: <GiFangs /> };
+      case "vampire_fang": return { desc: " 100% Chance to Lifesteal 50% dmg", color: "#8b0000", icon: <GiFangs /> };
       default: return null;
     }
   };
 
   const getTooltipDebuffInfo = () => {
-    if (isStunned) return { desc: ` Stunned for ${duration} turn(s)`, color: "#7f8c8d", icon: <FaLock /> };
+    if (isStunned) return { desc: ` Stunned for ${duration} turn(s)`, color: "#f39c12", icon: <FaBolt /> };
     if (isPoisoned) return { desc: ` Takes damage (${duration} turns left)`, color: "#2ecc71", icon: <FaSkullCrossbones /> };
     if (isBlind) return { desc: ` Blinded (${duration} turns left)`, color: "#8e44ad", icon: <FaEyeSlash /> };
     if (isBleed) return { desc: ` Bleeding (${duration} turns left)`, color: "#e74c3c", icon: <FaTint /> };
@@ -503,7 +503,11 @@ const SingleSlot = ({ index, maxSlot }) => {
             <motion.div
               key={item.id}
               initial={{ opacity: 0, scale: 0.4 }}
-              animate={{ opacity: 1, scale: 1, filter: isStunned ? "brightness(0.7) grayscale(0.3)" : "none" }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1, 
+                filter: isStunned ? "brightness(1.1) drop-shadow(0 0 4px rgba(243, 156, 18, 0.4))" : "none" 
+              }}
               exit={{ opacity: 0, scale: 0.2 }}
               whileHover={!isDisabled && !isStunned && allowHover ? { scale: 1.05 } : {}}
               onClick={onSelect}
@@ -517,8 +521,9 @@ const SingleSlot = ({ index, maxSlot }) => {
               <span style={{ 
                 zIndex: 1, fontWeight: 900, fontSize: isBlind ? "32px" : "24px",
                 fontFamily: "'Palatino', serif",
-                color: isBlind ? "#fff" : (isPoisoned ? "#1b5e20" : isBleed ? "#fadbd8" : isStunned ? "#2c3e50" : "#3e2723"),
+                color: isBlind ? "#fff" : (isPoisoned ? "#1b5e20" : isBleed ? "#fadbd8" : isStunned ? "rgba(44, 62, 80, 0.4)" : "#3e2723"),
                 textShadow: isBlind ? "0px 0px 8px rgba(255,255,255,0.4)" : "0.5px 1px 0px rgba(255,255,255,0.5)", lineHeight: 1,
+                opacity: isStunned ? 0.4 : 1 // ⚡ จางลงเพื่อให้ดูเหมือนโดนช็อตจนใช้งานไม่ได้
               }}>
                 {isBlind ? "?" : item.char}
               </span>
@@ -552,7 +557,7 @@ const SingleSlot = ({ index, maxSlot }) => {
                     transition={{ duration: 0.2, ease: "easeOut" }}
                     style={{
                       position: "absolute", top: "-2px", left: "-2px", width: "14px", height: "14px",
-                      background: isBlind ? "#8e44ad" : (isPoisoned ? "#2ecc71" : (isBleed ? "#c0392b" : "#7f8c8d")),
+                      background: isBlind ? "#8e44ad" : (isPoisoned ? "#2ecc71" : (isBleed ? "#c0392b" : "#f39c12")),
                       borderRadius: "50%", fontSize: "8px", color: "#fff", fontWeight: "bold",
                       display: "flex", justifyContent: "center", alignItems: "center", border: "1px solid #fff", zIndex: 11,
                     }}
@@ -569,7 +574,7 @@ const SingleSlot = ({ index, maxSlot }) => {
                     transition={{ duration: 0.2, ease: "easeOut" }} style={{ position: "absolute", top: "3px", right: "3px", zIndex: 2 }}
                   >
                     {isPoisoned && !isBlind && !isBleed && <FaSkullCrossbones style={{ color: "#27ae60", fontSize: "11px" }} />}
-                    {isStunned && <FaLock style={{ color: "#34495e", fontSize: "11px" }} />}
+                    {isStunned && <FaBolt style={{ color: "#fff", fontSize: "11px" }} />}
                     {isBlind && <FaEyeSlash style={{ color: "#bdc3c7", fontSize: "12px" }} />}
                     {isBleed && <FaTint style={{ color: "#922b21", fontSize: "11px" }} />}
                   </motion.div>
@@ -577,7 +582,10 @@ const SingleSlot = ({ index, maxSlot }) => {
               </AnimatePresence>
 
               {!isBlind && (
-                <div style={{ position: "absolute", bottom: "1px", right: "3px", fontSize: "10px", fontWeight: 800, opacity: 0.6, zIndex: 2, color: "#3e2723" }}>
+                <div style={{ 
+                  position: "absolute", bottom: "1px", right: "3px", fontSize: "10px", fontWeight: 800, 
+                  opacity: isStunned ? 0.1 : 0.6, zIndex: 2, color: "#3e2723" 
+                }}>
                   {displayDamage}
                 </div>
               )}
@@ -644,8 +652,9 @@ export const InventorySlot = () => {
   
   const isBoardActive = isPlayerTurn || isEnemyTurn || isAction;
   
-  // 🌟 ดึงค่า max_slot ของด่านมาเช็ค แต่บังคับเรนเดอร์ 20 ช่องตายตัว
-  const currentStageMaxSlot = store.stageData?.slot_count || 20;
+  // 🌟 Logic ใหม่: คำนวณ Slot ที่ปลดล็อคจาก Power (8 + power) แต่ไม่เกิน 20
+  const playerPower = store.playerData?.power || 0;
+  const calculatedMaxSlot = Math.min(8 + playerPower, 20);
 
   return (
     <div style={{
@@ -676,9 +685,9 @@ export const InventorySlot = () => {
         borderRadius: "8px", 
         border: "1px solid #333" 
       }}>
-        {/* 🌟 FIX: บังคับวนลูป 20 ช่องเสมอ ส่ง currentStageMaxSlot ไปเช็คว่าเกินโควต้าที่ให้ล็อคหรือเปล่า */}
+        {/* เรนเดอร์ 20 ช่องเสมอ แต่ส่ง calculatedMaxSlot ไปควบคุมการล็อค */}
         {Array.from({ length: 20 }).map((_, index) => (
-          <SingleSlot key={index} index={index} maxSlot={currentStageMaxSlot} />
+          <SingleSlot key={index} index={index} maxSlot={calculatedMaxSlot} />
         ))}
       </div>
     </div>
