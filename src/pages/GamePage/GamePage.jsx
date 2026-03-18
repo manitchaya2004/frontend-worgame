@@ -18,11 +18,12 @@ import {
   GiSpeakerOff,
   GiMusicalNotes,
 } from "react-icons/gi";
-import { MdMusicOff, MdFlag } from "react-icons/md";
+import { MdMusicOff, MdFlag , MdSettings} from "react-icons/md";
 
 // --- Store & System ---
 import { useGameStore } from "../../store/useGameStore";
 import { DeckManager } from "../../utils/gameSystem";
+import { useAuthStore } from "../../store/useAuthStore";
 
 // --- Components ---
 import { InventorySlot } from "./features/downPanel/InventorySlot";
@@ -126,6 +127,20 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
 
 export default function GameApp() {
   const store = useGameStore();
+  // ==========================================
+  // 💡 SETTINGS LOGIC (ลอกมาจาก GameAppBar)
+  // ==========================================
+  const {
+    volume,
+    isMuted,
+    setVolume,
+    toggleMute,
+    sfxVolume,
+    isSfxMuted,
+    setSfxVolume,
+    toggleSfxMute,
+  } = useAuthStore();
+  
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, selectedStage } = location.state || {};
@@ -135,6 +150,7 @@ export default function GameApp() {
   const [showTargetPicker, setShowTargetPicker] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [openSettings, setOpenSettings] = useState(false);
 
   const MAP_BASE_URL =
     "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
@@ -289,7 +305,7 @@ export default function GameApp() {
           stageCoins: store.stageData?.money_reward || 0,
           wordLog: store.wordLog,
           stageId: store.stageData?.id,
-          hasMaxSlotUpgrade: store.stageData?.is_upgrade_potionn
+          hasMaxSlotUpgrade: store.isFirstClear
         },
       });
       setTimeout(() => {
@@ -334,6 +350,22 @@ export default function GameApp() {
     store.resetSelection,
     navigate,
   ]);
+
+  const handleSaveSettings = (newSettings) => {
+    if (!newSettings) return;
+
+    setVolume(newSettings.volume);
+    if (newSettings.isMuted !== isMuted) {
+      toggleMute();
+    }
+
+    setSfxVolume(newSettings.sfxVolume);
+    if (newSettings.isSfxMuted !== isSfxMuted) {
+      toggleSfxMute();
+    }
+
+    setOpenSettings(false);
+  };
 
   const commonHudStyle = useMemo(
     () => ({
@@ -393,6 +425,7 @@ export default function GameApp() {
             boxShadow: "0 0 20px rgba(0,0,0,0.8)",
           }}
         >
+          {/* HUD Left */}
           <div
             style={{
               position: "absolute",
@@ -409,25 +442,13 @@ export default function GameApp() {
             >
               <MdFlag size={26} color="#e74c3c" />
             </div>
+
+            {/* 💡 ปุ่ม Settings ปุ่มเดียวจบ ควบคุมทุกเสียง */}
             <div
-              onClick={store.toggleSfx}
+              onClick={() => setOpenSettings(true)}
               style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
             >
-              {store.isSfxOn ? (
-                <GiSpeaker size={26} />
-              ) : (
-                <GiSpeakerOff size={26} color="#9e9e9e" />
-              )}
-            </div>
-            <div
-              onClick={store.toggleBgm}
-              style={{ ...commonHudStyle, width: "52px", cursor: "pointer" }}
-            >
-              {store.isBgmOn ? (
-                <GiMusicalNotes size={26} />
-              ) : (
-                <MdMusicOff size={26} color="#9e9e9e" />
-              )}
+              <MdSettings size={26} color="#e6c88b" />
             </div>
           </div>
 
@@ -699,6 +720,19 @@ export default function GameApp() {
         description="You will receive half of your earned coins."
         confirmText="YES"
         cancelText="NO"
+      />
+      {/* ⚙️ Dialog สำหรับ "ตั้งค่าเสียง" ในเกม */}
+      <GameDialog
+        open={openSettings}
+        title="SETTINGS"
+        onConfirm={handleSaveSettings}
+        onCancel={() => setOpenSettings(false)}
+        confirmText="SAVE"
+        showAudioSettings={true}
+        volume={volume}
+        isMuted={isMuted}
+        sfxVolume={sfxVolume}
+        isSfxMuted={isSfxMuted}
       />
     </>
   );
