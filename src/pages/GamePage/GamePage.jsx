@@ -335,22 +335,15 @@ export default function GameApp() {
   const handleExit = useCallback(async () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     bgm.stop();
+    setIsDialogOpen(false); // ปิด Dialog เพื่อเริ่มโหลดเนียนๆ
+    
+    // 🌟 เพียงแค่เรียกใช้ saveQuitGame ที่ตั้งค่า gameState = "LOADING" ไว้แล้วให้รอ
+    // พอทำงาน API จบมันจะปรับ gameState = "OVER" และปลุก useEffect เพื่อพาไปหน้า summary เอง
     const halfCoins = Math.floor((store.receivedCoin || 0) / 2);
     await store.saveQuitGame(halfCoins);
-    navigate("/summary", {
-      state: { result: "LOSE", earnedCoins: halfCoins, wordLog: store.wordLog },
-    });
-    setTimeout(() => {
-      store.reset();
-      store.resetSelection();
-    }, 100);
   }, [
     store.receivedCoin,
     store.saveQuitGame,
-    store.wordLog,
-    store.reset,
-    store.resetSelection,
-    navigate,
   ]);
 
   const handleSaveSettings = (newSettings) => {
@@ -387,7 +380,9 @@ export default function GameApp() {
 
   const centerOffset = (activeSelectedItems.length * 65) / 2 + 5;
 
-  if (appStatus === "LOADING") return <LoadingScreen open={true} />;
+  // 🌟 เพิ่มเงื่อนไขให้แสดง LoadingScreen ทันทีที่ store.gameState = "LOADING" ด้วย
+  if (appStatus === "LOADING" || store.gameState === "LOADING") return <LoadingScreen open={true} />;
+  
   if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
 
