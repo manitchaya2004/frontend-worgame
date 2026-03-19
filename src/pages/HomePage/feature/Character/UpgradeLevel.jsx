@@ -19,17 +19,18 @@ import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import {
   GiHearts,
   GiBroadsword, // 🟢 เพิ่มไอคอนดาบ
-  GiLeatherBoot     // 🟢 เพิ่มไอคอนรองเท้า
+  GiLeatherBoot, // 🟢 เพิ่มไอคอนรองเท้า
 } from "react-icons/gi";
 
 // Import Store & Constants
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { LOADING, LOADED, FAILED } from "../../../../store/const";
-
+import { useGameSfx } from "../../../../hook/useGameSfx";
+import closeSfx from "../../../../assets/sound/rollover6.ogg";
 const STAT_CONFIG = {
-  HP: { icon: <GiHearts fontSize="inherit" />, color: "#ff4d4d"  },
-  ATK: { icon: <GiBroadsword fontSize="inherit" />, color: "#e67e22"  },
-  SPEED: { icon: <GiLeatherBoot fontSize="inherit" />, color: "#f1c40f"  },
+  HP: { icon: <GiHearts fontSize="inherit" />, color: "#ff4d4d" },
+  ATK: { icon: <GiBroadsword fontSize="inherit" />, color: "#e67e22" },
+  SPEED: { icon: <GiLeatherBoot fontSize="inherit" />, color: "#f1c40f" },
 };
 
 const StatLine = ({ label, value, isImproved }) => {
@@ -103,6 +104,9 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
     sfxVolume,
     isSfxMuted,
   } = useAuthStore();
+
+  //sound
+  const soundClose = useGameSfx(closeSfx);
 
   // 💡 THE FIX: เพิ่ม State ควบคุมการโชว์หน้า Success ชั่วคราว
   const [showSuccess, setShowSuccess] = useState(false);
@@ -238,7 +242,10 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
         {/* ซ่อนปุ่มปิดตอนกำลังโหลดหรือกำลังโชว์ Success */}
         {!isLoading && !showSuccess && (
           <IconButton
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              soundClose();
+            }}
             sx={{
               position: "absolute",
               right: 8,
@@ -277,36 +284,49 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
       >
         {/* 💡 THE FIX: แสดงสถานะ Loading เฉพาะตอนที่ไม่ได้โชว์ Success*/}
         {isLoading && !showSuccess && (
-        <Box
-          sx={{
-            textAlign: "center",
-            py: 4,
-            height: { xs: "auto", sm: "250px" },
-            display:'flex',flexDirection:'column',justifyContent:'start',alignItems:'center',gap:5 
-           
-          }}
-        >
-          <CircularProgress size={40} sx={{ color: "#ffca28", mb: 2 }} />
-          <Typography
+          <Box
             sx={{
-              fontFamily: "'Press Start 2P'",
-              fontSize: 10,
-              color: "#ccc",
+              textAlign: "center",
+              py: 4,
+              height: { xs: "auto", sm: "340px" },
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 0,
             }}
           >
-            Calculating...
-          </Typography>
-        </Box>
+            <CircularProgress size={40} sx={{ color: "#ffca28", mb: 2 }} />
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: 10,
+                color: "#ccc",
+              }}
+            >
+              Calculating...
+            </Typography>
+          </Box>
         )}
 
         {/* 💡 THE FIX: แสดงหน้า Success ค้างไว้ */}
         {showSuccess && (
-        <Box
-            sx={{ textAlign: "center", animation: "popIn 0.5s ease", py: 4, height: { xs: "auto", sm: "250px" },display:'flex',flexDirection:'column',justifyContent:'start',alignItems:'center',gap:5 }}
+          <Box
+            sx={{
+              textAlign: "center",
+              animation: "popIn 0.5s ease",
+              py: 4,
+              height: { xs: "auto", sm: "340px" },
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "start",
+              alignItems: "center",
+              gap: 5,
+            }}
           >
             <CheckCircleIcon
               sx={{
-                fontSize: {xs:70,sm:100},
+                fontSize: { xs: 70, sm: 100 },
                 color: "#66bb6a",
                 mb: 2,
                 filter: "drop-shadow(0 4px 0 rgba(0,0,0,0.3))",
@@ -315,14 +335,14 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",
-                fontSize: {xs:10,sm:14},
+                fontSize: { xs: 10, sm: 14 },
                 color: "#fff",
                 mb: 1,
               }}
             >
               LEVEL UP!
             </Typography>
-          </Box> 
+          </Box>
         )}
 
         {/* 💡 THE FIX: แสดงข้อมูล Preview เฉพาะตอนที่ไม่ได้โหลดและไม่ได้โชว์ Success */}
@@ -386,7 +406,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
 
                   <StatLine label="HP" value={previewData.hp.current} />
                   <StatLine label="ATK" value={previewData.power.current} />
-                   <StatLine label="SPEED" value={previewData.speed.current} />
+                  <StatLine label="SPEED" value={previewData.speed.current} />
                 </Box>
               </Box>
             ) : (
@@ -498,7 +518,7 @@ const UpgradeDialog = ({ open, onClose, heroId, heroName, upgradeCost }) => {
             display: "flex",
             justifyContent: "center",
             pb: 3,
-            flexShrink: 0, 
+            flexShrink: 0,
             "@media (orientation: landscape) and (max-height: 450px)": {
               p: 1,
               pb: 1.5,

@@ -524,34 +524,67 @@ const StagePanel = () => {
     setEditOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm(`Delete Stage: ${id} ?\n(จะลบ spawn ในด่านนี้ด้วย)`)) {
-      return;
+const deleteStageMapsById = async (stageId) => {
+  const { data: files, error: listError } = await supabase.storage
+    .from(STAGE_BUCKET)
+    .list(MAP_FOLDER, {
+      limit: 200,
+      offset: 0,
+    });
+
+  if (listError) {
+    throw new Error(`list stage maps failed: ${listError.message}`);
+  }
+
+  const matchedPaths = (files || [])
+    .filter((file) => {
+      const fileName = file?.name || "";
+      return (
+        fileName === `${stageId}.png` ||
+        fileName.startsWith(`${stageId}-`)
+      );
+    })
+    .map((file) => `${MAP_FOLDER}/${file.name}`);
+
+  if (matchedPaths.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase.storage
+    .from(STAGE_BUCKET)
+    .remove(matchedPaths);
+
+  if (error) {
+    throw new Error(`delete stage maps failed: ${error.message}`);
+  }
+
+  return data;
+};
+
+const handleDelete = async (id) => {
+  if (!window.confirm(`Delete Stage: ${id} ?\n(จะลบ spawn และ map ของด่านนี้ด้วย)`)) {
+    return;
+  }
+
+  try {
+    // 1) ลบไฟล์ map ของด่านนี้ทั้งหมดก่อน
+    await deleteStageMapsById(id);
+
+    // 2) ลบข้อมูล stage + spawn ใน database
+    const { error } = await supabase.rpc("delete_stage", { p_id: id });
+    if (error) throw error;
+
+    if (selectedStageId === id) {
+      closeSpawn();
     }
 
-    try {
-      const { error } = await supabase.rpc("delete_stage", { p_id: id });
-      if (error) throw error;
-
-      const { error: mapError } = await supabase.storage
-        .from(STAGE_BUCKET)
-        .remove([`${MAP_FOLDER}/${id}.png`]);
-
-      if (mapError) {
-        console.warn("delete map warning:", mapError.message);
-      }
-
-      if (selectedStageId === id) {
-        closeSpawn();
-      }
-
-      alert("Stage Deleted!");
-      fetchStages();
-    } catch (err) {
-      console.error("handleDelete error:", err);
-      alert(`Error: ${err.message}`);
-    }
-  };
+    alert("Stage and maps deleted!");
+    fetchStages();
+  } catch (err) {
+    console.error("handleDelete error:", err);
+    alert(`Error: ${err.message}`);
+  }
+};
 
   const openSpawn = (stageId) => {
     if (selectedStageId === stageId && showSpawn) {

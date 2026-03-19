@@ -232,104 +232,104 @@ export const WordSystem = {
 };
 
 export const GameLogic = {
-  calculateZoneBuffs: (
-    inventory,
-    deckList,
-    unlockedSlots,
-    currentDrawPile = [],
-  ) => {
-    let placements = [];
-    if (!deckList || deckList.length === 0)
-      return { placements, newDrawPile: [] };
+calculateZoneBuffs: (
+inventory,
+deckList,
+unlockedSlots,
+currentDrawPile = [],
+) => {
+let placements = [];
+if (!deckList || deckList.length === 0)
+ return { placements, newDrawPile: [] };
 
-    let drawPile = [...currentDrawPile];
-    let currentIndex = 0;
+let drawPile = [...currentDrawPile];
+let currentIndex = 0;
 
-    let activeCardIds = inventory
-      .filter((item) => item && item.buffId)
-      .map((item) => item.buffId);
+let activeCardIds = inventory
+ .filter((item) => item && item.buffId)
+ .map((item) => item.buffId);
 
-    while (currentIndex < unlockedSlots) {
-      let remainingSpace = unlockedSlots - currentIndex;
+while (currentIndex < unlockedSlots) {
+ let remainingSpace = unlockedSlots - currentIndex;
 
-      if (drawPile.length === 0) {
-        let availableToReshuffle = deckList.filter(
-          (c) => !activeCardIds.includes(c.id),
-        );
+ if (drawPile.length === 0) {
+ let availableToReshuffle = deckList.filter(
+ (c) => !activeCardIds.includes(c.id),
+ );
 
-        if (availableToReshuffle.length === 0) {
-          break;
-        }
+ if (availableToReshuffle.length === 0) {
+ break;
+ }
 
-        drawPile = [...availableToReshuffle].sort(() => 0.5 - Math.random());
-      }
+ drawPile = [...availableToReshuffle].sort(() => 0.5 - Math.random());
+ }
 
-      let validInPile = drawPile.filter((c) => (c.size || 10) <= remainingSpace);
+ let validInPile = drawPile.filter((c) => (c.size || 10) <= remainingSpace);
 
-      if (validInPile.length === 0) {
-        break;
-      }
+ if (validInPile.length === 0) {
+ break;
+ }
 
-      const targetCard = validInPile[validInPile.length - 1];
-      const cardIndex = drawPile.lastIndexOf(targetCard);
+ const targetCard = validInPile[validInPile.length - 1];
+ const cardIndex = drawPile.lastIndexOf(targetCard);
 
-      const card = drawPile.splice(cardIndex, 1)[0];
+ const card = drawPile.splice(cardIndex, 1)[0];
 
-      const size = card.size || 10;
-      const endIndex = currentIndex + size;
-      
-      let availableInZone = [];
-      for (let i = currentIndex; i < endIndex; i++) {
-        if (
-          inventory[i] &&
-          !inventory[i].buff &&
-          !placements.some((p) => p.targetIdx === i)
-        ) {
-          availableInZone.push(i);
-        }
-      }
-      if (availableInZone.length > 0) {
-        const targetIdx =
-          availableInZone[Math.floor(Math.random() * availableInZone.length)];
-        placements.push({ targetIdx, effect: card.effect, buffId: card.id });
-        activeCardIds.push(card.id);
-      }
-      currentIndex += size;
-    }
-    return { placements, newDrawPile: drawPile };
-  },
+ const size = card.size || 10;
+ const endIndex = currentIndex + size;
+ 
+ let availableInZone = [];
+ for (let i = currentIndex; i < endIndex; i++) {
+ if (
+ inventory[i] &&
+ !inventory[i].buff &&
+ !placements.some((p) => p.targetIdx === i)
+ ) {
+ availableInZone.push(i);
+ }
+ }
+ if (availableInZone.length > 0) {
+ const targetIdx =
+ availableInZone[Math.floor(Math.random() * availableInZone.length)];
+ placements.push({ targetIdx, effect: card.effect, buffId: card.id });
+ activeCardIds.push(card.id);
+ }
+ currentIndex += size;
+}
+return { placements, newDrawPile: drawPile };
+},
 
-  applyRandomBuffs: (inventory, deckList = [], drawPile = []) => {
-    const newItems = inventory.map((item) =>
-      item ? { ...item, buff: null, buffId: null } : null,
-    );
-    let validIndices = newItems
-      .map((item, idx) => (item ? idx : null))
-      .filter((i) => i !== null);
+applyRandomBuffs: (inventory, deckList = [], drawPile = []) => {
+const newItems = inventory.map((item) =>
+ item ? { ...item, buff: null, buffId: null } : null,
+);
+let validIndices = newItems
+ .map((item, idx) => (item ? idx : null))
+ .filter((i) => i !== null);
 
-    let updatedDrawPile = [...drawPile];
+let updatedDrawPile = [...drawPile];
 
-    if (validIndices.length > 0 && deckList.length > 0) {
+if (validIndices.length > 0 && deckList.length > 0) {
       // 🌟 FIX: ระบุชื่อ Object GameLogic นำหน้าฟังก์ชันเสมอ
-      let result = GameLogic.calculateZoneBuffs(
-        newItems,
-        deckList,
-        newItems.length,
-        drawPile,
-      );
-      result.placements.forEach((p) => {
-        newItems[p.targetIdx].buff = p.effect;
-        newItems[p.targetIdx].buffId = p.buffId;
-    });
-      updatedDrawPile = result.newDrawPile;
-    } else if (validIndices.length > 0) {
-      validIndices.forEach((idx) => {
-        const roll = Math.random();
-        if (roll < 0.1) newItems[idx].buff = "double-dmg";
-        else if (roll < 0.2) newItems[idx].buff = "double-guard";
-        else if (roll < 0.3) newItems[idx].buff = "mana-plus";
-      });
-    }
-    return { newItems, updatedDrawPile };
-  }
+ let result = GameLogic.calculateZoneBuffs(
+ newItems,
+ deckList,
+ newItems.length,
+ drawPile,
+ );
+ result.placements.forEach((p) => {
+ newItems[p.targetIdx].buff = p.effect;
+ newItems[p.targetIdx].buffId = p.buffId;
+});
+ updatedDrawPile = result.newDrawPile;
+} else if (validIndices.length > 0) {
+ validIndices.forEach((idx) => {
+ const roll = Math.random();
+ if (roll < 0.1) newItems[idx].buff = "double-dmg";
+ else if (roll < 0.2) newItems[idx].buff = "double-guard";
+ else if (roll < 0.3) newItems[idx].buff = "mana-plus";
+ });
+}
+return { newItems, updatedDrawPile };
+}
 }

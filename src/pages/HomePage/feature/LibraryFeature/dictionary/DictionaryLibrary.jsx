@@ -652,25 +652,22 @@ const DictionaryLibrary = () => {
 
           <Divider sx={{ borderColor: "#d6b46a", mb: 1 }} />
 
-          {/* content */}
+          {/* 💡 THE FIX: ปรับโครงสร้างส่วน Search และ Filters ให้เป๊ะกับ WordList/Detail */}
           <Box
             sx={{
               display: "flex",
               width: "100%",
-              alignItems: "center",
-              justifyContent: "space-between",
-              mb: 1, // 💡 เพิ่ม margin bottom ให้มีระยะห่างกับรายการด้านล่าง
+              gap: 1, // 👈 1. ใช้ gap: 1 ให้เป๊ะกับช่องว่างของ List ด้านล่าง
+              mb: 1,
               "@media (orientation: landscape) and (max-height: 450px)": {
-                mb: 0,
+                mb: 0.5,
               },
             }}
           >
+            {/* กล่องซ้าย (Search) ให้กว้างเท่า WordList เป๊ะๆ */}
             <Box
               sx={{
-                width: { xs: "62%", sm: "51%", md: "51%" },
-                "@media (orientation: landscape) and (max-height: 450px)": {
-                  width: "100%",
-                },
+                width: { xs: "60%", sm: "50%", md: "50%" },
               }}
             >
               <SearchDictionary
@@ -681,13 +678,13 @@ const DictionaryLibrary = () => {
                 letter={selectedLetter}
               />
             </Box>
+
+            {/* กล่องขวา (Filters) ให้กว้างเท่า WordDetail (flex: 1) และแบ่งช่องเท่าๆ กัน */}
             <Box
               sx={{
+                flex: 1, 
                 display: "flex",
-                gap: 1,
-                "@media (orientation: landscape) and (max-height: 450px)": {
-                  gap: 0.6,
-                },
+                gap: { xs: 0.5, sm: 1 },
               }}
             >
               <SelectComponent
@@ -695,26 +692,31 @@ const DictionaryLibrary = () => {
                 value={selectType}
                 onChange={setSelectType}
                 options={Type}
+                sx={{ flex: 1 }} // 👈 ให้ทั้ง 3 ช่องแบ่งสัดส่วนพื้นที่ 1:1:1
               />
               <SelectComponent
                 label="Level"
                 value={selectLevel}
                 onChange={setSelectLevel}
                 options={Level}
+                sx={{ flex: 1 }}
               />
               <SelectComponent
                 label="Lenght"
                 value={selectLength}
                 onChange={setSelectLength}
                 options={Lenght}
+                sx={{ flex: 1 }}
               />
             </Box>
           </Box>
+
+          {/* Content ส่วนล่าง (List + Detail) */}
           <Box
             sx={{
               flex: 1, // 💡 ทำให้ส่วนรายการดึงพื้นที่ที่เหลือทั้งหมด
               display: "flex",
-              gap: 1,
+              gap: 1, // 👈 gap: 1 ตรงกันกับแถวบน
               overflow: "hidden", // 💡 ป้องกันไม่ให้ทะลุกรอบ
             }}
           >

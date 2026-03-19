@@ -222,7 +222,6 @@ export default function PlayerPanel() {
                     >
                       <option value="player">player</option>
                       <option value="admin">admin</option>
-                      <option value="adminBoss">adminBoss</option>
                     </select>
                   </td>
 

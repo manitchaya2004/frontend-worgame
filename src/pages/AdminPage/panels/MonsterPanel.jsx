@@ -40,7 +40,6 @@ const buildMonsterSpritePath = (monsterId, key, fileName = "") => {
 const DECK_EFFECTS = [
   "double-dmg",
   "double-guard",
-  "double-shield",
   "mana-plus",
   "shield-plus",
   "add_bleed",
@@ -55,7 +54,6 @@ const DECK_EFFECTS = [
 const EFFECT_META = {
   "double-dmg": { label: "Double Damage", icon: <GiBroadsword />, color: "#c0392b" },
   "double-guard": { label: "Double Guard", icon: <GiShield />, color: "#2980b9" },
-  "double-shield": { label: "Double Shield", icon: <GiShield />, color: "#2980b9" },
   "mana-plus": { label: "Mana Plus", icon: <GiWaterDrop />, color: "#00bcd4" },
   "shield-plus": { label: "Shield Plus", icon: <GiTrident />, color: "#e67e22" },
   "add_bleed": { label: "Add Bleed", icon: <GiBowieKnife />, color: "#8b0000" },
@@ -912,20 +910,58 @@ const MonsterPanel = () => {
     setEditOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm(`Delete Monster ID: ${id}?`)) return;
+const deleteMonsterSpritesById = async (id) => {
+  const paths = [
+    `${MONSTER_FOLDER}/${id}-attack-1.png`,
+    `${MONSTER_FOLDER}/${id}-attack-2.png`,
+    `${MONSTER_FOLDER}/${id}-idle-1.png`,
+    `${MONSTER_FOLDER}/${id}-idle-2.png`,
 
-    try {
-      const { error } = await supabase.rpc("delete_monster", { p_id: id });
-      if (error) throw error;
+    `${MONSTER_FOLDER}/${id}-attack-1.jpg`,
+    `${MONSTER_FOLDER}/${id}-attack-2.jpg`,
+    `${MONSTER_FOLDER}/${id}-idle-1.jpg`,
+    `${MONSTER_FOLDER}/${id}-idle-2.jpg`,
 
-      alert("Monster deleted!");
-      fetchMonsters();
-    } catch (err) {
-      console.error(err);
-      alert(`Error deleting monster: ${err.message}`);
-    }
-  };
+    `${MONSTER_FOLDER}/${id}-attack-1.jpeg`,
+    `${MONSTER_FOLDER}/${id}-attack-2.jpeg`,
+    `${MONSTER_FOLDER}/${id}-idle-1.jpeg`,
+    `${MONSTER_FOLDER}/${id}-idle-2.jpeg`,
+
+    `${MONSTER_FOLDER}/${id}-attack-1.webp`,
+    `${MONSTER_FOLDER}/${id}-attack-2.webp`,
+    `${MONSTER_FOLDER}/${id}-idle-1.webp`,
+    `${MONSTER_FOLDER}/${id}-idle-2.webp`,
+  ];
+
+  const { data, error } = await supabase.storage.from(MONSTER_BUCKET).remove(paths);
+
+  if (error) {
+    throw new Error(`delete sprites failed: ${error.message}`);
+  }
+
+  return data;
+};
+
+const handleDelete = async (id) => {
+  if (!window.confirm(`Delete Monster ID: ${id}?\nThis will delete database row and sprite files too.`)) {
+    return;
+  }
+
+  try {
+    // 1) ลบไฟล์ใน Supabase Storage ก่อน
+    await deleteMonsterSpritesById(id);
+
+    // 2) ลบข้อมูลใน database
+    const { error } = await supabase.rpc("delete_monster", { p_id: id });
+    if (error) throw error;
+
+    alert("Monster and sprites deleted!");
+    fetchMonsters();
+  } catch (err) {
+    console.error(err);
+    alert(`Error deleting monster: ${err.message}`);
+  }
+};
 
   const handleDeleteSprites = async (id) => {
     if (!window.confirm(`Delete ALL sprites of Monster ID: ${id}?`)) return;

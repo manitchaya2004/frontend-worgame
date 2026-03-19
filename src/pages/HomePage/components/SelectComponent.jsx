@@ -3,7 +3,7 @@ import { useGameSfx } from "../../../hook/useGameSfx";
 import clickSFX from "../../../assets/sound/click1.ogg";
 import clickMouseSFX from "../../../assets/sound/mouserelease1.ogg";
 
-export const SelectComponent = ({ label, value, onChange, options }) => {
+export const SelectComponent = ({ label, value, onChange, options, sx }) => {
   const playClickSound = useGameSfx(clickSFX);
   const playMouseClickSound = useGameSfx(clickMouseSFX);
 
@@ -15,8 +15,9 @@ export const SelectComponent = ({ label, value, onChange, options }) => {
   return (
     <FormControl
       sx={{
-        mb: 1,
-        minWidth: { xs: 52, sm: 109, md: 121, lg: 170 },
+        minWidth: 0, // 💡 รีเซ็ตเพื่อให้บีบเล็กลงได้สุดๆ
+        width: "100%", // ให้กินเต็มพื้นที่กล่อง flex ของตัวเอง
+        ...sx, // นำ flex: 1 ที่ส่งมาจาก parent มาใช้งาน
       }}
       size="small"
     >
@@ -34,15 +35,17 @@ export const SelectComponent = ({ label, value, onChange, options }) => {
         sx={{
           fontFamily: `"Press Start 2P"`,
           fontSize: 10,
-          height: 36,
+          height: 40, // 💡 ปรับให้สูงเท่า Search bar (40px) จะได้เป๊ะ
           backgroundColor: "#e7dcc8",
           border: "2px solid #2b1d14",
           boxShadow: "2px 2px 0 #2b1d14",
 
           "& .MuiSelect-select": {
-            display: "flex",
-            alignItems: "center",
-            padding: "6px 8px",
+            display: "block", // 💡 เปลี่ยนเป็น block เพื่อให้ ellipsis ทำงานได้ตอนโดนบีบ
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            padding: "8px", // ปรับ padding นิดหน่อยให้เข้ากับจอ
           },
 
           "& .MuiOutlinedInput-notchedOutline": {
@@ -54,7 +57,10 @@ export const SelectComponent = ({ label, value, onChange, options }) => {
           },
           "@media (orientation: landscape) and (max-height: 450px)": {
             fontSize: 8,
-            height: 30,
+            height: 28, // สูงเท่า Search bar แนวนอน
+            "& .MuiSelect-select": {
+              padding: "4px 6px",
+            },
           },
         }}
         MenuProps={{

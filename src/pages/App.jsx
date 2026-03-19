@@ -23,7 +23,7 @@ import ServerRoute from "../routes/ServerRoute.jsx";
 import ServerClosedPage from "./ServerClosePage/ServerClosePage.jsx";
 import ItemFeature from "./HomePage/feature/Item/ItemFeature.jsx";
 import DashboardCard from "./HomePage/feature/Dashboard/DashboardCard.jsx";
-import WordLogFeature from "./HomePage/feature/WordLog/wordLogCard.jsx";
+import WordLogCard from "./HomePage/feature/WordLog/wordLogCard.jsx";
 // import ProfileFeature  from "./HomePage/feature/ProfileFeature/ProfileFeature .jsx";
 import AdminPage from "./AdminPage/AdminPage";
 import AdminBoss from "./AdminBoss/AdminBoss";
@@ -69,7 +69,7 @@ export default function App() {
             <Route path="dictionary" element={<DictionaryLibrary />} />
             <Route path="monster" element={<MonsterLibrary />} />
             <Route path="scoreboard" element={<DashboardCard />} />
-            <Route path="wordlog" element={<WordLogFeature />} />
+            <Route path="wordlog" element={<WordLogCard />} />
           </Route>
           <Route path="/summary" element={<SummaryPage />} />
           <Route path="/battle" element={<GamePage />} />

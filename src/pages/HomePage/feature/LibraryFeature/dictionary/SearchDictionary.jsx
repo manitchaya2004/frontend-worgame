@@ -1,4 +1,4 @@
-import { Box, TextField, InputAdornment, Typography } from "@mui/material";
+import { Box, TextField, InputAdornment, Typography,IconButton } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
 export const SearchDictionary = ({
@@ -22,7 +22,8 @@ export const SearchDictionary = ({
           }
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && handleSearchChange()) {
+          // 💡 แก้ให้เช็คแค่ Enter ก็เรียกฟังก์ชันเลย (ลบเงื่อนไขแปลกๆ ออก)
+          if (e.key === "Enter") {
             handleSearchChange();
           }
         }}
@@ -30,16 +31,25 @@ export const SearchDictionary = ({
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">
-              <SearchIcon
-                sx={{
-                  color: "#d6b46a",
-                  "@media (orientation: landscape) and (max-height: 450px)": {fontSize: "20px",},
-                }}
-              />
+              {/* 💡 เปลี่ยนไอคอนเป็น IconButton ให้สามารถคลิกเพื่อค้นหาได้ */}
+              <IconButton 
+                onClick={handleSearchChange} 
+                sx={{ p: 0.5 }}
+                edge="end"
+              >
+                <SearchIcon
+                  sx={{
+                    color: "#d6b46a",
+                    "@media (orientation: landscape) and (max-height: 450px)": {
+                      fontSize: "20px",
+                    },
+                  }}
+                />
+              </IconButton>
             </InputAdornment>
           ),
           startAdornment: (
-            <InputAdornment position="end">
+            <InputAdornment position="start">
               <Typography
                 sx={{
                   color: "#fffbe6",
@@ -62,9 +72,9 @@ export const SearchDictionary = ({
           "& .MuiInputBase-root": {
             fontFamily: `"Press Start 2P"`,
             fontSize: 14,
-            backgroundColor: "#2a160f",
+            backgroundColor: "#1a120b",
             color: "#fffbe6",
-            border: "3px solid #7a1f1f",
+            border: "3px solid #5a3e2b",
           },
           "& input::placeholder": {
             color: "#c9b89a",
@@ -81,7 +91,7 @@ export const SearchDictionary = ({
             },
             "& .MuiInputBase-root": {
               fontSize: 8,
-              border: "2px solid #7a1f1f",
+              border: "2px solid #5a3e2b",
             },
             "& input::placeholder": {
               fontSize: 6,

@@ -41,3 +41,22 @@ body {
   }
 }
 
+/* ทั้งเว็บ */
+* {
+  scrollbar-width: thin; /* สำหรับ Firefox */
+  scrollbar-color: #d6b46a rgba(0, 0, 0, 0.2);
+}
+
+/* Chrome, Edge, Safari */
+*::-webkit-scrollbar {
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #5a3e2b; /* แทน THEME.border */
+  border-radius: 4px;
+} 

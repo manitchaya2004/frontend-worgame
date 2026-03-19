@@ -910,20 +910,74 @@ const HeroPanel = () => {
     setEditOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm(`Delete Hero ID: ${id}?`)) return;
+const deleteHeroSpritesById = async (id) => {
+  const paths = [
+    `${HERO_FOLDER}/${id}-attack-1.png`,
+    `${HERO_FOLDER}/${id}-attack-2.png`,
+    `${HERO_FOLDER}/${id}-idle-1.png`,
+    `${HERO_FOLDER}/${id}-idle-2.png`,
+    `${HERO_FOLDER}/${id}-walk-1.png`,
+    `${HERO_FOLDER}/${id}-walk-2.png`,
+    `${HERO_FOLDER}/${id}-guard-1.png`,
 
-    try {
-      const { error } = await supabase.rpc("delete_hero", { p_id: id });
-      if (error) throw error;
+    `${HERO_FOLDER}/${id}-attack-1.jpg`,
+    `${HERO_FOLDER}/${id}-attack-2.jpg`,
+    `${HERO_FOLDER}/${id}-idle-1.jpg`,
+    `${HERO_FOLDER}/${id}-idle-2.jpg`,
+    `${HERO_FOLDER}/${id}-walk-1.jpg`,
+    `${HERO_FOLDER}/${id}-walk-2.jpg`,
+    `${HERO_FOLDER}/${id}-guard-1.jpg`,
 
-      alert("Hero deleted!");
-      fetchHeroes();
-    } catch (err) {
-      console.error("handleDelete error:", err);
-      alert(`Error deleting hero: ${err.message}`);
-    }
+    `${HERO_FOLDER}/${id}-attack-1.jpeg`,
+    `${HERO_FOLDER}/${id}-attack-2.jpeg`,
+    `${HERO_FOLDER}/${id}-idle-1.jpeg`,
+    `${HERO_FOLDER}/${id}-idle-2.jpeg`,
+    `${HERO_FOLDER}/${id}-walk-1.jpeg`,
+    `${HERO_FOLDER}/${id}-walk-2.jpeg`,
+    `${HERO_FOLDER}/${id}-guard-1.jpeg`,
+
+    `${HERO_FOLDER}/${id}-attack-1.webp`,
+    `${HERO_FOLDER}/${id}-attack-2.webp`,
+    `${HERO_FOLDER}/${id}-idle-1.webp`,
+    `${HERO_FOLDER}/${id}-idle-2.webp`,
+    `${HERO_FOLDER}/${id}-walk-1.webp`,
+    `${HERO_FOLDER}/${id}-walk-2.webp`,
+    `${HERO_FOLDER}/${id}-guard-1.webp`,
+  ];
+
+  const { data, error } = await supabase.storage.from(HERO_BUCKET).remove(paths);
+
+  if (error) {
+    throw new Error(`delete hero sprites failed: ${error.message}`);
+  }
+
+  return data;
   };
+
+const handleDelete = async (id) => {
+  if (
+    !window.confirm(
+      `Delete Hero ID: ${id}?\nThis will delete database row and sprite files too.`
+    )
+  ) {
+    return;
+  }
+
+  try {
+    // 1) ลบไฟล์ sprite ก่อน
+    await deleteHeroSpritesById(id);
+
+    // 2) ค่อยลบข้อมูลใน database
+    const { error } = await supabase.rpc("delete_hero", { p_id: id });
+    if (error) throw error;
+
+    alert("Hero and sprites deleted!");
+    fetchHeroes();
+  } catch (err) {
+    console.error("handleDelete error:", err);
+    alert(`Error deleting hero: ${err.message}`);
+  }
+};
 
   const handleDeleteSprites = async (id) => {
     if (!window.confirm(`Delete ALL sprites of Hero ID: ${id}?`)) return;
@@ -994,20 +1048,20 @@ const HeroPanel = () => {
 
         <div style={{ width: "100%", display: "flex", gap: 10, justifyContent: "center", marginTop: 20 }}>
           <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={resetCreateForm}
+          >
+            RESET
+          </button>
+
+          <button
             type="submit"
             className="btn btn-add"
             style={{ flex: 1 }}
             data-tooltip="สร้างฮีโร่ตัวใหม่"
           >
             CREATE HERO
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-cancel"
-            onClick={resetCreateForm}
-          >
-            RESET
           </button>
         </div>
       </form>

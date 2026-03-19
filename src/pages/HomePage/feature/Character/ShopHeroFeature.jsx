@@ -105,8 +105,8 @@ const ShopHeroFeature = () => {
     0 20px 60px rgba(49, 49, 49, 0.8)
   `,
 
-          width: { xs: "90%", sm: "80%", md: "80%", },
-          height: { xs: "70%", sm: "70%", md: "570px", xl: "82%" },
+          width: { xs: "90%", sm: "80%", md: "80%" },
+          height: { xs: "70%", sm: "70%", md: "570px", xl: "85%" },
 
           p: 1,
           display: "flex",
@@ -171,7 +171,10 @@ const ShopHeroFeature = () => {
           {/* LEFT */}
           <Box
             className="scroll-left"
-            onClick={() => {scroll("left"); playClickSound();}}
+            onClick={() => {
+              scroll("left");
+              playClickSound();
+            }}
             sx={{
               // position: "absolute",
               // left: { xs: "-10px", lg: "10px" },
@@ -200,7 +203,7 @@ const ShopHeroFeature = () => {
               display: "flex",
               alignItems: "center",
               gap: { xs: 1, md: 1 },
-              overflowX: "auto",
+              overflowX: "hidden",
               scrollSnapType: "x mandatory",
               "&::-webkit-scrollbar": { display: "none" },
               height: "100%",
@@ -225,20 +228,23 @@ const ShopHeroFeature = () => {
                 <CircularProgress sx={{ color: THEMES.accent }} />
               </Box>
             ) : (
-              heros?.map((hero) => (
-                <Box
-                  key={hero.id || hero.name}
-                  sx={{ scrollSnapAlign: "start" }} // Snap กลางจอให้สวยงาม
-                >
-                  <HeroCard
-                    hero={hero}
-                    playerHeroes={currentUser?.heroes}
-                    money={currentUser?.money}
-                    playClickSound={playClickSound}
-                    playAgreeSound={playAgreeSound}
-                  />
-                </Box>
-              ))
+              heros
+                ?.slice() // 🔥 กันไม่ให้ไป mutate ของเดิม
+                .sort((a, b) => a.orderNo - b.orderNo) // เรียงจากน้อย → มาก
+                .map((hero) => (
+                  <Box
+                    key={hero.id || hero.name}
+                    sx={{ scrollSnapAlign: "start" }}
+                  >
+                    <HeroCard
+                      hero={hero}
+                      playerHeroes={currentUser?.heroes}
+                      money={currentUser?.money}
+                      playClickSound={playClickSound}
+                      playAgreeSound={playAgreeSound}
+                    />
+                  </Box>
+                ))
             )}
           </Box>
 
