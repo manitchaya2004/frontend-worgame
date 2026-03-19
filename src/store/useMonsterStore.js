@@ -13,15 +13,25 @@ export const useMonsterStore = create((set, get) => ({
     try {
       set({ loading: LOADING, error: null });
 
+      // 💡 ใช้ Nested Select เพื่อดึงข้อมูลจากตาราง monster_deck มาด้วย
       const { data, error } = await supabase
         .from('monster')
-        .select('*')
+        .select(`
+          *,
+          monster_deck (
+            id,
+            effect,
+            size
+          )
+        `)
         .order('id', { ascending: true });
 
       if (error) throw error;
 
+      // ข้อมูลที่ได้จะมีโครงสร้าง: { ..., monster_deck: [...] } ตรงตามที่ Frontend ต้องการ
       set({ monsters: data, loading: LOADED });
     } catch (err) {
+      console.error("getMonsters error:", err);
       set({ loading: FAILED, error: err.message });
     }
   },

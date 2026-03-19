@@ -6,10 +6,7 @@ import {
   Typography,
   Stack,
   Divider,
-  Chip,
   Tooltip,
-  IconButton,
-  useMediaQuery,
   useTheme as useMuiTheme,
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,63 +32,6 @@ import clickMouseSFX from "../../../../../assets/sound/mouserelease1.ogg";
 
 const MotionBox = motion(Box);
 
-// 🌟 ฟังก์ชันช่วยเติม Parameter Bypass ngrok เข้าไปใน URL
-const withBypass = (url) => {
-  if (!url) return "";
-  // ถ้าเป็น path แบบ /api... ให้เติมพารามิเตอร์ต่อท้าย
-  const connector = url.includes("?") ? "&" : "?";
-  return `${url}${connector}ngrok-skip-browser-warning=69420`;
-};
-
-// 🌟 Component พิเศษ: โหลดรูปภาพแบบไม่วาร์ป และ Bypass ngrok
-const SafeImageLoader = memo(({ src, alt, style, isUnlocked }) => {
-  const [displayUrl, setDisplayUrl] = useState("");
-  const cache = useRef({});
-  const loadingPath = useRef("");
-
-  useEffect(() => {
-    if (!src) return;
-    if (cache.current[src]) {
-      setDisplayUrl(cache.current[src]);
-      return;
-    }
-    if (loadingPath.current === src) return;
-
-    let isMounted = true;
-    loadingPath.current = src;
-
-    const fetchImg = async () => {
-      try {
-        const response = await fetch(withBypass(src));
-        if (!response.ok) throw new Error();
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        if (isMounted) {
-          cache.current[src] = objectUrl;
-          setDisplayUrl(objectUrl);
-          loadingPath.current = "";
-        }
-      } catch (err) {
-        if (isMounted) loadingPath.current = "";
-      }
-    };
-    fetchImg();
-    return () => {
-      isMounted = false;
-    };
-  }, [src]);
-
-  return (
-    <img
-      src={displayUrl}
-      alt={alt}
-      style={style}
-      onError={(e) => {
-        e.currentTarget.src = "/fallback/unknown-monster.png";
-      }}
-    />
-  );
-});
 
 // 3. Info Tab Content
 const InfoTab = ({ monster }) => {
@@ -267,6 +207,7 @@ const InfoTab = ({ monster }) => {
 const BuffTab = ({ monster }) => {
   const isUnlocked = monster?.isUnlocked ?? true;
   const deck = monster?.monster_deck || [];
+
 
   if (!isUnlocked) {
     return (
@@ -544,7 +485,7 @@ const DetailMonster = ({ monster, playClickSound }) => {
             )}
           </Box>
 
-          <SafeImageLoader
+          <img
              src={activeSrc}
              alt={monster?.name}
              style={{
@@ -863,6 +804,7 @@ const MonsterLibrary = () => {
   const { currentUser } = useAuthStore();
   const { monsters, unlockedMonsterIds, fetchUnlockedMonsters } =
     useMonsterStore();
+
   const [selectedMonster, setSelectedMonster] = useState(null);
   const playClickSound = useGameSfx(clickSFX);
   const playMouseReleaseSound = useGameSfx(clickMouseSFX);
