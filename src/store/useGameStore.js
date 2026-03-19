@@ -73,6 +73,7 @@ export const useGameStore = create((set, get) => ({
   playerVisual: "idle-1",
   animFrame: 1,
   selectedLetters: [],
+  isFirstClear: false,
 
   isProcessingUpdate: false,
 
@@ -635,6 +636,7 @@ export const useGameStore = create((set, get) => ({
       isMenuOpen: false,
       wordLog: {},
       hasSpawnedEnemies: false,
+      isFirstClear: false,
     });
   },
 
