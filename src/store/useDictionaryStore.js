@@ -10,6 +10,14 @@ export const useDictionaryStore = create((set, get) => ({
   loading: INITIALIZED,
   error: null,
 
+  // 🌟 เพิ่ม State สำหรับ Top Words
+  topWords: [],
+  topWordsLoading: false,
+
+  myWords: [],
+  myDictMap: {},
+  myWordsLoading: false,
+
   // ✅ 1. Fetch Dictionary แบบรองรับการค้นหาและแบ่งหน้า
   fetchDictionary: async (payload) => {
     try {
@@ -63,11 +71,79 @@ export const useDictionaryStore = create((set, get) => ({
         count: data.count,
         hasNext: data.hasNext,
         lastWord: data.lastWord,
-        wordsForMiniGame: payload.append ? [...get().wordsForMiniGame, ...data.data] : data.data,
+        wordsForMiniGame: payload.append
+          ? [...get().wordsForMiniGame, ...data.data]
+          : data.data,
         loading: LOADED,
       });
     } catch (err) {
       set({ loading: FAILED, error: err.message });
+    }
+  },
+
+  // 🌟 เพิ่มฟังก์ชันดึง Top Words
+  fetchTopWords: async () => {
+    set({ topWordsLoading: true });
+    try {
+      const { data, error } = await supabase
+        .from("dictionary")
+        .select("*")
+        .gt("use_count", 0); // ดึงเฉพาะคำที่เคยใช้
+
+      if (error) throw error;
+
+      set({ topWords: data || [], topWordsLoading: false });
+    } catch (error) {
+      console.error("Error fetching dictionary top words:", error);
+      set({ topWords: [], topWordsLoading: false });
+    }
+  },
+
+  // 🌟 เพิ่มฟังก์ชันดึงคำศัพท์ส่วนตัว
+  fetchMyWords: async (username) => {
+    if (!username) return;
+    
+    set({ myWordsLoading: true });
+    try {
+      // 1. ดึง Log ของผู้เล่น
+      const { data: logData, error: logError } = await supabase
+        .from('player_word_log')
+        .select('*')
+        .eq('player_id', username)
+        .order('update_at', { ascending: false });
+
+      if (logError) throw logError;
+
+      let dictMap = {};
+      
+      // 2. ดึงข้อมูลคำศัพท์จากตาราง dictionary ตามคำที่ผู้เล่นเคยพิมพ์
+      if (logData && logData.length > 0) {
+        const wordIds = logData.map((log) => log.word_id);
+        
+        const { data: dictData, error: dictError } = await supabase
+          .from('dictionary')
+          .select('*')
+          .in('id', wordIds);
+
+        if (dictError) {
+          console.error('Error fetching dictionary for my words:', dictError);
+        } else if (dictData) {
+          dictData.forEach((item) => {
+            dictMap[item.id] = item;
+          });
+        }
+      }
+
+      // บันทึกลง Store
+      set({ 
+        myWords: logData || [], 
+        myDictMap: dictMap, 
+        myWordsLoading: false 
+      });
+
+    } catch (error) {
+      console.error('Error fetching my words:', error);
+      set({ myWordsLoading: false });
     }
   },
 

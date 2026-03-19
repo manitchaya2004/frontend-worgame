@@ -10,7 +10,8 @@ import {
   Badge,
   useMediaQuery,
   useTheme as useMuiTheme,
-  Dialog, // 💡 เพิ่มการนำเข้า Dialog
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useRef, useEffect, memo } from "react";
@@ -19,18 +20,25 @@ import { motion, animate, useAnimation } from "framer-motion";
 // Icons
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import CatchingPokemonIcon from "@mui/icons-material/CatchingPokemon";
-import LibraryBooksIcon from "@mui/icons-material/LibraryBooks"; // 💡 นำเข้าไอคอนใหม่สำหรับ Library
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import AddIcon from "@mui/icons-material/Add";
 import ErrorIcon from "@mui/icons-material/Error";
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
+import MenuBookIcon from "@mui/icons-material/MenuBook";
+import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
+import MenuIcon from "@mui/icons-material/Menu"; // 💡 นำเข้าไอคอน Menu เพิ่มสำหรับยุบ Nav
 import { MdInventory } from "react-icons/md";
 import { GiBroadsword } from "react-icons/gi";
-import { FaCrown, FaSuitcase, FaUserAlt, FaTrophy, FaBook } from "react-icons/fa";
+import {
+  FaCrown,
+  FaSuitcase,
+  FaUserAlt,
+  FaTrophy,
+  FaBook,
+} from "react-icons/fa";
 // Assets
 import { useAuthStore } from "../../store/useAuthStore";
 import { useLoginPlayer } from "../../pages/AuthPage/LoginPage/hook/useLoginPlayer";
@@ -349,6 +357,11 @@ const GameAppBar = () => {
     "(orientation: landscape) and (max-height: 450px)",
   );
 
+  // 💡 ตรวจสอบว่าเป็น "แนวตั้ง" หรือไม่
+  const isPortrait = useMediaQuery("(orientation: portrait)");
+  
+  // 💡 ยุบเมนูเฉพาะตอนมือถือ + แนวตั้ง เท่านั้น
+  const shouldCollapseNav = isPortrait && isMobileWidth;
   const isCompact = isMobileWidth || isLandscapeMobile;
 
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
@@ -361,9 +374,9 @@ const GameAppBar = () => {
   const [openSettings, setOpenSettings] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [isMiniGameOpen, setIsMiniGameOpen] = useState(false);
-  
-  // 💡 State สำหรับควบคุมป๊อปอัป Library
-  const [openLibrary, setOpenLibrary] = useState(false);
+  const [libraryAnchorEl, setLibraryAnchorEl] = useState(null);
+  // 💡 State สำหรับควบคุมตำแหน่งของ Menu Navigation เวลาย่อ
+  const [navAnchorEl, setNavAnchorEl] = useState(null);
 
   const handleSaveSettings = (newSettings) => {
     if (!newSettings) return;
@@ -408,7 +421,7 @@ const GameAppBar = () => {
       id: "adventure",
       label: "ADVENTURE",
       path: "/home",
-      icon: <GiBroadsword />, 
+      icon: <GiBroadsword />,
       isMain: true,
     },
     {
@@ -422,29 +435,38 @@ const GameAppBar = () => {
       label: "SCOREBOARD",
       path: "/home/scoreboard",
       icon: <FaTrophy />,
-    }
+    },
   ];
 
-  // 💡 นำมาใช้แสดงในหน้าต่าง Dialog ยุบรวม
   const LIBRARY_ITEMS = [
     {
       id: "monster",
       label: "MONSTERS",
       path: "/home/monster",
-      icon: <CatchingPokemonIcon sx={{ mr: 1.5, fontSize: "22px", color: "#ffecb3" }} />,
+      icon: (
+        <CatchingPokemonIcon
+          sx={{ mr: 1.5, fontSize: "22px", color: "#ffecb3" }}
+        />
+      ),
     },
     {
       id: "dict",
       label: "DICTIONARY",
       path: "/home/dictionary",
-      icon: <AutoStoriesIcon sx={{ mr: 1.5, fontSize: "22px", color: "#ffecb3" }} />,
+      icon: (
+        <AutoStoriesIcon sx={{ mr: 1.5, fontSize: "22px", color: "#ffecb3" }} />
+      ),
     },
   ];
 
-  // ตรวจสอบว่าเปิดหน้าไหนในกลุ่ม Library อยู่เพื่อใส่ Effect Active
   const isLibraryActive =
     location.pathname.includes("/home/monster") ||
     location.pathname.includes("/home/dictionary");
+
+  // 💡 เช็คว่าหน้าปัจจุบันที่ Active อยู่ในกลุ่ม Nav ที่จะโดนยุบหรือไม่
+  const isNavMenuActive = MAIN_NAV_ITEMS.some(
+    (item) => !item.isMain && location.pathname.includes(item.path)
+  );
 
   return (
     <>
@@ -492,7 +514,7 @@ const GameAppBar = () => {
             >
               <Box
                 sx={{
-                  pl: { xs: "40px", sm: "45px", md: "50px" }, // ลด Padding ซ้ายลงนิดหน่อยให้ชิด Avatar มากขึ้นเวลาชื่อสั้น
+                  pl: { xs: "40px", sm: "45px", md: "50px" },
                   pr: { xs: 1.5, sm: 2 },
                   py: 0.5,
                   backgroundColor: "rgba(43, 29, 20, 0.6)",
@@ -501,10 +523,9 @@ const GameAppBar = () => {
                   boxShadow: "0 3px 0 #2b1a12",
                   display: "flex",
                   flexDirection: "column",
-                  // 💡 จุดสำคัญ: ใช้ fit-content และกำหนด maxWidth แทน minWidth
                   width: "fit-content",
-                  minWidth: "0px", // ปลดล็อคค่าเดิม
-                  maxWidth: { xs: "120px", sm: "160px", md: "200px" }, 
+                  minWidth: "0px",
+                  maxWidth: { xs: "120px", sm: "160px", md: "200px" },
                   "@media (orientation: landscape) and (max-height: 450px)": {
                     pl: "40px",
                     maxWidth: "140px",
@@ -520,21 +541,20 @@ const GameAppBar = () => {
                       fontSize: { xs: 6, sm: 8, md: 9 },
                       color: "#E8E9CD",
                       mb: 0.5,
-                      // 💡 ปลดล็อค width ตายตัวเพื่อให้ยืดตามชื่อ แต่ถ้าเกินจะตัด ... (noWrap)
-                      width: "100%", 
+                      width: "100%",
                       textAlign: "left",
                     }}
                   >
-                    {currentUser?.username}
+                    {currentUser?.username}{" "}
                   </Typography>
                 </Tooltip>
 
-                <Box 
-                  sx={{ 
-                    display: "flex", 
-                    alignItems: "center", 
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
                     gap: 0.5,
-                    width: "fit-content" // ให้ Box เงินยืดตามจำนวนเงิน
+                    width: "fit-content",
                   }}
                 >
                   <MonetizationOnIcon
@@ -545,10 +565,11 @@ const GameAppBar = () => {
                       borderRadius: "50%",
                       backgroundColor: "#fff",
                       border: "1px solid #B8860B",
-                      flexShrink: 0, // กันไอคอนโดนเบียด
-                      "@media (orientation: landscape) and (max-height: 450px)": {
-                        fontSize: 8,
-                      },
+                      flexShrink: 0,
+                      "@media (orientation: landscape) and (max-height: 450px)":
+                        {
+                          fontSize: 8,
+                        },
                     }}
                   />
                   <AnimatedMoney
@@ -558,7 +579,6 @@ const GameAppBar = () => {
                 </Box>
               </Box>
 
-              {/* Avatar Box (เหมือนเดิมแต่เช็ค Z-index) */}
               <Box
                 sx={{
                   position: "absolute",
@@ -588,6 +608,7 @@ const GameAppBar = () => {
                     mb: 1,
                   }}
                 />
+
                 <Box
                   sx={{
                     position: "absolute",
@@ -637,119 +658,188 @@ const GameAppBar = () => {
               },
             }}
           >
-            {MAIN_NAV_ITEMS.map((item) => {
-              const isActive =
-                item.path === "/home"
-                  ? location.pathname === "/home"
-                  : location.pathname.includes(item.path);
+            {/* 💡 THE FIX: ยุบเฉพาะมือถือตอนเป็น "แนวตั้ง" เท่านั้น */}
+            {shouldCollapseNav ? (
+              <>
+                {/* 1. ปุ่มหลัก ADVENTURE ให้คงไว้เสมอ */}
+                {MAIN_NAV_ITEMS.filter((item) => item.isMain).map((item) => {
+                  const isActive = location.pathname === "/home";
+                  return (
+                    <Button
+                      key={item.id}
+                      onClick={() => {
+                        playClickSound();
+                        navigate(item.path);
+                      }}
+                      sx={{
+                        position: "relative",
+                        overflow: "visible",
+                        minWidth: "120px",
+                        height: "36px",
+                        flexDirection: "row",
+                        fontFamily: "'Press Start 2P'",
+                        fontSize: 8,
+                        color: isActive ? THEME.bgDark : "#d7ccc8",
+                        backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
+                        border: `2px solid ${isActive ? THEME.activeBorder : "#5a3e2b"}`,
+                        borderRadius: "8px",
+                        boxShadow: isActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
+                        p: { xs: 0, sm: 1.5 },
+                        transition: "all 0.1s",
+                        "&:hover": {
+                          backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.9)",
+                          transform: "translateY(1px)",
+                        },
+                      }}
+                    >
+                      {item.label}
+                    </Button>
+                  );
+                })}
 
-              const buttonContent = (
-                <Button
-                  onClick={() => {
-                    playClickSound();
-                    navigate(item.path);
-                  }}
-                  sx={{
-                    position: "relative",
-                    overflow: "visible",
-                    minWidth: isCompact
-                      ? "40px"
-                      : item.isMain
-                        ? "160px"
-                        : "60px",
-                    height: isCompact
-                      ? "36px"
-                      : item.isMain
-                        ? { xs: "40px", sm: "45px", md: "52px" }
-                        : { xs: "36px", md: "40px" },
-                    flexDirection: { xs: "column", sm: "row" },
-                    fontFamily: "'Press Start 2P'",
-                    fontSize: item.isMain
-                      ? { xs: 7, sm: 8, md: 13 }
-                      : { xs: 6, sm: 8 },
-                    color: isActive ? THEME.bgDark : "#d7ccc8",
-                    backgroundColor: isActive
-                      ? THEME.accent
-                      : "rgba(43, 29, 20, 0.6)",
-                    border: `2px solid ${isActive ? THEME.activeBorder : "#5a3e2b"}`,
-                    borderRadius: "8px",
-                    boxShadow: isActive
-                      ? `0 0 12px ${THEME.accent}`
-                      : "0 3px 0 #1a120b",
-                    p: isCompact ? 0 : { xs: 0, sm: 1.5 },
-                    transition: "all 0.1s",
-                    "& .MuiButton-startIcon": {
-                      margin: 0,
-                      "& > *:nth-of-type(1)": {
-                        fontSize: isCompact ? 18 : item.isMain ? 26 : 22,
+                {/* 2. ปุ่มเมนูยุบรวม สำหรับรายการที่เหลือ */}
+                <Tooltip title="Menu" arrow>
+                  <IconButton
+                    onClick={(e) => {
+                      playClickSound();
+                      setNavAnchorEl(e.currentTarget);
+                    }}
+                    sx={{
+                      position: "relative",
+                      color: isNavMenuActive ? THEME.bgDark : "#d7ccc8",
+                      backgroundColor: isNavMenuActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
+                      border: `2px solid ${isNavMenuActive ? THEME.activeBorder : "#5a3e2b"}`,
+                      borderRadius: "8px",
+                      boxShadow: isNavMenuActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
+                      width: "36px",
+                      height: "36px",
+                      transition: "all 0.1s",
+                      "&:hover": {
+                        backgroundColor: isNavMenuActive ? THEME.accent : "rgba(43, 29, 20, 0.9)",
+                        transform: "translateY(1px)",
                       },
-                    },
-                    "&:hover": {
-                      backgroundColor: isActive
-                        ? THEME.accent
-                        : "rgba(43, 29, 20, 0.9)",
-                      transform: "translateY(1px)",
-                    },
-                    "@media (orientation: landscape) and (max-height: 450px)": {
-                      fontSize: item.isMain ? 6 : 5,
+                      "& .MuiSvgIcon-root": {
+                        fontSize: 20,
+                      },
+                    }}
+                  >
+                    {hasEmptySlot ? ( 
+                       <Badge
+                        overlap="circular"
+                        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                        variant="dot"
+                        sx={{
+                          "& .MuiBadge-badge": {
+                            backgroundColor: "#ff1744",
+                            boxShadow: "0 0 5px rgba(0,0,0,0.5)",
+                            right: 2,
+                            top: 2,
+                          }
+                        }}
+                      >
+                        <MenuIcon />
+                      </Badge>
+                    ) : (
+                      <MenuIcon />
+                    )}
+                  </IconButton>
+                </Tooltip>
+              </>
+            ) : (
+              /* แสดงปุ่มปกติทั้งหมดถ้าเป็นจอใหญ่ หรือเป็น "แนวนอน" */
+              MAIN_NAV_ITEMS.map((item) => {
+                const isActive =
+                  item.path === "/home"
+                    ? location.pathname === "/home"
+                    : location.pathname.includes(item.path);
+
+                const buttonContent = (
+                  <Button
+                    onClick={() => {
+                      playClickSound();
+                      navigate(item.path);
+                    }}
+                    sx={{
+                      position: "relative",
+                      overflow: "visible",
+                      // 💡 ทำให้แนวนอนเล็กบีบ Width ให้พอดีจอ
+                      minWidth: isLandscapeMobile ? (item.isMain ? "90px" : "40px") : (item.isMain ? "160px" : "60px"),
+                      height: isLandscapeMobile ? "32px" : (item.isMain ? { xs: "40px", sm: "45px", md: "52px" } : { xs: "36px", md: "40px" }),
+                      flexDirection: { xs: "column", sm: "row" },
+                      fontFamily: "'Press Start 2P'",
+                      fontSize: item.isMain ? { xs: 7, sm: 8, md: 13 } : { xs: 6, sm: 8 },
+                      color: isActive ? THEME.bgDark : "#d7ccc8",
+                      backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
+                      border: `2px solid ${isActive ? THEME.activeBorder : "#5a3e2b"}`,
+                      borderRadius: "8px",
+                      boxShadow: isActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
+                      p: isLandscapeMobile ? 0 : { xs: 0, sm: 1.5 },
+                      transition: "all 0.1s",
                       "& .MuiButton-startIcon": {
                         margin: 0,
                         "& > *:nth-of-type(1)": {
-                          fontSize: isCompact ? 14 : item.isMain ? 26 : 22,
+                          fontSize: isLandscapeMobile ? (item.isMain ? 16 : 14) : (item.isMain ? 26 : 22),
                         },
                       },
-                    },
-                  }}
-                  startIcon={!item.isMain ? item.icon : null}
-                >
-                  {item.isMain ? item.label : null}
-                </Button>
-              );
-
-              let renderedContent = buttonContent;
-
-              if (item.id === "item" && hasEmptySlot) {
-                renderedContent = (
-                  <Tooltip
-                    title={`You have empty slots! (${currentItemsCount}/${maxItemsSlot})`}
-                    arrow
-                    placement="top"
-                  >
-                    <Badge
-                      overlap="circular"
-                      anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                      badgeContent={
-                        <ErrorIcon
-                          sx={{
-                            color: "#ff1744",
-                            fontSize: "1.2rem",
-                            backgroundColor: "#fff",
-                            borderRadius: "50%",
-                            boxShadow: "0 0 5px rgba(0,0,0,0.5)",
-                          }}
-                        />
+                      "&:hover": {
+                        backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.9)",
+                        transform: "translateY(1px)",
+                      },
+                      "@media (orientation: landscape) and (max-height: 450px)": {
+                        fontSize: item.isMain ? 6 : 5,
                       }
-                    >
-                      {buttonContent}
-                    </Badge>
-                  </Tooltip>
+                    }}
+                    startIcon={!item.isMain ? item.icon : null}
+                  >
+                    {item.isMain ? item.label : null}{" "}
+                  </Button>
                 );
-              } else if (!item.isMain) {
-                renderedContent = (
-                  <Tooltip title={item.label} arrow placement="top">
-                    <Box>{buttonContent}</Box>
-                  </Tooltip>
-                );
-              } else {
-                renderedContent = buttonContent;
-              }
 
-              return (
-                <Box key={item.id} sx={{ position: "relative" }}>
-                  {renderedContent}
-                </Box>
-              );
-            })}
+                let renderedContent = buttonContent;
+
+                if (item.id === "item" && hasEmptySlot) {
+                  renderedContent = (
+                    <Tooltip
+                      title={`You have empty slots! (${currentItemsCount}/${maxItemsSlot})`}
+                      arrow
+                      placement="top"
+                    >
+                      <Badge
+                        overlap="circular"
+                        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                        badgeContent={
+                          <ErrorIcon
+                            sx={{
+                              color: "#ff1744",
+                              fontSize: "1.2rem",
+                              backgroundColor: "#fff",
+                              borderRadius: "50%",
+                              boxShadow: "0 0 5px rgba(0,0,0,0.5)",
+                            }}
+                          />
+                        }
+                      >
+                        {buttonContent}{" "}
+                      </Badge>
+                    </Tooltip>
+                  );
+                } else if (!item.isMain) {
+                  renderedContent = (
+                    <Tooltip title={item.label} arrow placement="top">
+                      <Box>{buttonContent}</Box>{" "}
+                    </Tooltip>
+                  );
+                } else {
+                  renderedContent = buttonContent;
+                }
+
+                return (
+                  <Box key={item.id} sx={{ position: "relative" }}>
+                    {renderedContent}
+                  </Box>
+                );
+              })
+            )}
           </Box>
 
           {/* 🔹 RIGHT : LIBRARY & SETTINGS & LOGOUT */}
@@ -775,13 +865,12 @@ const GameAppBar = () => {
                 }}
               />
             )}
-
-            {/* 💡 THE FIX: ยุบรวม Monsters & Dictionary ให้เหลือปุ่มเดียว */}
+            
             <Tooltip title="Library" arrow>
               <IconButton
-                onClick={() => {
+                onClick={(e) => {
                   playClickSound();
-                  setOpenLibrary(true);
+                  setLibraryAnchorEl(e.currentTarget);
                 }}
                 sx={{
                   color: isLibraryActive ? THEME.activeBorder : "#d7ccc8",
@@ -859,83 +948,151 @@ const GameAppBar = () => {
         </Toolbar>
       </AppBar>
 
-      {/* 📚 Dialog สำหรับเลือก Library */}
-      <Dialog
-        open={openLibrary}
-        onClose={() => setOpenLibrary(false)}
+      {/* 🧭 MUI Menu สำหรับยุบ Navigation (ทำงานเมื่อหน้าจอเล็กแนวตั้ง) */}
+      <Menu
+        anchorEl={navAnchorEl}
+        open={Boolean(navAnchorEl)}
+        onClose={() => setNavAnchorEl(null)}
+        transformOrigin={{ horizontal: "center", vertical: "top" }}
+        anchorOrigin={{ horizontal: "center", vertical: "bottom" }}
         PaperProps={{
-          style: {
-            backgroundColor: "transparent",
-            boxShadow: "none",
+          sx: {
+            backgroundColor: "#19120e",
+            border: "3px solid #8c734b",
+            borderRadius: "8px",
+            boxShadow: "0 0 0 5px #0f0a08, 0 10px 40px rgba(0,0,0,0.9)",
+            mt: 1,
+            width: "200px",
+            "& .MuiList-root": {
+              padding: "12px",
+            },
           },
         }}
       >
-        <Box
-          sx={{
-            background: "#19120e",
-            width: { xs: "260px", sm: "350px" },
-            padding: "25px",
-            borderRadius: "12px",
-            border: "3px solid #8c734b",
-            boxShadow: "0 0 0 5px #0f0a08, 0 10px 40px rgba(0,0,0,0.9)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 2.5,
-            alignItems: "center",
-          }}
-        >
-          <Typography
-            sx={{
-              fontFamily: "'Press Start 2P'",
-              color: "#f1c40f",
-              fontSize: { xs: "12px", sm: "14px" },
-              textShadow: "2px 2px 0px #000",
-              mb: 1,
-            }}
-          >
-            SELECT LIBRARY
-          </Typography>
-
-          {LIBRARY_ITEMS.map((item) => (
-            <Button
+        {MAIN_NAV_ITEMS.filter((item) => !item.isMain).map((item) => {
+          const isActive = location.pathname.includes(item.path);
+          return (
+            <MenuItem
               key={item.id}
-              fullWidth
               onClick={() => {
                 playClickSound();
-                setOpenLibrary(false);
+                setNavAnchorEl(null);
                 navigate(item.path);
               }}
               sx={{
-                background: "linear-gradient(to bottom, #4a3b2a, #2b2218)",
-                border: "2px solid #6b543a",
-                borderBottom: "4px solid #6b543a",
+                background: isActive ? "linear-gradient(to bottom, #d6b46a, #b3904a)" : "linear-gradient(to bottom, #4a3b2a, #2b2218)",
+                border: `2px solid ${isActive ? "#f1c40f" : "#6b543a"}`,
+                borderBottom: `4px solid ${isActive ? "#b38b1d" : "#6b543a"}`,
                 borderRadius: "6px",
-                color: "#d1c4b6",
+                color: isActive ? "#1a120b" : "#d1c4b6",
                 fontFamily: "'Press Start 2P'",
-                fontSize: { xs: "10px", sm: "11px" },
-                py: 2,
+                fontSize: "10px",
+                py: 1.5,
+                mb: 1,
                 display: "flex",
-                justifyContent: "center",
+                justifyContent: "flex-start",
                 alignItems: "center",
+                gap: 1.5,
                 transition: "all 0.1s",
                 "&:hover": {
                   filter: "brightness(1.2)",
                   transform: "translateY(-2px)",
+                  backgroundColor: "transparent",
                 },
                 "&:active": {
                   transform: "translateY(2px)",
-                  borderBottom: "2px solid #6b543a",
+                  borderBottom: `2px solid ${isActive ? "#b38b1d" : "#6b543a"}`,
                 },
+                "&:last-child": {
+                  mb: 0,
+                },
+                "& > svg": {
+                  fontSize: "16px",
+                  color: isActive ? "#1a120b" : "#ffecb3",
+                }
               }}
             >
-              {item.icon}
+              {item.id === "item" && hasEmptySlot ? (
+                <Badge
+                  color="error"
+                  variant="dot"
+                  overlap="circular"
+                  sx={{ "& .MuiBadge-badge": { right: -2, top: 0 } }}
+                >
+                  {item.icon}
+                </Badge>
+              ) : (
+                item.icon
+              )}
               {item.label}
-            </Button>
-          ))}
-        </Box>
-      </Dialog>
+            </MenuItem>
+          );
+        })}
+      </Menu>
 
-      {/* ⚙️ 1. Dialog สำหรับ "ตั้งค่าเสียง" เท่านั้น (ไม่ถามเรื่อง Logout) */}
+      {/* 📚 MUI Menu สำหรับเลือก Library */}
+      <Menu
+        anchorEl={libraryAnchorEl}
+        open={Boolean(libraryAnchorEl)}
+        onClose={() => setLibraryAnchorEl(null)}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        PaperProps={{
+          sx: {
+            backgroundColor: "#19120e",
+            border: "3px solid #8c734b",
+            borderRadius: "8px",
+            boxShadow: "0 0 0 5px #0f0a08, 0 10px 40px rgba(0,0,0,0.9)",
+            mt: 1,
+            width: { xs: "200px", sm: "240px" },
+            "& .MuiList-root": {
+              padding: "12px",
+            },
+          },
+        }}
+      >
+        {LIBRARY_ITEMS.map((item) => (
+          <MenuItem
+            key={item.id}
+            onClick={() => {
+              playClickSound();
+              setLibraryAnchorEl(null);
+              navigate(item.path);
+            }}
+            sx={{
+              background: "linear-gradient(to bottom, #4a3b2a, #2b2218)",
+              border: "2px solid #6b543a",
+              borderBottom: "4px solid #6b543a",
+              borderRadius: "6px",
+              color: "#d1c4b6",
+              fontFamily: "'Press Start 2P'",
+              fontSize: { xs: "10px", sm: "11px" },
+              py: 1.5,
+              mb: 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              transition: "all 0.1s",
+              "&:hover": {
+                filter: "brightness(1.2)",
+                transform: "translateY(-2px)",
+                backgroundColor: "transparent",
+              },
+              "&:active": {
+                transform: "translateY(2px)",
+                borderBottom: "2px solid #6b543a",
+              },
+              "&:last-child": {
+                mb: 0,
+              },
+            }}
+          >
+            {item.icon} {item.label}
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* ⚙️ 1. Dialog สำหรับ "ตั้งค่าเสียง" */}
       <GameDialog
         open={openSettings}
         title="SETTINGS"
@@ -948,8 +1105,8 @@ const GameAppBar = () => {
         sfxVolume={sfxVolume}
         isSfxMuted={isSfxMuted}
       />
-
-      {/* 🚪 2. Dialog สำหรับ "ยืนยันการล็อคเอาท์" แยกออกมาเป็นอีกหน้าต่าง */}
+      
+      {/* 🚪 2. Dialog สำหรับ "ยืนยันการล็อคเอาท์" */}
       <GameDialog
         open={confirmLogout}
         title="LOGOUT"
@@ -960,13 +1117,13 @@ const GameAppBar = () => {
         cancelText="NO"
         cancelColor="wood"
       />
-
+      
       <MiniGame
         open={isMiniGameOpen}
         onClose={() => setIsMiniGameOpen(false)}
         currentStamina={currentUser?.stamina?.current}
         maxStamina={currentUser?.stamina?.max}
-      />
+      />{" "}
     </>
   );
 };
