@@ -280,13 +280,8 @@ const ListSection = memo(
               animate={{ scale: [1, 1.05, 1] }} // Animation ปุ่มเต้นตุบๆ
               transition={{ repeat: Infinity, duration: 1.5 }}
               style={{
-                // position: "absolute",
-                // bottom: 10,
-                // left: "50%",
-                // translateX: "-50%",
-                // zIndex: 10,
-                // transform: "translateX(-50%)", // Fix center
                 display: "flex",
+                pointerEvents: isEntering ? "none" : "auto", // 👈 เพิ่มบรรทัดนี้
               }}
             >
               <Button
@@ -325,7 +320,7 @@ const ListSection = memo(
                     : { transform: "translateY(6px)", boxShadow: "none" },
                   //mobile landscape
                   "@media (orientation: landscape) and (max-height: 450px)": {
-                    mt:1.5,
+                    mt: 1.5,
                     fontSize: 10,
                     px: 3,
                     py: 1,

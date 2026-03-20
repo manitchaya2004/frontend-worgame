@@ -1,10 +1,11 @@
 import { useAuthStore } from "../../../../store/useAuthStore";
-import React, { useState } from "react";
-import { Box, Typography, Tooltip, Divider, IconButton } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Box, Typography, Tooltip, Divider, CircularProgress } from "@mui/material";
 import { usePreloadFrames, LoadImage } from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { GameDialog } from "../../../../components/GameDialog";
 import UpgradeDialog from "./UpgradeLevel";
+import { LOADING } from "../../../../store/const";
 
 import { StatVisualBar, StatLine } from "../../components/StatDisplay";
 import LevelBar from "../../components/LevelBar";
@@ -14,9 +15,8 @@ import { getDeckIconData } from "../../hook/const";
 import {
   GiHearts,
   GiBroadsword, // 🟢 เพิ่มไอคอนดาบ
-  GiLeatherBoot     // 🟢 เพิ่มไอคอนรองเท้า
+  GiLeatherBoot, // 🟢 เพิ่มไอคอนรองเท้า
 } from "react-icons/gi";
-
 
 // Icons สำหรับปุ่ม Switch
 import ViewListIcon from "@mui/icons-material/ViewList"; // ดูแบบหลอด (List)
@@ -30,7 +30,8 @@ const HeroCard = ({
   playClickSound,
   playAgreeSound,
 }) => {
-  const { selectHero, buyHero, fetchPreviewData, previewData } = useAuthStore();
+  const { selectHero, buyHero, fetchPreviewData, buyHeroState, selectHeroState } =
+    useAuthStore();
 
   // dialog buyhero
   const [openBuy, setOpenBuy] = useState(false);
@@ -38,6 +39,12 @@ const HeroCard = ({
 
   //  swip stat ว่าจะดูแบบ หลอดหรือกล่อง
   const [showDetail, setShowDetail] = useState(false);
+  
+  // Local State เอาไว้เช็คว่า "ปุ่มของการ์ดใบนี้" ถูกคลิกใช่หรือไม่
+  const [isLocalSelecting, setIsLocalSelecting] = useState(false);
+  
+  // Local State สำหรับตอนซื้อ
+  const [isLocalBuying, setIsLocalBuying] = useState(false);
 
   const frames = usePreloadFrames("img_hero", hero.id, 2);
   const frame = useIdleFrame(frames.length, 450);
@@ -54,6 +61,28 @@ const HeroCard = ({
   const canBuy = !isOwned && money > hero.price;
   const upgradeCost = playerHero?.next_upgrade || 0;
 
+  // เคลียร์สถานะการคลิกปุ่มของการ์ดใบนี้เมื่อ Global โหลดเสร็จแล้ว
+  useEffect(() => {
+    if (selectHeroState !== LOADING) {
+      setIsLocalSelecting(false);
+    }
+  }, [selectHeroState]);
+
+  // status 
+  const isGlobalSelecting = selectHeroState === LOADING;
+  const isSelecting = isGlobalSelecting && isLocalSelecting;
+  
+  // เช็คว่าตัวนี้คือตัวที่ "กำลังจะเสียตำแหน่ง Selected" ให้ตัวอื่นที่กำลังโหลดอยู่หรือไม่
+  const isLosingSelection = isSelected && isGlobalSelecting && !isLocalSelecting;
+
+  // 🟢 เช็คสถานะตอนซื้อ
+  const isGlobalBuying = buyHeroState === LOADING;
+  // 🟢 ให้เชื่อ isLocalBuying ไปเลย พอกดปุ๊บจะได้ขึ้น LOADING ทันทีแบบไม่ต้องรอ Store
+  const isBuying = isLocalBuying; 
+
+  // อัปเดตเงื่อนไข isDisabled ไม่ให้กดได้ถ้ามีการซื้อ/เลือกเกิดขึ้นอยู่
+  const isDisabled = isSelected || (!isOwned && !canBuy) || isGlobalBuying || isGlobalSelecting;
+
   // === ดึงข้อมูลมาแสดง (ถ้ามี playerHero ใช้ของ playerHero ถ้าไม่มีใช้ base ของ hero) ===
   const currentLevel = playerHero?.level || 1;
   const currentExp = isOwned ? playerHero?.current_exp || 0 : 0;
@@ -61,14 +90,6 @@ const HeroCard = ({
 
   // 💡 THE FIX: ป้องกัน undefined โดยการบังคับให้เป็น Array ว่าง [] เสมอถ้าไม่มีข้อมูล
   const rawDeck = (isOwned ? playerHero?.deck_list : hero?.hero_deck) || [];
-
-  // Map ข้อมูล 5 ตัวตามที่ขอ
-  const base_stats = {
-    hp: isOwned ? playerHero?.stats?.levels?.hp_lv : hero.hp_lv,
-    power: isOwned ? playerHero?.stats?.levels?.power_lv : hero.power_lv,
-    speed: isOwned ? playerHero?.stats?.levels?.speed_lv : hero.speed_lv,
-    // slot: isOwned ? playerHero?.stats?.levels?.slot_lv : hero.slot_lv,
-  };
 
   const game_stats = isOwned
     ? {
@@ -83,8 +104,14 @@ const HeroCard = ({
       };
 
   const handleConfirmBuy = async () => {
-    await buyHero(hero.id);
-    setOpenBuy(false);
+    setOpenBuy(false); // ปิด Dialog ทันทีให้ผู้เล่นรู้สึกตอบสนองไว
+    setIsLocalBuying(true); // 🟢 บังคับเปิดสถานะ Loading ที่ปุ่มทันที
+    
+    try {
+      await buyHero(hero.id); // รอ API จนกว่าจะเสร็จ
+    } finally {
+      setIsLocalBuying(false); // 🟢 ไม่ว่าจะซื้อสำเร็จหรือพัง ก็ให้ปิด Loading เสมอ
+    }
   };
 
   const handleCancelBuy = () => {
@@ -343,39 +370,6 @@ const HeroCard = ({
             <Divider
               sx={{ borderColor: "#444", borderStyle: "dashed", flex: 1 }}
             />
-
-            {/* แสดงปุ่มเฉพาะตอนเป็นเจ้าของ (isOwned)
-         
-            {isOwned && (
-              <Tooltip
-                title={showDetail ? "Switch to Bars" : "Switch to Details"}
-              >
-                <IconButton
-                  onClick={() => setShowDetail(!showDetail)}
-                  size="small"
-                  sx={{
-                    color: "#8d6e63",
-                    ml: 1,
-                    border: "1px solid #5a3e2b",
-                    borderRadius: "4px",
-                    backgroundColor: "rgba(0,0,0,0.2)",
-                    // เพิ่มความสูง/กว้างที่แน่นอนให้ปุ่ม
-                    width: { xs: "22px", md: "25px" },
-                    height: { xs: "22px", md: "25px" },
-                    "& .MuiSvgIcon-root": {
-                      fontSize: { xs: "14px", md: "18px" },
-                    },
-                    "@media (orientation: landscape) and (max-height: 450px)": {
-                      width: "18px",
-                      height: "18px",
-                      "& .MuiSvgIcon-root": { fontSize: "12px" },
-                    },
-                  }}
-                >
-                  {showDetail ? <ViewListIcon /> : <ViewModuleIcon />}
-                </IconButton>
-              </Tooltip>
-            )} */}
           </Box>
 
           <Box
@@ -401,92 +395,24 @@ const HeroCard = ({
                 label="HP"
                 value={game_stats.hp}
                 icon={<GiHearts />}
-               color="#ff4d4d" 
-                description="Maximum health points." 
+                color="#ff4d4d"
+                description="Maximum health points."
               />
               <StatLine
                 label="ATK"
                 value={game_stats.power}
                 icon={<GiBroadsword />}
-                color="#e67e22" 
-                description="Letter limit. Exceeding this causes recoil damage." 
+                color="#e67e22"
+                description="Letter limit. Exceeding this causes recoil damage."
               />
               <StatLine
                 label="SPEED"
                 value={game_stats.speed}
-                icon={<GiLeatherBoot />} 
-                color="#f1c40f" 
-                description="Determines turn order in battle." 
+                icon={<GiLeatherBoot />}
+                color="#f1c40f"
+                description="Determines turn order in battle."
               />
             </Box>
-            {/* {showDetail ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 0.7,
-                  // mobile landscape อาจจะดูแน่นๆ หน่อย แต่ยังพอไหว
-                  "@media (orientation: landscape) and (max-height: 450px)": {
-                    gap: 0,
-                  },
-                }}
-              >
-                <StatLine
-                  label="HP"
-                  value={game_stats.hp}
-                  icon={<FavoriteIcon />}
-                  color="#ff5252"
-                  description="Max Health. 0 = Game Over."
-                />
-                <StatLine
-                  label="POWER"
-                  value={game_stats.power}
-                  icon={<BackpackIcon />}
-                  color="#d1c4e9"
-                  description="Bag Size. Max letters you can hold in hand."
-                />
-                <StatLine
-                  label="SPEED"
-                  value={game_stats.speed}
-                  icon={<SpeedIcon />}
-                  color="#00e5ff"
-                  description="Turn Speed. Faster acts first."
-                />
-              </Box>
-            ) : (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: { xs: 0.5, md: 1 },
-                  "@media (orientation: landscape) and (max-height: 450px)": {
-                    gap: 0.25,
-                  },
-                }}
-              >
-                <StatVisualBar
-                  label="HP"
-                  value={base_stats.hp}
-                  max={MAX_STATS_REF.hp}
-                  icon={<FavoriteIcon />}
-                  color="#ff5252"
-                />
-                <StatVisualBar
-                  label="POWER"
-                  value={base_stats.power}
-                  max={MAX_STATS_REF.power}
-                  icon={<FlashOnIcon />}
-                  color="#ffca28"
-                />
-                <StatVisualBar
-                  label="SPEED"
-                  value={base_stats.speed}
-                  max={MAX_STATS_REF.speed}
-                  icon={<SpeedIcon />}
-                  color="#00e5ff"
-                />
-              </Box>
-            )} */}
           </Box>
         </Box>
 
@@ -500,8 +426,8 @@ const HeroCard = ({
             py: { xs: 0.5, md: 1 },
             textAlign: "center",
 
-            // สีปุ่ม (Background) ของตัวเอง
-            background: isSelected
+            // ปรับสีปุ่ม: ถ้าเป็นตัวเลือกเดิมแต่กำลังจะถูกแย่งตำแหน่ง ให้สีกลับไปเป็นปุ่มเขียวธรรมดา
+            background: (isSelected && !isLosingSelection)
               ? "linear-gradient(180deg, #aed2af, #427d45)"
               : isOwned
                 ? "linear-gradient(180deg, #81c784, #388e3c)"
@@ -509,9 +435,9 @@ const HeroCard = ({
                   ? "linear-gradient(180deg, #757575, #424242)"
                   : "linear-gradient(180deg, #c49a3a, #8b5a1e)",
 
-            cursor:
-              isSelected || (!isOwned && !canBuy) ? "not-allowed" : "pointer",
-            opacity: isSelected || (!isOwned && !canBuy) ? 0.7 : 1,
+            opacity: isDisabled || isSelecting || isBuying ? 0.7 : 1,
+            cursor: (isSelecting || isBuying) ? "wait" : isDisabled ? "not-allowed" : "pointer",
+            pointerEvents: isDisabled || isSelecting || isBuying ? "none" : "auto",
             border: "3px solid #5a3312",
             borderRadius: 2,
             color: "#2a160a",
@@ -525,15 +451,58 @@ const HeroCard = ({
           }}
           onClick={() => {
             playClickSound();
+            if (isGlobalSelecting || isGlobalBuying) return; // ถ้าตัวไหนสักตัวโหลดหรือซื้ออยู่ ห้ามกดซ้ำ
             if (isSelected) return;
             if (isOwned) {
+              setIsLocalSelecting(true); // ให้การ์ดใบนี้รู้ตัวว่า "ฉันโดนกดอยู่นะ"
               selectHero(hero.id);
               return;
             }
             if (canBuy) setOpenBuy(true);
           }}
         >
-          {isSelected ? (
+          {isSelecting ? (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 1,
+              }}
+            >
+              <CircularProgress size={14} />
+
+              <Typography
+                sx={{
+                  fontFamily: "'Press Start 2P'",
+                  fontSize: { xs: 10, md: 12 },
+                }}
+              >
+                ...SELECTING
+              </Typography>
+            </Box>
+          ) : isBuying ? ( // เคสกำลังซื้อ
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 1,
+              }}
+            >
+              <CircularProgress size={14} sx={{ color: "#3e2723" }} />
+
+              <Typography
+                sx={{
+                  fontFamily: "'Press Start 2P'",
+                  fontSize: { xs: 10, md: 12 },
+                }}
+              >
+                ...BUYING
+              </Typography>
+            </Box>
+          ) : (isSelected && !isLosingSelection) ? ( 
+            // ถ้าเคยเลือกไว้ และไม่ได้กำลังโดนแย่งตำแหน่ง ถึงจะโชว์คำว่า SELECTED
             <Box
               sx={{
                 display: "flex",
@@ -576,6 +545,7 @@ const HeroCard = ({
               </Typography>
             </Box>
           ) : (
+            // โชว์ข้อความ SELECT ธรรมดาสำหรับปุ่มที่เพิ่งโดนแย่งตำแหน่งไปหมาดๆ หรือปุ่มปกติ
             <Typography
               sx={{
                 fontFamily: "'Press Start 2P'",

@@ -168,7 +168,7 @@ export const GameDialog = ({
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             style={{
               background: "#19120e",
-              width: "420px", // ขยายความกว้างนิดนึง
+              width: "500px", // ขยายความกว้างนิดนึง
               padding: "30px 25px",
               borderRadius: "12px",
               border: "3px solid #8c734b",

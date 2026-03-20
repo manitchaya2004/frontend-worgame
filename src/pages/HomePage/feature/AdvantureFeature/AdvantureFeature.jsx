@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom"; //เปลี่ยน หน้า
-import React, { useEffect, useState, useMemo, memo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Box, Typography } from "@mui/material";
 import { useData } from "../../hook/useData";
 import { motion } from "framer-motion";
@@ -25,8 +25,11 @@ const MotionBox = motion(Box);
 const AdvantureFeature = () => {
   const { currentUser, updateStamina } = useAuthStore();
 
+  console.log ("currentUser",currentUser)
   //console.log("user",currentUser)
   const { stages, loadingStage } = useData();
+
+  console.log("stage",stages)
   const store = useGameStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,33 +44,39 @@ const AdvantureFeature = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPlayingMiniGame, setIsPlayingMiniGame] = useState(false);
 
+  const isProcessingRef = useRef(false);
   const handleStageClick = async (stage) => {
-    playClickSound();
-    // เช็ค Stamina ปัจจุบันก่อนเลย
-    if (!currentUser?.stamina || currentUser.stamina.current <= 0) {
-      // 💡 THE FIX: แทนที่จะใช้ window.confirm ให้เปิด GameDialog แทน
-      setIsDialogOpen(true);
-      return;
-    }
+  // 🚫 กันกดรัวตั้งแต่แรก
+  if (isProcessingRef.current) return;
+  isProcessingRef.current = true;
 
-    const result = await updateStamina(-1);
+  playClickSound();
 
-    if (result.success) {
-      store.reset();
-      setIsEntering(true);
+  if (!currentUser?.stamina || currentUser.stamina.current <= 0) {
+    setIsDialogOpen(true);
+    isProcessingRef.current = false; // ปลดล็อก
+    return;
+  }
 
-      setTimeout(() => {
-        navigate("/battle", {
-          state: {
-            currentUser: currentUser,
-            selectedStage: stage,
-          },
-        });
-      }, 2500);
-    } else {
-      alert("Failed to consume stamina. Please try again.");
-    }
-  };
+  const result = await updateStamina(-1);
+
+  if (result.success) {
+    store.reset();
+    setIsEntering(true);
+
+    setTimeout(() => {
+      navigate("/battle", {
+        state: {
+          currentUser: currentUser,
+          selectedStage: stage,
+        },
+      });
+    }, 2500);
+  } else {
+    alert("Failed to consume stamina. Please try again.");
+    isProcessingRef.current = false; // ปลดล็อกกรณี fail
+  }
+};
 
   const changeCharacter = () => {
     navigate("/home/character", {

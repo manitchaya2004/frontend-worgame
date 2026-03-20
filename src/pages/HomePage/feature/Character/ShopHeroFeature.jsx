@@ -25,7 +25,7 @@ import clickAgreeSfx from "../../../../assets/sound/click3.ogg";
 const MotionBox = motion(Box);
 const ShopHeroFeature = () => {
   const { currentUser } = useLoginPlayer();
-  const { heros } = useHeroStore();
+  const { heros ,buyHeroState} = useHeroStore();
 
   const scrollRef = useRef(null);
   const [isReady, setIsReady] = useState(false);

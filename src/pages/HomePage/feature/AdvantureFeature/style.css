@@ -13,7 +13,7 @@
 /* //mobile landscape */
 @media (orientation: landscape) and (max-height: 450px) {
 .character-anim {
-    top: 20% !important;
+    top: 10% !important;
 }
   .switch-icon {
     height: 20px !important;

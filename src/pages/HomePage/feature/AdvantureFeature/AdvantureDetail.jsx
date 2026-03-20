@@ -8,12 +8,16 @@ import {
 } from "../../hook/usePreloadFrams";
 import { useIdleFrame } from "../../hook/useIdleFrame";
 import { backgroundStage, name } from "../../hook/const";
-import "./style.css"
+import "./style.css";
 // import SwitchAccountIcon from "@mui/icons-material/SwitchAccount";
 import SwitchAccountIcon from "../../../../assets/icons/changeHero.png";
 import { THEMES } from "../../hook/const";
-import { width } from "@mui/system";
-// 🪵 สไตล์ป้ายชื่อด่าน (ปรับใหม่ตามธีม)
+
+// 🟢 แนะนำ Import Icons จาก MUI
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"; // ถ้วยรางวัล
+import FlagIcon from "@mui/icons-material/Flag"; // ธง
+import TrackChangesIcon from "@mui/icons-material/TrackChanges"; // เป้าหมาย (ปาเป้า)
+
 // 🪵 สไตล์ป้ายชื่อด่านแบบใหม่ (Big Center Sign)
 const stageNameStyle = {
   position: "absolute",
@@ -77,7 +81,7 @@ const nailStyle = {
 const stampStyle = {
   position: "absolute",
   top: "35%",
-  left: "25%",
+  left: "30%",
   zIndex: 30, // อยู่บนสุด
   /* === Pixel Stamp Look === */
   border: "4px solid #00e676",
@@ -123,6 +127,17 @@ const DetailItem = ({
   const [isLanded, setIsLanded] = useState(false);
   const isGrayscale = isCompleted && !isEntering;
 
+  // 🟢 ดึงข้อมูล Stage ปัจจุบันของผู้เล่น (เพื่อเอา last_distant)
+  const userStageProgress = useMemo(() => {
+    if (!stage || !currentUser?.stages) return null;
+    return currentUser.stages.find((s) => s.stage_id === stage.id);
+  }, [stage, currentUser]);
+
+  // คำนวณสถานะและระยะทาง
+  const currentDist = userStageProgress?.last_distant || 0;
+  const goalDist = stage?.distant_goal || 0;
+  const hasProgress = currentDist > 0 && !isCompleted;
+
   useEffect(() => {
     let timer;
     if (isEntering) {
@@ -142,10 +157,10 @@ const DetailItem = ({
           position: "relative",
           height: "100%",
           width: "100%",
-
           overflow: "hidden", // กันภาพล้น
         }}
       >
+        {/* 🔻 Box ที่ 1: ใส่ Filter ขาวดำเมื่อเล่นผ่านแล้ว */}
         <Box
           sx={{
             display: "flex",
@@ -220,7 +235,10 @@ const DetailItem = ({
                   <Typography
                     sx={{
                       fontFamily: "'Press Start 2P'",
-                      fontSize: stage?.name.length < 15 ? { xs: 12, sm: 16, md: 18, xl: 18 } :{ xs: 10, sm: 14, md: 16, xl: 16 }, // ใหญ่ขึ้น!
+                      fontSize:
+                        stage?.name.length < 15
+                          ? { xs: 12, sm: 16, md: 18, xl: 18 }
+                          : { xs: 10, sm: 14, md: 16, xl: 16 }, // ใหญ่ขึ้น!
                       color: "#fffbe6", // สีขาวครีม อ่านง่าย
                       textShadow: `2px 2px 0 #000`,
                       textTransform: "uppercase",
@@ -287,7 +305,7 @@ const DetailItem = ({
             </Box>
           )}
 
-          {/* ⭐ NEW: Change Character Button (Top Right) */}
+          {/* Change Character Button (Top Right) */}
           {!isEntering && (
             <IconButton
               onClick={onChangeCharClick}
@@ -320,16 +338,14 @@ const DetailItem = ({
                 },
               }}
             >
-              {/* <SwitchAccountIcon sx={{ fontSize: 20 }} /> */}
               <img
                 className="switch-icon"
                 src={SwitchAccountIcon}
-                style={{ 
-                  height: 40, 
-                  width: 40, 
-                  imageRendering: "pixelated" 
-                  
-                 }}
+                style={{
+                  height: 40,
+                  width: 40,
+                  imageRendering: "pixelated",
+                }}
               />
             </IconButton>
           )}
@@ -347,10 +363,10 @@ const DetailItem = ({
             initial={{ y: 0, x: 0 }}
             animate={
               isEntering
-                ? { y: [0, -150, 0, 0], x: [0, 0, 0, 1000] } // 1. ถ้ากำลังเข้าเกม (ไม่ว่าจะ Start หรือ Play Again) ให้วิ่ง
+                ? { y: [0, -150, 0, 0], x: [0, 0, 0, 1000] }
                 : isCompleted
-                  ? false // 2. ถ้าไม่ได้เข้าเกม และด่านจบแล้ว ให้นิ่ง
-                  : { y: [0, -2, 0] } // 3. ถ้าด่านยังไม่จบ ให้เด้งดุ๊กดิ๊ก
+                  ? false
+                  : { y: [0, -2, 0] }
             }
             transition={
               isEntering
@@ -359,7 +375,7 @@ const DetailItem = ({
             }
             style={{
               position: "relative",
-              top: 70, // ขยับตัวละครขึ้นนิดนึง เพื่อเปิดทางให้ปุ่ม Start ด้านล่าง
+              top: 70,
               transform: "translateX(-50%)",
               height: "55%",
               imageRendering: "pixelated",
@@ -375,7 +391,7 @@ const DetailItem = ({
             <Box
               sx={{
                 position: "absolute",
-                bottom: 70, // ขยับเงาตามตัวละคร
+                bottom: 70,
                 left: "50%",
                 transform: "translateX(-50%)",
                 width: 120,
@@ -388,20 +404,106 @@ const DetailItem = ({
             />
           )}
         </Box>
+
+        {/* 🔻 Box ที่ 2: โชว์ข้อมูลระยะทางแบบ Minimal (บรรทัดเดียว) อยู่มุมซ้ายบน */}
+        {!isEntering && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: { xs: 12, sm: 16, md: 20 },
+              left: { xs: 12, sm: 16, md: 20 },
+              backgroundColor: "rgba(26, 18, 11, 0.7)",
+              border: `2px solid ${THEMES.border}`,
+              borderRadius: "8px",
+
+              // 🟢 ปรับ padding ให้สมดุลกับไอคอนเวลาหด
+              px: { xs: 1.2, sm: 1.5 },
+              py: { xs: 0.5, sm: 1 },
+
+              display: "flex",
+              alignItems: "center",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.5)",
+              zIndex: 10,
+
+              // 🟢 ทำ Hover Reveal (Expandable Pill)
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              maxWidth: { xs: "34px",sm: "34px",md: "34px", lg: "300px" }, // หน้าจอเล็ก (xs) ให้บีบเหลือ 34px (พอดีไอคอน)
+              transition: "max-width 0.3s ease, padding 0.3s ease",
+              "&:hover": {
+                maxWidth: "300px", // เมื่อเอาเมาส์ชี้/กด ให้ขยายออก
+                px: { xs: 1.5, sm: 1.5 }, // คืนค่า padding ตอนกางออก
+              },
+
+              // mobile landscape
+              "@media (orientation: landscape) and (max-height: 450px)": {
+                top: 8,
+                left: 8,
+                px: 1,
+                py: 0.5,
+                maxWidth: "300px", // แนวนอนจอเล็กไม่ต้องหด
+              },
+            }}
+          >
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: { xs: 8, sm: 10 },
+                textShadow: "1px 1px 0 #000",
+                display: "flex",
+                alignItems: "center",
+                gap: 1, // ระยะห่างระหว่างไอคอนกับตัวเลข
+                whiteSpace: "nowrap", // ป้องกันตัวหนังสือตกบรรทัดตอน Animation
+                "@media (orientation: landscape) and (max-height: 450px)": {
+                  fontSize: 6,
+                },
+              }}
+            >
+              {/* 🟢 ใช้ MUI Icon นำเข้าตรงๆ และปรับขนาดด้วย sx */}
+              {isCompleted ? (
+                <EmojiEventsIcon
+                  sx={{ fontSize: { xs: 14, sm: 18 }, color: "#9e9e9e" }}
+                />
+              ) : hasProgress ? (
+                <FlagIcon
+                  sx={{ fontSize: { xs: 14, sm: 18 }, color: "#ff0000" }}
+                />
+              ) : (
+                <TrackChangesIcon
+                  sx={{ fontSize: { xs: 14, sm: 18 }, color: "#fff" }}
+                />
+              )}
+
+              {/* 🟢 ระยะทาง (แยกสีตามเงื่อนไขที่คุณขอ) */}
+              {isCompleted ? (
+                // ถ้าชนะแล้ว -> สีเทาทั้งหมด
+                <span style={{ color: "#9e9e9e" }}>
+                  {currentDist} / {goalDist}m
+                </span>
+              ) : (
+                // ถ้ากำลังดำเนิน -> หน้าสีเทา หลังสีทอง
+                <span>
+                  <span style={{ color: "#ffffff" }}>{currentDist}</span>
+                  <span style={{ color: "#f3cd5c" }}> / {goalDist}m</span>
+                </span>
+              )}
+            </Typography>
+          </Box>
+        )}
       </Box>
+
       {/* Completed Text (ถ้าผ่านแล้ว) */}
-      {/* ⭐ STAMP COMPLETED (อยู่นอก Box ที่เป็น Grayscale เพื่อให้สีสดใส) */}
       {isCompleted && !isEntering && (
         <motion.div
           className="stamp-completed"
           variants={stampVariants}
           initial={{ opacity: 0, scale: 2, rotate: -30 }}
-          animate={{ opacity: 1, scale: 1, rotate: -5 }} // หมุน -15 องศา
+          animate={{ opacity: 1, scale: 1, rotate: -5 }}
           transition={{
             type: "spring",
             stiffness: 300,
             damping: 20,
-            delay: 0.2, // หน่วงนิดนึงให้พื้นหลังเทาก่อนค่อยปั๊ม
+            delay: 0.2,
           }}
           style={stampStyle}
         >
@@ -411,26 +513,18 @@ const DetailItem = ({
               fontFamily: "'Press Start 2P'",
               fontSize: { xs: "22px", md: "36px" },
               color: "#00e676",
-
-              /* pixel text shadow */
               textShadow: `
-      2px 2px 0 #000,
-      0 0 10px rgba(0, 230, 118, 0.8)
-    `,
-
+                2px 2px 0 #000,
+                0 0 10px rgba(0, 230, 118, 0.8)
+              `,
               letterSpacing: "3px",
               textTransform: "uppercase",
-
-              /* เส้น stamp ด้านใน */
               borderTop: "2px dashed rgba(0,230,118,0.6)",
               borderBottom: "2px dashed rgba(0,230,118,0.6)",
               padding: "6px 0",
-
-              // mobile landscape
               "@media (orientation: landscape) and (max-height: 450px)": {
                 fontSize: 14,
                 padding: "4px 0",
-
               },
             }}
           >
