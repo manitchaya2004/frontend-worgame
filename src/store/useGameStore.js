@@ -73,6 +73,7 @@ export const useGameStore = create((set, get) => ({
   playerVisual: "idle-1",
   animFrame: 1,
   selectedLetters: [],
+  isFirstClear: false,
 
   isProcessingUpdate: false,
 
@@ -95,7 +96,8 @@ export const useGameStore = create((set, get) => ({
       if (goal && state.distance >= goal) {
         const nextX = state.playerX + dt * 0.1;
         updates.playerX = nextX;
-        if (nextX > 240 && state.gameState !== "LOADING") {
+        if (nextX > 150 && state.gameState !== "LOADING" && state.gameState !== "GAME_CLEARED") {
+          set({ gameState: "LOADING" });
           get().finishStage();
         }
       } else {
@@ -634,6 +636,7 @@ export const useGameStore = create((set, get) => ({
       isMenuOpen: false,
       wordLog: {},
       hasSpawnedEnemies: false,
+      isFirstClear: false,
     });
   },
 
@@ -991,11 +994,12 @@ export const useGameStore = create((set, get) => ({
   
   finishStage: async () => {
     const store = get();
-    if (store.gameState === "LOADING" || store.gameState === "GAME_CLEARED") return;
+    // 🌟 แก้ไข: ลบเช็ค gameState === "LOADING" ออก ให้เช็คแค่ GAME_CLEARED พอ ไม่งั้นตอนจะจบมันติด return
+    if (store.gameState === "GAME_CLEARED") return;
     
     bgm.stop();
     set({ gameState: "LOADING" });
-
+    
     try {
       const username = store.username;
       const currentStageId = store.stageData.id;
@@ -1091,11 +1095,16 @@ export const useGameStore = create((set, get) => ({
 
   saveQuitGame: async (earnedAmount) => {
     const store = get();
+    
+    // 1. เข้าหน้าโหลดทันที
+    set({ gameState: "LOADING" });
+
     try {
       const username = store.username;
       const currentStageId = store.stageData?.id;
       const currentDist = Math.floor(store.distance);
       
+      // เรียกใช้ API ทั้งหมด
       await store.saveWordUsageLog();
 
       const { data: currentRes } = await supabase
@@ -1118,23 +1127,26 @@ export const useGameStore = create((set, get) => ({
           .maybeSingle();
 
         const oldDist = oldProgress?.last_distant || 0;
-
         if (currentDist > oldDist) {
-          const { error: distErr } = await supabase
+          await supabase
             .from('player_stage_progress')
             .update({ last_distant: currentDist })
             .eq('player_id', username)
             .eq('stage_id', currentStageId);
-            
-          if (distErr) console.error("Save Distance Error:", distErr);
         }
       }
 
       if (!error) {
         set({ currentCoin: (currentRes?.coin || 0) + Number(earnedAmount) });
       }
+
+      // 2. เมื่อทำงานเสร็จ ค่อยเปลี่ยนไปหน้า OVER หรือหน้าหลัก
+      set({ gameState: "OVER" }); 
+
     } catch (error) {
       console.error("Save Money Error:", error);
+      // กรณี Error ควรมีทางออกให้ user เช่นกลับหน้าเมนู
+      set({ gameState: "MENU" }); 
     }
   },
 
@@ -1732,6 +1744,9 @@ export const useGameStore = create((set, get) => ({
 
   damagePlayer: (dmg, ignoreShield = false) => {
     const { playerData: stat, isSfxOn } = get();
+    // 🌟 เช็คเลือดก่อน เผื่อโดนหลายเด้งจะได้ไม่ยิง API รัวๆ
+    if (stat.hp <= 0) return; 
+
     let remainingDmg = dmg;
     let newShield = stat.shield;
     if (!ignoreShield && newShield > 0) {
@@ -1763,11 +1778,11 @@ export const useGameStore = create((set, get) => ({
       });
       get().gainMana(remainingDmg);
     }
+    // 🌟 พอเลือดเหลือน้อยกว่า 0 โยนไปให้ saveQuitGame รวบยอดจัดการทั้งหมด (รวมถึงเปลี่ยนสถานะหน้า)
     if (newHp <= 0) {
-      bgm.stop();
-      get().saveWordUsageLog().finally(() => {
-         set({ gameState: "OVER" });
-      });
+        bgm.stop();
+        const halfCoins = Math.floor((get().receivedCoin || 0) / 2);
+        get().saveQuitGame(halfCoins); 
     }
   },
 
@@ -1891,14 +1906,9 @@ export const useGameStore = create((set, get) => ({
 
     if (en.mana >= en.quiz_move_cost) {
       await get().performEnemySkill(en.id);
-      if (get().playerData.hp <= 0) {
-        bgm.stop();
-        const halfCoins = Math.floor((get().receivedCoin || 0) / 2);
-        get().saveQuitGame(halfCoins).finally(() => {
-           set({ gameState: "OVER" });
-        });
-        return;
-      }
+      // 🌟 ให้ return ไปเลย เพราะกลไกแพ้ถูกโยนไปที่ damagePlayer แล้ว
+      if (get().playerData.hp <= 0) return;
+      
       en = get().enemies.find((e) => e.id === enemyId);
       if (!en || en.hp <= 0) {
         get().endTurn();
@@ -2217,11 +2227,9 @@ export const useGameStore = create((set, get) => ({
     get().updateEnemy(en.id, { savedStatuses: nextEnemySavedStatuses });
     set({ playerData: { ...get().playerData, inventory: currentInv } });
 
-    if (get().playerData.hp <= 0) {
-      bgm.stop();
-      set({ gameState: "OVER" });
-      return;
-    }
+    // 🌟 ให้ return ไปเลย เพราะกลไกแพ้ถูกโยนไปที่ damagePlayer แล้ว
+    if (get().playerData.hp <= 0) return;
+
     get().endTurn();
   },
 
