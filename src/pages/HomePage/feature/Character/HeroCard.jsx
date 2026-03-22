@@ -89,8 +89,9 @@ const HeroCard = ({
   const nextExp = playerHero?.next_exp || 100;
 
   // 💡 THE FIX: ป้องกัน undefined โดยการบังคับให้เป็น Array ว่าง [] เสมอถ้าไม่มีข้อมูล
-  const rawDeck = (isOwned ? playerHero?.deck_list : hero?.hero_deck) || [];
+  const rawDeck = hero?.hero_deck || [];
 
+  
   const game_stats = isOwned
     ? {
         hp: playerHero?.stats?.hp || 0,
