@@ -812,10 +812,6 @@ export const useGameStore = create((set, get) => ({
 
     if (store.activeCombatant && store.activeCombatant.type === "player") {
       const currentInv = [...store.playerData.inventory];
-      const totalBleedStacks = currentInv.filter(
-        (s) => s?.status === "bleed",
-      ).length;
-      const isBleedExploding = totalBleedStacks >= 3;
       const hasPoison = currentInv.some((s) => s?.status === "poison");
       let totalPoisonDmg = 0;
       if (hasPoison) {
@@ -826,17 +822,8 @@ export const useGameStore = create((set, get) => ({
       let hasInventoryUpdate = false;
       const updatedInv = currentInv.map((slot) => {
         if (!slot) return slot;
-        if (["poison", "stun", "blind"].includes(slot.status)) {
+        if (["poison", "stun", "blind", "bleed"].includes(slot.status)) {
           hasInventoryUpdate = true;
-          const newDuration = slot.statusDuration - 1;
-          return newDuration <= 0
-            ? { ...slot, status: null, statusDuration: 0 }
-            : { ...slot, statusDuration: newDuration };
-        }
-        if (slot.status === "bleed") {
-          hasInventoryUpdate = true;
-          if (isBleedExploding)
-            return { ...slot, status: null, statusDuration: 0 };
           const newDuration = slot.statusDuration - 1;
           return newDuration <= 0
             ? { ...slot, status: null, statusDuration: 0 }
@@ -858,21 +845,6 @@ export const useGameStore = create((set, get) => ({
           if (store.isSfxOn) sfx.playPoison();
           await delay(800);
           get().damagePlayer(totalPoisonDmg, true);
-          await delay(600);
-        }
-        if (isBleedExploding) {
-          const bleedDmg = Math.floor(store.playerData.max_hp * 0.3);
-          get().addPopup({
-            id: Math.random(),
-            x: PLAYER_X_POS,
-            y: FIXED_Y - 60,
-            value: "BLOOD EXPLOSION!",
-            color: "#c0392b",
-            fontSize: "20px",
-          });
-          if (store.isSfxOn) sfx.playHit();
-          await delay(800);
-          get().damagePlayer(bleedDmg, true);
           await delay(600);
         }
       }
@@ -1614,12 +1586,31 @@ export const useGameStore = create((set, get) => ({
               await delay(500);
             }
 
+            // 🌟 แก้ไข Bleed: ลดเหลือ 3 เทิร์น และระเบิดทันทีเมื่อครบ 3
             if (bleedCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              const newDebuffs = Array(bleedCount).fill({ status: "bleed", duration: 6 });
-              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
-              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLEEDING!", color: "#e74c3c" });
-              await delay(500);
+              const newDebuffs = Array(bleedCount).fill({ status: "bleed", duration: 3 });
+              let updatedStatuses = [...currentStatuses, ...newDebuffs];
+              
+              const totalBleed = updatedStatuses.filter(s => s.status === "bleed").length;
+
+              if (totalBleed >= 3) {
+                // ระเบิดเลือดทันที
+                updatedStatuses = updatedStatuses.filter(s => s.status !== "bleed");
+                get().updateEnemy(mainTarget.id, { savedStatuses: updatedStatuses });
+                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLEEDING!", color: "#e74c3c" });
+                await delay(500);
+
+                const bDmg = Math.max(1, Math.floor(mainTarget.max_hp * 0.3));
+                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 60, value: "BLOOD EXPLOSION!", color: "#c0392b" });
+                if (isSfxOn && sfx.playHit) sfx.playHit();
+                get().damageEnemy(mainTarget.id, bDmg);
+                await delay(800);
+              } else {
+                get().updateEnemy(mainTarget.id, { savedStatuses: updatedStatuses });
+                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLEEDING!", color: "#e74c3c" });
+                await delay(500);
+              }
             }
 
             if (stunCount > 0) {
@@ -2118,9 +2109,29 @@ export const useGameStore = create((set, get) => ({
           get().applyStatusToPlayer("poison", 100, enemyPoisonCount, 3);
           await delay(500);
         }
+        // 🌟 แก้ไข Bleed: ลดเหลือ 3 เทิร์น และตรวจสอบการระเบิดให้ผู้เล่นทันที
         if (enemyBleedCount > 0) {
           get().applyStatusToPlayer("bleed", 100, enemyBleedCount, 3);
           await delay(500);
+
+          const pStatuses = get().playerData.savedEffects?.statuses || [];
+          const pBleeds = pStatuses.filter(s => s.status === "bleed").length;
+          
+          if (pBleeds >= 3) {
+            const filteredStatuses = pStatuses.filter(s => s.status !== "bleed");
+            set({
+              playerData: {
+                ...get().playerData,
+                savedEffects: { ...get().playerData.savedEffects, statuses: filteredStatuses }
+              }
+            });
+
+            const bDmg = Math.max(1, Math.floor(get().playerData.max_hp * 0.3));
+            get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: "BLOOD EXPLOSION!", color: "#c0392b", fontSize: "20px" });
+            if (store.isSfxOn && sfx.playHit) sfx.playHit();
+            get().damagePlayer(bDmg, true);
+            await delay(800);
+          }
         }
         if (enemyStunCount > 0) {
           get().applyStatusToPlayer("stun", 100, enemyStunCount, 1);
@@ -2142,10 +2153,7 @@ export const useGameStore = create((set, get) => ({
     }
 
     let poisonDmg = 0;
-    let bleedExplode = false;
     let hasInvUpdate = false;
-    const totalBleed = currentInv.filter((s) => s?.status === "bleed").length;
-    if (totalBleed >= 3) bleedExplode = true;
 
     if (currentInv.some((s) => s?.status === "poison")) {
       poisonDmg = Math.max(1, Math.floor(en.max_hp * 0.1));
@@ -2154,14 +2162,8 @@ export const useGameStore = create((set, get) => ({
     currentInv = currentInv.map((slot) => {
       if (!slot || !slot.status) return slot;
       hasInvUpdate = true;
-      if (["poison", "stun", "blind"].includes(slot.status)) {
-        const nDur = slot.statusDuration - 1;
-        return nDur <= 0
-          ? { ...slot, status: null, statusDuration: 0 }
-          : { ...slot, statusDuration: nDur };
-      }
-      if (slot.status === "bleed") {
-        if (bleedExplode) return { ...slot, status: null, statusDuration: 0 };
+      // 🌟 นำ Bleed มารวมไว้ที่เดียวกันสำหรับการลด duration ช่วงจบเทิร์น
+      if (["poison", "stun", "blind", "bleed"].includes(slot.status)) {
         const nDur = slot.statusDuration - 1;
         return nDur <= 0
           ? { ...slot, status: null, statusDuration: 0 }
@@ -2181,18 +2183,6 @@ export const useGameStore = create((set, get) => ({
           color: "#2ecc71",
         });
         get().damageEnemy(en.id, poisonDmg);
-        await delay(800);
-      }
-      if (bleedExplode) {
-        const bDmg = Math.max(1, Math.floor(en.max_hp * 0.3));
-        get().addPopup({
-          id: Math.random(),
-          x: en.x,
-          y: FIXED_Y - 60,
-          value: "BLOOD EXPLOSION!",
-          color: "#c0392b",
-        });
-        get().damageEnemy(en.id, bDmg);
         await delay(800);
       }
     }

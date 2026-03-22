@@ -1,15 +1,3 @@
-// ============================================================================
-// 📊 DECK CONFIGURATION
-// ============================================================================
-const DECK_COMPOSITION = {
-  E: 8, A: 8, I: 8, O: 8, N: 6, R: 6, T: 6, 
-  L: 4, S: 4, U: 4, D: 4, G: 3, B: 2, C: 2, 
-  M: 2, P: 2, F: 2, H: 2, V: 2, W: 2, Y: 2, 
-  K: 1, J: 1, X: 1, QU: 1, Z: 1 
-};
-
-const VOWELS = ['A', 'E', 'I', 'O', 'U'];
-
 // ==========================================
 // 📊 GLOBAL POWER SETTINGS
 // ==========================================
@@ -27,69 +15,60 @@ Object.entries(POWER_GROUPS).forEach(([group, chars]) => {
   });
 });
 
-// ==========================================
-// 📊 DECK MANAGER (UPDATED: MIN 4 VOWELS)
-// ==========================================
+// สร้าง Pool สำหรับการจั่วโดยแยกตามกลุ่ม (แปลง Q เป็น QU สำหรับใช้เป็นตัวหมากในเกม)
+const G1_POOL = [...POWER_GROUPS.G1];
+const G2_POOL = [...POWER_GROUPS.G2];
+const G3_POOL = POWER_GROUPS.G3.map((char) => (char === "Q" ? "QU" : char));
+
 export const DeckManager = {
+  // ไม่ใช้ระบบกองการ์ดแล้ว ปล่อยว่างไว้เผื่อระบบเก่าเรียกใช้จะได้ไม่พัง
   activeDeck: [],
 
   init() {
-    let tempDeck = [];
-    Object.keys(DECK_COMPOSITION).forEach((char) => {
-      for (let i = 0; i < DECK_COMPOSITION[char]; i++) {
-        tempDeck.push(char);
-      }
-    });
-
-    for (let i = tempDeck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [tempDeck[i], tempDeck[j]] = [tempDeck[j], tempDeck[i]];
-    }
-
-    this.activeDeck = tempDeck;
+    // เอา DECK_COMPOSITION ออกตามที่คุณต้องการ ไม่ต้องใช้ฟังก์ชันนี้จัดการกองการ์ดแล้ว
   },
 
   draw(currentInventory = [], unlockedSlots = 10) {
-    if (this.activeDeck.length === 0) this.init();
-
     const existingChars = currentInventory
       .filter((slot) => slot && slot.char)
       .map((slot) => slot.char.toUpperCase());
 
-    const vowelCount = existingChars.filter((c) => VOWELS.includes(c)).length;
-    
-    // ปรับเพดานสระให้สัมพันธ์กับค่าขั้นต่ำ (ขั้นต่ำ 4, เพดานควรจะเริ่มที่ 5 หรือครึ่งหนึ่งของช่อง)
-    const vowelCeiling = Math.max(5, Math.floor(unlockedSlots / 2));
-    
-    let foundIdx = -1;
-
-    for (let i = this.activeDeck.length - 1; i >= 0; i--) {
-      const candidate = this.activeDeck[i]?.toUpperCase();
-      if (!candidate) continue;
-
-      const isVowel = VOWELS.includes(candidate);
-      const isDesperate = i < this.activeDeck.length - 15;
-
-      if (!isDesperate) {
-        // ถ้าสระเกินเพดานที่ตั้งไว้ (เช่น 5 ใบ) จะไม่จั่วสระเพิ่ม
-        if (vowelCount >= vowelCeiling && isVowel) continue;
-        
-        // 🌟 แก้ไขตรงนี้: ถ้าสระในมือน้อยกว่า 4 ใบ จะพยายามข้ามพยัญชนะเพื่อไปหาจากสระในกองมาให้
-        if (vowelCount < 4 && !isVowel && this.activeDeck.length > 10) continue;
-      }
-
-      foundIdx = i;
-      break;
-    }
+    // นับจำนวนไอเทมที่มีอยู่ในมือเพื่อดูว่าใบต่อไปที่จะจั่วคือลำดับที่เท่าไหร่ในชุด 4 ตัว
+    const existingCount = existingChars.length;
+    const positionInChunk = existingCount % 4;
 
     let pickedChar = "";
-    if (foundIdx !== -1) {
-      pickedChar = this.activeDeck.splice(foundIdx, 1)[0];
+
+    // ลำดับ: 0, 1, 2 เป็นพยัญชนะ | ลำดับ 3 เป็นสระ (วนลูปทุกๆ 4 ใบ)
+    if (positionInChunk === 3) {
+      // จั่วสระ G1 (ใบที่ 4)
+      pickedChar = G1_POOL[Math.floor(Math.random() * G1_POOL.length)];
     } else {
-      pickedChar = this.activeDeck.pop();
+      // จั่วพยัญชนะ (ใบที่ 1, 2, 3)
+      const chunkStart = Math.floor(existingCount / 4) * 4;
+      const currentChunkChars = existingChars.slice(chunkStart);
+
+      // เช็คว่าในกลุ่ม 4 ตัวนี้ (ที่จั่วมาก่อนหน้า) มี G3 ไปแล้วหรือยัง
+      const hasG3InChunk = currentChunkChars.some((char) => {
+        return G3_POOL.includes(char) || POWER_GROUPS.G3.includes(char);
+      });
+
+      let availableConsonants = [];
+      if (hasG3InChunk) {
+        // มี G3 ในกลุ่มนี้ไปแล้ว ห้ามเอา G3 อีก ให้สุ่มเฉพาะจาก G2 เท่านั้น
+        availableConsonants = [...G2_POOL];
+      } else {
+        // ยังไม่มี G3 ให้สุ่มรวมกันระหว่าง G2 และ G3
+        availableConsonants = [...G2_POOL, ...G3_POOL];
+      }
+
+      pickedChar =
+        availableConsonants[
+          Math.floor(Math.random() * availableConsonants.length)
+        ];
     }
-    
-    return pickedChar || "E";
+
+    return pickedChar;
   },
 
   createItem(index, currentInv = [], unlockedSlots = 10) {
@@ -154,7 +133,9 @@ export const WordSystem = {
     const fallbackChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     let result = "";
     for (let i = 0; i < length; i++) {
-      result += fallbackChars.charAt(Math.floor(Math.random() * fallbackChars.length));
+      result += fallbackChars.charAt(
+        Math.floor(Math.random() * fallbackChars.length),
+      );
     }
     return result;
   },
@@ -170,7 +151,7 @@ export const WordSystem = {
           matrix[i][j] = Math.min(
             matrix[i - 1][j - 1] + 1,
             matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
+            matrix[i - 1][j] + 1,
           );
         }
       }
@@ -178,7 +159,8 @@ export const WordSystem = {
     return matrix[b.length][a.length];
   },
   findBestWordFromLetters: (letters, dictionary, maxLetters) => {
-    if (!letters || letters.length === 0) return { bestWord: "", usedItems: [] };
+    if (!letters || letters.length === 0)
+      return { bestWord: "", usedItems: [] };
 
     const availableChars = new Set(letters.map((l) => l?.char.toLowerCase()));
     const charCounts = {};
@@ -228,108 +210,110 @@ export const WordSystem = {
     });
 
     return { bestWord, usedItems };
-  }
+  },
 };
 
 export const GameLogic = {
-calculateZoneBuffs: (
-inventory,
-deckList,
-unlockedSlots,
-currentDrawPile = [],
-) => {
-let placements = [];
-if (!deckList || deckList.length === 0)
- return { placements, newDrawPile: [] };
+  calculateZoneBuffs: (
+    inventory,
+    deckList,
+    unlockedSlots,
+    currentDrawPile = [],
+  ) => {
+    let placements = [];
+    if (!deckList || deckList.length === 0)
+      return { placements, newDrawPile: [] };
 
-let drawPile = [...currentDrawPile];
-let currentIndex = 0;
+    let drawPile = [...currentDrawPile];
+    let currentIndex = 0;
 
-let activeCardIds = inventory
- .filter((item) => item && item.buffId)
- .map((item) => item.buffId);
+    let activeCardIds = inventory
+      .filter((item) => item && item.buffId)
+      .map((item) => item.buffId);
 
-while (currentIndex < unlockedSlots) {
- let remainingSpace = unlockedSlots - currentIndex;
+    while (currentIndex < unlockedSlots) {
+      let remainingSpace = unlockedSlots - currentIndex;
 
- if (drawPile.length === 0) {
- let availableToReshuffle = deckList.filter(
- (c) => !activeCardIds.includes(c.id),
- );
+      if (drawPile.length === 0) {
+        let availableToReshuffle = deckList.filter(
+          (c) => !activeCardIds.includes(c.id),
+        );
 
- if (availableToReshuffle.length === 0) {
- break;
- }
+        if (availableToReshuffle.length === 0) {
+          break;
+        }
 
- drawPile = [...availableToReshuffle].sort(() => 0.5 - Math.random());
- }
+        drawPile = [...availableToReshuffle].sort(() => 0.5 - Math.random());
+      }
 
- let validInPile = drawPile.filter((c) => (c.size || 10) <= remainingSpace);
+      let validInPile = drawPile.filter(
+        (c) => (c.size || 10) <= remainingSpace,
+      );
 
- if (validInPile.length === 0) {
- break;
- }
+      if (validInPile.length === 0) {
+        break;
+      }
 
- const targetCard = validInPile[validInPile.length - 1];
- const cardIndex = drawPile.lastIndexOf(targetCard);
+      const targetCard = validInPile[validInPile.length - 1];
+      const cardIndex = drawPile.lastIndexOf(targetCard);
 
- const card = drawPile.splice(cardIndex, 1)[0];
+      const card = drawPile.splice(cardIndex, 1)[0];
 
- const size = card.size || 10;
- const endIndex = currentIndex + size;
- 
- let availableInZone = [];
- for (let i = currentIndex; i < endIndex; i++) {
- if (
- inventory[i] &&
- !inventory[i].buff &&
- !placements.some((p) => p.targetIdx === i)
- ) {
- availableInZone.push(i);
- }
- }
- if (availableInZone.length > 0) {
- const targetIdx =
- availableInZone[Math.floor(Math.random() * availableInZone.length)];
- placements.push({ targetIdx, effect: card.effect, buffId: card.id });
- activeCardIds.push(card.id);
- }
- currentIndex += size;
-}
-return { placements, newDrawPile: drawPile };
-},
+      const size = card.size || 10;
+      const endIndex = currentIndex + size;
 
-applyRandomBuffs: (inventory, deckList = [], drawPile = []) => {
-const newItems = inventory.map((item) =>
- item ? { ...item, buff: null, buffId: null } : null,
-);
-let validIndices = newItems
- .map((item, idx) => (item ? idx : null))
- .filter((i) => i !== null);
+      let availableInZone = [];
+      for (let i = currentIndex; i < endIndex; i++) {
+        if (
+          inventory[i] &&
+          !inventory[i].buff &&
+          !placements.some((p) => p.targetIdx === i)
+        ) {
+          availableInZone.push(i);
+        }
+      }
+      if (availableInZone.length > 0) {
+        const targetIdx =
+          availableInZone[Math.floor(Math.random() * availableInZone.length)];
+        placements.push({ targetIdx, effect: card.effect, buffId: card.id });
+        activeCardIds.push(card.id);
+      }
+      currentIndex += size;
+    }
+    return { placements, newDrawPile: drawPile };
+  },
 
-let updatedDrawPile = [...drawPile];
+  applyRandomBuffs: (inventory, deckList = [], drawPile = []) => {
+    const newItems = inventory.map((item) =>
+      item ? { ...item, buff: null, buffId: null } : null,
+    );
+    let validIndices = newItems
+      .map((item, idx) => (item ? idx : null))
+      .filter((i) => i !== null);
 
-if (validIndices.length > 0 && deckList.length > 0) {
+    let updatedDrawPile = [...drawPile];
+
+    if (validIndices.length > 0 && deckList.length > 0) {
       // 🌟 FIX: ระบุชื่อ Object GameLogic นำหน้าฟังก์ชันเสมอ
- let result = GameLogic.calculateZoneBuffs(
- newItems,
- deckList,
- newItems.length,
- drawPile,
- );
- result.placements.forEach((p) => {
- newItems[p.targetIdx].buff = p.effect;
- newItems[p.targetIdx].buffId = p.buffId;
-});
- updatedDrawPile = result.newDrawPile;
-} else if (validIndices.length > 0) {
- validIndices.forEach((idx) => {
- const roll = Math.random();
- if (roll < 0.1) newItems[idx].buff = "double-dmg";
- else if (roll < 0.2) newItems[idx].buff = "double-guard";
- else if (roll < 0.3) newItems[idx].buff = "mana-plus";
- });
-}
-return { newItems, updatedDrawPile };
-}
-}
+      let result = GameLogic.calculateZoneBuffs(
+        newItems,
+        deckList,
+        newItems.length,
+        drawPile,
+      );
+      result.placements.forEach((p) => {
+        newItems[p.targetIdx].buff = p.effect;
+        newItems[p.targetIdx].buffId = p.buffId;
+      });
+      updatedDrawPile = result.newDrawPile;
+    } else if (validIndices.length > 0) {
+      validIndices.forEach((idx) => {
+        const roll = Math.random();
+        if (roll < 0.1) newItems[idx].buff = "double-dmg";
+        else if (roll < 0.2) newItems[idx].buff = "double-guard";
+        else if (roll < 0.3) newItems[idx].buff = "mana-plus";
+      });
+    }
+    return { newItems, updatedDrawPile };
+  },
+};
