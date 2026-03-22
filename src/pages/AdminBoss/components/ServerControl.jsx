@@ -52,7 +52,7 @@ const ServerControl = ({ serverId = "hell" }) => {
     if (!data) return;
     try {
       const newStatus = !data.is_close;
-      console.log(`กำลังเปลี่ยนสถานะเป็น: ${newStatus ? 'ปิด' : 'เปิด'}`);
+      //console.log(`กำลังเปลี่ยนสถานะเป็น: ${newStatus ? 'ปิด' : 'เปิด'}`);
       
       const { data: updatedData, error } = await supabase
         .from("server_status")

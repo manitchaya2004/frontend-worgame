@@ -25,11 +25,8 @@ const MotionBox = motion(Box);
 const AdvantureFeature = () => {
   const { currentUser, updateStamina } = useAuthStore();
 
-  console.log ("currentUser",currentUser)
-  //console.log("user",currentUser)
   const { stages, loadingStage } = useData();
 
-  console.log("stage",stages)
   const store = useGameStore();
   const navigate = useNavigate();
   const location = useLocation();
