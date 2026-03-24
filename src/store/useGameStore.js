@@ -81,7 +81,7 @@ export const useGameStore = create((set, get) => ({
     const state = get();
     const updates = {};
     const ANIM_SPEED = 300;
-    
+
     let newTimer = (state.animTimer || 0) + dt;
     if (newTimer >= ANIM_SPEED) {
       newTimer -= ANIM_SPEED;
@@ -92,25 +92,33 @@ export const useGameStore = create((set, get) => ({
 
     if (state.gameState === "ADVANTURE") {
       const goal = state.stageData?.distant_goal;
-      
+
       if (goal && state.distance >= goal) {
         const nextX = state.playerX + dt * 0.1;
         updates.playerX = nextX;
-        if (nextX > 150 && state.gameState !== "LOADING" && state.gameState !== "GAME_CLEARED") {
+        if (
+          nextX > 150 &&
+          state.gameState !== "LOADING" &&
+          state.gameState !== "GAME_CLEARED"
+        ) {
           set({ gameState: "LOADING" });
           get().finishStage();
         }
       } else {
         const newDist = state.distance + dt * 0.005;
-        let nextTargetDist = state.stageData?.events?.[state.currentEventIndex]?.distance || Infinity;
+        let nextTargetDist =
+          state.stageData?.events?.[state.currentEventIndex]?.distance ||
+          Infinity;
 
         if (newDist >= nextTargetDist) {
           updates.distance = nextTargetDist;
           updates.gameState = "PREPARING_COMBAT";
-          
+
           requestAnimationFrame(() => {
             const store = get();
-            const initialLoot = DeckManager.generateList(store.playerData.unlockedSlots);
+            const initialLoot = DeckManager.generateList(
+              store.playerData.unlockedSlots,
+            );
             store.spawnEnemies(initialLoot, true);
           });
         } else {
@@ -418,8 +426,9 @@ export const useGameStore = create((set, get) => ({
     set({ gameState: "LOADING" });
 
     try {
-      const selectedHero = userData?.heroes?.find((h) => h.is_selected) || userData?.heroes?.[0];
-      
+      const selectedHero =
+        userData?.heroes?.find((h) => h.is_selected) || userData?.heroes?.[0];
+
       if (userData) {
         set(() => ({
           username: userData.username,
@@ -427,6 +436,7 @@ export const useGameStore = create((set, get) => ({
           userStageHistory: userData.stages || [],
         }));
       }
+      console.log("Selected Hero:", selectedHero);
 
       if (selectedHero) {
         const { stats, deck_list } = selectedHero;
@@ -471,8 +481,8 @@ export const useGameStore = create((set, get) => ({
 
       while (hasMore) {
         const { data: partDict, error: dictError } = await supabase
-          .from('dictionary')
-          .select('*')
+          .from("dictionary")
+          .select("*")
           .range(from, to);
 
         if (dictError) throw dictError;
@@ -487,8 +497,9 @@ export const useGameStore = create((set, get) => ({
       }
 
       const { data: rawStageData, error: stageError } = await supabase
-        .from('stage')
-        .select(`
+        .from("stage")
+        .select(
+          `
           *,
           monster_spawn (
             spawn_id:id,
@@ -503,38 +514,46 @@ export const useGameStore = create((set, get) => ({
               )
             )
           )
-        `)
-        .eq('id', stageId)
+        `,
+        )
+        .eq("id", stageId)
         .single();
 
       if (stageError) throw stageError;
 
-      const groupedEvents = rawStageData.monster_spawn.reduce((acc, row) => {
-        const dist = Number(row.distant_spawn);
-        let group = acc.find(g => g.distance === dist);
+      const groupedEvents = rawStageData.monster_spawn
+        .reduce((acc, row) => {
+          const dist = Number(row.distant_spawn);
+          let group = acc.find((g) => g.distance === dist);
 
-        const monsterData = {
-          spawn_id: row.spawn_id,
-          monster_id: row.monster.id,
-          level: row.level,
-          name: row.monster.name,
-          hp: row.monster.hp,
-          power: row.monster.power,
-          exp: row.monster.exp,
-          speed: row.monster.speed,
-          isBoss: row.monster.isBoss,
-          quiz_move_cost: row.monster.quiz_move_cost,
-          deck_list: row.monster.monster_deck ? row.monster.monster_deck.map(d => ({
-            id: d.id,
-            effect: d.effect,
-            size: d.size
-          })) : []
-        };
+          const monsterData = {
+            spawn_id: row.spawn_id,
+            monster_id: row.monster.id,
+            level: row.level,
+            name: row.monster.name,
+            hp: row.monster.hp,
+            power: row.monster.power,
+            exp: row.monster.exp,
+            speed: row.monster.speed,
+            isBoss: row.monster.isBoss,
+            quiz_move_cost: row.monster.quiz_move_cost,
+            deck_list: row.monster.monster_deck
+              ? row.monster.monster_deck.map((d) => ({
+                  id: d.id,
+                  effect: d.effect,
+                  size: d.size,
+                }))
+              : [],
+          };
 
-        if (group) { group.monsters.push(monsterData); } 
-        else { acc.push({ distance: dist, monsters: [monsterData] }); }
-        return acc;
-      }, []).sort((a, b) => a.distance - b.distance); 
+          if (group) {
+            group.monsters.push(monsterData);
+          } else {
+            acc.push({ distance: dist, monsters: [monsterData] });
+          }
+          return acc;
+        }, [])
+        .sort((a, b) => a.distance - b.distance);
 
       const finalStageData = {
         id: rawStageData.id,
@@ -543,28 +562,37 @@ export const useGameStore = create((set, get) => ({
         description: rawStageData.description,
         money_reward: rawStageData.money_reward,
         distant_goal: rawStageData.distant_goal,
-        slot_count: rawStageData.slot_count, 
+        slot_count: rawStageData.slot_count,
         is_upgrade_potionn: rawStageData.is_upgrade_potionn,
-        events: groupedEvents 
+        events: groupedEvents,
       };
 
-      const STORAGE_HERO = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
-      const STORAGE_MONSTER = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_monster/";
-      const STORAGE_MAP = "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
-      
+      const STORAGE_HERO =
+        "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_hero/";
+      const STORAGE_MONSTER =
+        "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_monster/";
+      const STORAGE_MAP =
+        "https://qsopjsioqmqtyaocqmmx.supabase.co/storage/v1/object/public/asset/img_map/";
+
       const imagesToPreload = [];
 
       const pPath = selectedHero?.hero_id;
       if (pPath) {
-        ["idle", "walk", "attack", "guard"].forEach(act => {
-          [1, 2].forEach(f => imagesToPreload.push(`${STORAGE_HERO}${pPath}-${act}-${f}.png`));
+        ["idle", "walk", "attack", "guard"].forEach((act) => {
+          [1, 2].forEach((f) =>
+            imagesToPreload.push(`${STORAGE_HERO}${pPath}-${act}-${f}.png`),
+          );
         });
       }
 
-      finalStageData.events.forEach(ev => {
-        ev.monsters.forEach(m => {
-          ["idle", "attack"].forEach(act => {
-            [1, 2].forEach(f => imagesToPreload.push(`${STORAGE_MONSTER}${m.monster_id}-${act}-${f}.png`));
+      finalStageData.events.forEach((ev) => {
+        ev.monsters.forEach((m) => {
+          ["idle", "attack"].forEach((act) => {
+            [1, 2].forEach((f) =>
+              imagesToPreload.push(
+                `${STORAGE_MONSTER}${m.monster_id}-${act}-${f}.png`,
+              ),
+            );
           });
         });
       });
@@ -573,12 +601,12 @@ export const useGameStore = create((set, get) => ({
         imagesToPreload.push(`${STORAGE_MAP}${stageId}.png`);
       }
 
-      const preloadPromises = [...new Set(imagesToPreload)].map(src => {
+      const preloadPromises = [...new Set(imagesToPreload)].map((src) => {
         return new Promise((resolve) => {
           const img = new Image();
           img.src = src;
           img.onload = resolve;
-          img.onerror = resolve; 
+          img.onerror = resolve;
         });
       });
 
@@ -586,7 +614,7 @@ export const useGameStore = create((set, get) => ({
 
       set((state) => ({
         dictionary: allDictData,
-        stageData: finalStageData, 
+        stageData: finalStageData,
         currentEventIndex: 0,
         gameState: "ADVANTURE",
         username: userData?.username || "",
@@ -594,8 +622,8 @@ export const useGameStore = create((set, get) => ({
         playerData: {
           ...state.playerData,
           // 🌟 ใช้ unlockedSlots ที่คำนวณจาก Power แทนค่าจาก stageData.slot_count
-          unlockedSlots: state.playerData.unlockedSlots, 
-        }
+          unlockedSlots: state.playerData.unlockedSlots,
+        },
       }));
 
       DeckManager.init();
@@ -603,7 +631,6 @@ export const useGameStore = create((set, get) => ({
 
       const isMutedNow = useAuthStore.getState().isMuted;
       if (!isMutedNow) bgm.playAdvanture();
-
     } catch (error) {
       console.error("❌ Setup Failed:", error);
       set({ gameState: "ERROR" });
@@ -642,7 +669,8 @@ export const useGameStore = create((set, get) => ({
 
   spawnEnemies: (loot, autoStart = false) => {
     const store = get();
-    if (store.hasSpawnedEnemies && store.gameState !== "PREPARING_COMBAT") return;
+    if (store.hasSpawnedEnemies && store.gameState !== "PREPARING_COMBAT")
+      return;
 
     const currentEvent = store.stageData.events[store.currentEventIndex];
     const waveData = currentEvent ? currentEvent.monsters : [];
@@ -666,7 +694,7 @@ export const useGameStore = create((set, get) => ({
         currentStep: 1,
         selectedPattern: 1,
         savedStatuses: [],
-        nextAction: "strike", 
+        nextAction: "strike",
         atkFrame: 0,
       };
     });
@@ -684,7 +712,7 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     const { playerData } = store;
     let currentInv = [...playerData.inventory];
-    
+
     // 🌟 มั่นใจว่าอาเรย์มีขนาดเท่ากับ unlockedSlots (8+power)
     while (currentInv.length < playerData.unlockedSlots) {
       currentInv.push(null);
@@ -696,7 +724,7 @@ export const useGameStore = create((set, get) => ({
         currentInv[i] = DeckManager.createItem(
           i,
           currentInv,
-          playerData.unlockedSlots
+          playerData.unlockedSlots,
         );
 
         set((state) => ({
@@ -706,7 +734,7 @@ export const useGameStore = create((set, get) => ({
           },
         }));
 
-        if (get().isSfxOn && sfx.playHeal) sfx.playHeal(); 
+        if (get().isSfxOn && sfx.playHeal) sfx.playHeal();
         hasDrawn = true;
         await delay(100);
       }
@@ -719,29 +747,36 @@ export const useGameStore = create((set, get) => ({
 
   startCombatRound: async () => {
     const store = get();
+    // 1. จัดเก็บสถานะ Buff/Status ของตัวละครก่อนล้างหน้าตัก
     store.stashEffects();
 
     const { playerData } = get();
-    let currentInv = [...playerData.inventory];
 
-    while (currentInv.length < playerData.unlockedSlots) {
-      currentInv.push(null);
-    }
+    // ========================================================
+    // 🌟 ส่วนสำคัญ: ล้าง Inventory ให้เป็นค่าว่างทั้งหมดตามจำนวน Slot ที่มี
+    // เพื่อบังคับให้ fillInventorySlots แจกตัวใหม่ทั้งหมดแทนการเติมแค่ช่องว่าง
+    // ========================================================
+    const clearedInv = new Array(playerData.unlockedSlots).fill(null);
 
-    const newPlayerMana = Math.min(playerData.max_mana, playerData.mana + 5);
+    // 2. คำนวณ Mana เพิ่มเติมประจำรอบ (Player + 5, Enemies + 5)
+    const newPlayerMana = Math.min(
+      playerData.max_hp,
+      (playerData.mana || 0) + 5,
+    );
     const updatedEnemies = store.enemies.map((e) => {
       if (e.hp <= 0) return e;
-      return { ...e, mana: Math.min(e.quiz_move_cost, e.mana + 5) };
+      return { ...e, mana: Math.min(e.quiz_move_cost, (e.mana || 0) + 5) };
     });
 
     const existingSavedStatuses = playerData.savedEffects?.statuses || [];
 
+    // 3. อัปเดต State: ล้าง Inventory และตั้งค่าพื้นฐานรอบใหม่
     set({
       enemies: updatedEnemies,
       playerData: {
         ...playerData,
         mana: newPlayerMana,
-        inventory: currentInv,
+        inventory: clearedInv, // ใช้ Inventory ที่ว่างเปล่า
         savedEffects: {
           buffs: [],
           statuses: existingSavedStatuses,
@@ -749,6 +784,7 @@ export const useGameStore = create((set, get) => ({
       },
     });
 
+    // แสดง Popup แจ้งเตือนเริ่มรอบใหม่
     get().addPopup({
       id: Math.random(),
       x: 45,
@@ -756,21 +792,26 @@ export const useGameStore = create((set, get) => ({
       value: "Start new round!",
       color: "#ffffff",
     });
+
     await delay(500);
 
+    // 4. แจกตัวอักษรใหม่ลงในช่องที่ว่าง (ซึ่งตอนนี้ว่างทั้งหมด)
     await get().fillInventorySlots();
 
+    // 5. คำนวณลำดับการโจมตี (Initiative Queue)
     const playerInit = Math.max(1, get().playerData.speed);
     let pool = [
       { id: "player", type: "player", name: "You", initiative: playerInit },
     ];
-    store.enemies
-      .filter((e) => e.hp > 0)
+
+    get()
+      .enemies.filter((e) => e.hp > 0)
       .forEach((e) => {
         const init = Math.max(1, e.speed || 3);
         pool.push({ id: e.id, type: "enemy", name: e.name, initiative: init });
       });
 
+    // เรียงลำดับจากความเร็วมากไปน้อย
     const finalQueue = pool
       .sort((a, b) => b.initiative - a.initiative)
       .map((unit, index) => ({
@@ -778,6 +819,7 @@ export const useGameStore = create((set, get) => ({
         uniqueId: `${unit.id}_${index}_${Date.now()}`,
       }));
 
+    // 6. บันทึกคิวและเริ่มเทิร์นแรก
     set({ turnQueue: finalQueue });
     get().processNextTurn();
   },
@@ -897,7 +939,8 @@ export const useGameStore = create((set, get) => ({
     const wordUsageCounts = {};
     Object.values(wordLog).forEach((log) => {
       if (log.word_id) {
-        wordUsageCounts[log.word_id] = (wordUsageCounts[log.word_id] || 0) + log.count;
+        wordUsageCounts[log.word_id] =
+          (wordUsageCounts[log.word_id] || 0) + log.count;
       }
     });
 
@@ -906,10 +949,10 @@ export const useGameStore = create((set, get) => ({
 
     try {
       const { data: existingLogs } = await supabase
-        .from('player_word_log')
-        .select('id, word_id, count')
-        .eq('player_id', username)
-        .in('word_id', wordIds);
+        .from("player_word_log")
+        .select("id, word_id, count")
+        .eq("player_id", username)
+        .in("word_id", wordIds);
 
       const existingMap = {};
       if (existingLogs) {
@@ -935,126 +978,132 @@ export const useGameStore = create((set, get) => ({
       });
 
       const { error: upsertErr } = await supabase
-        .from('player_word_log')
+        .from("player_word_log")
         .upsert(rowsToUpsert);
 
       if (upsertErr) console.error("Upsert Word Log Error:", upsertErr);
 
       const { data: dictRows } = await supabase
-        .from('dictionary')
-        .select('id, use_count')
-        .in('id', wordIds);
+        .from("dictionary")
+        .select("id, use_count")
+        .in("id", wordIds);
 
       if (dictRows) {
         for (const dictRow of dictRows) {
           const addedCount = wordUsageCounts[dictRow.id] || 0;
           const newUseCount = (Number(dictRow.use_count) || 0) + addedCount;
-          
+
           const { error: dictUpdateErr } = await supabase
-            .from('dictionary')
+            .from("dictionary")
             .update({ use_count: newUseCount })
-            .eq('id', dictRow.id);
-            
-          if (dictUpdateErr) console.error("Update Dictionary count Error:", dictUpdateErr);
+            .eq("id", dictRow.id);
+
+          if (dictUpdateErr)
+            console.error("Update Dictionary count Error:", dictUpdateErr);
         }
       }
-
     } catch (error) {
       console.error("Save Word Log Error:", error);
     }
   },
-  
+
   finishStage: async () => {
     const store = get();
     // 🌟 แก้ไข: ลบเช็ค gameState === "LOADING" ออก ให้เช็คแค่ GAME_CLEARED พอ ไม่งั้นตอนจะจบมันติด return
     if (store.gameState === "GAME_CLEARED") return;
-    
+
     bgm.stop();
     set({ gameState: "LOADING" });
-    
+
     try {
       const username = store.username;
       const currentStageId = store.stageData.id;
       const monsterMoney = Number(store.receivedCoin) || 0;
-      
-      const stageRecord = store.userStageHistory.find((s) => s.stage_id === currentStageId);
+
+      const stageRecord = store.userStageHistory.find(
+        (s) => s.stage_id === currentStageId,
+      );
       const isFirstClear = !stageRecord || !stageRecord.is_completed;
-      const stageReward = isFirstClear ? (Number(store.stageData.money_reward) || 0) : 0;
+      const stageReward = isFirstClear
+        ? Number(store.stageData.money_reward) || 0
+        : 0;
       const totalMoneyEarned = monsterMoney + stageReward;
 
       const { data: currentResource, error: resourceErr } = await supabase
-        .from('player_resource')
-        .select('coin, potion_slot')
-        .eq('player_id', username)
+        .from("player_resource")
+        .select("coin, potion_slot")
+        .eq("player_id", username)
         .single();
-      
+
       if (resourceErr) throw resourceErr;
 
-      let updateResourceData = { coin: currentResource.coin + totalMoneyEarned };
+      let updateResourceData = {
+        coin: currentResource.coin + totalMoneyEarned,
+      };
       if (isFirstClear) {
         updateResourceData.potion_slot = currentResource.potion_slot + 1;
       }
 
       const { error: updateResErr } = await supabase
-        .from('player_resource')
+        .from("player_resource")
         .update(updateResourceData)
-        .eq('player_id', username);
+        .eq("player_id", username);
 
       if (updateResErr) console.error("Error Updating Resource:", updateResErr);
 
       const { error: progressUpdateErr } = await supabase
-        .from('player_stage_progress')
-        .update({ 
-          is_completed: true, 
+        .from("player_stage_progress")
+        .update({
+          is_completed: true,
           is_current: false,
-          last_distant: store.stageData.distant_goal
+          last_distant: store.stageData.distant_goal,
         })
-        .eq('player_id', username)
-        .eq('stage_id', currentStageId);
+        .eq("player_id", username)
+        .eq("stage_id", currentStageId);
 
       if (progressUpdateErr) {
         console.error("Update Stage Progress Error (400):", progressUpdateErr);
       }
 
       const { data: nextStage } = await supabase
-        .from('stage')
-        .select('id')
-        .eq('orderNo', store.stageData.orderNo + 1)
+        .from("stage")
+        .select("id")
+        .eq("orderNo", store.stageData.orderNo + 1)
         .single();
 
       if (nextStage) {
         const { data: existProgress } = await supabase
-          .from('player_stage_progress')
-          .select('id')
-          .eq('player_id', username)
-          .eq('stage_id', nextStage.id)
+          .from("player_stage_progress")
+          .select("id")
+          .eq("player_id", username)
+          .eq("stage_id", nextStage.id)
           .maybeSingle();
 
         if (!existProgress) {
           const { error: insertErr } = await supabase
-            .from('player_stage_progress')
-            .insert({ 
-              id: crypto.randomUUID(), 
-              player_id: username, 
-              stage_id: nextStage.id, 
-              last_distant: 0, 
-              is_completed: false, 
-              is_current: true 
+            .from("player_stage_progress")
+            .insert({
+              id: crypto.randomUUID(),
+              player_id: username,
+              stage_id: nextStage.id,
+              last_distant: 0,
+              is_completed: false,
+              is_current: true,
             });
           if (insertErr) console.error("Insert Next Stage Error:", insertErr);
         } else {
           const { error: updateErr } = await supabase
-            .from('player_stage_progress')
+            .from("player_stage_progress")
             .update({ is_current: true })
-            .eq('player_id', username)
-            .eq('stage_id', nextStage.id);
+            .eq("player_id", username)
+            .eq("stage_id", nextStage.id);
           if (updateErr) console.error("Update Next Stage Error:", updateErr);
         }
       }
 
       await get().saveWordUsageLog();
 
-      set({ 
+      set({
         gameState: "GAME_CLEARED",
         currentCoin: currentResource.coin + totalMoneyEarned,
         isFirstClear: isFirstClear,
@@ -1067,7 +1116,7 @@ export const useGameStore = create((set, get) => ({
 
   saveQuitGame: async (earnedAmount) => {
     const store = get();
-    
+
     // 1. เข้าหน้าโหลดทันที
     set({ gameState: "LOADING" });
 
@@ -1075,36 +1124,36 @@ export const useGameStore = create((set, get) => ({
       const username = store.username;
       const currentStageId = store.stageData?.id;
       const currentDist = Math.floor(store.distance);
-      
+
       // เรียกใช้ API ทั้งหมด
       await store.saveWordUsageLog();
 
       const { data: currentRes } = await supabase
-        .from('player_resource')
-        .select('coin')
-        .eq('player_id', username)
+        .from("player_resource")
+        .select("coin")
+        .eq("player_id", username)
         .single();
 
       const { error } = await supabase
-        .from('player_resource')
+        .from("player_resource")
         .update({ coin: (currentRes?.coin || 0) + Number(earnedAmount) })
-        .eq('player_id', username);
+        .eq("player_id", username);
 
       if (currentStageId) {
         const { data: oldProgress } = await supabase
-          .from('player_stage_progress')
-          .select('last_distant')
-          .eq('player_id', username)
-          .eq('stage_id', currentStageId)
+          .from("player_stage_progress")
+          .select("last_distant")
+          .eq("player_id", username)
+          .eq("stage_id", currentStageId)
           .maybeSingle();
 
         const oldDist = oldProgress?.last_distant || 0;
         if (currentDist > oldDist) {
           await supabase
-            .from('player_stage_progress')
+            .from("player_stage_progress")
             .update({ last_distant: currentDist })
-            .eq('player_id', username)
-            .eq('stage_id', currentStageId);
+            .eq("player_id", username)
+            .eq("stage_id", currentStageId);
         }
       }
 
@@ -1113,20 +1162,19 @@ export const useGameStore = create((set, get) => ({
       }
 
       // 2. เมื่อทำงานเสร็จ ค่อยเปลี่ยนไปหน้า OVER หรือหน้าหลัก
-      set({ gameState: "OVER" }); 
-
+      set({ gameState: "OVER" });
     } catch (error) {
       console.error("Save Money Error:", error);
       // กรณี Error ควรมีทางออกให้ user เช่นกลับหน้าเมนู
-      set({ gameState: "MENU" }); 
+      set({ gameState: "MENU" });
     }
   },
 
   startPlayerTurn: async () => {
     const store = get();
     const currentShield = store.playerData.shield || 0;
-    
-    const newShield = 0; 
+
+    const newShield = 0;
     const lostShield = currentShield;
 
     set((state) => ({
@@ -1163,16 +1211,19 @@ export const useGameStore = create((set, get) => ({
 
     if (type === "health") {
       if (potions.health <= 0) return;
-      
+
       get().resetSelection();
-      
+
       const currentState = get();
       const currentPlayerData = currentState.playerData;
-      
+
       const healAmount = 1;
-      const newHp = Math.min(currentPlayerData.max_hp, currentPlayerData.hp + healAmount);
+      const newHp = Math.min(
+        currentPlayerData.max_hp,
+        currentPlayerData.hp + healAmount,
+      );
       if (isSfxOn) sfx.playHeal && sfx.playHeal();
-      
+
       currentState.addPopup({
         id: Math.random(),
         x: PLAYER_X_POS,
@@ -1180,7 +1231,7 @@ export const useGameStore = create((set, get) => ({
         value: `+${healAmount} HP`,
         color: "#2ecc71",
       });
-      
+
       set({
         playerData: {
           ...currentPlayerData,
@@ -1190,17 +1241,17 @@ export const useGameStore = create((set, get) => ({
       });
     } else if (type === "cure") {
       if (potions.cure <= 0) return;
-      
+
       get().resetSelection();
-      
+
       const currentState = get();
       const currentPlayerData = currentState.playerData;
       const currentInv = [...currentPlayerData.inventory];
-      
+
       const slotsWithStatus = currentInv
         .map((item, index) => (item && item.status ? index : null))
         .filter((index) => index !== null);
-        
+
       if (slotsWithStatus.length > 0) {
         const targetsToClear = [];
         const numToClear = Math.min(slotsWithStatus.length, 1);
@@ -1240,17 +1291,17 @@ export const useGameStore = create((set, get) => ({
       }
     } else if (type === "reroll") {
       if (potions.reroll <= 0) return;
-      
+
       get().resetSelection();
-      
+
       const currentState = get();
       const currentPlayerData = currentState.playerData;
       const currentInv = [...currentPlayerData.inventory];
-      
+
       const itemsToRerollCount = currentInv.filter(
         (item) => item !== null,
       ).length;
-      
+
       if (itemsToRerollCount > 0) {
         const rawItems = DeckManager.generateList(itemsToRerollCount);
         const { newItems: freshItemsWithBuffs, updatedDrawPile } =
@@ -1259,7 +1310,7 @@ export const useGameStore = create((set, get) => ({
             currentPlayerData.deck_list,
             currentPlayerData.draw_pile,
           );
-        
+
         let generatedIndex = 0;
         const newInv = currentInv.map((oldItem) => {
           if (!oldItem) return null;
@@ -1270,7 +1321,7 @@ export const useGameStore = create((set, get) => ({
             statusDuration: oldItem.statusDuration || 0,
           };
         });
-        
+
         currentState.addPopup({
           id: Math.random(),
           x: PLAYER_X_POS,
@@ -1278,9 +1329,9 @@ export const useGameStore = create((set, get) => ({
           value: "REROLL!",
           color: "#f39c12",
         });
-        
+
         if (isSfxOn && sfx.playHeal) sfx.playHeal();
-        
+
         set({
           playerData: {
             ...currentPlayerData,
@@ -1314,7 +1365,7 @@ export const useGameStore = create((set, get) => ({
 
   performPlayerAction: async (actionType, word, targetId, usedIndices) => {
     const store = get();
-    
+
     if (store.gameState !== "PLAYERTURN") return;
     set({ gameState: "ACTION" });
 
@@ -1331,7 +1382,7 @@ export const useGameStore = create((set, get) => ({
           color: "#555555",
         });
         set({ gameState: "PLAYERTURN" });
-        return; 
+        return;
       }
     }
 
@@ -1354,7 +1405,10 @@ export const useGameStore = create((set, get) => ({
     itemsUsedInAction.forEach((item) => {
       let letterDmg = DeckManager.getLetterDamage(item.char);
 
-      if (item.buff === "double-dmg" && (actionType === "Strike" || actionType === "Skill")) {
+      if (
+        item.buff === "double-dmg" &&
+        (actionType === "Strike" || actionType === "Skill")
+      ) {
         letterDmg *= 2;
       } else if (
         (item.buff === "double-guard" || item.buff === "double-shield") &&
@@ -1363,7 +1417,10 @@ export const useGameStore = create((set, get) => ({
         letterDmg *= 2;
       } else if (item.buff === "mana-plus") {
         bonusMana += 5;
-      } else if (item.buff === "shield-plus" && (actionType === "Strike" || actionType === "Skill")) {
+      } else if (
+        item.buff === "shield-plus" &&
+        (actionType === "Strike" || actionType === "Skill")
+      ) {
         bonusShield += 1;
       } else if (item.buff === "add_poison" || item.buff === "add_posion")
         poisonCount++;
@@ -1373,7 +1430,10 @@ export const useGameStore = create((set, get) => ({
       else if (item.buff === "bless" && actionType === "Guard") blessCount++;
       else if (item.buff === "heal" && actionType === "Guard")
         healAmount += Math.ceil(letterDmg);
-      else if (item.buff === "vampire_fang" && (actionType === "Strike" || actionType === "Skill"))
+      else if (
+        item.buff === "vampire_fang" &&
+        (actionType === "Strike" || actionType === "Skill")
+      )
         hasVampire = true;
 
       totalDmgRaw += letterDmg;
@@ -1384,15 +1444,19 @@ export const useGameStore = create((set, get) => ({
 
     let recoilDamage = 0;
     const excessLetters = wordLength - playerPower;
-    if (excessLetters > 0 && (actionType === "Strike" || actionType === "Skill")) {
+    if (
+      excessLetters > 0 &&
+      (actionType === "Strike" || actionType === "Skill")
+    ) {
       recoilDamage = Math.max(1, Math.floor(finalActionDmg * 0.5));
     } else if (excessLetters > 0) {
-      recoilDamage = excessLetters; 
+      recoilDamage = excessLetters;
     }
 
     if (validWordInfo) {
       const lowerWord = word.toLowerCase();
-      const currentType = validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
+      const currentType =
+        validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
       const filteredMatches = validWordInfo.fullMatches.filter(
         (m) => (m.category || m.type || "Word") === currentType,
       );
@@ -1431,7 +1495,8 @@ export const useGameStore = create((set, get) => ({
           .map((item, idx) => (item?.status ? idx : -1))
           .filter((idx) => idx !== -1);
         if (infectedIndices.length > 0) {
-          const rIdx = infectedIndices[Math.floor(Math.random() * infectedIndices.length)];
+          const rIdx =
+            infectedIndices[Math.floor(Math.random() * infectedIndices.length)];
           currentInv[rIdx].status = null;
           currentInv[rIdx].statusDuration = 0;
         } else if (playerSavedStatuses.length > 0) {
@@ -1485,7 +1550,10 @@ export const useGameStore = create((set, get) => ({
     if (actionType === "Guard") {
       let finalHp = get().playerData.hp;
       if (healAmount > 0) {
-        finalHp = Math.min(get().playerData.max_hp, get().playerData.hp + healAmount);
+        finalHp = Math.min(
+          get().playerData.max_hp,
+          get().playerData.hp + healAmount,
+        );
         get().addPopup({
           id: Math.random(),
           x: PLAYER_X_POS,
@@ -1519,47 +1587,53 @@ export const useGameStore = create((set, get) => ({
       const target = enemies.find((e) => e.id === targetId);
       if (target) {
         let isHit = true;
-        let meaningStr = ""; 
-        
+        let meaningStr = "";
+
         if (actionType === "Skill") {
           let wordLevel = "A1";
           if (validWordInfo && validWordInfo.fullMatches?.length > 0) {
-            const currentType = validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
+            const currentType =
+              validWordInfo.displayTypes[validWordInfo.currentDisplayIndex];
             const filteredMatches = validWordInfo.fullMatches.filter(
-              (m) => (m.category || m.type || "Word") === currentType
+              (m) => (m.category || m.type || "Word") === currentType,
             );
-            const matchToUse = filteredMatches[0] || validWordInfo.fullMatches[0];
+            const matchToUse =
+              filteredMatches[0] || validWordInfo.fullMatches[0];
             wordLevel = matchToUse.level?.toUpperCase() || "A1";
-            meaningStr = typeof matchToUse.meaning === "string"
-              ? matchToUse.meaning.split(/,(?![^()]*\))/)[0].trim()
-              : matchToUse.meaning || "???";
+            meaningStr =
+              typeof matchToUse.meaning === "string"
+                ? matchToUse.meaning.split(/,(?![^()]*\))/)[0].trim()
+                : matchToUse.meaning || "???";
           }
-          
-          let hitChance = 75; 
+
+          let hitChance = 75;
           if (wordLevel === "A2") hitChance = 80;
           else if (wordLevel === "B1") hitChance = 85;
           else if (wordLevel === "B2") hitChance = 90;
 
           const roll = Math.floor(Math.random() * 100);
-          if (roll >= hitChance) isHit = false; 
+          if (roll >= hitChance) isHit = false;
         }
 
         set({ playerX: target.x - 10, playerVisual: "walk" });
         await delay(200);
         set({ playerVisual: "attack-1" });
         await delay(400);
-        
+
         if (isHit) {
           if (isSfxOn && sfx.playHit) sfx.playHit();
           set({ playerVisual: "attack-2" });
           get().damageEnemy(targetId, finalActionDmg);
-          set({ playerShoutText: "" }); 
+          set({ playerShoutText: "" });
           await delay(500);
 
           if (hasVampire) {
             const stealAmount = Math.ceil(finalActionDmg / 2);
             if (stealAmount > 0) {
-              const newHp = Math.min(get().playerData.max_hp, get().playerData.hp + stealAmount);
+              const newHp = Math.min(
+                get().playerData.max_hp,
+                get().playerData.hp + stealAmount,
+              );
               set({ playerData: { ...get().playerData, hp: newHp } });
               get().addPopup({
                 id: Math.random(),
@@ -1575,64 +1649,139 @@ export const useGameStore = create((set, get) => ({
 
           const aliveEnemies = get().enemies.filter((e) => e.hp > 0);
           if (aliveEnemies.length > 0) {
-            const sortedTargets = [...aliveEnemies].sort((a, b) => a.id === targetId ? -1 : 1);
+            const sortedTargets = [...aliveEnemies].sort((a, b) =>
+              a.id === targetId ? -1 : 1,
+            );
             const mainTarget = sortedTargets[0];
 
             if (poisonCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              const newDebuffs = Array(poisonCount).fill({ status: "poison", duration: 10 });
-              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
-              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "POISONED!", color: "#2ecc71" });
+              const newDebuffs = Array(poisonCount).fill({
+                status: "poison",
+                duration: 10,
+              });
+              get().updateEnemy(mainTarget.id, {
+                savedStatuses: [...currentStatuses, ...newDebuffs],
+              });
+              get().addPopup({
+                id: Math.random(),
+                x: mainTarget.x,
+                y: FIXED_Y - 80,
+                value: "POISONED!",
+                color: "#2ecc71",
+              });
               await delay(500);
             }
 
             // 🌟 แก้ไข Bleed: ลดเหลือ 3 เทิร์น และระเบิดทันทีเมื่อครบ 3
             if (bleedCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              const newDebuffs = Array(bleedCount).fill({ status: "bleed", duration: 3 });
+              const newDebuffs = Array(bleedCount).fill({
+                status: "bleed",
+                duration: 3,
+              });
               let updatedStatuses = [...currentStatuses, ...newDebuffs];
-              
-              const totalBleed = updatedStatuses.filter(s => s.status === "bleed").length;
+
+              const totalBleed = updatedStatuses.filter(
+                (s) => s.status === "bleed",
+              ).length;
 
               if (totalBleed >= 3) {
                 // ระเบิดเลือดทันที
-                updatedStatuses = updatedStatuses.filter(s => s.status !== "bleed");
-                get().updateEnemy(mainTarget.id, { savedStatuses: updatedStatuses });
-                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLEEDING!", color: "#e74c3c" });
+                updatedStatuses = updatedStatuses.filter(
+                  (s) => s.status !== "bleed",
+                );
+                get().updateEnemy(mainTarget.id, {
+                  savedStatuses: updatedStatuses,
+                });
+                get().addPopup({
+                  id: Math.random(),
+                  x: mainTarget.x,
+                  y: FIXED_Y - 80,
+                  value: "BLEEDING!",
+                  color: "#e74c3c",
+                });
                 await delay(500);
 
                 const bDmg = Math.max(1, Math.floor(mainTarget.max_hp * 0.3));
-                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 60, value: "BLOOD EXPLOSION!", color: "#c0392b" });
+                get().addPopup({
+                  id: Math.random(),
+                  x: mainTarget.x,
+                  y: FIXED_Y - 60,
+                  value: "BLOOD EXPLOSION!",
+                  color: "#c0392b",
+                });
                 if (isSfxOn && sfx.playHit) sfx.playHit();
                 get().damageEnemy(mainTarget.id, bDmg);
                 await delay(800);
               } else {
-                get().updateEnemy(mainTarget.id, { savedStatuses: updatedStatuses });
-                get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLEEDING!", color: "#e74c3c" });
+                get().updateEnemy(mainTarget.id, {
+                  savedStatuses: updatedStatuses,
+                });
+                get().addPopup({
+                  id: Math.random(),
+                  x: mainTarget.x,
+                  y: FIXED_Y - 80,
+                  value: "BLEEDING!",
+                  color: "#e74c3c",
+                });
                 await delay(500);
               }
             }
 
             if (stunCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              const newDebuffs = Array(stunCount).fill({ status: "stun", duration: 1 });
-              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
-              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "STUNNED!", color: "#f1c40f" });
+              const newDebuffs = Array(stunCount).fill({
+                status: "stun",
+                duration: 1,
+              });
+              get().updateEnemy(mainTarget.id, {
+                savedStatuses: [...currentStatuses, ...newDebuffs],
+              });
+              get().addPopup({
+                id: Math.random(),
+                x: mainTarget.x,
+                y: FIXED_Y - 80,
+                value: "STUNNED!",
+                color: "#f1c40f",
+              });
               await delay(500);
             }
 
             if (blindCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
-              const newDebuffs = Array(blindCount).fill({ status: "blind", duration: 2 });
-              get().updateEnemy(mainTarget.id, { savedStatuses: [...currentStatuses, ...newDebuffs] });
-              get().addPopup({ id: Math.random(), x: mainTarget.x, y: FIXED_Y - 80, value: "BLINDED!", color: "#8e44ad" });
+              const newDebuffs = Array(blindCount).fill({
+                status: "blind",
+                duration: 2,
+              });
+              get().updateEnemy(mainTarget.id, {
+                savedStatuses: [...currentStatuses, ...newDebuffs],
+              });
+              get().addPopup({
+                id: Math.random(),
+                x: mainTarget.x,
+                y: FIXED_Y - 80,
+                value: "BLINDED!",
+                color: "#8e44ad",
+              });
               await delay(500);
             }
           }
 
           if (bonusShield > 0) {
-            set({ playerData: { ...get().playerData, shield: get().playerData.shield + bonusShield } });
-            get().addPopup({ id: Math.random(), x: get().playerX, y: FIXED_Y - 60, value: `+${bonusShield} SHIELD`, color: "#2e75cc" });
+            set({
+              playerData: {
+                ...get().playerData,
+                shield: get().playerData.shield + bonusShield,
+              },
+            });
+            get().addPopup({
+              id: Math.random(),
+              x: get().playerX,
+              y: FIXED_Y - 60,
+              value: `+${bonusShield} SHIELD`,
+              color: "#2e75cc",
+            });
             await delay(500);
           }
 
@@ -1640,27 +1789,38 @@ export const useGameStore = create((set, get) => ({
             get().gainMana(5);
             await delay(400);
           }
-
         } else {
-          set({ playerShoutText: "" }); 
+          set({ playerShoutText: "" });
           if (meaningStr) {
-             get().updateEnemy(targetId, { shoutText: meaningStr });
-             await delay(1200); 
-             get().updateEnemy(targetId, { shoutText: "" });
+            get().updateEnemy(targetId, { shoutText: meaningStr });
+            await delay(1200);
+            get().updateEnemy(targetId, { shoutText: "" });
           }
 
-          get().addPopup({ id: Math.random(), x: target.x, y: FIXED_Y - 60, value: "MISSED!", color: "#95a5a6" });
+          get().addPopup({
+            id: Math.random(),
+            x: target.x,
+            y: FIXED_Y - 60,
+            value: "MISSED!",
+            color: "#95a5a6",
+          });
           if (isSfxOn && sfx.playMiss) sfx.playMiss();
           await delay(500);
         }
-        
+
         set({ playerX: PLAYER_X_POS, playerVisual: "walk" });
         await delay(500);
       }
     }
 
     if (recoilDamage > 0) {
-      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 90, value: `Recoil!`, color: "#c0392b" });
+      get().addPopup({
+        id: Math.random(),
+        x: PLAYER_X_POS,
+        y: FIXED_Y - 90,
+        value: `Recoil!`,
+        color: "#c0392b",
+      });
       if (isSfxOn && sfx.playHit) sfx.playHit();
       get().damagePlayer(recoilDamage, true);
       await delay(800);
@@ -1668,20 +1828,21 @@ export const useGameStore = create((set, get) => ({
     }
 
     set({ playerVisual: "idle-1", playerShoutText: "" });
-    
+
     const stillAliveEnemies = get().enemies.filter((e) => e.hp > 0);
     if (stillAliveEnemies.length === 0) {
-       if (actionType === "Skill") set({ playerData: { ...get().playerData, mana: 0 } });
-       get().handleWaveClear();
-       return;
+      if (actionType === "Skill")
+        set({ playerData: { ...get().playerData, mana: 0 } });
+      get().handleWaveClear();
+      return;
     }
-    
+
     if (actionType === "Skill") {
-       set({ playerData: { ...get().playerData, mana: 0 } });
-       await get().fillInventorySlots();
-       set({ gameState: "PLAYERTURN" });
+      set({ playerData: { ...get().playerData, mana: 0 } });
+      await get().fillInventorySlots();
+      set({ gameState: "PLAYERTURN" });
     } else {
-       get().endTurn();
+      get().endTurn();
     }
   },
 
@@ -1693,15 +1854,15 @@ export const useGameStore = create((set, get) => ({
   damageEnemy: (id, dmg) => {
     const target = get().enemies.find((e) => e.id === id);
     if (!target) return;
-    
+
     let remainingDmg = dmg;
     let currentShield = target.shield || 0;
-    
+
     if (currentShield > 0) {
       const blockAmount = Math.min(currentShield, remainingDmg);
       currentShield -= blockAmount;
       remainingDmg -= blockAmount;
-      
+
       get().addPopup({
         id: Math.random(),
         x: target.x,
@@ -1709,14 +1870,14 @@ export const useGameStore = create((set, get) => ({
         value: "BLOCK!",
         color: "#ffffff",
       });
-      
+
       get().updateEnemy(id, { shield: currentShield });
     }
-    
+
     const newHp = Math.max(0, target.hp - remainingDmg);
     const newMana = Math.min(target.quiz_move_cost, target.mana + remainingDmg);
     get().updateEnemy(id, { hp: newHp, mana: newMana });
-    
+
     if (remainingDmg > 0) {
       get().addPopup({
         id: Math.random(),
@@ -1726,7 +1887,7 @@ export const useGameStore = create((set, get) => ({
         color: "#cc2e2e",
       });
     }
-    
+
     if (newHp <= 0)
       set((state) => ({
         receivedCoin: Number(state.receivedCoin || 0) + Number(target.exp || 0),
@@ -1736,7 +1897,7 @@ export const useGameStore = create((set, get) => ({
   damagePlayer: (dmg, ignoreShield = false) => {
     const { playerData: stat, isSfxOn } = get();
     // 🌟 เช็คเลือดก่อน เผื่อโดนหลายเด้งจะได้ไม่ยิง API รัวๆ
-    if (stat.hp <= 0) return; 
+    if (stat.hp <= 0) return;
 
     let remainingDmg = dmg;
     let newShield = stat.shield;
@@ -1746,7 +1907,7 @@ export const useGameStore = create((set, get) => ({
       remainingDmg -= blockAmount;
       get().addPopup({
         id: Math.random(),
-        x: PLAYER_X_POS ,
+        x: PLAYER_X_POS,
         y: FIXED_Y - 60,
         value: "BLOCK!",
         color: "#ffffff",
@@ -1771,9 +1932,9 @@ export const useGameStore = create((set, get) => ({
     }
     // 🌟 พอเลือดเหลือน้อยกว่า 0 โยนไปให้ saveQuitGame รวบยอดจัดการทั้งหมด (รวมถึงเปลี่ยนสถานะหน้า)
     if (newHp <= 0) {
-        bgm.stop();
-        const halfCoins = Math.floor((get().receivedCoin || 0) / 2);
-        get().saveQuitGame(halfCoins); 
+      bgm.stop();
+      const halfCoins = Math.floor((get().receivedCoin || 0) / 2);
+      get().saveQuitGame(halfCoins);
     }
   },
 
@@ -1848,7 +2009,7 @@ export const useGameStore = create((set, get) => ({
     }
 
     const currentShield = en.shield || 0;
-    const newShield = 0; 
+    const newShield = 0;
     const lostShield = currentShield;
 
     if (lostShield > 0) {
@@ -1889,17 +2050,19 @@ export const useGameStore = create((set, get) => ({
     await delay(600);
 
     await get().fillInventorySlots();
-    
+
     currentInv = [...get().playerData.inventory];
 
     const actionType = en.nextAction || "strike";
-    get().updateEnemy(en.id, { nextAction: actionType === "strike" ? "guard" : "strike" });
+    get().updateEnemy(en.id, {
+      nextAction: actionType === "strike" ? "guard" : "strike",
+    });
 
     if (en.mana >= en.quiz_move_cost) {
       await get().performEnemySkill(en.id);
       // 🌟 ให้ return ไปเลย เพราะกลไกแพ้ถูกโยนไปที่ damagePlayer แล้ว
       if (get().playerData.hp <= 0) return;
-      
+
       en = get().enemies.find((e) => e.id === enemyId);
       if (!en || en.hp <= 0) {
         get().endTurn();
@@ -1951,11 +2114,15 @@ export const useGameStore = create((set, get) => ({
     );
 
     if (bestWord) {
-      get().updateEnemy(en.id, { shoutText: actionType === "guard" ? "GUARD!" : "STRIKE!" });
+      get().updateEnemy(en.id, {
+        shoutText: actionType === "guard" ? "GUARD!" : "STRIKE!",
+      });
       await delay(600);
       get().updateEnemy(en.id, { shoutText: "" });
-      
-      let enemySelectedArea = new Array(get().playerData.unlockedSlots).fill(null);
+
+      let enemySelectedArea = new Array(get().playerData.unlockedSlots).fill(
+        null,
+      );
       let wordDamageRaw = 0;
       let bonusMana = 0;
       let bonusShield = 0;
@@ -1977,20 +2144,34 @@ export const useGameStore = create((set, get) => ({
         if (invIdx !== -1) {
           let letterDmg = DeckManager.getLetterDamage(targetItem.char);
 
-          if (targetItem.buff === "double-dmg" && actionType === "strike") letterDmg *= 2;
-          if ((targetItem.buff === "double-guard" || targetItem.buff === "double-shield") && actionType === "guard") letterDmg *= 2;
+          if (targetItem.buff === "double-dmg" && actionType === "strike")
+            letterDmg *= 2;
+          if (
+            (targetItem.buff === "double-guard" ||
+              targetItem.buff === "double-shield") &&
+            actionType === "guard"
+          )
+            letterDmg *= 2;
 
           if (targetItem.buff === "mana-plus") bonusMana += 5;
-          if (targetItem.buff === "shield-plus" && actionType === "strike") bonusShield += 1;
+          if (targetItem.buff === "shield-plus" && actionType === "strike")
+            bonusShield += 1;
 
-          if (targetItem.buff === "add_poison" || targetItem.buff === "add_posion") enemyPoisonCount++;
+          if (
+            targetItem.buff === "add_poison" ||
+            targetItem.buff === "add_posion"
+          )
+            enemyPoisonCount++;
           if (targetItem.buff === "add_bleed") enemyBleedCount++;
           if (targetItem.buff === "add_stun") enemyStunCount++;
           if (targetItem.buff === "add_blind") enemyBlindCount++;
-          if (targetItem.buff === "vampire_fang" && actionType === "strike") enemyHasVampire = true;
+          if (targetItem.buff === "vampire_fang" && actionType === "strike")
+            enemyHasVampire = true;
 
-          if (targetItem.buff === "heal" && actionType === "guard") enemyHealAmount += Math.ceil(letterDmg);
-          if (targetItem.buff === "bless" && actionType === "guard") enemyBlessCount++;
+          if (targetItem.buff === "heal" && actionType === "guard")
+            enemyHealAmount += Math.ceil(letterDmg);
+          if (targetItem.buff === "bless" && actionType === "guard")
+            enemyBlessCount++;
 
           wordDamageRaw += letterDmg;
           enemySelectedArea[i] = {
@@ -2056,7 +2237,7 @@ export const useGameStore = create((set, get) => ({
         });
         await delay(500);
       }
-      
+
       if (enemyHasVampire && actionType === "strike" && finalValue > 0) {
         const stealAmount = Math.ceil(finalValue / 2);
         newEnHp = Math.min(en.max_hp, newEnHp + stealAmount);
@@ -2115,19 +2296,31 @@ export const useGameStore = create((set, get) => ({
           await delay(500);
 
           const pStatuses = get().playerData.savedEffects?.statuses || [];
-          const pBleeds = pStatuses.filter(s => s.status === "bleed").length;
-          
+          const pBleeds = pStatuses.filter((s) => s.status === "bleed").length;
+
           if (pBleeds >= 3) {
-            const filteredStatuses = pStatuses.filter(s => s.status !== "bleed");
+            const filteredStatuses = pStatuses.filter(
+              (s) => s.status !== "bleed",
+            );
             set({
               playerData: {
                 ...get().playerData,
-                savedEffects: { ...get().playerData.savedEffects, statuses: filteredStatuses }
-              }
+                savedEffects: {
+                  ...get().playerData.savedEffects,
+                  statuses: filteredStatuses,
+                },
+              },
             });
 
             const bDmg = Math.max(1, Math.floor(get().playerData.max_hp * 0.3));
-            get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: "BLOOD EXPLOSION!", color: "#c0392b", fontSize: "20px" });
+            get().addPopup({
+              id: Math.random(),
+              x: PLAYER_X_POS,
+              y: FIXED_Y - 60,
+              value: "BLOOD EXPLOSION!",
+              color: "#c0392b",
+              fontSize: "20px",
+            });
             if (store.isSfxOn && sfx.playHit) sfx.playHit();
             get().damagePlayer(bDmg, true);
             await delay(800);
