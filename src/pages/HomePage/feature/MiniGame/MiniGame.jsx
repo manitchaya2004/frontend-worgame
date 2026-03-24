@@ -780,7 +780,7 @@ const MiniGame = ({ open, onClose }) => {
                       textShadow: "1px 1px 0px #000",
                     }}
                   >
-                    LEVEL {wordLength - 1}
+                    LEVEL {wordLength - 2}
                   </Typography>
 
                   <Box
