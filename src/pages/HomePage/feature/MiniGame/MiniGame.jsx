@@ -592,31 +592,71 @@ const MiniGame = ({ open, onClose }) => {
     }
   };
 
+  // 💡 THE FIX: ปรับปรุงระบบ Hint ใหม่ทั้งหมด ให้ไล่เช็คจากซ้ายไปขวา
   const handleHint = () => {
     if (status !== "playing" || hintsRemaining <= 0) return;
     const targetWord = gameWords[0].word.toUpperCase();
 
-    const firstEmptyIdx = selectedLetters.findIndex((s) => s === null);
+    // 1. หาตำแหน่งแรกสุด (จากซ้ายไปขวา) ที่ยัง "ไม่ถูกต้อง" (ว่างเปล่า หรือ ใส่ผิด)
+    let targetIdx = -1;
+    for (let i = 0; i < targetWord.length; i++) {
+      if (!selectedLetters[i] || selectedLetters[i].char !== targetWord[i]) {
+        targetIdx = i;
+        break;
+      }
+    }
 
-    if (firstEmptyIdx !== -1) {
-      const nextTargetChar = targetWord[firstEmptyIdx];
-      const hintItem = poolLetters.find(
-        (p) => p.char === nextTargetChar && !p.isUsed,
-      );
+    if (targetIdx !== -1) {
+      const neededChar = targetWord[targetIdx];
+      let newSelected = [...selectedLetters];
+      let newPool = [...poolLetters];
 
+      // 2. ถ้าช่องเป้าหมายมีตัวอักษรที่ผิดอยู่ ให้ถอดออกก่อน (คืนค่ากลับไปที่ Pool)
+      if (newSelected[targetIdx]) {
+        const wrongItem = newSelected[targetIdx];
+        newPool = newPool.map((p) =>
+          p.id === wrongItem.id ? { ...p, isUsed: false } : p,
+        );
+        newSelected[targetIdx] = null;
+      }
+
+      // 3. หาตัวอักษรใบ้ที่ถูกต้องจาก Pool
+      // ลำดับความสำคัญ: 1. หาตัวที่ยังไม่ถูกใช้ 2. ถ้าไม่มีจริงๆ ค่อยดึงตัวที่ผู้เล่นเผลอไปใส่ช่องอื่นผิดมาใช้
+      let hintItem = newPool.find((p) => p.char === neededChar && !p.isUsed);
+
+      if (!hintItem) {
+        // กรณีผู้เล่นเอาตัวที่ถูกไปใส่ช่องอื่นผิดไว้ (isUsed = true แต่ไม่ใช่ isHint)
+        hintItem = newPool.find(
+          (p) => p.char === neededChar && p.isUsed && !p.isHint,
+        );
+        // ถอดตัวอักษรนั้นออกจากช่องที่ผู้เล่นใส่ผิดไว้
+        if (hintItem) {
+          const wrongSlotIdx = newSelected.findIndex(
+            (s) => s?.id === hintItem.id,
+          );
+          if (wrongSlotIdx !== -1) {
+            newSelected[wrongSlotIdx] = null;
+          }
+        }
+      }
+
+      // 4. ใส่ Hint ลงไป!
       if (hintItem) {
         setHintsRemaining((prev) => prev - 1);
-        const itemToInsert = { ...hintItem, isHint: true };
-        setPoolLetters((prev) =>
-          prev.map((p) =>
-            p.id === hintItem.id ? { ...p, isUsed: true, isHint: true } : p,
-          ),
+
+        // อัปเดต Pool ให้ตัวนี้กลายเป็น Hint และถูกใช้งาน
+        newPool = newPool.map((p) =>
+          p.id === hintItem.id ? { ...p, isUsed: true, isHint: true } : p,
         );
 
-        const newSelected = [...selectedLetters];
-        newSelected[firstEmptyIdx] = itemToInsert;
-        setSelectedLetters(newSelected);
+        // ใส่ลงในช่องที่ถูกต้อง
+        const itemToInsert = { ...hintItem, isUsed: true, isHint: true };
+        newSelected[targetIdx] = itemToInsert;
 
+        setSelectedLetters(newSelected);
+        setPoolLetters(newPool);
+
+        // เช็คคำตอบถ้าบังเอิญใส่ครบพอดีจากการกดตัวช่วย
         if (!newSelected.includes(null)) {
           checkAnswer(newSelected, targetWord);
         }

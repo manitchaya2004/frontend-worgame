@@ -7,7 +7,7 @@ export function getCalculatedStats(baseHp, basePower, baseSpeed, currentLevel) {
   const levelModifier = level - 1;
 
   // ⚙️ ตั้งค่าการเติบโตของ Status ต่อ 1 เลเวล
-  const hpGrowthPerLevel = 3;
+  const hpGrowthPerLevel = 2;
   const powerGrowthPerLevel = 1;
   const speedGrowthPerLevel = 1;
 
