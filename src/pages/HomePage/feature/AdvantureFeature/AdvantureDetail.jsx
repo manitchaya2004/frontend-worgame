@@ -375,7 +375,7 @@ const DetailItem = ({
             }
             style={{
               position: "relative",
-              top: 70,
+              top: 60,
               transform: "translateX(-50%)",
               height: "55%",
               imageRendering: "pixelated",
