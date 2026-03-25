@@ -15,63 +15,80 @@ Object.entries(POWER_GROUPS).forEach(([group, chars]) => {
   });
 });
 
-// สร้าง Pool สำหรับการจั่วโดยแยกตามกลุ่ม (แปลง Q เป็น QU สำหรับใช้เป็นตัวหมากในเกม)
 const G1_POOL = [...POWER_GROUPS.G1];
 const G2_POOL = [...POWER_GROUPS.G2];
 const G3_POOL = POWER_GROUPS.G3.map((char) => (char === "Q" ? "QU" : char));
 
 export const DeckManager = {
-  // ไม่ใช้ระบบกองการ์ดแล้ว ปล่อยว่างไว้เผื่อระบบเก่าเรียกใช้จะได้ไม่พัง
   activeDeck: [],
+  // เก็บตำแหน่งของสระที่สุ่มไว้สำหรับแต่ละ Chunk (เช่น Chunk 0 สระอยู่ตำแหน่ง 2, Chunk 1 สระอยู่ตำแหน่ง 0)
+  vowelPositions: {},
 
   init() {
-    // เอา DECK_COMPOSITION ออกตามที่คุณต้องการ ไม่ต้องใช้ฟังก์ชันนี้จัดการกองการ์ดแล้ว
+    this.vowelPositions = {};
   },
 
-  draw(currentInventory = [], unlockedSlots = 10) {
-    const existingChars = currentInventory
-      .filter((slot) => slot && slot.char)
-      .map((slot) => slot.char.toUpperCase());
+  draw(currentInventory = [], unlockedSlots = 16) {
+    const existingItems = currentInventory.filter((slot) => slot !== null);
+    const existingChars = existingItems.map((slot) => slot.char.toUpperCase());
+    const existingCount = existingItems.length;
 
-    // นับจำนวนไอเทมที่มีอยู่ในมือเพื่อดูว่าใบต่อไปที่จะจั่วคือลำดับที่เท่าไหร่ในชุด 4 ตัว
-    const existingCount = existingChars.length;
+    // 1. หาว่าเรากำลังจั่วใบที่เท่าไหร่ในชุด 4 ใบ (0, 1, 2, 3)
     const positionInChunk = existingCount % 4;
+    const chunkIndex = Math.floor(existingCount / 4);
 
+    // 2. สุ่มตำแหน่งสระสำหรับ Chunk นี้ถ้ายังไม่มี
+    if (this.vowelPositions[chunkIndex] === undefined) {
+      this.vowelPositions[chunkIndex] = Math.floor(Math.random() * 4);
+    }
+
+    const isVowelTurn = positionInChunk === this.vowelPositions[chunkIndex];
     let pickedChar = "";
 
-    // ลำดับ: 0, 1, 2 เป็นพยัญชนะ | ลำดับ 3 เป็นสระ (วนลูปทุกๆ 4 ใบ)
-    if (positionInChunk === 3) {
-      // จั่วสระ G1 (ใบที่ 4)
-      pickedChar = G1_POOL[Math.floor(Math.random() * G1_POOL.length)];
+    // ฟังก์ชันตรวจสอบกฎความซ้ำซ้อน
+    const isValid = (char) => {
+      const count = existingChars.filter((c) => c === char).length;
+      // กฎ 1: ห้ามซ้ำเกิน 3 ตัว
+      if (count >= 3) return false;
+
+      // กฎ 2: ถ้าเป็นตัวหายาก (G3) ห้ามซ้ำเกิน 2 ตัว
+      const isG3 = G3_POOL.includes(char);
+      if (isG3) {
+        const g3Count = existingChars.filter((c) => G3_POOL.includes(c)).length; // ถ้านับรวมทั้งกลุ่ม G3
+        const specificG3Count = existingChars.filter((c) => c === char).length;
+        if (specificG3Count >= 2) return false;
+      }
+      return true;
+    };
+
+    if (isVowelTurn) {
+      // --- จั่วสระ (G1) ---
+      let pool = [...G1_POOL].sort(() => Math.random() - 0.5);
+      pickedChar = pool.find(c => isValid(c)) || pool[0];
     } else {
-      // จั่วพยัญชนะ (ใบที่ 1, 2, 3)
-      const chunkStart = Math.floor(existingCount / 4) * 4;
+      // --- จั่วพยัญชนะ (G2 หรือ G3) ---
+      const chunkStart = chunkIndex * 4;
       const currentChunkChars = existingChars.slice(chunkStart);
+      
+      // เช็คว่าใน Chunk นี้มี G3 ไปแล้วหรือยัง
+      const hasG3InChunk = currentChunkChars.some((char) => G3_POOL.includes(char));
 
-      // เช็คว่าในกลุ่ม 4 ตัวนี้ (ที่จั่วมาก่อนหน้า) มี G3 ไปแล้วหรือยัง
-      const hasG3InChunk = currentChunkChars.some((char) => {
-        return G3_POOL.includes(char) || POWER_GROUPS.G3.includes(char);
-      });
-
-      let availableConsonants = [];
+      let availablePool = [];
       if (hasG3InChunk) {
-        // มี G3 ในกลุ่มนี้ไปแล้ว ห้ามเอา G3 อีก ให้สุ่มเฉพาะจาก G2 เท่านั้น
-        availableConsonants = [...G2_POOL];
+        availablePool = [...G2_POOL];
       } else {
-        // ยังไม่มี G3 ให้สุ่มรวมกันระหว่าง G2 และ G3
-        availableConsonants = [...G2_POOL, ...G3_POOL];
+        availablePool = [...G2_POOL, ...G3_POOL];
       }
 
-      pickedChar =
-        availableConsonants[
-          Math.floor(Math.random() * availableConsonants.length)
-        ];
+      // สุ่มและตรวจสอบกฎ
+      let shuffledPool = availablePool.sort(() => Math.random() - 0.5);
+      pickedChar = shuffledPool.find(c => isValid(c)) || G2_POOL[Math.floor(Math.random() * G2_POOL.length)];
     }
 
     return pickedChar;
   },
 
-  createItem(index, currentInv = [], unlockedSlots = 10) {
+  createItem(index, currentInv = [], unlockedSlots = 16) {
     const char = this.draw(currentInv, unlockedSlots);
     return {
       id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -84,6 +101,8 @@ export const DeckManager = {
   },
 
   generateList(count) {
+    // รีเซ็ตตำแหน่งสระใหม่ทุกครั้งที่สร้าง List ใหม่ (เริ่มกระดานใหม่)
+    this.init();
     let list = new Array(count).fill(null);
     for (let i = 0; i < count; i++) {
       list[i] = this.createItem(i, list, count);
