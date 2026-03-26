@@ -1443,9 +1443,10 @@ export const InventorySlot = () => {
   return (
     <div
       style={{
-        // 🌟 ปรับ aspect-ratio: 1/1 เพื่อให้กว้างเท่ากับสูง และกว้างลดลงตามที่ต้องการ
+        // 🌟 ปรับให้ความกว้างลดลงมาเท่ากับความสูง (ล็อคสัดส่วน 1:1)
+        // และเอา minWidth ออกเพื่อให้มันย่อกลับมาขนาดปกติ
         height: "95%",
-        aspectRatio: "1/1",
+        aspectRatio: "1/1", 
         background: "rgba(0,0,0,0.4)",
         border: isEnemyTurn ? "2px solid #e74c3c" : "1px solid #4d3a2b",
         boxShadow: isEnemyTurn ? "0 0 15px rgba(231, 76, 60, 0.4)" : "none",
@@ -1455,6 +1456,7 @@ export const InventorySlot = () => {
         padding: "10px",
         filter: isBoardActive ? "none" : "grayscale(0.6) brightness(0.7)",
         transition: "all 0.3s ease",
+        flexShrink: 0,
       }}
     >
       <div
@@ -1466,6 +1468,7 @@ export const InventorySlot = () => {
           borderBottom: isEnemyTurn ? "1px solid #e74c3c" : "1px solid #4d3a2b",
           paddingBottom: "8px",
           marginBottom: "10px",
+          flexShrink: 0,
         }}
       >
         <GiBrain
@@ -1499,17 +1502,19 @@ export const InventorySlot = () => {
         style={{
           flex: 1,
           display: "grid",
-          // 🌟 เปลี่ยนเป็น 4 หลัก 4 แถว
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gridTemplateRows: "repeat(4, 1fr)",
+          // 🌟 บังคับ 4x4 อย่างเด็ดขาดในระดับ Grid
+          gridTemplateColumns: "1fr 1fr 1fr 1fr",
+          gridTemplateRows: "1fr 1fr 1fr 1fr",
           gap: "6px",
           padding: "4px",
           background: "rgba(0,0,0,0.2)",
           borderRadius: "8px",
           border: "1px solid #333",
+          boxSizing: "border-box",
+          overflow: "hidden", 
         }}
       >
-        {/* 🌟 เรนเดอร์ 16 ช่อง */}
+        {/* 🌟 เรนเดอร์ 16 ช่องเสมอ */}
         {Array.from({ length: 16 }).map((_, index) => (
           <SingleSlot key={index} index={index} maxSlot={calculatedMaxSlot} />
         ))}

@@ -731,8 +731,10 @@ export default function GameApp() {
                     justifyContent: "center",
                     alignItems: "center",
                     gap: "12px",
-                    width: "100%",
+                    width: "1160px", // 🌟 บังคับความกว้างรวมของทั้ง 3 ส่วน (Status + Inventory + Action)
                     height: "100%",
+                    flexShrink: 0,    // 🌟 ห้าม Parent มาบีบพื้นที่ส่วนนี้
+                    margin: "0 auto", // จัดกึ่งกลาง
                   }}
                 >
                   <PlayerStatusCard
