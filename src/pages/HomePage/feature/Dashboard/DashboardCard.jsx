@@ -218,7 +218,7 @@ const DashboardCard = () => {
           borderRadius: "12px",
           boxShadow: `0 0 0 4px #1a120b, 0 20px 60px rgba(0, 0, 0, 0.8)`,
           width: { xs: "90%", sm: "85%", md: "80%" },
-          height: { xs: "75%", sm: "80%", md: "650px", xl: "80%" },
+          height: { xs: "75%", sm: "80%", md: "570px", xl: "82%"},
           p: { xs: 2, md: 3 },
           display: "flex",
           flexDirection: "column",

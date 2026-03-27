@@ -174,7 +174,7 @@ const ItemFeature = () => {
             0 20px 60px rgba(49, 49, 49, 0.8)
           `,
           width: { xs: "90%", sm: "80%", md: "80%" },
-          height: { xs: "70%", sm: "70%", md: "80%", lg: "570px", xl: "82%" },
+          height: { xs: "70%", sm: "70%", md: "570px", xl: "82%" },
           p: 1,
           display: "flex",
           flexDirection: "column",
