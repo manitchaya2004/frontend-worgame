@@ -23,7 +23,6 @@ import {
   GiBubblingFlask,
   GiStandingPotion,
 } from "react-icons/gi";
-import "./style.css";
 
 import { useGameSfx } from "../../../../hook/useGameSfx";
 import clickSfx from "../../../../assets/sound/click1.ogg";
