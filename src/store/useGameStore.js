@@ -237,7 +237,7 @@ export const useGameStore = create((set, get) => ({
     shield: 0,
     speed: 0,
     power: 0,
-    unlockedSlots: 0,
+    unlockedSlots: 16, // 🌟 ปรับเหลือ 16
     potions: { health: 1, cure: 1, reroll: 1 },
     inventory: [],
     deck_list: [],
@@ -436,13 +436,11 @@ export const useGameStore = create((set, get) => ({
           userStageHistory: userData.stages || [],
         }));
       }
-      console.log("Selected Hero:", selectedHero);
 
       if (selectedHero) {
         const { stats, deck_list } = selectedHero;
-        // 🌟 แก้ไข: คำนวณ Slot เริ่มต้นจาก 8 + Power (ไม่เกิน 20)
-        const initialPower = stats?.power || 3;
-        const initialUnlockedSlots = Math.min(8 + initialPower, 20);
+        // 🌟 ล็อกไว้ที่ 16 ช่อง
+        const fixedUnlockedSlots = 16;
 
         set((state) => ({
           playerData: {
@@ -465,8 +463,8 @@ export const useGameStore = create((set, get) => ({
               reroll: userData.potion.reroll,
             },
             speed: stats?.speed || 3,
-            power: initialPower,
-            unlockedSlots: initialUnlockedSlots, // 🌟 ใช้ค่าที่คำนวณใหม่
+            power: stats?.power || 3,
+            unlockedSlots: fixedUnlockedSlots, 
             deck_list: deck_list || [],
             draw_pile: [],
             savedEffects: { buffs: [], statuses: [] },
@@ -621,16 +619,14 @@ export const useGameStore = create((set, get) => ({
         currentCoin: userData?.money || 0,
         playerData: {
           ...state.playerData,
-          // 🌟 ใช้ unlockedSlots ที่คำนวณจาก Power แทนค่าจาก stageData.slot_count
-          unlockedSlots: state.playerData.unlockedSlots,
+          unlockedSlots: 16, 
         },
       }));
 
       DeckManager.init();
       await delay(500);
 
-      const isMutedNow = useAuthStore.getState().isMuted;
-      if (!isMutedNow) bgm.playAdvanture();
+      bgm.playAdvanture();
     } catch (error) {
       console.error("❌ Setup Failed:", error);
       set({ gameState: "ERROR" });
@@ -650,6 +646,7 @@ export const useGameStore = create((set, get) => ({
         hp: get().playerData.max_hp,
         mana: 0,
         shield: 0,
+        unlockedSlots: 16, // 🌟 16
         inventory: [],
         draw_pile: [],
         savedEffects: { buffs: [], statuses: [] },
@@ -713,18 +710,18 @@ export const useGameStore = create((set, get) => ({
     const { playerData } = store;
     let currentInv = [...playerData.inventory];
 
-    // 🌟 มั่นใจว่าอาเรย์มีขนาดเท่ากับ unlockedSlots (8+power)
-    while (currentInv.length < playerData.unlockedSlots) {
+    // 🌟 มั่นใจว่าอาเรย์มีขนาดเท่ากับ 16
+    while (currentInv.length < 16) {
       currentInv.push(null);
     }
 
     let hasDrawn = false;
-    for (let i = 0; i < playerData.unlockedSlots; i++) {
+    for (let i = 0; i < 16; i++) {
       if (currentInv[i] === null || currentInv[i] === undefined) {
         currentInv[i] = DeckManager.createItem(
           i,
           currentInv,
-          playerData.unlockedSlots,
+          16, 
         );
 
         set((state) => ({
@@ -747,18 +744,13 @@ export const useGameStore = create((set, get) => ({
 
   startCombatRound: async () => {
     const store = get();
-    // 1. จัดเก็บสถานะ Buff/Status ของตัวละครก่อนล้างหน้าตัก
     store.stashEffects();
 
     const { playerData } = get();
 
-    // ========================================================
-    // 🌟 ส่วนสำคัญ: ล้าง Inventory ให้เป็นค่าว่างทั้งหมดตามจำนวน Slot ที่มี
-    // เพื่อบังคับให้ fillInventorySlots แจกตัวใหม่ทั้งหมดแทนการเติมแค่ช่องว่าง
-    // ========================================================
-    const clearedInv = new Array(playerData.unlockedSlots).fill(null);
+    // 🌟 ล้างหน้าตักเป็น 16 ช่อง
+    const clearedInv = new Array(16).fill(null);
 
-    // 2. คำนวณ Mana เพิ่มเติมประจำรอบ (Player + 5, Enemies + 5)
     const newPlayerMana = Math.min(
       playerData.max_hp,
       (playerData.mana || 0) + 5,
@@ -770,13 +762,12 @@ export const useGameStore = create((set, get) => ({
 
     const existingSavedStatuses = playerData.savedEffects?.statuses || [];
 
-    // 3. อัปเดต State: ล้าง Inventory และตั้งค่าพื้นฐานรอบใหม่
     set({
       enemies: updatedEnemies,
       playerData: {
         ...playerData,
         mana: newPlayerMana,
-        inventory: clearedInv, // ใช้ Inventory ที่ว่างเปล่า
+        inventory: clearedInv,
         savedEffects: {
           buffs: [],
           statuses: existingSavedStatuses,
@@ -784,7 +775,6 @@ export const useGameStore = create((set, get) => ({
       },
     });
 
-    // แสดง Popup แจ้งเตือนเริ่มรอบใหม่
     get().addPopup({
       id: Math.random(),
       x: 45,
@@ -794,11 +784,8 @@ export const useGameStore = create((set, get) => ({
     });
 
     await delay(500);
-
-    // 4. แจกตัวอักษรใหม่ลงในช่องที่ว่าง (ซึ่งตอนนี้ว่างทั้งหมด)
     await get().fillInventorySlots();
 
-    // 5. คำนวณลำดับการโจมตี (Initiative Queue)
     const playerInit = Math.max(1, get().playerData.speed);
     let pool = [
       { id: "player", type: "player", name: "You", initiative: playerInit },
@@ -811,7 +798,6 @@ export const useGameStore = create((set, get) => ({
         pool.push({ id: e.id, type: "enemy", name: e.name, initiative: init });
       });
 
-    // เรียงลำดับจากความเร็วมากไปน้อย
     const finalQueue = pool
       .sort((a, b) => b.initiative - a.initiative)
       .map((unit, index) => ({
@@ -819,7 +805,6 @@ export const useGameStore = create((set, get) => ({
         uniqueId: `${unit.id}_${index}_${Date.now()}`,
       }));
 
-    // 6. บันทึกคิวและเริ่มเทิร์นแรก
     set({ turnQueue: finalQueue });
     get().processNextTurn();
   },
@@ -925,10 +910,6 @@ export const useGameStore = create((set, get) => ({
         savedEffects: { buffs: [], statuses: [] },
       },
     }));
-    if (store.isBgmOn) {
-      bgm.stop();
-      bgm.playAdvanture();
-    }
   },
 
   saveWordUsageLog: async () => {
@@ -1009,7 +990,6 @@ export const useGameStore = create((set, get) => ({
 
   finishStage: async () => {
     const store = get();
-    // 🌟 แก้ไข: ลบเช็ค gameState === "LOADING" ออก ให้เช็คแค่ GAME_CLEARED พอ ไม่งั้นตอนจะจบมันติด return
     if (store.gameState === "GAME_CLEARED") return;
 
     bgm.stop();
@@ -1116,8 +1096,6 @@ export const useGameStore = create((set, get) => ({
 
   saveQuitGame: async (earnedAmount) => {
     const store = get();
-
-    // 1. เข้าหน้าโหลดทันที
     set({ gameState: "LOADING" });
 
     try {
@@ -1125,7 +1103,6 @@ export const useGameStore = create((set, get) => ({
       const currentStageId = store.stageData?.id;
       const currentDist = Math.floor(store.distance);
 
-      // เรียกใช้ API ทั้งหมด
       await store.saveWordUsageLog();
 
       const { data: currentRes } = await supabase
@@ -1161,11 +1138,9 @@ export const useGameStore = create((set, get) => ({
         set({ currentCoin: (currentRes?.coin || 0) + Number(earnedAmount) });
       }
 
-      // 2. เมื่อทำงานเสร็จ ค่อยเปลี่ยนไปหน้า OVER หรือหน้าหลัก
       set({ gameState: "OVER" });
     } catch (error) {
       console.error("Save Money Error:", error);
-      // กรณี Error ควรมีทางออกให้ user เช่นกลับหน้าเมนู
       set({ gameState: "MENU" });
     }
   },
@@ -1174,34 +1149,30 @@ export const useGameStore = create((set, get) => ({
     const store = get();
     const currentShield = store.playerData.shield || 0;
 
-    const newShield = 0;
-    const lostShield = currentShield;
-
+    // 🌟 แก้ไข Bug: เปลี่ยนเป็นสถานะ PLAYERTURN ทันที เพื่อให้ UI หัว Inventory เปลี่ยนสี
     set((state) => ({
-      gameState: "ACTION",
+      gameState: "PLAYERTURN", // เปลี่ยนจาก ACTION เป็น PLAYERTURN ทันที
       playerVisual: "idle-1",
       playerData: {
         ...state.playerData,
-        shield: newShield,
+        shield: 0,
       },
     }));
 
-    if (lostShield > 0) {
+    if (currentShield > 0) {
       get().addPopup({
         id: Math.random(),
         x: PLAYER_X_POS,
         y: FIXED_Y - 60,
-        value: `-${lostShield} SHIELD`,
+        value: `-${currentShield} SHIELD`,
         color: "#95a5a6",
       });
       await delay(500);
     }
 
     await get().revealEffects();
-
+    // 🌟 แจกเติมให้เต็ม 16 ช่อง (UI จะเป็นสีเหลือง/Player แล้วขณะแจก)
     await get().fillInventorySlots();
-
-    set({ gameState: "PLAYERTURN" });
   },
 
   usePotion: (type, value = 5) => {
@@ -1673,7 +1644,6 @@ export const useGameStore = create((set, get) => ({
               await delay(500);
             }
 
-            // 🌟 แก้ไข Bleed: ลดเหลือ 3 เทิร์น และระเบิดทันทีเมื่อครบ 3
             if (bleedCount > 0) {
               const currentStatuses = mainTarget.savedStatuses || [];
               const newDebuffs = Array(bleedCount).fill({
@@ -1687,7 +1657,6 @@ export const useGameStore = create((set, get) => ({
               ).length;
 
               if (totalBleed >= 3) {
-                // ระเบิดเลือดทันที
                 updatedStatuses = updatedStatuses.filter(
                   (s) => s.status !== "bleed",
                 );
@@ -1816,7 +1785,7 @@ export const useGameStore = create((set, get) => ({
     if (recoilDamage > 0) {
       get().addPopup({
         id: Math.random(),
-        x: PLAYER_X_POS,
+        x: PLAYER_X_POS +5,
         y: FIXED_Y - 90,
         value: `Recoil!`,
         color: "#c0392b",
@@ -1896,7 +1865,6 @@ export const useGameStore = create((set, get) => ({
 
   damagePlayer: (dmg, ignoreShield = false) => {
     const { playerData: stat, isSfxOn } = get();
-    // 🌟 เช็คเลือดก่อน เผื่อโดนหลายเด้งจะได้ไม่ยิง API รัวๆ
     if (stat.hp <= 0) return;
 
     let remainingDmg = dmg;
@@ -1907,7 +1875,7 @@ export const useGameStore = create((set, get) => ({
       remainingDmg -= blockAmount;
       get().addPopup({
         id: Math.random(),
-        x: PLAYER_X_POS,
+        x: PLAYER_X_POS + 5,
         y: FIXED_Y - 60,
         value: "BLOCK!",
         color: "#ffffff",
@@ -1930,7 +1898,6 @@ export const useGameStore = create((set, get) => ({
       });
       get().gainMana(remainingDmg);
     }
-    // 🌟 พอเลือดเหลือน้อยกว่า 0 โยนไปให้ saveQuitGame รวบยอดจัดการทั้งหมด (รวมถึงเปลี่ยนสถานะหน้า)
     if (newHp <= 0) {
       bgm.stop();
       const halfCoins = Math.floor((get().receivedCoin || 0) / 2);
@@ -2049,6 +2016,7 @@ export const useGameStore = create((set, get) => ({
     set({ playerData: { ...get().playerData, inventory: currentInv } });
     await delay(600);
 
+    // 🌟 เติม 16 ตัวอักษร
     await get().fillInventorySlots();
 
     currentInv = [...get().playerData.inventory];
@@ -2060,7 +2028,6 @@ export const useGameStore = create((set, get) => ({
 
     if (en.mana >= en.quiz_move_cost) {
       await get().performEnemySkill(en.id);
-      // 🌟 ให้ return ไปเลย เพราะกลไกแพ้ถูกโยนไปที่ damagePlayer แล้ว
       if (get().playerData.hp <= 0) return;
 
       en = get().enemies.find((e) => e.id === enemyId);
@@ -2073,7 +2040,7 @@ export const useGameStore = create((set, get) => ({
     const { placements, newDrawPile } = GameLogic.calculateZoneBuffs(
       currentInv,
       en.deck_list,
-      get().playerData.unlockedSlots,
+      16, 
       en.draw_pile,
     );
 
@@ -2120,9 +2087,8 @@ export const useGameStore = create((set, get) => ({
       await delay(600);
       get().updateEnemy(en.id, { shoutText: "" });
 
-      let enemySelectedArea = new Array(get().playerData.unlockedSlots).fill(
-        null,
-      );
+      // 🌟 พื้นที่เลือกตัวอักษร 16 ช่อง
+      let enemySelectedArea = new Array(16).fill(null);
       let wordDamageRaw = 0;
       let bonusMana = 0;
       let bonusShield = 0;
@@ -2290,7 +2256,6 @@ export const useGameStore = create((set, get) => ({
           get().applyStatusToPlayer("poison", 100, enemyPoisonCount, 3);
           await delay(500);
         }
-        // 🌟 แก้ไข Bleed: ลดเหลือ 3 เทิร์น และตรวจสอบการระเบิดให้ผู้เล่นทันที
         if (enemyBleedCount > 0) {
           get().applyStatusToPlayer("bleed", 100, enemyBleedCount, 3);
           await delay(500);
@@ -2355,7 +2320,6 @@ export const useGameStore = create((set, get) => ({
     currentInv = currentInv.map((slot) => {
       if (!slot || !slot.status) return slot;
       hasInvUpdate = true;
-      // 🌟 นำ Bleed มารวมไว้ที่เดียวกันสำหรับการลด duration ช่วงจบเทิร์น
       if (["poison", "stun", "blind", "bleed"].includes(slot.status)) {
         const nDur = slot.statusDuration - 1;
         return nDur <= 0
@@ -2410,7 +2374,6 @@ export const useGameStore = create((set, get) => ({
     get().updateEnemy(en.id, { savedStatuses: nextEnemySavedStatuses });
     set({ playerData: { ...get().playerData, inventory: currentInv } });
 
-    // 🌟 ให้ return ไปเลย เพราะกลไกแพ้ถูกโยนไปที่ damagePlayer แล้ว
     if (get().playerData.hp <= 0) return;
 
     get().endTurn();
@@ -2506,10 +2469,3 @@ export const useGameStore = create((set, get) => ({
   setInventory: (items) =>
     set({ playerData: { ...get().playerData, inventory: items } }),
 }));
-
-useAuthStore.subscribe((state) => {
-  useGameStore.setState({
-    isBgmOn: !state.isMuted,
-    isSfxOn: !state.isSfxMuted,
-  });
-});
