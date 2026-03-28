@@ -234,7 +234,7 @@ const ItemFeature = () => {
         <Box
           className="Title-Item"
           sx={{
-            flexShrink: 0, // 🌟 เพิ่ม flexShrink: 0 กันโดนบีบใน iPad
+            flexShrink: 0, 
             py: 2,
             textAlign: "center",
             background: "#1a120b",
@@ -270,7 +270,7 @@ const ItemFeature = () => {
         {/* เนื้อหารายละเอียดที่จะใส่  ItemCard+Detail */}
         <Box
           sx={{
-            flexShrink: 0, // 🌟 เพิ่ม flexShrink: 0 กันโดนบีบ
+            flexShrink: 0, 
             backgroundColor: "#3e2723",
             mx: 2,
             mt: 2,
@@ -290,8 +290,9 @@ const ItemFeature = () => {
               border: "1px solid #5d4037",
               mt: 0,
               mb: 0.5,
-              py: 0.5, // 🌟 ปรับลด padding บน-ล่าง จาก 2 เหลือ 0.5 เพื่อให้กล่องสีแดงเตี้ยลง
-              px: 2,   // 🌟 รักษาระยะห่างซ้ายขวาไว้
+              py: 0.5, // 🌟 รีดไขมัน
+              px: 1.5,
+              gap: 1, // 🌟 รีดไขมัน
             },
           }}
         >
@@ -373,7 +374,7 @@ const ItemFeature = () => {
                 fontSize: 28,
 
                 "@media (orientation: landscape) and (max-height: 450px)": {
-                  fontSize: 18,
+                  fontSize: 14, // 🌟 รีดไขมันไอคอน
                 },
               },
             }}
@@ -387,7 +388,8 @@ const ItemFeature = () => {
                   color: "#aaa",
                   mb: 0.5,
                   "@media (orientation: landscape) and (max-height: 450px)": {
-                    fontSize: 8,
+                    fontSize: 7,
+                    mb: 0,
                   },
                 }}
               >
@@ -399,7 +401,7 @@ const ItemFeature = () => {
                   fontSize: 16,
                   color: "#fff",
                   "@media (orientation: landscape) and (max-height: 450px)": {
-                    fontSize: 10,
+                    fontSize: 9, // 🌟 รีดไขมันฟอนต์
                   },
                 }}
               >
@@ -440,6 +442,9 @@ const ItemFeature = () => {
                   boxShadow:
                     i < currentUsed ? "0 0 4px #ffb300" : "inset 0 0 4px #000",
                   transition: "all 0.3s ease",
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    height: 14, // 🌟 ย่อหลอดเหลืองให้เตี้ยลง
+                  },
                 }}
               />
             ))}
@@ -451,11 +456,14 @@ const ItemFeature = () => {
           sx={{
             mt: 1,
             width: "100%",
-            flexGrow: 1, // 🌟 ใช้ flexGrow เพื่อให้กินพื้นที่ที่เหลือ โดยไม่ทะลุกล่อง
-            minHeight: 0, // 🌟 แก้บั๊ก Flexbox overflow ใน Safari
+            flexGrow: 1, // ยืดกินพื้นที่ที่เหลือ
+            minHeight: 0, // บังคับไม่ให้ล้นออกนอกจอ
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              mt: 0.5,
+            },
           }}
         >
           <Box
@@ -466,11 +474,12 @@ const ItemFeature = () => {
               display: "flex",
               flexDirection: "row",
               height: "100%", 
-              maxHeight: { xs: "320px", sm: "400px", md: "100%" }, // 🌟 ใส่ maxHeight กันยืดผิดปกติ
+              maxHeight: { xs: "320px", sm: "400px", md: "100%" }, 
               mx: 2,
               "@media (orientation: landscape) and (max-height: 450px)": {
-                height: "160px",
-                justifyContent: "flex-start",
+                height: "100%", 
+                maxHeight: "100%",
+                gap: 1.5, 
               },
             }}
           >
@@ -517,7 +526,7 @@ const ItemFeature = () => {
 
         <Box
           sx={{
-            flexShrink: 0, // 🌟 ป้องกันไม่ให้ปุ่ม Save โดนดันหายไป
+            flexShrink: 0, 
             mt: 1,
             p: 2,
             borderTop: `2px dashed ${THEMES.border}`,
@@ -526,7 +535,8 @@ const ItemFeature = () => {
             gap: 2,
             backgroundColor: "rgba(0,0,0,0.2)",
             "@media (orientation: landscape) and (max-height: 450px)": {
-              p: 0.5,
+              mt: 0.5,
+              p: 0.5, // 🌟 รีดไขมัน
             },
           }}
         >
@@ -549,6 +559,7 @@ const ItemFeature = () => {
               "&:disabled": { color: "#605e5e" },
               "@media (orientation: landscape) and (max-height: 450px)": {
                 fontSize: 8,
+                py: 0.5,
               },
             }}
           >
@@ -582,6 +593,7 @@ const ItemFeature = () => {
               "&:disabled": { color: "#2e1f1a" },
               "@media (orientation: landscape) and (max-height: 450px)": {
                 fontSize: 8,
+                py: 0.5,
               },
             }}
           >

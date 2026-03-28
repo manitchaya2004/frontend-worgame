@@ -428,7 +428,7 @@ const DetailItem = ({
               // 🟢 ทำ Hover Reveal (Expandable Pill)
               overflow: "hidden",
               whiteSpace: "nowrap",
-              maxWidth: { xs: "34px",sm: "34px",md: "34px", lg: "300px" }, // หน้าจอเล็ก (xs) ให้บีบเหลือ 34px (พอดีไอคอน)
+              maxWidth: { xs: "34px",sm: "40px",md: "300px", lg: "300px" }, // หน้าจอเล็ก (xs) ให้บีบเหลือ 34px (พอดีไอคอน)
               transition: "max-width 0.3s ease, padding 0.3s ease",
               "&:hover": {
                 maxWidth: "300px", // เมื่อเอาเมาส์ชี้/กด ให้ขยายออก

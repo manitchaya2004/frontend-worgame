@@ -42,7 +42,7 @@ const ItemCard = ({
     <Box
       sx={{
         width: { xs: 200, sm: 250, xl: "100%" },
-        height: "100%", // 🌟 เปลี่ยนจาก -webkit-fill-available เป็น 100% ปกติ เพื่อแก้อาการยืดทะลุกรอบใน iOS
+        height: "100%", 
         backgroundColor: "#2b1d14",
         border: `3px solid ${color}`,
         borderRadius: "12px",
@@ -53,11 +53,11 @@ const ItemCard = ({
         boxShadow: "0 4px 0 rgba(0,0,0,0.5)",
         position: "relative",
         overflow: "hidden",
-        // alignItems:'center'
         "@media (orientation: landscape) and (max-height: 450px)": {
           height: "100%",
-          border: `2px solid ${color}`,
-          borderRadius: "8px",
+          border: `1px solid ${color}`, // 🌟 ลดความหนาเส้นขอบ
+          borderRadius: "6px",
+          
         },
       }}
     >
@@ -117,7 +117,7 @@ const ItemCard = ({
               title={description}
               arrow
               placement="top"
-              enterTouchDelay={0} // สำหรับมือถือให้กดแล้วขึ้นเลย
+              enterTouchDelay={0} 
               slotProps={{
                 tooltip: {
                   sx: {
@@ -176,7 +176,9 @@ const ItemCard = ({
           borderTop: "2px dashed #3e2723",
           flexDirection: { xs: "column", sm: "row" },
           gap: { xs: 1, sm: 0 },
-
+          "@media (orientation: landscape) and (max-height: 450px)": {
+             pt: 0.5,
+          },
         }}
       >
         <Typography
@@ -207,7 +209,7 @@ const ItemCard = ({
               "&:disabled": { opacity: 0.3 },
               "@media (orientation: landscape) and (max-height: 450px)": {
                 borderRadius: "2px",
-                padding: "2px",
+                padding: "2px", // 🌟 รีดไขมันปุ่มกด
               },
             }}
           >
@@ -242,7 +244,7 @@ const ItemCard = ({
               padding: "4px",
               "@media (orientation: landscape) and (max-height: 450px)": {
                 borderRadius: "2px",
-                padding: "2px",
+                padding: "2px", // 🌟 รีดไขมันปุ่มกด
               },
             }}
           >
