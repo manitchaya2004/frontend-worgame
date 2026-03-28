@@ -234,6 +234,7 @@ const ItemFeature = () => {
         <Box
           className="Title-Item"
           sx={{
+            flexShrink: 0, // 🌟 เพิ่ม flexShrink: 0 กันโดนบีบใน iPad
             py: 2,
             textAlign: "center",
             background: "#1a120b",
@@ -269,6 +270,7 @@ const ItemFeature = () => {
         {/* เนื้อหารายละเอียดที่จะใส่  ItemCard+Detail */}
         <Box
           sx={{
+            flexShrink: 0, // 🌟 เพิ่ม flexShrink: 0 กันโดนบีบ
             backgroundColor: "#3e2723",
             mx: 2,
             mt: 2,
@@ -288,7 +290,8 @@ const ItemFeature = () => {
               border: "1px solid #5d4037",
               mt: 0,
               mb: 0.5,
-              p: 2.5,
+              py: 0.5, // 🌟 ปรับลด padding บน-ล่าง จาก 2 เหลือ 0.5 เพื่อให้กล่องสีแดงเตี้ยลง
+              px: 2,   // 🌟 รักษาระยะห่างซ้ายขวาไว้
             },
           }}
         >
@@ -448,8 +451,11 @@ const ItemFeature = () => {
           sx={{
             mt: 1,
             width: "100%",
-            height: "100%",
-            alignContent: "center",
+            flexGrow: 1, // 🌟 ใช้ flexGrow เพื่อให้กินพื้นที่ที่เหลือ โดยไม่ทะลุกล่อง
+            minHeight: 0, // 🌟 แก้บั๊ก Flexbox overflow ใน Safari
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
           }}
         >
           <Box
@@ -458,10 +464,9 @@ const ItemFeature = () => {
               alignItems: "center",
               justifyContent: "center",
               display: "flex",
-
               flexDirection: "row",
-              // width: "100%",
-              height: "95%",
+              height: "100%", 
+              maxHeight: { xs: "320px", sm: "400px", md: "100%" }, // 🌟 ใส่ maxHeight กันยืดผิดปกติ
               mx: 2,
               "@media (orientation: landscape) and (max-height: 450px)": {
                 height: "160px",
@@ -512,6 +517,7 @@ const ItemFeature = () => {
 
         <Box
           sx={{
+            flexShrink: 0, // 🌟 ป้องกันไม่ให้ปุ่ม Save โดนดันหายไป
             mt: 1,
             p: 2,
             borderTop: `2px dashed ${THEMES.border}`,

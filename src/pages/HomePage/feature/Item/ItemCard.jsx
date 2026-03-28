@@ -42,7 +42,7 @@ const ItemCard = ({
     <Box
       sx={{
         width: { xs: 200, sm: 250, xl: "100%" },
-        height: { xs: "-webkit-fill-available" },
+        height: "100%", // 🌟 เปลี่ยนจาก -webkit-fill-available เป็น 100% ปกติ เพื่อแก้อาการยืดทะลุกรอบใน iOS
         backgroundColor: "#2b1d14",
         border: `3px solid ${color}`,
         borderRadius: "12px",
