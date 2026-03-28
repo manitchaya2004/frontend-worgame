@@ -154,10 +154,10 @@ const ItemCard = ({
             alignItems: "center",
             color: color,
             "& svg": { fontSize: { xs: 50, sm: 100, xl: 150 } },
-            "@media (orientation: landscape) and (max-height: 450px)": {
-              width: 100,
-              height: "100%",
-              "& svg": { fontSize: 50 },
+           "@media (orientation: landscape) and (max-height: 450px)": {
+              width: 50, // 🌟 บีบให้แคบสุดๆ
+              height: 35, // 🌟 ความลับอยู่ที่ตรงนี้! ย่อกล่องสีดำลงให้เตี้ยที่สุด
+              "& svg": { fontSize: 22 }, // 🌟 ย่อไอคอนให้พอดีกล่อง
             },
           }}
         >
