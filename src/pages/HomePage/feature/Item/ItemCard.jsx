@@ -1,7 +1,7 @@
 import { Box, Typography, IconButton, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"; // เพิ่ม icon info
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 // sound
 import { useGameSfx } from "../../../../hook/useGameSfx";
@@ -55,9 +55,10 @@ const ItemCard = ({
         overflow: "hidden",
         "@media (orientation: landscape) and (max-height: 450px)": {
           height: "100%",
-          border: `1px solid ${color}`, // 🌟 ลดความหนาเส้นขอบ
+          border: `1px solid ${color}`,
           borderRadius: "6px",
-          
+          p: 1, 
+          gap: 0.5,
         },
       }}
     >
@@ -75,17 +76,18 @@ const ItemCard = ({
         }}
       />
 
-      {/* 1. HEADER: Icon & Name & Tooltip */}
+      {/* 1. HEADER & ICON BOX (🌟 ครอบรวมกันเพื่อให้ยืดหดได้) */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 2,
           flexDirection: "column",
-          height: "100%",
-          justifyContent: "",
+          flexGrow: 1, 
+          justifyContent: "center", // 🌟 เพิ่มบรรทัดนี้: จัดให้อยู่ตรงกลางการ์ดเสมอเมื่อจอสูงหรือโดน Zoom out
+          minHeight: 0, 
+          gap: { xs: 2, md: 3, xl: 4 }, // 🌟 ให้ช่องว่างขยายตามหน้าจอใหญ่
           "@media (orientation: landscape) and (max-height: 450px)": {
-            gap: 1,
+            gap: 0.5,
           },
         }}
       >
@@ -95,6 +97,7 @@ const ItemCard = ({
             alignItems: "center",
             gap: 1,
             flexDirection: { xs: "column", sm: "row" },
+            flexShrink: 0, 
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -105,7 +108,7 @@ const ItemCard = ({
                 color: color,
                 textTransform: "uppercase",
                 "@media (orientation: landscape) and (max-height: 450px)": {
-                  fontSize: 10,
+                  fontSize: 9,
                 },
               }}
             >
@@ -137,27 +140,33 @@ const ItemCard = ({
                   color: "#aaa",
                   cursor: "help",
                   "&:hover": { color: color },
+                  "@media (orientation: landscape) and (max-height: 450px)": {
+                    fontSize: 12,
+                  },
                 }}
               />
             </Tooltip>
           </Box>
         </Box>
 
+        {/* ไอคอนโพชั่น */}
         <Box
           sx={{
-            width: { xs: 120, sm: 140 },
-            height: "70%",
+            width: { xs: 120, sm: 140, md: "60%", xl: "70%" }, // 🌟 ปรับให้กว้างขึ้นตามสัดส่วนจอใหญ่
+            flexGrow: 1, 
+            minHeight: 0, 
+            maxHeight: { xs: "120px", md: "200px", xl: "60%" }, // 🌟 เปลี่ยนจากการล็อคตายตัว ให้สามารถขยายได้สูงสุด 60% ของพื้นที่
             backgroundColor: "rgba(0,0,0,0.3)",
-            borderRadius: "8px",
+            borderRadius: "12px",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             color: color,
-            "& svg": { fontSize: { xs: 50, sm: 100, xl: 150 } },
-           "@media (orientation: landscape) and (max-height: 450px)": {
-              width: 50, // 🌟 บีบให้แคบสุดๆ
-              height: 35, // 🌟 ความลับอยู่ที่ตรงนี้! ย่อกล่องสีดำลงให้เตี้ยที่สุด
-              "& svg": { fontSize: 22 }, // 🌟 ย่อไอคอนให้พอดีกล่อง
+            "& svg": { fontSize: { xs: 50, sm: 100, md: 120, xl: 160 } }, // 🌟 ไอคอนจะขยายใหญ่ขึ้นเมื่อจอใหญ่
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              width: "100%", 
+              maxHeight: "100%", 
+              "& svg": { fontSize: 40 }, 
             },
           }}
         >
@@ -176,6 +185,7 @@ const ItemCard = ({
           borderTop: "2px dashed #3e2723",
           flexDirection: { xs: "column", sm: "row" },
           gap: { xs: 1, sm: 0 },
+          flexShrink: 0, 
           "@media (orientation: landscape) and (max-height: 450px)": {
              pt: 0.5,
           },
@@ -209,7 +219,7 @@ const ItemCard = ({
               "&:disabled": { opacity: 0.3 },
               "@media (orientation: landscape) and (max-height: 450px)": {
                 borderRadius: "2px",
-                padding: "2px", // 🌟 รีดไขมันปุ่มกด
+                padding: "2px",
               },
             }}
           >
@@ -244,7 +254,7 @@ const ItemCard = ({
               padding: "4px",
               "@media (orientation: landscape) and (max-height: 450px)": {
                 borderRadius: "2px",
-                padding: "2px", // 🌟 รีดไขมันปุ่มกด
+                padding: "2px",
               },
             }}
           >
