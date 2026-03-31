@@ -378,11 +378,26 @@ export const EnemyEntity = memo(
         )}
 
         {/* 3. แสดงรูปภาพโดยใช้ URL ตรงๆ เพื่อดึงจาก Cache (ลบ useEffect เดิมออก) */}
-        <div
+        <motion.div
+          animate={
+            enemy.isHit
+              ? {
+                  filter: [
+                    "brightness(1)",
+                    "brightness(2.5) saturate(3) hue-rotate(320deg) drop-shadow(0 0 15px red)",
+                    "brightness(1)",
+                  ],
+                  scaleY: [1, 0.85, 1.05, 1],
+                  scaleX: [1, 1.05, 0.95, 1],
+                }
+              : { filter: "brightness(1)", scaleY: 1, scaleX: 1 }
+          }
+          transition={{ duration: 0.2 }}
           style={{
             position: "relative",
             width: DISPLAY_NORMAL,
             height: DISPLAY_NORMAL,
+            transformOrigin: "bottom center",
           }}
         >
           {imagePath && (
@@ -402,11 +417,11 @@ export const EnemyEntity = memo(
                 backgroundPosition: "bottom center",
                 imageRendering: "pixelated",
                 transformOrigin: "bottom center",
-                transition: "none",
+                zIndex: 10,
               }}
             />
           )}
-        </div>
+        </motion.div>
       </motion.div>
     );
   },

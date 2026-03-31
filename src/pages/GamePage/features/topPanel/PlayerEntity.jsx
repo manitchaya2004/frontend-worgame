@@ -233,11 +233,26 @@ export const PlayerEntity = memo(({ store }) => {
           </div>
         </div>
 
-        <div
+        <motion.div
+          animate={
+                playerData?.isHit
+                  ? {
+                      filter: [
+                        "brightness(1)",
+                        "brightness(2.5) saturate(3) hue-rotate(320deg) drop-shadow(0 0 15px red)",
+                        "brightness(1)",
+                      ],
+                      x: [0, -10, 5, 0],
+                      scaleY: [1, 0.9, 1.05, 1],
+                    }
+                  : { filter: "brightness(1)", x: 0, scaleY: 1 }
+          }
+          transition={{ duration: 0.2 }}
           style={{
             position: "relative",
             width: DISPLAY_NORMAL,
             height: DISPLAY_NORMAL,
+            transformOrigin: "bottom center",
           }}
         >
           {/* 3. ใช้ imagePath ตรงๆ และเช็คค่า null เพื่อกัน Error */}
@@ -258,10 +273,11 @@ export const PlayerEntity = memo(({ store }) => {
                 backgroundPosition: "center bottom 0px",
                 imageRendering: "pixelated",
                 transformOrigin: "bottom center",
+                zIndex: 10,
               }}
             />
           )}
-        </div>
+        </motion.div>
       </motion.div>
     </motion.div>
   );

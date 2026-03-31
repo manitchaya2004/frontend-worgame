@@ -47,6 +47,12 @@ export const useGameStore = create((set, get) => ({
     set({ isSfxOn: !isSfxMutedNow });
   },
 
+  isShaking: false,
+  triggerShake: (duration = 300) => {
+    set({ isShaking: true });
+    setTimeout(() => set({ isShaking: false }), duration);
+  },
+
   gameState: "LOADING",
   dictionary: [],
   stageData: [],
@@ -641,11 +647,13 @@ export const useGameStore = create((set, get) => ({
       selectedLetters: [],
       validWordInfo: null,
       wordScore: { raw: 0, min: 0, max: 0 },
+      isShaking: false,
       playerData: {
         ...get().playerData,
         hp: get().playerData.max_hp,
         mana: 0,
         shield: 0,
+        isHit: false,
         unlockedSlots: 16, // 🌟 16
         inventory: [],
         draw_pile: [],
@@ -693,6 +701,7 @@ export const useGameStore = create((set, get) => ({
         savedStatuses: [],
         nextAction: "strike",
         atkFrame: 0,
+        isHit: false,
       };
     });
 
@@ -763,6 +772,7 @@ export const useGameStore = create((set, get) => ({
     const existingSavedStatuses = playerData.savedEffects?.statuses || [];
 
     set({
+      gameState: "ACTION",
       enemies: updatedEnemies,
       playerData: {
         ...playerData,
@@ -1845,15 +1855,24 @@ export const useGameStore = create((set, get) => ({
 
     const newHp = Math.max(0, target.hp - remainingDmg);
     const newMana = Math.min(target.quiz_move_cost, target.mana + remainingDmg);
-    get().updateEnemy(id, { hp: newHp, mana: newMana });
+    get().updateEnemy(id, { hp: newHp, mana: newMana, isHit: true });
+
+    setTimeout(() => {
+      get().updateEnemy(id, { isHit: false });
+    }, 200);
 
     if (remainingDmg > 0) {
+      if (remainingDmg >= 10) {
+        get().triggerShake(300);
+      }
       get().addPopup({
         id: Math.random(),
         x: target.x - 2,
         y: FIXED_Y - 80,
         value: remainingDmg,
         color: "#cc2e2e",
+        isHitPopup: true,
+        isCritical: remainingDmg >= 10,
       });
     }
 
@@ -1887,14 +1906,26 @@ export const useGameStore = create((set, get) => ({
       }
     }
     const newHp = Math.max(0, stat.hp - remainingDmg);
-    set({ playerData: { ...stat, hp: newHp, shield: newShield } });
+    set({ playerData: { ...stat, hp: newHp, shield: newShield, isHit: true } });
+
+    setTimeout(() => {
+      const p = get().playerData;
+      set({ playerData: { ...p, isHit: false } });
+    }, 200);
+
     if (remainingDmg > 0) {
+      if (remainingDmg >= 10) {
+        get().triggerShake(300);
+      }
       get().addPopup({
         id: Math.random(),
         x: PLAYER_X_POS + 3,
         y: FIXED_Y - 50,
         value: remainingDmg,
         color: "#cc2e2e",
+        isHitPopup: true,
+        isPlayer: true,
+        isCritical: remainingDmg >= 10,
       });
       get().gainMana(remainingDmg);
     }

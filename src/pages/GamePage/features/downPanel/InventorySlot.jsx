@@ -974,11 +974,11 @@ const SingleSlot = ({ index, maxSlot }) => {
   const buffBadge = getBuffBadgeData();
 
   const getSlotBackground = () => {
-    if (isBlind) return "linear-gradient(145deg,#2c003e,#000000)";
-    if (isStunned) return "linear-gradient(145deg,#f39c12,#e67e22)";
-    if (isPoisoned) return "linear-gradient(145deg,#d4fcd4,#a2e0a2)";
-    if (isBleed) return "linear-gradient(145deg,#e74c3c,#922b21)";
-    return "linear-gradient(145deg,#ffffff,#e8dcc4)";
+    if (isBlind) return "linear-gradient(145deg,#2c003e 0%,#05000a 100%)";
+    if (isStunned) return "linear-gradient(145deg,#f39c12 0%,#d35400 100%)";
+    if (isPoisoned) return "linear-gradient(145deg,#a2e0a2 0%,#27ae60 100%)";
+    if (isBleed) return "linear-gradient(145deg,#e74c3c 0%,#c0392b 100%)";
+    return "linear-gradient(145deg, #fdfbfb 0%, #ebedee 100%)";
   };
 
   const onSelect = () => {
@@ -1110,14 +1110,15 @@ const SingleSlot = ({ index, maxSlot }) => {
         style={{
           width: "100%",
           height: "100%",
-          background: isLocked ? "rgba(10,10,10,0.8)" : "rgba(30,30,30,0.3)",
-          border: `1px solid ${isLocked ? "#333" : "#5c4033"}`,
-          borderRadius: "6px",
+          background: isLocked ? "rgba(5,5,5,0.9)" : "rgba(10,10,10,0.5)",
+          border: `1px solid ${isLocked ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.08)"}`,
+          borderRadius: "8px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           position: "relative",
           overflow: "visible",
+          boxShadow: isLocked ? "none" : "inset 0 4px 10px rgba(0,0,0,0.8)",
         }}
       >
         <AnimatePresence mode="popLayout">
@@ -1141,12 +1142,12 @@ const SingleSlot = ({ index, maxSlot }) => {
                 width: "92%",
                 height: "94%",
                 background: getSlotBackground(),
-                borderRadius: "5px",
+                borderRadius: "6px",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
                 position: "relative",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 5px rgba(0,0,0,0.2)",
                 cursor: isDisabled || isStunned ? "not-allowed" : "pointer",
               }}
             >
@@ -1317,7 +1318,7 @@ const SingleSlot = ({ index, maxSlot }) => {
               borderRadius: "6px",
               padding: "8px 10px",
               minWidth: "160px",
-              zIndex: 100,
+              zIndex: 9999,
               pointerEvents: "none",
               boxShadow:
                 "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
@@ -1447,10 +1448,12 @@ export const InventorySlot = () => {
         // และเอา minWidth ออกเพื่อให้มันย่อกลับมาขนาดปกติ
         height: "95%",
         aspectRatio: "1/1", 
-        background: "rgba(0,0,0,0.4)",
-        border: isEnemyTurn ? "2px solid #e74c3c" : "1px solid #4d3a2b",
-        boxShadow: isEnemyTurn ? "0 0 15px rgba(231, 76, 60, 0.4)" : "none",
-        borderRadius: "10px",
+        background: "rgba(10, 8, 5, 0.5)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: isEnemyTurn ? "2px solid #e74c3c" : "1px solid rgba(255, 215, 0, 0.2)",
+        boxShadow: isEnemyTurn ? "0 0 20px rgba(231, 76, 60, 0.6), inset 0 0 10px rgba(231, 76, 60, 0.2)" : "0 8px 32px rgba(0,0,0,0.6), inset 0 0 15px rgba(255, 215, 0, 0.05)",
+        borderRadius: "12px",
         display: "flex",
         flexDirection: "column",
         padding: "10px",
@@ -1465,7 +1468,7 @@ export const InventorySlot = () => {
           alignItems: "center",
           justifyContent: "center",
           gap: "8px",
-          borderBottom: isEnemyTurn ? "1px solid #e74c3c" : "1px solid #4d3a2b",
+          borderBottom: isEnemyTurn ? "1px solid #e74c3c" : "1px solid rgba(255, 215, 0, 0.3)",
           paddingBottom: "8px",
           marginBottom: "10px",
           flexShrink: 0,
@@ -1505,13 +1508,14 @@ export const InventorySlot = () => {
           // 🌟 บังคับ 4x4 อย่างเด็ดขาดในระดับ Grid
           gridTemplateColumns: "1fr 1fr 1fr 1fr",
           gridTemplateRows: "1fr 1fr 1fr 1fr",
-          gap: "6px",
-          padding: "4px",
-          background: "rgba(0,0,0,0.2)",
-          borderRadius: "8px",
-          border: "1px solid #333",
+          gap: "8px",
+          padding: "8px",
+          background: "rgba(5, 5, 5, 0.6)",
+          borderRadius: "10px",
+          border: "1px solid rgba(255,255,255,0.05)",
+          boxShadow: "inset 0 4px 15px rgba(0,0,0,0.9)",
           boxSizing: "border-box",
-          overflow: "hidden", 
+          overflow: "visible", 
         }}
       >
         {/* 🌟 เรนเดอร์ 16 ช่องเสมอ */}

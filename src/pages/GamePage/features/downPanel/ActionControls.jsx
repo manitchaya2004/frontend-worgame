@@ -60,14 +60,17 @@ const FantasyListButton = ({
     }}
   >
     {highlight && !disabled && (
-      <div
+      <motion.div
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
         style={{
           position: "absolute",
           inset: 0,
-          background: `linear-gradient(90deg, ${color}33 0%, transparent 100%)`,
-          borderLeft: `3px solid ${color}`,
+          background: `linear-gradient(90deg, ${color}66 0%, transparent 100%)`,
+          borderLeft: `4px solid ${color}`,
           zIndex: 1,
-          borderRadius: "6px"
+          borderRadius: "6px",
+          boxShadow: `inset 0 0 15px ${color}88, 0 0 10px ${color}44`
         }}
       />
     )}
@@ -82,25 +85,29 @@ const FantasyListButton = ({
         width: "100%",
       }}
     >
-      <div
+      <motion.div
+        animate={highlight && !disabled ? { 
+          scale: [1, 1.15, 1],
+          boxShadow: [`0 0 5px ${color}44`, `0 0 15px ${color}`, `0 0 5px ${color}44`]
+        } : {}}
+        transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
         style={{
           width: "36px", // ขยายกล่องไอคอนให้รับกับปุ่มที่สูงขึ้น
           height: "36px", 
           background: disabled ? "rgba(30,30,30,0.5)" : "rgba(0,0,0,0.6)",
-          border: `1px solid ${disabled ? "#444" : "#4d3a2b"}`,
+          border: `1px solid ${disabled ? "#444" : (highlight ? color : "#4d3a2b")}`,
           borderRadius: "6px", 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           marginRight: "14px", 
           fontSize: "18px", // ขยายไอคอน
-          color: disabled ? "#555" : color, 
-          boxShadow: highlight && !disabled ? `0 0 10px ${color}66` : "none",
+          color: disabled ? "#555" : (highlight ? "#fff" : color), 
           flexShrink: 0
         }}
       >
         {icon}
-      </div>
+      </motion.div>
 
       <div style={{ 
         display: "flex", 
@@ -234,7 +241,7 @@ export const ActionControls = ({
           icon={<GiSandsOfTime />}
           color="#95a5a6"
           disabled={!isPlayerTurn}
-          highlight={isPlayerTurn}
+          highlight={false}
           onClick={onEndTurnClick}
           subLabel="Shuffle and end turn"
         />

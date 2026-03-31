@@ -19,13 +19,16 @@ const SingleRORPopup = ({ popup, removePopup }) => {
   // สุ่มตำแหน่ง X เล็กน้อยเพื่อให้ตัวเลขไม่ทับกันเป๊ะๆ เวลาเด้งรัวๆ
   const randomXOffset = useMemo(() => (Math.random() - 0.5) * 40, []);
 
+  const isCritical = popup.isCritical || false;
+
   // 🎨 กำหนดสีตามสไตล์ RO
   let finalColor = popup.color;
   if (!finalColor) {
-      if (popup.value === "MISSED!") finalColor = "#ff0000"; // Miss สีแดง
-      else if (isHeal) finalColor = "#00ff00"; // Heal สีเขียวสด
-      else if (isNumber) finalColor = "#ff0000"; // Damage ปกติสีแดงสด
-      else finalColor = "#ffffff"; // ข้อความอื่นๆ สีขาว
+      if (popup.value === "MISSED!") finalColor = "#ff0000"; 
+      else if (isHeal) finalColor = "#00ff00"; 
+      else if (isCritical) finalColor = "#ffaa00"; 
+      else if (isNumber) finalColor = "#ff0000"; 
+      else finalColor = "#ffffff"; 
   }
 
   return (
@@ -37,18 +40,22 @@ const SingleRORPopup = ({ popup, removePopup }) => {
         y: 20, // เริ่มต้นต่ำกว่าจุดจริงนิดหน่อย
         x: `calc(-50% + ${randomXOffset}px)` 
       }}
-      animate={{
-        opacity: [1, 1, 1, 0],
-        scale: [1.5, 1.0, 1.0, 0.8], // เด้งใหญ่สุด -> หดมาปกติ -> ค้างไว้ -> เล็กลงตอนหาย
-        // 🌟 หัวใจสำคัญของ RO Motion: เด้งขึ้นสูงเร็วๆ -> ตกลงมานิดนึงเหมือนมีแรงโน้มถ่วง -> ค่อยๆ ไหลลงต่อแล้วหายไป
-        y: [0, -90, -65, -80],  
-      }}
+      animate={
+        isCritical
+          ? {
+              opacity: [1, 1, 1, 0],
+              scale: [2.5, 1.3, 1.4, 1.0], // ใหญ่กระแทกตากว่าปกติ
+              y: [0, -110, -85, -100], 
+            }
+          : {
+              opacity: [1, 1, 1, 0],
+              scale: [1.5, 1.0, 1.0, 0.8], // ปกติ
+              y: [0, -90, -65, -80],  
+            }
+      }
       transition={{
-        // 🌟 ปรับเวลาให้อยู่นานขึ้นเป็น 2.0 วินาที (จากเดิม 1.0)
-        duration: 2.0, 
+        duration: isCritical ? 2.5 : 2.0, 
         ease: "easeOut",
-        // 🌟 ปรับจังหวะให้ค้างนานขึ้น: 
-        // 0.08 แรกคือตอนเด้ง (ไวมาก), จาก 0.08 ถึง 0.85 คือช่วงที่ตัวเลขลอยค้างนิ่งๆ ให้อ่าน, 0.85-1 คือตอนจางหาย
         times: [0, 0.08, 0.85, 1], 
       }}
       onAnimationComplete={() => removePopup(popup.id)}
@@ -56,20 +63,29 @@ const SingleRORPopup = ({ popup, removePopup }) => {
         position: "absolute",
         left: `${popup.x}%`,
         bottom: "35%", // จุดเริ่มเด้ง
-        color: finalColor,
-        // ฟอนต์หนาๆ ตันๆ แบบ Arial Black หรือ Impact
+        color: isCritical && popup.color === "#cc2e2e" ? "#ff3300" : finalColor, // ถ้าโดนยัดสีแดงมาแล้วเป็นคริ ให้สีเจ็บจี๊ดขึ้น
         fontFamily: 'Impact, "Arial Black", sans-serif', 
-        fontSize: popup.fontSize ? popup.fontSize : (isNumber ? "36px" : "24px"),
+        fontSize: popup.fontSize ? popup.fontSize : (isCritical ? "60px" : (isNumber ? "36px" : "24px")), // ใหญ่เบ้อเริ่ม
         fontWeight: "900",
         textAlign: "center",
         whiteSpace: "nowrap",
-        zIndex: 2000,
+        zIndex: isCritical ? 2001 : 2000,
         pointerEvents: "none",
         letterSpacing: "0px",
         
-        // 🌟 หัวใจสำคัญของ RO Style: ขอบดำคมกริบ (Hard Border)
-        // ใช้ text-shadow แบบไม่มีความเบลอ (0px blur) ซ้อนกัน 8 ทิศทาง
-        textShadow: `
+        // 🌟 แบบเดียวกับ RO, ถ้าคริติคอลให้เงาหนาและอลังการ
+        textShadow: isCritical ? `
+           2px  2px 0 #000,
+          -2px  2px 0 #000,
+           2px -2px 0 #000,
+          -2px -2px 0 #000,
+           0px  2px 0 #000,
+           0px -2px 0 #000,
+           2px  0px 0 #000,
+          -2px  0px 0 #000,
+           4px  4px 0 rgba(255,0,0,0.8),
+           0px  0px 15px rgba(255,165,0,0.8)
+        ` : `
            1px  1px 0 #000,
           -1px  1px 0 #000,
            1px -1px 0 #000,
@@ -78,7 +94,7 @@ const SingleRORPopup = ({ popup, removePopup }) => {
            0px -1px 0 #000,
            1px  0px 0 #000,
           -1px  0px 0 #000,
-           2px  2px 0 rgba(0,0,0,0.5) /* เงาตกกระทบเล็กน้อยด้านหลัง */
+           2px  2px 0 rgba(0,0,0,0.5)
         `,
       }}
     >
