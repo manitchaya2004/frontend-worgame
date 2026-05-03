@@ -1348,9 +1348,22 @@ export const useGameStore = create((set, get) => ({
     const store = get();
 
     if (store.gameState !== "PLAYERTURN") return;
-    set({ gameState: "ACTION" });
 
+    // Capture items used and store references before clearing UI state
+    const itemsUsedInAction = store.selectedLetters.filter((l) => l !== null);
     const { validWordInfo, wordLog, playerData, enemies, isSfxOn } = store;
+
+    // 1. Lock state and clear UI immediately
+    set({
+      gameState: "ACTION",
+      selectedLetters: new Array(playerData.unlockedSlots).fill(null),
+      validWordInfo: null,
+      wordScore: { raw: 0, min: 0, max: 0 },
+      playerShoutText: word.toUpperCase(),
+    });
+
+    // 2. Wait for Speech (Strike, Skill, Guard)
+    await sfx.speakWord(word);
 
     if (actionType === "Skill") {
       const { ability, mana } = playerData;
@@ -1367,7 +1380,6 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
-    const itemsUsedInAction = store.selectedLetters.filter((l) => l !== null);
     const wordLength = itemsUsedInAction.length;
     const playerPower = playerData.power || 3;
 
@@ -1499,7 +1511,6 @@ export const useGameStore = create((set, get) => ({
     });
 
     set((s) => ({
-      playerShoutText: word.toUpperCase(),
       playerVisual: "idle-1",
       playerData: {
         ...s.playerData,
@@ -1509,9 +1520,6 @@ export const useGameStore = create((set, get) => ({
           statuses: playerSavedStatuses,
         },
       },
-      selectedLetters: new Array(s.playerData.unlockedSlots).fill(null),
-      validWordInfo: null,
-      wordScore: { raw: 0, min: 0, max: 0 },
     }));
 
     await delay(300);
@@ -2191,6 +2199,8 @@ export const useGameStore = create((set, get) => ({
       set({ validWordInfo: null, wordScore: { raw: 0, min: 0, max: 0 } });
       get().initSelectedLetters();
       get().updateEnemy(en.id, { shoutText: bestWord.toUpperCase() });
+      // 🔊 ศัตรูอ่านออกเสียงคำศัพท์
+      await sfx.speakWord(bestWord);
       await delay(800);
       get().updateEnemy(en.id, { shoutText: "" });
 
@@ -2460,6 +2470,8 @@ export const useGameStore = create((set, get) => ({
     );
 
     get().updateEnemy(en.id, { shoutText: singleMeaning });
+    // 🔊 ศัตรูอ่านคำใบ้ความหมาย
+    await sfx.speakWord(singleMeaning);
     await delay(600);
     set({
       gameState: "QUIZ_MODE",

@@ -81,38 +81,40 @@ export const MeaningPopup = ({ entries }) => {
         <motion.div
           key={currentTypeName}
           initial={{ opacity: 0, scale: 0.9, y: 10 }}
-          animate={{ opacity: 0.95, scale: 1, y: 0 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 25 }}
           style={{
-            background: "rgba(244, 228, 188, 0.95)", 
-            border: "2px solid #5c4033",
-            padding: "5px 12px 14px 12px",
-            borderRadius: "4px", 
+            background: "var(--color-panel-light)", 
+            border: "2px solid var(--color-primary)",
+            padding: "8px 16px 16px 16px",
+            borderRadius: "12px", 
             textAlign: "center",
-            boxShadow: "0 3px 0 rgba(92, 64, 51, 0.3)", 
+            boxShadow: "var(--shadow-lg), inset 0 0 20px rgba(212,175,55,0.1)", 
             width: "fit-content", 
-            minWidth: "200px",
-            maxWidth: "400px",
-            minHeight: "40px",
+            minWidth: "220px",
+            maxWidth: "450px",
+            minHeight: "50px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             position: "relative",
+            backdropFilter: "blur(12px)",
           }}
         >
           <span style={{ 
-            fontSize: "9px",
-            color: "#8d6e63", 
+            fontSize: "11px",
+            color: "var(--color-primary)", 
             fontWeight: "900", 
             textTransform: "uppercase", 
-            marginBottom: "3px",
-            letterSpacing: "1px",
-            borderBottom: "1px dashed rgba(92, 64, 51, 0.3)",
-            paddingBottom: "2px",
-            width: "80%",
-            flexShrink: 0 
+            marginBottom: "6px",
+            letterSpacing: "2px",
+            borderBottom: "1px solid var(--color-border)",
+            paddingBottom: "4px",
+            width: "100%",
+            flexShrink: 0,
+            fontFamily: "var(--font-game)"
           }}>
-            — {currentTypeName} —
+            {currentTypeName}
           </span>
 
           <div 
@@ -134,15 +136,16 @@ export const MeaningPopup = ({ entries }) => {
               <span 
                 key={idx}
                 style={{
-                  background: "#e8d5b5", 
-                  border: "1px solid #b89768",
-                  padding: "2px 6px",
-                  borderRadius: "2px", 
-                  fontSize: "12px",
-                  color: "#4a2c11", 
+                  background: "rgba(255,255,255,0.05)", 
+                  border: "1px solid var(--color-border)",
+                  padding: "4px 10px",
+                  borderRadius: "6px", 
+                  fontSize: "13px",
+                  color: "var(--color-text-bright)", 
                   fontWeight: "bold",
-                  boxShadow: "0 1px 0 rgba(92, 64, 51, 0.2)", 
-                  whiteSpace: "nowrap"
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.3)", 
+                  whiteSpace: "nowrap",
+                  fontFamily: "var(--font-main)"
                 }}
               >
                 {m}
@@ -174,12 +177,12 @@ export const MeaningPopup = ({ entries }) => {
 
 const outerArrowStyle = {
   position: "absolute",
-  background: "#5c4033",
-  color: "#f4e4bc",
-  border: "2px solid #3a251c", 
-  borderRadius: "3px",
-  width: "24px",
-  height: "28px",
+  background: "var(--color-panel-light)",
+  color: "var(--color-primary)",
+  border: "1.5px solid var(--color-primary)", 
+  borderRadius: "50%",
+  width: "32px",
+  height: "32px",
   cursor: "pointer",
   fontWeight: "bold",
   fontSize: "14px",

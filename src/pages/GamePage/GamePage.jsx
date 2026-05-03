@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { bgm } from "../../utils/sfx";
+import { bgm, sfx } from "../../utils/sfx";
 
 // --- Icons ---
 import {
@@ -39,6 +39,7 @@ import { PlayerStatusCard } from "./features/downPanel/PlayerStatusCard";
 import { TurnQueueBar } from "./features/topPanel/TurnQueueBar";
 import { DamagePopup } from "./features/topPanel/DamagePopup";
 import { TargetPickerOverlay } from "./features/downPanel/TargetPickerOverlay";
+import { VfxManager } from "./features/topPanel/VfxManager";
 import { GameDialog } from "../../components/GameDialog";
 import LoadingScreen from "../../components/Loading/LoadingPage";
 import ErrorView from "../../components/Loading/ErrorView";
@@ -74,15 +75,14 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
               top: "calc(100% + 14px)",
               left: leftPos,
               right: rightPos,
-              background: "rgba(15, 11, 8, 0.95)",
-              border: "1px solid #d4af37",
-              borderRadius: "6px",
-              padding: "8px 10px",
-              minWidth: "150px",
+              background: "var(--color-panel-light)",
+              border: "1px solid var(--color-primary)",
+              borderRadius: "8px",
+              padding: "10px 14px",
+              minWidth: "180px",
               zIndex: 9999,
               pointerEvents: "none",
-              boxShadow:
-                "0 6px 12px rgba(0,0,0,0.8), inset 0 0 8px rgba(212,175,55,0.1)",
+              boxShadow: "var(--shadow-lg), 0 0 20px rgba(0,0,0,0.5)",
               display: "flex",
               flexDirection: "column",
               gap: "4px",
@@ -92,29 +92,30 @@ const TopHudTooltipWrapper = ({ children, title, desc, align = "center" }) => {
             <div
               style={{
                 position: "absolute",
-                top: "-6px",
+                top: "-7px",
                 left: arrowLeft,
                 right: arrowRight,
                 marginLeft: arrowMarginLeft,
-                width: "10px",
-                height: "10px",
-                background: "rgba(15, 11, 8, 0.95)",
-                borderLeft: "1px solid #d4af37",
-                borderTop: "1px solid #d4af37",
+                width: "12px",
+                height: "12px",
+                background: "var(--color-panel-light)",
+                borderLeft: "1px solid var(--color-primary)",
+                borderTop: "1px solid var(--color-primary)",
                 transform: "rotate(45deg)",
               }}
             />
             <span
               style={{
-                color: "#ffd700",
-                fontSize: "12px",
+                color: "var(--color-text-bright)",
+                fontSize: "14px",
                 fontWeight: "bold",
-                fontFamily: "'Palatino', serif",
+                fontFamily: "var(--font-elegant)",
+                letterSpacing: "0.5px"
               }}
             >
               {title}
             </span>
-            <span style={{ color: "#bdc3c7", fontSize: "11px" }}>{desc}</span>
+            <span style={{ color: "var(--color-text-muted)", fontSize: "12px" }}>{desc}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -236,6 +237,7 @@ export default function GameApp() {
   const handleActionClick = useCallback(
     (type) => {
       if (!store.validWordInfo) return;
+
       setPendingAction(type);
       const alive = store.enemies.filter((e) => e.hp > 0);
       if (type === "Guard") executeAction("Guard", null);
@@ -364,16 +366,18 @@ export default function GameApp() {
 
   const commonHudStyle = useMemo(
     () => ({
-      background: "rgba(20, 14, 10, 0.9)",
-      border: "2px solid #ffd700",
-      borderBottom: "4px solid #b8860b",
-      borderRadius: "8px",
-      boxShadow: "0 4px 10px rgba(0,0,0,0.6)",
+      background: "var(--color-panel)",
+      border: "2px solid var(--color-primary)",
+      borderBottom: "4px solid var(--color-secondary)",
+      borderRadius: "10px",
+      boxShadow: "var(--shadow-md), inset 0 0 10px rgba(212,175,55,0.1)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      height: "52px",
+      height: "56px",
       boxSizing: "border-box",
+      backdropFilter: "blur(8px)",
+      transition: "all 0.3s ease"
     }),
     [],
   );
@@ -425,13 +429,15 @@ export default function GameApp() {
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
-            border: "4px solid #1e1510",
+            border: "6px solid #1e1510",
             background: "#B3F1FF",
             position: "relative",
             overflow: "hidden",
-            boxShadow: "0 0 50px rgba(0,0,0,1)",
+            boxShadow: "0 0 100px rgba(0,0,0,1)",
+            borderRadius: "8px"
           }}
         >
+          <VfxManager gameState={store.gameState} isShaking={store.isShaking} />
           {/* HUD Layer */}
           <div
             style={{
@@ -670,17 +676,17 @@ export default function GameApp() {
           <div
             style={{
               flex: 1,
-              background: "#1a120b",
-              borderTop: "4px solid #5c4033",
+              background: "var(--color-bg)",
+              borderTop: "4px solid var(--color-border)",
               display: "flex",
-              padding: "15px 0px",
+              padding: "15px 20px",
               boxSizing: "border-box",
               position: "relative",
               boxShadow:
                 store.gameState === "PLAYERTURN"
-                  ? "inset 0 10px 30px rgba(212,175,55,0.15)"
-                  : "none",
-              transition: "box-shadow 0.5s ease",
+                  ? "inset 0 10px 40px rgba(212,175,55,0.2)"
+                  : "inset 0 10px 30px rgba(0,0,0,0.5)",
+              transition: "all 0.5s ease",
             }}
           >
             {store.gameState === "PLAYERTURN" && (
@@ -725,18 +731,16 @@ export default function GameApp() {
                   onSelectTarget={(id) => executeAction(pendingAction, id)}
                 />
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "12px",
-                    width: "1160px", // 🌟 บังคับความกว้างรวมของทั้ง 3 ส่วน (Status + Inventory + Action)
-                    height: "100%",
-                    flexShrink: 0,    // 🌟 ห้าม Parent มาบีบพื้นที่ส่วนนี้
-                    margin: "0 auto", // จัดกึ่งกลาง
-                  }}
-                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: "12px",
+                      width: "100%",
+                      height: "100%",
+                    }}
+                  >
                   <PlayerStatusCard
                     onHeal={() => store.usePotion("health")}
                     onCure={() => store.usePotion("cure")}

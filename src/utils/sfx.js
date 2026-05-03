@@ -38,7 +38,36 @@ export const sfx = {
   playMiss: () => playSound(miss),
   playWalk: () => playSound(walk, 0.1), // เดินอาจจะปรับเบาหน่อย
   playPoison: () => playSound(poison),
-  playGameOver: () => playSound(gameOver, 0.7)
+  playGameOver: () => playSound(gameOver, 0.7),
+  speakWord: (word) => {
+    return new Promise((resolve) => {
+      const { sfxVolume, isSfxMuted } = useAuthStore.getState();
+      if (isSfxMuted || !word) {
+        resolve();
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "en-US";
+      utterance.volume = sfxVolume;
+      utterance.pitch = 1.3; // ปรับลงจาก 1.6 เพื่อให้ฟังชัดขึ้นตามที่ขอ
+      utterance.rate = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const cuteVoice = voices.find(v => v.name.includes("Samantha")) || 
+                       voices.find(v => v.name.includes("Google US English")) ||
+                       voices.find(v => v.name.toLowerCase().includes("female")) ||
+                       voices[0];
+      
+      if (cuteVoice) utterance.voice = cuteVoice;
+
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+
+      window.speechSynthesis.speak(utterance);
+    });
+  }
 };
 
 // =========================================================
