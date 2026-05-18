@@ -136,7 +136,7 @@ const MovePanel = () => {
   };
 
   return (
-    <div className="admin-container"> {/* ✅ ครอบด้วย admin-container เพื่อให้ Tooltip ทำงาน */}
+    <div className="panel-container"> {/* ✅ ครอบด้วย admin-container เพื่อให้ Tooltip ทำงาน */}
       <form className="form-box move-mode" onSubmit={handleSubmit}>
         <h3 style={{ width: "100%", margin: "0 0 15px 0", color: "#2196f3", textAlign: "center", fontFamily: '"Press Start 2P"' }}>
           {isEditing ? `EDIT MOVE: ${formData.id}` : "ADD NEW MOVE"}

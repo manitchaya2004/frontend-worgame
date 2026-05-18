@@ -628,7 +628,7 @@ const handleDelete = async (id) => {
   );
 
   return (
-    <div className="admin-container">
+    <div className="panel-container">
       <form className="form-box stage-mode" onSubmit={handleCreateSubmit}>
         <h3 className="form-title stage">NEW STAGE</h3>
 

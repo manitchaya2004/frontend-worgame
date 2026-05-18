@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // 🌟 แยก Component ย่อยเพื่อจัดการ Animation รายตัว
 const SingleRORPopup = ({ popup, removePopup }) => {
   const isNumber = typeof popup.value === "number";
-  const isHeal = popup.color === "#2ecc71" || (isNumber && popup.value > 0 && popup.isPlayer); // เช็คว่าเป็นฮีลหรือไม่ (จากสี หรือ logic)
+  const isHeal = popup.color === "#2ecc71"; // เช็คว่าเป็นฮีลหรือไม่ (จากสี หรือ logic)
 
   // จัดการเครื่องหมาย + หรือ - ตามสไตล์ RO
   let displayText = popup.value;

@@ -1029,7 +1029,7 @@ const handleDelete = async (id) => {
   };
 
   return (
-    <div className="admin-container">
+    <div className="panel-container">
       <form className="form-box hero-mode" onSubmit={handleCreateSubmit}>
         <h3 className="form-title hero">NEW HERO</h3>
 
