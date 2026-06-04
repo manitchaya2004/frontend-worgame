@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import StarBackground from "../HomePage/components/StarBackground";
 import Logo  from "../../assets/icons/Logo.svg"
+import { useAuthStore } from "../../store/useAuthStore";
 import "./style.css";
 
 const PixelButton = ({
@@ -47,8 +48,55 @@ const PixelButton = ({
   );
 };
 
+const GuestButton = ({ onClick }) => {
+  return (
+    <motion.div 
+      whileHover={{ scale: 1.05 }} 
+      whileTap={{ scale: 0.95 }}
+      style={{ display: "flex", width: "100%" }}
+    >
+      <Box
+        onClick={onClick}
+        sx={{
+          py: { xs: 1.5, sm: 1.5 },
+          fontFamily: "'Press Start 2P'",
+          width: "100%",
+          textAlign: "center",
+          fontSize: { xs: "9px", sm: "12px", md: "14px", lg: "16px" },
+          backgroundColor: "#c49a3a",
+          color: "#1a120b",
+          border: { xs: "3px solid #3e2615", sm: "4px solid #3e2615" },
+          borderRadius: "10px",
+          cursor: "pointer",
+          boxShadow: { xs: "3px 3px 0 #3e2615", sm: "4px 4px 0 #3e2615" },
+          userSelect: "none",
+          display: 'flex',
+          justifyContent:'center',
+          alignItems: 'center',
+          whiteSpace: "nowrap",
+          "&:hover": {
+            backgroundColor: "#d4af37",
+          },
+          "@media (orientation: landscape) and (max-height: 450px)": {
+            py: 1.2,
+            fontSize: "10px",
+          }
+        }}
+      >
+        PLAY AS GUEST (เล่นแบบไม่ล็อคอิน)
+      </Box>
+    </motion.div>
+  );
+};
+
 const AuthPage = () => {
   const navigate = useNavigate();
+  const loginAsGuest = useAuthStore((state) => state.loginAsGuest);
+
+  const handleGuestPlay = async () => {
+    await loginAsGuest();
+    navigate("/home");
+  };
 
   return (
     <Box
@@ -94,28 +142,40 @@ const AuthPage = () => {
         />
       </motion.div>
 
-      {/* 🎮 BUTTON GROUP */}
+      {/* 🎮 BUTTON GROUP & GUEST */}
       <Box
         sx={{
           display: "flex",
-          flexDirection: "row",
-          gap: { xs: 1.5, sm: 3 }, // ลดช่องว่างระหว่างปุ่มบนมือถือ
-          px: { xs: 1.5, sm: 4 }, // ลด padding กรอบด้านใน
-          py: { xs: 2, sm: 3 },
-          borderRadius: "16px",
-          border: "4px solid #5c3a1e",
-          backgroundColor: "#2a2438",
-          boxShadow: { xs: "4px 4px 0 #3e2615", sm: "6px 6px 0 #3e2615" },
-          width: "100%", // ใช้ 100% ชัวร์กว่า -webkit-fill-available
-          justifyContent: "center",
-          alignItems: "center",
-          "@media (orientation: landscape) and (max-height: 450px)": {
-            py: 1.5,
-          }
+          flexDirection: "column",
+          gap: 2,
+          width: "100%",
+          alignItems: "center"
         }}
       >
-        <PixelButton label="Login" onClick={() => navigate("/auth/login")} />
-        <PixelButton label="Register" onClick={() => navigate("/auth/register")} />
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            gap: { xs: 1.5, sm: 3 }, // ลดช่องว่างระหว่างปุ่มบนมือถือ
+            px: { xs: 1.5, sm: 4 }, // ลด padding กรอบด้านใน
+            py: { xs: 2, sm: 3 },
+            borderRadius: "16px",
+            border: "4px solid #5c3a1e",
+            backgroundColor: "#2a2438",
+            boxShadow: { xs: "4px 4px 0 #3e2615", sm: "6px 6px 0 #3e2615" },
+            width: "100%", // ใช้ 100% ชัวร์กว่า -webkit-fill-available
+            justifyContent: "center",
+            alignItems: "center",
+            "@media (orientation: landscape) and (max-height: 450px)": {
+              py: 1.5,
+            }
+          }}
+        >
+          <PixelButton label="Login" onClick={() => navigate("/auth/login")} />
+          <PixelButton label="Register" onClick={() => navigate("/auth/register")} />
+        </Box>
+
+        <GuestButton onClick={handleGuestPlay} />
       </Box>
     </Box>
   );

@@ -525,6 +525,41 @@ export const useGameStore = create((set, get) => ({
 
       if (stageError) throw stageError;
 
+      // Randomize monsters for guest mode
+      if (userData?.username === "GuestPlayer") {
+        try {
+          const { data: allMonsters } = await supabase
+            .from("monster")
+            .select(`
+              *,
+              monster_deck (
+                id,
+                effect,
+                size
+              )
+            `);
+
+          if (allMonsters && allMonsters.length > 0) {
+            const bosses = allMonsters.filter(m => m.isBoss);
+            const regulars = allMonsters.filter(m => !m.isBoss);
+
+            rawStageData.monster_spawn = rawStageData.monster_spawn.map(spawn => {
+              const isSpawnBoss = spawn.monster?.isBoss;
+              let pool = isSpawnBoss ? bosses : regulars;
+              if (pool.length === 0) pool = allMonsters; // Fallback
+
+              const randomMonster = pool[Math.floor(Math.random() * pool.length)];
+              return {
+                ...spawn,
+                monster: randomMonster
+              };
+            });
+          }
+        } catch (err) {
+          console.warn("Failed to randomize guest monsters:", err);
+        }
+      }
+
       const groupedEvents = rawStageData.monster_spawn
         .reduce((acc, row) => {
           const dist = Number(row.distant_spawn);
@@ -925,6 +960,7 @@ export const useGameStore = create((set, get) => ({
   saveWordUsageLog: async () => {
     const store = get();
     const username = store.username;
+    if (username === "GuestPlayer") return;
     const { wordLog } = store;
 
     const wordUsageCounts = {};
@@ -1019,6 +1055,36 @@ export const useGameStore = create((set, get) => ({
         : 0;
       const totalMoneyEarned = monsterMoney + stageReward;
 
+      if (username === "GuestPlayer") {
+        const authStore = useAuthStore.getState();
+        
+        // Update stage progresses in memory
+        const updatedStages = authStore.currentUser.stages.map((s, idx, arr) => {
+          if (s.stage_id === currentStageId) {
+            return { ...s, is_completed: true, is_current: false, last_distant: store.stageData.distant_goal };
+          }
+          const currentStageIdx = arr.findIndex(item => item.stage_id === currentStageId);
+          if (idx === currentStageIdx + 1) {
+            return { ...s, is_current: true };
+          }
+          return s;
+        });
+
+        const updatedUser = {
+          ...authStore.currentUser,
+          money: authStore.currentUser.money + totalMoneyEarned,
+          stages: updatedStages
+        };
+        useAuthStore.setState({ currentUser: updatedUser });
+
+        set({
+          gameState: "GAME_CLEARED",
+          currentCoin: updatedUser.money,
+          isFirstClear: isFirstClear,
+        });
+        return;
+      }
+
       const { data: currentResource, error: resourceErr } = await supabase
         .from("player_resource")
         .select("coin, potion_slot")
@@ -1112,6 +1178,20 @@ export const useGameStore = create((set, get) => ({
       const username = store.username;
       const currentStageId = store.stageData?.id;
       const currentDist = Math.floor(store.distance);
+
+      if (username === "GuestPlayer") {
+        const authStore = useAuthStore.getState();
+        const updatedUser = {
+          ...authStore.currentUser,
+          money: authStore.currentUser.money + Number(earnedAmount),
+        };
+        useAuthStore.setState({ currentUser: updatedUser });
+        set({
+          currentCoin: updatedUser.money,
+          gameState: "OVER"
+        });
+        return;
+      }
 
       await store.saveWordUsageLog();
 

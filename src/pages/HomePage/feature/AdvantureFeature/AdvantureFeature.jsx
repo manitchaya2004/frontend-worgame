@@ -41,6 +41,26 @@ const AdvantureFeature = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPlayingMiniGame, setIsPlayingMiniGame] = useState(false);
 
+  useEffect(() => {
+    if (currentUser?.username === "GuestPlayer" && stages?.length > 0) {
+      const hasStages = currentUser.stages && currentUser.stages.length > 0;
+      if (!hasStages) {
+        const initialStages = stages.map((stage, idx) => ({
+          stage_id: stage.id,
+          is_completed: false,
+          is_current: idx === 0,
+          last_distant: 0
+        }));
+        useAuthStore.setState((state) => ({
+          currentUser: {
+            ...state.currentUser,
+            stages: initialStages
+          }
+        }));
+      }
+    }
+  }, [stages, currentUser]);
+
   const isProcessingRef = useRef(false);
   const handleStageClick = async (stage) => {
   // 🚫 กันกดรัวตั้งแต่แรก

@@ -162,10 +162,88 @@ export const useAuthStore = create(
         }
       },
 
+      /* ===== PLAY AS GUEST (เล่นแบบไม่ Login) ===== */
+      loginAsGuest: async () => {
+        set({ loginState: LOADING });
+        try {
+          const { data: firstHero } = await supabase
+            .from("hero")
+            .select(`
+              *,
+              hero_deck (
+                id,
+                effect,
+                size
+              )
+            `)
+            .order("id", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          const defaultHero = firstHero ? {
+            hero_id: firstHero.id,
+            name: firstHero.name,
+            price: firstHero.price,
+            level: 1,
+            is_selected: true,
+            ability_cost: firstHero.ability_cost || 10,
+            ability_description: firstHero.ability_description || "",
+            stats: {
+              hp: firstHero.hp,
+              power: firstHero.power,
+              speed: firstHero.speed,
+            },
+            hero_deck: firstHero.hero_deck || [],
+          } : {
+            hero_id: "h001",
+            name: "Aria",
+            price: 0,
+            level: 1,
+            is_selected: true,
+            ability_cost: 10,
+            ability_description: "Double your next Strike letter's power.",
+            stats: {
+              hp: 20,
+              power: 3,
+              speed: 3
+            },
+            hero_deck: [
+              { id: "d1", effect: "strike", size: 1 },
+              { id: "d2", effect: "guard", size: 1 }
+            ]
+          };
+
+          const guestUser = {
+            username: "GuestPlayer",
+            money: 500,
+            role: "player",
+            potion: { health: 3, cure: 3, reroll: 3, max_slot: 3 },
+            stamina: { current: 5, max: 5, timeToNext: 0 },
+            stages: [],
+            heroes: [defaultHero]
+          };
+
+          set({
+            isAuthenticated: true,
+            currentUser: guestUser,
+            isFirstTime: false,
+            loginState: LOADED
+          });
+        } catch (err) {
+          console.error("Guest login failed:", err);
+          set({ loginState: FAILED });
+        }
+      },
+
       /* ===== CHECK AUTH (ตรวจสอบ Session เมื่อ Refresh หน้าจอ) ===== */
       checkAuth: async () => {
         set({ authLoading: true });
         try {
+          const user = get().currentUser;
+          if (user && user.username === "GuestPlayer") {
+            set({ authLoading: false, isAuthenticated: true });
+            return;
+          }
           const {
             data: { session },
           } = await supabase.auth.getSession();
@@ -215,6 +293,22 @@ export const useAuthStore = create(
 
       /* ===== 4. HERO ACTIONS (ใช้ Username อ้างอิง) ===== */
       selectHero: async (heroId) => {
+        const user = get().currentUser;
+        if (user && user.username === "GuestPlayer") {
+          set({ selectHeroState: LOADING });
+          const updatedHeroes = user.heroes.map((h) => ({
+            ...h,
+            is_selected: h.hero_id === heroId || h.id === heroId,
+          }));
+          set((state) => ({
+            selectHeroState: LOADED,
+            currentUser: {
+              ...state.currentUser,
+              heroes: updatedHeroes,
+            },
+          }));
+          return true;
+        }
         try {
           set({ selectHeroState: LOADING });
 
@@ -251,6 +345,64 @@ export const useAuthStore = create(
       },
 
       buyHero: async (heroId) => {
+        const user = get().currentUser;
+        if (user && user.username === "GuestPlayer") {
+          try {
+            set({ buyHeroState: "LOADING", buyHeroError: null });
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            const { data: heroData } = await supabase
+              .from("hero")
+              .select(`
+                *,
+                hero_deck (
+                  id,
+                  effect,
+                  size
+                )
+              `)
+              .eq("id", heroId)
+              .single();
+
+            if (heroData) {
+              if (user.money < heroData.price) {
+                throw new Error("Not enough money!");
+              }
+
+              const newHero = {
+                hero_id: heroData.id,
+                name: heroData.name,
+                price: heroData.price,
+                level: 1,
+                is_selected: false,
+                ability_cost: heroData.ability_cost || 10,
+                ability_description: heroData.ability_description || "",
+                stats: {
+                  hp: heroData.hp,
+                  power: heroData.power,
+                  speed: heroData.speed,
+                },
+                hero_deck: heroData.hero_deck || [],
+              };
+
+              set((state) => ({
+                currentUser: {
+                  ...state.currentUser,
+                  money: state.currentUser.money - heroData.price,
+                  heroes: [...(state.currentUser?.heroes || []), newHero],
+                },
+                buyHeroState: "LOADED",
+              }));
+            }
+          } catch (err) {
+            set({ buyHeroState: "FAILED", buyHeroError: err.message });
+          } finally {
+            setTimeout(() => {
+              set({ buyHeroState: "INITIALIZED" });
+            }, 800);
+          }
+          return;
+        }
         try {
           set({ buyHeroState: "LOADING", buyHeroError: null });
 
@@ -302,6 +454,50 @@ export const useAuthStore = create(
       },
 
       upgradeHero: async (heroId) => {
+        const user = get().currentUser;
+        if (user && user.username === "GuestPlayer") {
+          try {
+            set({ upgradeStatus: LOADING });
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            const hero = user.heroes.find((h) => h.hero_id === heroId || h.id === heroId);
+            if (!hero) throw new Error("Hero not found");
+
+            const nextLvl = hero.level + 1;
+            const upgradeCost = nextLvl * 100;
+
+            if (user.money < upgradeCost) throw new Error("Not enough money");
+
+            const updatedHeroes = user.heroes.map((h) => {
+              if (h.hero_id === heroId || h.id === heroId) {
+                return {
+                  ...h,
+                  level: nextLvl,
+                  next_upgrade: (nextLvl + 1) * 100,
+                  stats: {
+                    hp: h.stats.hp + 2,
+                    power: h.stats.power + (nextLvl % 3 === 0 ? 1 : 0),
+                    speed: h.stats.speed + (nextLvl % 4 === 0 ? 1 : 0),
+                  }
+                };
+              }
+              return h;
+            });
+
+            const updatedUser = {
+              ...user,
+              money: user.money - upgradeCost,
+              heroes: updatedHeroes
+            };
+
+            set({ upgradeStatus: LOADED, currentUser: updatedUser });
+            return true;
+          } catch (err) {
+            console.error("upgradeHero error:", err);
+            set({ upgradeStatus: FAILED });
+            return false;
+          }
+        }
         set({ upgradeStatus: LOADING });
         try {
           const user = get().currentUser;
@@ -324,6 +520,36 @@ export const useAuthStore = create(
       },
 
       fetchPreviewData: async (heroId) => {
+        const user = get().currentUser;
+        if (user && user.username === "GuestPlayer") {
+          try {
+            set({ previewData: null, upgradeStatus: LOADING });
+            const hero = user.heroes.find((h) => h.hero_id === heroId || h.id === heroId);
+            if (!hero) throw new Error("Hero not found");
+
+            const nextLvl = hero.level + 1;
+            const curStats = hero.stats;
+            const nxtStats = {
+              hp: curStats.hp + 2,
+              power: curStats.power + (nextLvl % 3 === 0 ? 1 : 0),
+              speed: curStats.speed + (nextLvl % 4 === 0 ? 1 : 0),
+            };
+
+            set({
+              previewData: {
+                level: { current: hero.level, next: nextLvl },
+                hp: { current: curStats.hp, next: nxtStats.hp },
+                power: { current: curStats.power, next: nxtStats.power },
+                speed: { current: curStats.speed, next: nxtStats.speed },
+              },
+              upgradeStatus: LOADED,
+            });
+          } catch (err) {
+            console.error("fetchPreviewData error:", err);
+            set({ upgradeStatus: FAILED });
+          }
+          return;
+        }
         set({ previewData: null, upgradeStatus: LOADING });
 
         try {
@@ -381,6 +607,29 @@ export const useAuthStore = create(
 
       /* ===== 5. RESOURCES & STAMINA (ใช้ Username อ้างอิง) ===== */
       updateResources: async (payload) => {
+        const user = get().currentUser;
+        if (user && user.username === "GuestPlayer") {
+          set({ resourceStatus: LOADING });
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          set((state) => ({
+            resourceStatus: LOADED,
+            currentUser: {
+              ...state.currentUser,
+              potion: {
+                ...state.currentUser.potion,
+                health: state.currentUser.potion.health + (payload.heal || 0),
+                cure: state.currentUser.potion.cure + (payload.cure || 0),
+                reroll: state.currentUser.potion.reroll + (payload.reroll || 0),
+              },
+            },
+          }));
+
+          setTimeout(() => {
+            set({ resourceStatus: INITIALIZED });
+          }, 1000);
+          return;
+        }
         set({ resourceStatus: LOADING });
         try {
           const currentUsername = get().currentUser?.username;
@@ -423,6 +672,20 @@ export const useAuthStore = create(
       },
 
       updateStamina: async (amount) => {
+        const user = get().currentUser;
+        if (user && user.username === "GuestPlayer") {
+          const nextStamina = Math.max(0, Math.min(5, user.stamina.current + amount));
+          set((state) => ({
+            currentUser: {
+              ...state.currentUser,
+              stamina: {
+                ...state.currentUser.stamina,
+                current: nextStamina,
+              },
+            },
+          }));
+          return { success: true, currentStamina: nextStamina };
+        }
         try {
           const user = get().currentUser;
           const { data, error } = await supabase.rpc(
@@ -455,6 +718,10 @@ export const useAuthStore = create(
       },
 
       reduceStaminaTimer: async (minutes) => {
+        const user = get().currentUser;
+        if (user && user.username === "GuestPlayer") {
+          return { success: true, currentStamina: user.stamina.current, earnedStamina: false };
+        }
         try {
           const user = get().currentUser;
           const { data, error } = await supabase.rpc(
