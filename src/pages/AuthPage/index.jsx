@@ -137,7 +137,7 @@ const AuthPage = () => {
     navigate("/battle", {
       state: {
         currentUser: guestUser,
-        selectedStage: selectedStage
+        selectedStage: selectedStage.id
       }
     });
   };

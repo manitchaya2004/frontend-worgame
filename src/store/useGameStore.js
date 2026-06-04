@@ -500,30 +500,57 @@ export const useGameStore = create((set, get) => ({
         }
       }
 
-      const { data: rawStageData, error: stageError } = await supabase
-        .from("stage")
-        .select(
-          `
-          *,
-          monster_spawn (
-            spawn_id:id,
-            level,
-            distant_spawn,
-            monster (
-              *,
-              monster_deck (
-                id,
-                effect,
-                size
+      let rawStageData = null;
+      let stageError = null;
+
+      try {
+        const { data, error } = await supabase
+          .from("stage")
+          .select(
+            `
+            *,
+            monster_spawn (
+              spawn_id:id,
+              level,
+              distant_spawn,
+              monster (
+                *,
+                monster_deck (
+                  id,
+                  effect,
+                  size
+                )
               )
             )
+          `,
           )
-        `,
-        )
-        .eq("id", stageId)
-        .single();
+          .eq("id", stageId)
+          .single();
 
-      if (stageError) throw stageError;
+        rawStageData = data;
+        stageError = error;
+      } catch (err) {
+        stageError = err;
+      }
+
+      if (stageError || !rawStageData) {
+        if (userData?.username === "GuestPlayer") {
+          // Construct offline guest fallback stage
+          rawStageData = {
+            id: stageId || "s001",
+            orderNo: 1,
+            name: "Stage 1",
+            description: "Starter Guest Stage",
+            money_reward: 50,
+            distant_goal: 150,
+            slot_count: 3,
+            is_upgrade_potionn: false,
+            monster_spawn: []
+          };
+        } else {
+          throw stageError || new Error("Failed to load stage");
+        }
+      }
 
       // Randomize monsters for guest mode
       if (userData?.username === "GuestPlayer") {
@@ -543,17 +570,38 @@ export const useGameStore = create((set, get) => ({
             const bosses = allMonsters.filter(m => m.isBoss);
             const regulars = allMonsters.filter(m => !m.isBoss);
 
-            rawStageData.monster_spawn = rawStageData.monster_spawn.map(spawn => {
-              const isSpawnBoss = spawn.monster?.isBoss;
-              let pool = isSpawnBoss ? bosses : regulars;
-              if (pool.length === 0) pool = allMonsters; // Fallback
+            // Populate spawns if they are empty
+            if (!rawStageData.monster_spawn || rawStageData.monster_spawn.length === 0) {
+              const normalMon = regulars[Math.floor(Math.random() * regulars.length)] || allMonsters[0];
+              const bossMon = bosses[Math.floor(Math.random() * bosses.length)] || allMonsters[0];
 
-              const randomMonster = pool[Math.floor(Math.random() * pool.length)];
-              return {
-                ...spawn,
-                monster: randomMonster
-              };
-            });
+              rawStageData.monster_spawn = [
+                {
+                  spawn_id: "sp1",
+                  level: 1,
+                  distant_spawn: 50,
+                  monster: normalMon
+                },
+                {
+                  spawn_id: "sp2",
+                  level: 1,
+                  distant_spawn: 100,
+                  monster: bossMon
+                }
+              ];
+            } else {
+              rawStageData.monster_spawn = rawStageData.monster_spawn.map(spawn => {
+                const isSpawnBoss = spawn.monster?.isBoss;
+                let pool = isSpawnBoss ? bosses : regulars;
+                if (pool.length === 0) pool = allMonsters; // Fallback
+
+                const randomMonster = pool[Math.floor(Math.random() * pool.length)];
+                return {
+                  ...spawn,
+                  monster: randomMonster
+                };
+              });
+            }
           }
         } catch (err) {
           console.warn("Failed to randomize guest monsters:", err);
