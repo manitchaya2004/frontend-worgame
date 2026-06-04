@@ -1,14 +1,30 @@
-// สร้างไฟล์ใหม่ src/hook/useGameSfx.js
-import useSound from 'use-sound';
+// src/hook/useGameSfx.js
+import { Howl } from 'howler';
 import { useAuthStore } from '../store/useAuthStore';
 
-export const useGameSfx = (soundFile) => {
-  // ดึงค่าความดังและการ Mute ของ SFX มาจาก Store แบบ Real-time
-  const { sfxVolume, isSfxMuted } = useAuthStore();
+const sfxCache = {};
 
-  const [play] = useSound(soundFile, {
-    volume: isSfxMuted ? 0 : sfxVolume, // ถ้ายกเลิกเสียง ให้ความดังเป็น 0
-  });
-
-  return play;
+const getSfx = (src) => {
+  if (!sfxCache[src]) {
+    sfxCache[src] = new Howl({
+      src: [src],
+      html5: false,
+    });
+  }
+  return sfxCache[src];
 };
+
+export const useGameSfx = (soundFile) => {
+  return () => {
+    const { sfxVolume, isSfxMuted } = useAuthStore.getState();
+    if (isSfxMuted || !soundFile) return;
+
+    try {
+      const sound = getSfx(soundFile);
+      sound.volume(sfxVolume);
+      sound.play();
+    } catch (err) {
+      console.warn("Failed to play SFX:", err);
+    }
+  };
+};

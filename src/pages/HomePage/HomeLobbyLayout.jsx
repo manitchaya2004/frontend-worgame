@@ -40,18 +40,19 @@ export const HomeLobbyLayout = () => {
       <motion.div
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 2.5, repeat: Infinity }}
+        style={{ width: "90%", maxWidth: "400px", display: "flex", justifyContent: "center" }}
       >
-        <img src={Logo} alt="Logo" style={{ width: "400px" }} />
+        <img src={Logo} alt="Logo" style={{ width: "100%", maxWidth: "320px", height: "auto" }} />
       </motion.div>
-      {/* {/* <WordSpellCard /> */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "90%", maxWidth: "380px", mt: 2 }}>
         <Button
         variant="contained"
         onClick={() => navigate("/home/adventure")}
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: 16,
-          width: '380px',
+          fontSize: { xs: 12, sm: 16 },
+          width: '100%',
           backgroundColor: "#5c3a1e",
           border: "4px solid #3e2615",
           boxShadow: "4px 4px 0 #3e2615",
@@ -69,8 +70,8 @@ export const HomeLobbyLayout = () => {
         })}
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: 16,
-          width: '380px',
+          fontSize: { xs: 12, sm: 16 },
+          width: '100%',
           backgroundColor: "#5c3a1e",
           border: "4px solid #3e2615",
           boxShadow: "4px 4px 0 #3e2615",
@@ -86,8 +87,8 @@ export const HomeLobbyLayout = () => {
         onClick={() => navigate("/home/library")}
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: 16,
-          width: '380px',
+          fontSize: { xs: 12, sm: 16 },
+          width: '100%',
           backgroundColor: "#5c3a1e",
           border: "4px solid #3e2615",
           boxShadow: "4px 4px 0 #3e2615",
@@ -103,8 +104,8 @@ export const HomeLobbyLayout = () => {
         onClick={handleConfirmLogout}
         sx={{
           fontFamily: "'Press Start 2P'",
-          fontSize: 16,
-          width: '380px',
+          fontSize: { xs: 12, sm: 16 },
+          width: '100%',
           backgroundColor: "#5c3a1e",
           border: "4px solid #3e2615",
           boxShadow: "4px 4px 0 #3e2615",

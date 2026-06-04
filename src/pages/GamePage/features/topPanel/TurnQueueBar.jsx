@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useGameStore } from "../../../../store/useGameStore";
 
 // แยก Component ย่อยสำหรับรูปแต่ละใบในคิวเพื่อทำระบบ Cache แยกรายตัว
 const QueueIcon = ({ imgSrc }) => {
@@ -52,9 +53,12 @@ const QueueIcon = ({ imgSrc }) => {
   );
 };
 
-export const TurnQueueBar = memo(({ store }) => {
-  const { turnQueue, enemies, gameState, playerData, setHoveredEnemyId } =
-    store;
+export const TurnQueueBar = memo(() => {
+  const turnQueue = useGameStore((state) => state.turnQueue);
+  const enemies = useGameStore((state) => state.enemies);
+  const gameState = useGameStore((state) => state.gameState);
+  const playerData = useGameStore((state) => state.playerData);
+  const setHoveredEnemyId = useGameStore((state) => state.setHoveredEnemyId);
 
   const [isHovered, setIsHovered] = useState(false);
 

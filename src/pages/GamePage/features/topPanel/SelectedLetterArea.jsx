@@ -1,14 +1,18 @@
-import React from "react";
+import React, { memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint, FaBolt, FaCloud, FaPlus, FaCross } from "react-icons/fa";
 import { GiBroadsword, GiShield, GiWaterDrop, GiTrident, GiBowieKnife, GiFangs } from "react-icons/gi";
 import { DeckManager } from "../../../../utils/gameSystem";
+import { useGameStore } from "../../../../store/useGameStore";
 
-export const SelectedLetterArea = ({ store, constraintsRef }) => {
-  const activeSelectedItems = store.selectedLetters.filter((i) => i !== null);
+export const SelectedLetterArea = memo(({ constraintsRef }) => {
+  const selectedLetters = useGameStore((state) => state.selectedLetters);
+  const gameState = useGameStore((state) => state.gameState);
+  const deselectLetter = useGameStore((state) => state.deselectLetter);
+  const activeSelectedItems = selectedLetters.filter((i) => i !== null);
   
   // ✅ เช็คว่าเป็นเทิร์นของผู้เล่นหรือไม่
-  const isPlayerTurn = store.gameState === "PLAYERTURN";
+  const isPlayerTurn = gameState === "PLAYERTURN";
 
   return (
     <div ref={constraintsRef} style={styles.reorderContainer}>
@@ -60,7 +64,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
                 whileHover={isPlayerTurn ? { scale: 1.1 } : {}}
                 whileTap={isPlayerTurn ? { scale: 0.9 } : {}}
                 onClick={() => {
-                  if (isPlayerTurn) store.deselectLetter(item);
+                  if (isPlayerTurn) deselectLetter(item);
                 }}
                 style={{
                   ...styles.letterItemWrapper,
@@ -125,7 +129,7 @@ export const SelectedLetterArea = ({ store, constraintsRef }) => {
       </div>
     </div>
   );
-};
+});
 
 const styles = {
   reorderContainer: { position: "absolute", top: "32%", left: "50%", transform: "translateX(-50%)", zIndex: 100, width: "max-content", pointerEvents: "none" },

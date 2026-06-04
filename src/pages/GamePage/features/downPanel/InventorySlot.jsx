@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaCloud,
@@ -910,15 +910,13 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
   );
 };
 
-const SingleSlot = ({ index, maxSlot }) => {
-  const store = useGameStore();
+const SingleSlot = memo(({ index, maxSlot }) => {
+  const item = useGameStore((state) => state.playerData?.inventory?.[index] ?? null);
+  const isPlayerTurn = useGameStore((state) => state.gameState === "PLAYERTURN");
+  const selectLetter = useGameStore((state) => state.selectLetter);
   const [isHovered, setIsHovered] = useState(false);
   const allowHover = useMemo(() => canHover(), []);
 
-  const inventory = store.playerData.inventory;
-  const isPlayerTurn = store.gameState === "PLAYERTURN";
-
-  const item = inventory[index] ?? null;
   const isLocked = index >= maxSlot;
   const isDisabled = !isPlayerTurn;
 
@@ -983,7 +981,7 @@ const SingleSlot = ({ index, maxSlot }) => {
 
   const onSelect = () => {
     if (isDisabled || isStunned || isLocked || !item) return;
-    store.selectLetter(item, index);
+    selectLetter(item, index);
   };
 
   const getTooltipBuffInfo = () => {
@@ -1428,13 +1426,13 @@ const SingleSlot = ({ index, maxSlot }) => {
       </AnimatePresence>
     </div>
   );
-};
+});
 
-export const InventorySlot = () => {
-  const store = useGameStore();
-  const isPlayerTurn = store.gameState === "PLAYERTURN";
-  const isEnemyTurn = store.gameState === "ENEMYTURN";
-  const isAction = store.gameState === "ACTION";
+export const InventorySlot = memo(() => {
+  const gameState = useGameStore((state) => state.gameState);
+  const isPlayerTurn = gameState === "PLAYERTURN";
+  const isEnemyTurn = gameState === "ENEMYTURN";
+  const isAction = gameState === "ACTION";
 
   const isBoardActive = isPlayerTurn || isEnemyTurn || isAction;
 
@@ -1525,4 +1523,4 @@ export const InventorySlot = () => {
       </div>
     </div>
   );
-};
+});

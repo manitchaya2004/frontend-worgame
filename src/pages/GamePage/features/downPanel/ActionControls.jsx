@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { motion } from "framer-motion";
 import {
   GiBroadsword,
@@ -142,14 +142,15 @@ const FantasyListButton = ({
   </motion.button>
 );
 
-export const ActionControls = ({
+export const ActionControls = memo(({
   onAttackClick,
   onShieldClick,
   onSkillClick,
   onEndTurnClick
 }) => {
-  const store = useGameStore();
-  const { playerData, gameState, validWordInfo } = store;
+  const playerData = useGameStore((state) => state.playerData);
+  const gameState = useGameStore((state) => state.gameState);
+  const validWordInfo = useGameStore((state) => state.validWordInfo);
   const isPlayerTurn = gameState === "PLAYERTURN";
   const hasWord = !!validWordInfo;
 
@@ -248,4 +249,4 @@ export const ActionControls = ({
       </div>
     </div>
   );
-};
+});

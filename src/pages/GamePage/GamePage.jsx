@@ -293,6 +293,19 @@ export default function GameApp() {
   }, [appStatus, animate]);
 
   useEffect(() => {
+    if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+      window.screen.orientation.lock("landscape").catch((err) => {
+        console.log("Programmatic orientation lock blocked:", err);
+      });
+    }
+    return () => {
+      if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+        window.screen.orientation.unlock();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (store.gameState === "GAME_CLEARED") {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       bgm.stop();
@@ -559,7 +572,7 @@ export default function GameApp() {
               transition: "background-position 0.1s linear",
             }}
           >
-            <TurnQueueBar store={store} />
+            <TurnQueueBar />
             <DamagePopup
               popups={store.damagePopups}
               removePopup={store.removePopup}
@@ -574,13 +587,12 @@ export default function GameApp() {
               }}
             >
               <SelectedLetterArea
-                store={store}
                 constraintsRef={constraintsRef}
               />
             </div>
 
             <BossHpBar boss={boss} />
-            <PlayerEntity store={store} />
+            <PlayerEntity />
 
             <AnimatePresence>
               {store.enemies
@@ -748,7 +760,6 @@ export default function GameApp() {
                   />
                   <InventorySlot />
                   <ActionControls
-                    store={store}
                     onAttackClick={() => handleActionClick("Strike")}
                     onShieldClick={() => handleActionClick("Guard")}
                     onSkillClick={() => handleActionClick("Skill")}

@@ -1,8 +1,13 @@
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { Box } from "@mui/material";
+
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-export const FloatingLetters = () => {
+
+export const FloatingLetters = memo(() => {
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const letterCount = isMobile ? 20 : 60;
+
   const items = useMemo(() => {
     return Array.from({ length: 60 }).map((_, i) => {
       const letter = letters[Math.floor(Math.random() * letters.length)];
@@ -19,9 +24,11 @@ export const FloatingLetters = () => {
     });
   }, []);
 
+  const visibleItems = useMemo(() => items.slice(0, letterCount), [letterCount, items]);
+
   return (
     <Box sx={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <motion.div
           key={item.id}
           initial={{ y: "100vh", opacity: 0 }}
@@ -40,6 +47,7 @@ export const FloatingLetters = () => {
             color: "#eaeaea",
             textShadow: "0 0 6px rgba(180,160,255,0.6)",
             pointerEvents: "none",
+            willChange: "transform",
           }}
         >
           {item.letter}
@@ -47,4 +55,5 @@ export const FloatingLetters = () => {
       ))}
     </Box>
   );
-};
+});
+

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const VfxManager = ({ gameState, isShaking }) => {
+export const VfxManager = memo(({ gameState, isShaking }) => {
   const [showSpeedLines, setShowSpeedLines] = useState(false);
 
   useEffect(() => {
@@ -11,6 +11,16 @@ export const VfxManager = ({ gameState, isShaking }) => {
       setShowSpeedLines(false);
     }
   }, [gameState]);
+
+  // Pre-calculate speed line animation parameters once
+  const speedLines = useMemo(() => {
+    return Array.from({ length: 15 }).map((_, i) => ({
+      id: i,
+      y: `${(i * 7 + Math.random() * 5) % 100}%`,
+      duration: 0.3 + Math.random() * 0.4,
+      delay: Math.random() * 2,
+    }));
+  }, []);
 
   return (
     <div style={{
@@ -29,15 +39,15 @@ export const VfxManager = ({ gameState, isShaking }) => {
             exit={{ opacity: 0 }}
             style={{ position: "absolute", inset: 0 }}
           >
-            {[...Array(15)].map((_, i) => (
+            {speedLines.map((line) => (
               <motion.div
-                key={i}
-                initial={{ x: "110%", y: `${Math.random() * 100}%` }}
+                key={line.id}
+                initial={{ x: "110%", y: line.y }}
                 animate={{ x: "-110%" }}
                 transition={{
-                  duration: 0.3 + Math.random() * 0.4,
+                  duration: line.duration,
                   repeat: Infinity,
-                  delay: Math.random() * 2,
+                  delay: line.delay,
                   ease: "linear"
                 }}
                 style={{
@@ -45,7 +55,8 @@ export const VfxManager = ({ gameState, isShaking }) => {
                   width: "100px",
                   height: "2px",
                   background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
-                  boxShadow: "0 0 10px rgba(255,255,255,0.2)"
+                  boxShadow: "0 0 10px rgba(255,255,255,0.2)",
+                  willChange: "transform",
                 }}
               />
             ))}
@@ -70,7 +81,6 @@ export const VfxManager = ({ gameState, isShaking }) => {
         )}
       </AnimatePresence>
 
-      {/* Screen Vignette for intensity */}
       <div style={{
         position: "absolute",
         inset: 0,
@@ -79,4 +89,4 @@ export const VfxManager = ({ gameState, isShaking }) => {
       }} />
     </div>
   );
-};
+});

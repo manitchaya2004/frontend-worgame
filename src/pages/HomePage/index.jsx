@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { Outlet } from "react-router-dom";
-import useSound from "use-sound";
+import { bgm } from "../../utils/sfx";
 import mainBgm from "../../assets/music/main-background.mp3";
 import GameAppBar from "../../components/AppBar";
 import StarBackground from "./components/StarBackground";
@@ -14,6 +14,7 @@ import { useStageStore } from "../../store/useStageStore";
 import { useMonsterStore } from "../../store/useMonsterStore";
 import { useHeroStore } from "../../store/useHeroStroe";
 import LoadingScreen from "../../components/Loading/LoadingPage";
+
 const HomePage = () => {
   const { refreshUser, volume, isMuted } = useAuthStore();
   const { getMonsters } = useMonsterStore();
@@ -22,20 +23,14 @@ const HomePage = () => {
 
   const [isInitializing, setIsInitializing] = useState(true);
 
-  const [playBgm, { pause, sound }] = useSound(mainBgm, {
-    loop: true,
-    volume: isMuted ? 0 : volume, // 💡 ถ้า Mute อยู่ให้ volume เป็น 0
-  });
-
   useEffect(() => {
-    // ถ้าเพิ่งเข้ามาและยังไม่ได้เล่นเพลง ก็ให้เริ่มเล่น (แต่ถ้า Mute อยู่เสียงจะไม่ออกเพราะ volume=0 จากบรรทัดบน)
     if (!isInitializing) {
-       playBgm();
+       bgm.play(mainBgm, 0.1);
     }
     return () => {
-      if (sound) sound.stop();
+      bgm.stop();
     };
-  }, [isInitializing, playBgm, sound]);
+  }, [isInitializing]);
 
   useEffect(() => {
     const loadAllGameData = async () => {

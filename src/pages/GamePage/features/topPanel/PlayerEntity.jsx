@@ -4,6 +4,7 @@ import { DISPLAY_NORMAL, FIXED_Y, PLAYER_X_POS } from "../../../../const/index";
 import { ShoutBubble } from "./ShoutBubble";
 import { HpBar } from "./HpBar";
 import { MpBar } from "./MpBar";
+import { useGameStore } from "../../../../store/useGameStore";
 
 // ✅ Icons
 import { FaLock, FaSkullCrossbones, FaEyeSlash, FaTint } from "react-icons/fa";
@@ -14,15 +15,13 @@ import {
   GiTrident,
 } from "react-icons/gi";
 
-export const PlayerEntity = memo(({ store }) => {
-  const {
-    gameState,
-    playerX,
-    playerData,
-    playerVisual,
-    animFrame,
-    playerShoutText,
-  } = store;
+export const PlayerEntity = memo(() => {
+  const gameState = useGameStore((state) => state.gameState);
+  const playerX = useGameStore((state) => state.playerX);
+  const playerData = useGameStore((state) => state.playerData);
+  const playerVisual = useGameStore((state) => state.playerVisual);
+  const animFrame = useGameStore((state) => state.animFrame);
+  const playerShoutText = useGameStore((state) => state.playerShoutText);
 
   // 1. ตั้งค่า Base URL ให้ตรงกับที่ทำ Preload ไว้
   const STORAGE_BASE_URL =

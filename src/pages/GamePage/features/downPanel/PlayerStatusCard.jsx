@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FaCloud, 
@@ -139,8 +139,10 @@ const MiniBuffIcon = ({ effectName, isActive }) => {
   );
 };
 
-export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
-  const { playerData, username, gameState } = useGameStore();
+export const PlayerStatusCard = memo(({ onHeal, onCure, onReroll }) => {
+  const playerData = useGameStore((state) => state.playerData);
+  const username = useGameStore((state) => state.username);
+  const gameState = useGameStore((state) => state.gameState);
   const [isShieldHovered, setIsShieldHovered] = useState(false);
   const [isDeckHovered, setIsDeckHovered] = useState(false);
 
@@ -266,4 +268,4 @@ export const PlayerStatusCard = ({ onHeal, onCure, onReroll }) => {
 
     </div>
   );
-};
+});

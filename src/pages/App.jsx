@@ -28,6 +28,7 @@ import WordLogCard from "./HomePage/feature/WordLog/wordLogCard.jsx";
 import AdminPage from "./AdminPage/AdminPage";
 import AdminBoss from "./AdminBoss/AdminBoss";
 // import NotFoundPage from "./NotFoundPage";
+import OrientationOverlay from "../components/OrientationOverlay";
 const Forbidden = () => (
   <div style={{ padding: 40, color: "white" }}>
     <h1>403 Forbidden</h1>
@@ -49,8 +50,10 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<RootRedirect />} />
+    <>
+      <OrientationOverlay />
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
       {/* public */}
       <Route element={<AuthLayout />}>
         <Route path="/auth" element={<AuthPage />} />
@@ -90,5 +93,6 @@ export default function App() {
       <Route path="/403" element={<Forbidden />} />
       <Route path="*" element={<Forbidden />} />
     </Routes>
+    </>
   );
 }

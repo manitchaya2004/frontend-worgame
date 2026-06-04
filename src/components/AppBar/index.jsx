@@ -360,8 +360,8 @@ const GameAppBar = () => {
   // 💡 ตรวจสอบว่าเป็น "แนวตั้ง" หรือไม่
   const isPortrait = useMediaQuery("(orientation: portrait)");
   
-  // 💡 ยุบเมนูเฉพาะตอนมือถือ + แนวตั้ง เท่านั้น
-  const shouldCollapseNav = isPortrait && isMobileWidth;
+  // 💡 ยุบเมนูเมื่อเป็นมือถือ (ไม่ว่าจะแนวตั้งหรือแนวนอน)
+  const shouldCollapseNav = isMobileWidth || isLandscapeMobile;
   const isCompact = isMobileWidth || isLandscapeMobile;
 
   const activeHero = currentUser?.heroes?.find((h) => h.is_selected);
@@ -658,93 +658,54 @@ const GameAppBar = () => {
               },
             }}
           >
-            {/* 💡 THE FIX: ยุบเฉพาะมือถือตอนเป็น "แนวตั้ง" เท่านั้น */}
+            {/* 💡 ยุบเฉพาะมือถือ (ทั้งแนวตั้งและแนวนอน) ไม่แสดงลิงก์ปุ่มที่บาร์บนเลย */}
             {shouldCollapseNav ? (
-              <>
-                {/* 1. ปุ่มหลัก ADVENTURE ให้คงไว้เสมอ */}
-                {MAIN_NAV_ITEMS.filter((item) => item.isMain).map((item) => {
-                  const isActive = location.pathname === "/home";
-                  return (
-                    <Button
-                      key={item.id}
-                      onClick={() => {
-                        playClickSound();
-                        navigate(item.path);
-                      }}
+              <Tooltip title="Menu" arrow>
+                <IconButton
+                  onClick={(e) => {
+                    playClickSound();
+                    setNavAnchorEl(e.currentTarget);
+                  }}
+                  sx={{
+                    position: "relative",
+                    color: isNavMenuActive ? THEME.bgDark : "#d7ccc8",
+                    backgroundColor: isNavMenuActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
+                    border: `2px solid ${isNavMenuActive ? THEME.activeBorder : "#5a3e2b"}`,
+                    borderRadius: "8px",
+                    boxShadow: isNavMenuActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
+                    width: "36px",
+                    height: "36px",
+                    transition: "all 0.1s",
+                    "&:hover": {
+                      backgroundColor: isNavMenuActive ? THEME.accent : "rgba(43, 29, 20, 0.9)",
+                      transform: "translateY(1px)",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      fontSize: 20,
+                    },
+                  }}
+                >
+                  {hasEmptySlot ? ( 
+                     <Badge
+                      overlap="circular"
+                      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                      variant="dot"
                       sx={{
-                        position: "relative",
-                        overflow: "visible",
-                        minWidth: "120px",
-                        height: "36px",
-                        flexDirection: "row",
-                        fontFamily: "'Press Start 2P'",
-                        fontSize: 8,
-                        color: isActive ? THEME.bgDark : "#d7ccc8",
-                        backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
-                        border: `2px solid ${isActive ? THEME.activeBorder : "#5a3e2b"}`,
-                        borderRadius: "8px",
-                        boxShadow: isActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
-                        p: { xs: 0, sm: 1.5 },
-                        transition: "all 0.1s",
-                        "&:hover": {
-                          backgroundColor: isActive ? THEME.accent : "rgba(43, 29, 20, 0.9)",
-                          transform: "translateY(1px)",
-                        },
+                        "& .MuiBadge-badge": {
+                          backgroundColor: "#ff1744",
+                          boxShadow: "0 0 5px rgba(0,0,0,0.5)",
+                          right: 2,
+                          top: 2,
+                        }
                       }}
                     >
-                      {item.label}
-                    </Button>
-                  );
-                })}
-
-                {/* 2. ปุ่มเมนูยุบรวม สำหรับรายการที่เหลือ */}
-                <Tooltip title="Menu" arrow>
-                  <IconButton
-                    onClick={(e) => {
-                      playClickSound();
-                      setNavAnchorEl(e.currentTarget);
-                    }}
-                    sx={{
-                      position: "relative",
-                      color: isNavMenuActive ? THEME.bgDark : "#d7ccc8",
-                      backgroundColor: isNavMenuActive ? THEME.accent : "rgba(43, 29, 20, 0.6)",
-                      border: `2px solid ${isNavMenuActive ? THEME.activeBorder : "#5a3e2b"}`,
-                      borderRadius: "8px",
-                      boxShadow: isNavMenuActive ? `0 0 12px ${THEME.accent}` : "0 3px 0 #1a120b",
-                      width: "36px",
-                      height: "36px",
-                      transition: "all 0.1s",
-                      "&:hover": {
-                        backgroundColor: isNavMenuActive ? THEME.accent : "rgba(43, 29, 20, 0.9)",
-                        transform: "translateY(1px)",
-                      },
-                      "& .MuiSvgIcon-root": {
-                        fontSize: 20,
-                      },
-                    }}
-                  >
-                    {hasEmptySlot ? ( 
-                       <Badge
-                        overlap="circular"
-                        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                        variant="dot"
-                        sx={{
-                          "& .MuiBadge-badge": {
-                            backgroundColor: "#ff1744",
-                            boxShadow: "0 0 5px rgba(0,0,0,0.5)",
-                            right: 2,
-                            top: 2,
-                          }
-                        }}
-                      >
-                        <MenuIcon />
-                      </Badge>
-                    ) : (
                       <MenuIcon />
-                    )}
-                  </IconButton>
-                </Tooltip>
-              </>
+                    </Badge>
+                  ) : (
+                    <MenuIcon />
+                  )}
+                </IconButton>
+              </Tooltip>
             ) : (
               /* แสดงปุ่มปกติทั้งหมดถ้าเป็นจอใหญ่ หรือเป็น "แนวนอน" */
               MAIN_NAV_ITEMS.map((item) => {
@@ -969,8 +930,8 @@ const GameAppBar = () => {
           },
         }}
       >
-        {MAIN_NAV_ITEMS.filter((item) => !item.isMain).map((item) => {
-          const isActive = location.pathname.includes(item.path);
+        {MAIN_NAV_ITEMS.map((item) => {
+          const isActive = item.path === "/home" ? location.pathname === "/home" : location.pathname.includes(item.path);
           return (
             <MenuItem
               key={item.id}
