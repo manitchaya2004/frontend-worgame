@@ -33,7 +33,7 @@ body {
   padding: 0;
   overflow: hidden;
   background-color: var(--color-bg);
-  color: var(--color-text-muted);
+  /* color: var(--color-text-muted); */
   font-family: var(--font-main);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
