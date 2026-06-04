@@ -165,6 +165,25 @@ export const useAuthStore = create(
       /* ===== PLAY AS GUEST (เล่นแบบไม่ Login) ===== */
       loginAsGuest: async () => {
         set({ loginState: LOADING });
+        let defaultHero = {
+          hero_id: "h001",
+          name: "Aria",
+          price: 0,
+          level: 1,
+          is_selected: true,
+          ability_cost: 10,
+          ability_description: "Double your next Strike letter's power.",
+          stats: {
+            hp: 20,
+            power: 3,
+            speed: 3
+          },
+          hero_deck: [
+            { id: "d1", effect: "strike", size: 1 },
+            { id: "d2", effect: "guard", size: 1 }
+          ]
+        };
+
         try {
           const { data: firstHero } = await supabase
             .from("hero")
@@ -180,59 +199,46 @@ export const useAuthStore = create(
             .limit(1)
             .maybeSingle();
 
-          const defaultHero = firstHero ? {
-            hero_id: firstHero.id,
-            name: firstHero.name,
-            price: firstHero.price,
-            level: 1,
-            is_selected: true,
-            ability_cost: firstHero.ability_cost || 10,
-            ability_description: firstHero.ability_description || "",
-            stats: {
-              hp: firstHero.hp,
-              power: firstHero.power,
-              speed: firstHero.speed,
-            },
-            hero_deck: firstHero.hero_deck || [],
-          } : {
-            hero_id: "h001",
-            name: "Aria",
-            price: 0,
-            level: 1,
-            is_selected: true,
-            ability_cost: 10,
-            ability_description: "Double your next Strike letter's power.",
-            stats: {
-              hp: 20,
-              power: 3,
-              speed: 3
-            },
-            hero_deck: [
-              { id: "d1", effect: "strike", size: 1 },
-              { id: "d2", effect: "guard", size: 1 }
-            ]
-          };
-
-          const guestUser = {
-            username: "GuestPlayer",
-            money: 500,
-            role: "player",
-            potion: { health: 3, cure: 3, reroll: 3, max_slot: 3 },
-            stamina: { current: 5, max: 5, timeToNext: 0 },
-            stages: [],
-            heroes: [defaultHero]
-          };
-
-          set({
-            isAuthenticated: true,
-            currentUser: guestUser,
-            isFirstTime: false,
-            loginState: LOADED
-          });
+          if (firstHero) {
+            defaultHero = {
+              hero_id: firstHero.id,
+              name: firstHero.name,
+              price: firstHero.price,
+              level: 1,
+              is_selected: true,
+              ability_cost: firstHero.ability_cost || 10,
+              ability_description: firstHero.ability_description || "",
+              stats: {
+                hp: firstHero.hp,
+                power: firstHero.power,
+                speed: firstHero.speed,
+              },
+              hero_deck: firstHero.hero_deck || [],
+            };
+          }
         } catch (err) {
-          console.error("Guest login failed:", err);
-          set({ loginState: FAILED });
+          console.warn("Guest database hero fetch failed, using fallback:", err);
         }
+
+        // Map hero_deck to deck_list to prevent errors in setupGame
+        defaultHero.deck_list = defaultHero.hero_deck;
+
+        const guestUser = {
+          username: "GuestPlayer",
+          money: 500,
+          role: "player",
+          potion: { health: 3, cure: 3, reroll: 3, max_slot: 3 },
+          stamina: { current: 5, max: 5, timeToNext: 0 },
+          stages: [],
+          heroes: [defaultHero]
+        };
+
+        set({
+          isAuthenticated: true,
+          currentUser: guestUser,
+          isFirstTime: false,
+          loginState: LOADED
+        });
       },
 
       /* ===== CHECK AUTH (ตรวจสอบ Session เมื่อ Refresh หน้าจอ) ===== */

@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import StarBackground from "../HomePage/components/StarBackground";
 import Logo  from "../../assets/icons/Logo.svg"
 import { useAuthStore } from "../../store/useAuthStore";
+import { useGameStore } from "../../store/useGameStore";
+import { supabase } from "../../service/supabaseClient";
 import "./style.css";
 
 const PixelButton = ({
@@ -83,7 +85,7 @@ const GuestButton = ({ onClick }) => {
           }
         }}
       >
-        PLAY AS GUEST (เล่นแบบไม่ล็อคอิน)
+        PLAY AS GUEST
       </Box>
     </motion.div>
   );
@@ -94,8 +96,50 @@ const AuthPage = () => {
   const loginAsGuest = useAuthStore((state) => state.loginAsGuest);
 
   const handleGuestPlay = async () => {
+    // 1. Log in as Guest in the auth store
     await loginAsGuest();
-    navigate("/home");
+
+    // 2. Fetch the first stage from database
+    let selectedStage = null;
+    try {
+      const { data: firstStage } = await supabase
+        .from("stage")
+        .select("*")
+        .order("orderNo", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      selectedStage = firstStage;
+    } catch (err) {
+      console.warn("Failed to fetch guest stage from DB, using fallback stage:", err);
+    }
+
+    if (!selectedStage) {
+      selectedStage = {
+        id: "s001",
+        name: "Stage 1",
+        description: "Starter Stage",
+        money_reward: 50,
+        distant_goal: 100,
+        slot_count: 3,
+        is_upgrade_potionn: false,
+        monster_spawn: []
+      };
+    }
+
+    // Get the guest user
+    const guestUser = useAuthStore.getState().currentUser;
+
+    // Reset game store
+    useGameStore.getState().reset();
+
+    // 3. Navigate directly to /battle
+    navigate("/battle", {
+      state: {
+        currentUser: guestUser,
+        selectedStage: selectedStage
+      }
+    });
   };
 
   return (
